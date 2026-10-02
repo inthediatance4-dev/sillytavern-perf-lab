@@ -1,0 +1,2 @@
+# Preserve the captured production bytes, including line endings.
+* -text

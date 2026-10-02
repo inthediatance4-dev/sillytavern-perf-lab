@@ -1,0 +1,14 @@
+node_modules/
+.worktrees/
+.lab-data/
+.lab-config.yaml
+.evidence/
+.fixtures/
+.cache/
+/dist/
+data/
+config.yaml
+*.log
+*.bak
+.env
+.env.*

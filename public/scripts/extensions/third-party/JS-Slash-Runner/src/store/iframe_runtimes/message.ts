@@ -1,0 +1,156 @@
+import { useGlobalSettingsStore } from '@/store/settings';
+import { isFrontend } from '@/util/is_frontend';
+import { chat, event_types, eventSource } from '@sillytavern/script';
+import { uuidv4 } from '@sillytavern/scripts/utils';
+
+type Runtime = { message_id: number; reload_memo: string; elements: HTMLElement[] };
+
+function render$mes($mes: JQuery<HTMLElement>, reload_memo: string): Runtime[] {
+  return _($mes.toArray())
+    .map(div => {
+      const message_id = Number($(div).attr('mesid'));
+      const $element = $(div)
+        .find('pre')
+        .filter((_index, pre) => isFrontend($(pre).text()))
+        .filter((_index, pre) => {
+          if (useGlobalSettingsStore().settings.render.allow_streaming) {
+            return $(pre).closest('.mes_text, .TH-streaming').length === 0;
+          }
+          return true;
+        })
+        .map((_index, pre) => {
+          const $pre = $(pre);
+          const $possible_div = $pre.parent('div.TH-render');
+          if ($possible_div.length > 0) {
+            return $possible_div[0];
+          }
+          $pre.wrap('<div class="TH-render">');
+          return $pre.parent('div.TH-render')[0];
+        });
+      return { message_id, reload_memo, elements: $element.toArray() };
+    })
+    .filter(({ elements }) => elements.length > 0)
+    .value();
+}
+
+function renderMessages(ids: number[], reload_memo: string): Runtime[] {
+  const $mes = $('#chat > .mes').filter((_index, div) => _.includes(ids, Number($(div).attr('mesid'))));
+  return render$mes($mes, reload_memo);
+}
+
+export function calcToRender(depth: number, ignore_hidden: boolean): number[] {
+  const min_showed_message_id = Number($('#chat > .mes').first().attr('mesid'));
+
+  // 虽然两路可以合并，但是还是拆开，这样 !ignore_hidden 时性能应好一些
+  if (!ignore_hidden) {
+    return _.range(
+      depth === 0 ? min_showed_message_id : Math.max(min_showed_message_id, chat.length - depth),
+      chat.length,
+    );
+  }
+  return _(_.range(min_showed_message_id, chat.length))
+    .filter(message_id => !chat[message_id]?.is_system)
+    .takeRight(depth === 0 ? chat.length : depth)
+    .value();
+}
+
+function auditRuntimes(runtimes: Runtime[], depth: number, ignore_hidden: boolean): Runtime[] {
+  const rendered = _.map(runtimes, runtime => runtime.message_id);
+  const to_render = calcToRender(depth, ignore_hidden);
+  return _.concat(
+    _.filter(runtimes, runtime => _.includes(to_render, runtime.message_id)),
+    renderMessages(_.difference(to_render, rendered), uuidv4()),
+  );
+}
+
+function rerenderAll(depth: number, ignore_hidden: boolean): Runtime[] {
+  return renderMessages(calcToRender(depth, ignore_hidden), uuidv4());
+}
+
+export const useMessageIframeRuntimesStore = defineStore('message_iframe_runtimes', () => {
+  const global_settings = useGlobalSettingsStore();
+
+  const runtimes = ref<Runtime[]>([]);
+  watch(
+    () =>
+      [
+        global_settings.settings.render.enabled,
+        global_settings.settings.render.allow_streaming,
+        global_settings.settings.render.depth,
+        global_settings.settings.render.depth_ignore_hidden,
+      ] as const,
+    ([new_enabled, new_allow_streaming, new_depth, new_ignore_hidden]) => {
+      if (new_enabled) {
+        if (new_allow_streaming) {
+          runtimes.value = [];
+        }
+        runtimes.value = auditRuntimes(runtimes.value, new_depth, new_ignore_hidden);
+      } else {
+        runtimes.value = [];
+      }
+    },
+    { immediate: true },
+  );
+
+  if (global_settings.settings.render.enabled && $('#chat > .welcomePanel').length > 0) {
+    runtimes.value = rerenderAll(
+      global_settings.settings.render.depth,
+      global_settings.settings.render.depth_ignore_hidden,
+    );
+  } else {
+    setTimeout(() => {
+      if (global_settings.settings.render.enabled && $('#chat > .welcomePanel').length > 0) {
+        runtimes.value = rerenderAll(
+          global_settings.settings.render.depth,
+          global_settings.settings.render.depth_ignore_hidden,
+        );
+      }
+    }, 3000);
+  }
+
+  eventSource.on('chatLoaded', () => {
+    if (global_settings.settings.render.enabled) {
+      runtimes.value = rerenderAll(
+        global_settings.settings.render.depth,
+        global_settings.settings.render.depth_ignore_hidden,
+      );
+    }
+  });
+
+  [
+    event_types.CHARACTER_MESSAGE_RENDERED,
+    event_types.USER_MESSAGE_RENDERED,
+    event_types.MESSAGE_UPDATED,
+    event_types.MESSAGE_SWIPED,
+  ].forEach(event => {
+    eventSource.on(event, (message_id: number | string) => {
+      if (global_settings.settings.render.enabled) {
+        const numbered_message_id = Number(message_id);
+        runtimes.value = auditRuntimes(
+          _.reject(runtimes.value, runtime => runtime.message_id === numbered_message_id),
+          global_settings.settings.render.depth,
+          global_settings.settings.render.depth_ignore_hidden,
+        );
+      }
+    });
+  });
+
+  [event_types.MESSAGE_DELETED, event_types.MORE_MESSAGES_LOADED].forEach(event => {
+    eventSource.on(event, () => {
+      if (global_settings.settings.render.enabled) {
+        runtimes.value = auditRuntimes(
+          runtimes.value,
+          global_settings.settings.render.depth,
+          global_settings.settings.render.depth_ignore_hidden,
+        );
+      }
+    });
+  });
+
+  const reloadAll = () => {
+    const reload_memo = uuidv4();
+    runtimes.value = runtimes.value.map(runtime => ({ ...runtime, reload_memo }));
+  };
+
+  return { runtimes, reloadAll };
+});

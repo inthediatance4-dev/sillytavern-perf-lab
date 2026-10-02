@@ -6,8 +6,8 @@ node_modules/
 .fixtures/
 .cache/
 /dist/
-data/
-config.yaml
+/data/
+/config.yaml
 *.log
 *.bak
 .env

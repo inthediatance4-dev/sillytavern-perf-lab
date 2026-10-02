@@ -128,7 +128,10 @@
         "lint": "eslint \"src/**/*.js\" \"public/**/*.js\" ./*.js",
         "lint:fix": "eslint \"src/**/*.js\" \"public/**/*.js\" ./*.js --fix",
         "plugins:update": "node plugins update",
-        "plugins:install": "node plugins install"
+        "plugins:install": "node plugins install",
+        "perf:lab": "node scripts/start-performance-lab.mjs",
+        "test:perf": "node --test tests/performance-lab.test.mjs tests/enabled-backups.test.mjs",
+        "bench:perf": "node scripts/benchmark-performance.mjs"
     },
     "bin": {
         "sillytavern": "./src/server-global.js"

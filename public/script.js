@@ -5847,9 +5847,13 @@ export async function sendMessageAsUser(messageText, messageBias, insertAt = nul
 
     if (typeof insertAt === 'number' && insertAt >= 0 && insertAt <= chat.length) {
         chat.splice(insertAt, 0, message);
-        await saveChatConditional();
+        const saved = await saveChatConditional();
         await eventSource.emit(event_types.MESSAGE_SENT, insertAt);
-        await reloadCurrentChat();
+        if (saved === false) {
+            await redisplayChat({ startIndex: insertAt, fade: false });
+        } else {
+            await reloadCurrentChat();
+        }
         await eventSource.emit(event_types.USER_MESSAGE_RENDERED, insertAt);
     } else {
         chat.push(message);
@@ -7322,6 +7326,69 @@ export function saveChatDebounced() {
     }, DEFAULT_SAVE_EDIT_TIMEOUT);
 }
 
+const chatLifecycleConflicts = new Map();
+const chatLifecycleHandledSequences = new Map();
+let chatLifecyclePopupTail = Promise.resolve();
+let chatLifecycleSnapshotSequence = 0;
+
+/**
+ * Freeze the chat payload and its submission order before any asynchronous work.
+ * @param {object[]} snapshot Chat header and messages submitted by this save
+ * @returns {{sequence: number, serialized: string}} Frozen recovery snapshot
+ */
+export function captureChatLifecycleSnapshot(snapshot) {
+    return Object.freeze({
+        sequence: ++chatLifecycleSnapshotSequence,
+        serialized: snapshot.map(row => JSON.stringify(row)).join('\n'),
+    });
+}
+
+/**
+ * Preserve the latest conflicting snapshot per chat without permitting a force-write.
+ * @param {object} errorData Server error body
+ * @param {object[]|{sequence: number, serialized: string}} snapshot Captured save payload
+ * @param {string} chatIdentity Stable identity of the failed save target
+ * @returns {Promise<boolean>} Whether this was a lifecycle conflict
+ */
+export async function handleChatLifecycleConflict(errorData, snapshot, chatIdentity) {
+    if (errorData?.error !== 'chat_lifecycle') return false;
+    const captured = Array.isArray(snapshot) ? captureChatLifecycleSnapshot(snapshot) : snapshot;
+    if (captured.sequence <= (chatLifecycleHandledSequences.get(chatIdentity) ?? 0)) return true;
+    const pending = chatLifecycleConflicts.get(chatIdentity);
+    if (pending) {
+        if (captured.sequence > pending.sequence) {
+            pending.sequence = captured.sequence;
+            pending.serialized = captured.serialized;
+        }
+        await pending.promise;
+        return true;
+    }
+
+    const conflict = { ...captured, promise: Promise.resolve() };
+    chatLifecycleConflicts.set(chatIdentity, conflict);
+    conflict.promise = chatLifecyclePopupTail.then(async () => {
+        const result = await Popup.show.confirm(
+            t`This chat changed on disk`,
+            t`<p>The chat was renamed or deleted, or this name is already occupied. Your unsaved messages are still in this tab.</p><p>Download a copy before reloading the chat list. Import the downloaded file to save a separate chat under a new name.</p>`,
+            { okButton: t`Download unsaved chat`, cancelButton: t`Keep this tab` },
+        );
+        if (result === POPUP_RESULT.AFFIRMATIVE && conflict.serialized !== undefined) {
+            download(conflict.serialized, `unsaved-chat-${Date.now()}.jsonl`, 'application/jsonl');
+        }
+        // Retain only the processed sequence, so a late older response cannot reopen it.
+        chatLifecycleHandledSequences.set(chatIdentity, conflict.sequence);
+        chatLifecycleConflicts.delete(chatIdentity);
+    }).finally(() => {
+        if (chatLifecycleConflicts.get(chatIdentity) === conflict) {
+            chatLifecycleConflicts.delete(chatIdentity);
+        }
+    });
+    // Keep the queue usable after a failed popup/download; callers still receive that failure.
+    chatLifecyclePopupTail = conflict.promise.catch(() => {});
+    await conflict.promise;
+    return true;
+}
+
 /**
  * Saves the chat to the server.
  * @param {object} [options] - Additional options.
@@ -7330,8 +7397,7 @@ export function saveChatDebounced() {
  * @param {number} [options.mesId] The message ID to save the chat up to
  * @param {boolean} [options.force] Force the saving despite the integrity check result
  * @param {ChatMessage[]} [options.chatData] Chat snapshot to save instead of the current in-memory chat
- *
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} Whether the chat was saved
  */
 export async function saveChat({ chatName, withMetadata, mesId, force = false, chatData = undefined } = {}) {
     if (selected_group) {
@@ -7349,14 +7415,15 @@ export async function saveChat({ chatName, withMetadata, mesId, force = false, c
 
     if (!fileName && name2 === neutralCharacterName) {
         // TODO: Do something for a temporary chat with no character.
-        return;
+        return false;
     }
 
     if (!fileName) {
         console.warn('saveChat called without chat_name and no chat file found');
-        return;
+        return false;
     }
 
+    const chatIdentity = JSON.stringify(['character', characters[this_chid].avatar, fileName]);
     characters[this_chid].date_last_chat = Date.now();
 
     const trimmedChat = Array.isArray(chatData)
@@ -7373,6 +7440,7 @@ export async function saveChat({ chatName, withMetadata, mesId, force = false, c
     };
 
     try {
+        const chatSnapshot = captureChatLifecycleSnapshot([chatHeader, ...trimmedChat]);
         const saveChatRequest = await compressRequest({
             method: 'POST',
             cache: 'no-cache',
@@ -7388,10 +7456,11 @@ export async function saveChat({ chatName, withMetadata, mesId, force = false, c
         const result = await fetch('/api/chats/save', saveChatRequest);
 
         if (result.ok) {
-            return;
+            return true;
         }
 
         const errorData = await result.json();
+        if (await handleChatLifecycleConflict(errorData, chatSnapshot, chatIdentity)) return false;
         const isIntegrityError = errorData?.error === 'integrity' && !force;
         if (!isIntegrityError) {
             throw new Error(result.statusText);
@@ -7410,13 +7479,14 @@ export async function saveChat({ chatName, withMetadata, mesId, force = false, c
         if (!forceSaveConfirmed) {
             console.warn('Chat integrity check failed, and user did not confirm the overwrite. Reloading the page.');
             window.location.reload();
-            return;
+            return false;
         }
 
-        await saveChat({ chatName, withMetadata, mesId, force: true });
+        return await saveChat({ chatName, withMetadata, mesId, force: true });
     } catch (error) {
         console.error(error);
         toastr.error(t`Check the server connection and reload the page to prevent data loss.`, t`Chat could not be saved`);
+        return false;
     }
 }
 
@@ -9354,7 +9424,7 @@ export async function saveChatConditional() {
         await waitUntilCondition(() => !isChatSaving, DEFAULT_SAVE_EDIT_TIMEOUT, 100);
     } catch {
         console.warn('Timeout waiting for chat to save');
-        return;
+        return false;
     }
 
     try {
@@ -9362,17 +9432,18 @@ export async function saveChatConditional() {
 
         isChatSaving = true;
 
-        if (selected_group) {
-            await saveGroupChat(selected_group, true);
-        } else {
-            await saveChat();
-        }
+        const saved = selected_group
+            ? await saveGroupChat(selected_group, true)
+            : await saveChat();
+        if (saved === false) return false;
 
         // Save token and prompts cache to IndexedDB storage
         saveTokenCache();
         saveItemizedPrompts(getCurrentChatId());
+        return true;
     } catch (error) {
         console.error('Error saving chat', error);
+        return false;
     } finally {
         isChatSaving = false;
     }
@@ -10628,6 +10699,16 @@ export async function renameGroupOrCharacterChat({ characterId, groupId, oldFile
         });
 
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            if (errorData.error === 'chat_lifecycle') {
+                await Popup.show.text(
+                    t`Chat could not be renamed`,
+                    errorData.reason === 'target_exists'
+                        ? t`A chat with this name already exists. Choose a different name; the existing chats were kept.`
+                        : t`This chat name has been retired. Reload the chat list and choose a different name. Unsaved messages remain in this tab.`,
+                );
+                return;
+            }
             throw new Error('Unsuccessful request.');
         }
 
@@ -10945,8 +11026,9 @@ function addDebugFunctions() {
             message.extra.token_count = await getTokenCountAsync(tokenCountText, 0);
         }
 
-        await saveChatConditional();
-        await reloadCurrentChat();
+        if (await saveChatConditional() !== false) {
+            await reloadCurrentChat();
+        }
     };
 
     registerDebugFunction('forceOnboarding', 'Force onboarding', 'Forces the onboarding process to restart.', async () => {

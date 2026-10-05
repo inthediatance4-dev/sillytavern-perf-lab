@@ -130,7 +130,7 @@
         "plugins:update": "node plugins update",
         "plugins:install": "node plugins install",
         "perf:lab": "node scripts/start-performance-lab.mjs",
-        "test:perf": "node --test tests/performance-lab.test.mjs tests/enabled-backups.test.mjs",
+        "test:perf": "node --test tests/performance-lab.test.mjs tests/enabled-backups.test.mjs tests/chat-lifecycle.test.mjs tests/tokenizer-initialization.test.mjs tests/tokenizer-model-compatibility.test.mjs tests/frontend-lifecycle.test.mjs",
         "bench:perf": "node scripts/benchmark-performance.mjs"
     },
     "bin": {

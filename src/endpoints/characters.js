@@ -25,6 +25,11 @@ import { getChatInfo } from './chats.js';
 import { ByafParser } from '../byaf.js';
 import { CharXParser, persistCharXAssets } from '../charx.js';
 import cacheBuster from '../middleware/cacheBuster.js';
+import { randomUUID } from 'node:crypto';
+import {
+    withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, retireChatPath, rollbackChatRetirement,
+    recycleChatPath, createChatFileExclusive, fingerprintChatPath, inheritChatRetirements,
+} from '../chat-io.js';
 
 // With 100 MB limit it would take roughly 3000 characters to reach this limit
 const memoryCacheCapacity = getConfigValue('performance.memoryCacheCapacity', '100mb');
@@ -801,8 +806,8 @@ async function importFromCharX(uploadPath, { request }, preservedFileName) {
 }
 
 async function importFromByaf(uploadPath, { request }, preservedFileName) {
-    const data = (await fsPromises.readFile(uploadPath)).buffer;
-    await fsPromises.unlink(uploadPath);
+    const bytes = await fsPromises.readFile(uploadPath);
+    const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     console.info('Importing from BYAF');
 
     const byafData = await new ByafParser(data).parse();
@@ -814,12 +819,13 @@ async function importFromByaf(uploadPath, { request }, preservedFileName) {
         /**
          * @param {Partial<ByafScenario>} scenario
         */
-        const createChatAsCurrentPersona = (scenario) => {
-            const chatName = sanitize(`${scenario.title || card.name} - ${humanizedDateTime()} imported.jsonl`, { replacement: sanitizeSafeCharacterReplacements });
+        const createChatAsCurrentPersona = async (scenario) => {
+            const chatName = sanitize(`${scenario.title || card.name} - ${humanizedDateTime()}-${randomUUID()} imported.jsonl`, { replacement: sanitizeSafeCharacterReplacements });
             const filePath = path.join(request.user.directories.chats, path.basename(fileName), chatName);
-            const dir = path.dirname(filePath);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            writeFileAtomicSync(filePath, ByafParser.getChatFromScenario(scenario, request.body.user_name, card.name, byafData.chatBackgrounds), 'utf8');
+            await withPathLocks(chatLockPaths([filePath]), async () => {
+                await assertChatWritable(filePath, request.user.directories.chats);
+                await createChatFileExclusive(filePath, ByafParser.getChatFromScenario(scenario, request.body.user_name, card.name, byafData.chatBackgrounds));
+            });
             console.log(`Created ${chatName} chat from BYAF import`);
             return chatName;
         };
@@ -843,7 +849,7 @@ async function importFromByaf(uploadPath, { request }, preservedFileName) {
         // Create chats for each scenario
         if (Array.isArray(byafData.scenarios)) {
             for (const scenario of byafData.scenarios) {
-                chats.push(createChatAsCurrentPersona(scenario));
+                chats.push(await createChatAsCurrentPersona(scenario));
             }
         }
 
@@ -869,7 +875,7 @@ async function importFromByaf(uploadPath, { request }, preservedFileName) {
     }
 
     const result = await writeCharacterData(byafData.images[0].image, JSON.stringify(card), fileName, request);
-
+    if (result) await recycleChatPath(uploadPath).catch(error => console.error('Imported BYAF upload retained in place', error));
     return result ? fileName : '';
 }
 
@@ -1031,27 +1037,28 @@ router.post('/create', getFileNameValidationFunction('file_name'), async functio
         const internalName = request.body.file_name || getPngName(request.body.ch_name, request.user.directories);
         const avatarName = `${internalName}.png`;
         const chatsPath = path.join(request.user.directories.chats, internalName);
-
-        if (!fs.existsSync(chatsPath)) fs.mkdirSync(chatsPath);
-
-        if (!request.file) {
-            await writeCharacterData(DEFAULT_AVATAR_PATH, char, internalName, request);
-            return response.send(avatarName);
-        } else {
-            const crop = tryParse(request.query.crop);
-            const uploadPath = path.join(request.file.destination, request.file.filename);
-            await writeCharacterData(uploadPath, char, internalName, request, crop);
-            fs.unlinkSync(uploadPath);
-            return response.send(avatarName);
-        }
+        const avatarPath = path.join(request.user.directories.characters, avatarName);
+        await withPathLocks([...chatLockPaths([avatarPath]), chatsPath], async () => {
+            await assertChatWritable(chatsPath, request.user.directories.chats);
+            await assertChatWritable(avatarPath, request.user.directories.characters);
+            if (fs.existsSync(avatarPath)) throw new ChatLifecycleError('target_exists');
+            await fsPromises.mkdir(chatsPath, { recursive: true });
+            const uploadPath = request.file ? path.join(request.file.destination, request.file.filename) : undefined;
+            const result = await writeCharacterData(uploadPath ?? DEFAULT_AVATAR_PATH, char, internalName, request, tryParse(request.query.crop));
+            if (!result) throw new Error('Character creation did not complete');
+            if (uploadPath) await recycleChatPath(uploadPath).catch(error => console.error('Imported character upload retained in place', error));
+        });
+        return response.send(avatarName);
     } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason, action: 'reload_or_save_as' });
         console.error(err);
         response.sendStatus(500);
     }
 });
 
 router.post('/rename', validateAvatarUrlMiddleware, async function (request, response) {
-    if (!request.body.avatar_url || !request.body.new_name) {
+    if (!request.body || typeof request.body.avatar_url !== 'string' || !request.body.avatar_url
+        || typeof request.body.new_name !== 'string' || !request.body.new_name) {
         return response.sendStatus(400);
     }
 
@@ -1062,35 +1069,49 @@ router.post('/rename', validateAvatarUrlMiddleware, async function (request, res
     const newAvatarName = `${newInternalName}.png`;
 
     const oldAvatarPath = path.join(request.user.directories.characters, oldAvatarName);
+    const newAvatarPath = path.join(request.user.directories.characters, newAvatarName);
 
     const oldChatsPath = path.join(request.user.directories.chats, oldInternalName);
     const newChatsPath = path.join(request.user.directories.chats, newInternalName);
 
     try {
-        // Read old file, replace name int it
-        const rawOldData = await readCharacterData(oldAvatarPath);
-        if (rawOldData === undefined) throw new Error('Failed to read character file');
-
-        const oldData = getCharaCardV2(JSON.parse(rawOldData), request.user.directories);
-        _.set(oldData, 'data.name', newName);
-        _.set(oldData, 'name', newName);
-        const newData = JSON.stringify(oldData);
-
-        // Write data to new location
-        await writeCharacterData(oldAvatarPath, newData, newInternalName, request);
-
-        // Rename chats folder
-        if (fs.existsSync(oldChatsPath) && !fs.existsSync(newChatsPath)) {
-            fs.cpSync(oldChatsPath, newChatsPath, { recursive: true });
-            fs.rmSync(oldChatsPath, { recursive: true, force: true });
-        }
-
-        // Remove the old character file
-        fs.unlinkSync(oldAvatarPath);
-
+        await withPathLocks([...chatLockPaths([oldAvatarPath, newAvatarPath]), oldChatsPath, newChatsPath], async () => {
+            await assertChatWritable(oldChatsPath, request.user.directories.chats);
+            await assertChatWritable(newChatsPath, request.user.directories.chats);
+            if (fs.existsSync(newAvatarPath) || fs.existsSync(newChatsPath)) throw new ChatLifecycleError('target_exists');
+            const originalAvatar = await fsPromises.readFile(oldAvatarPath);
+            const oldData = getCharaCardV2(JSON.parse(read(originalAvatar)), request.user.directories);
+            _.set(oldData, 'data.name', newName);
+            _.set(oldData, 'name', newName);
+            await createChatFileExclusive(newAvatarPath, write(originalAvatar, JSON.stringify(oldData)));
+            let retirement;
+            let inherited = [];
+            let moved = false;
+            try {
+                inherited = await inheritChatRetirements(oldChatsPath, newChatsPath, request.user.directories.chats);
+                retirement = await retireChatPath(oldChatsPath, request.user.directories.chats, 'character_renamed');
+                if (fs.existsSync(oldChatsPath)) {
+                    await fsPromises.rename(oldChatsPath, newChatsPath);
+                    moved = true;
+                }
+                await recycleChatPath(oldAvatarPath, request.user.directories.characters);
+            } catch (error) {
+                try {
+                    if ((await fsPromises.readFile(oldAvatarPath)).equals(originalAvatar)) {
+                        if (moved) await fsPromises.rename(newChatsPath, oldChatsPath);
+                        if (retirement) await rollbackChatRetirement(retirement);
+                        for (const marker of inherited) await rollbackChatRetirement(marker);
+                        await recycleChatPath(newAvatarPath, request.user.directories.characters);
+                    }
+                } catch (recoveryError) { console.error('Character rename recovery remains fail-closed', recoveryError); }
+                throw error;
+            }
+            if (request.user.directories.thumbnailsAvatar) await recycleChatPath(path.join(request.user.directories.thumbnailsAvatar, oldAvatarName)).catch(error => console.error('Old thumbnail retained in place', error));
+        });
         // Return new avatar name to ST
         return response.send({ avatar: newAvatarName });
     } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason, action: 'reload_or_save_as' });
         console.error(err);
         return response.sendStatus(500);
     }
@@ -1412,7 +1433,7 @@ router.post('/merge-attributes', getFileNameValidationFunction('avatar'), async 
 });
 
 router.post('/delete', validateAvatarUrlMiddleware, async function (request, response) {
-    if (!request.body || !request.body.avatar_url) {
+    if (!request.body || typeof request.body.avatar_url !== 'string' || !request.body.avatar_url) {
         return response.sendStatus(400);
     }
 
@@ -1426,25 +1447,45 @@ router.post('/delete', validateAvatarUrlMiddleware, async function (request, res
         return response.sendStatus(400);
     }
 
-    fs.unlinkSync(avatarPath);
-    invalidateThumbnail(request.user.directories, 'avatar', request.body.avatar_url);
-    let dir_name = (request.body.avatar_url.replace('.png', ''));
+    const dir_name = request.body.avatar_url.replace('.png', '');
 
     if (!dir_name.length) {
         console.error('Malicious dirname prevented');
         return response.sendStatus(403);
     }
 
-    if (request.body.delete_chats == true) {
-        try {
-            await fs.promises.rm(path.join(request.user.directories.chats, sanitize(dir_name)), { recursive: true, force: true });
-        } catch (err) {
-            console.error(err);
-            return response.sendStatus(500);
-        }
+    const chatsPath = path.join(request.user.directories.chats, sanitize(dir_name));
+    try {
+        await withPathLocks([...chatLockPaths([avatarPath]), chatsPath], async () => {
+            const originalAvatar = await fsPromises.readFile(avatarPath);
+            let retirement;
+            let recycled;
+            let originalChats;
+            try {
+                if (request.body.delete_chats == true) {
+                    await assertChatWritable(chatsPath, request.user.directories.chats);
+                    if (fs.existsSync(chatsPath)) originalChats = await fingerprintChatPath(chatsPath);
+                    retirement = await retireChatPath(chatsPath, request.user.directories.chats, 'character_deleted');
+                    recycled = await recycleChatPath(chatsPath, request.user.directories.chats);
+                }
+                await recycleChatPath(avatarPath, request.user.directories.characters);
+            } catch (error) {
+                try {
+                    if ((await fsPromises.readFile(avatarPath)).equals(originalAvatar)) {
+                        if (recycled) await fsPromises.rename(recycled, chatsPath);
+                        if (retirement && (!originalChats || await fingerprintChatPath(chatsPath) === originalChats)) await rollbackChatRetirement(retirement);
+                    }
+                } catch (recoveryError) { console.error('Character deletion recovery remains fail-closed', recoveryError); }
+                throw error;
+            }
+            if (request.user.directories.thumbnailsAvatar) await recycleChatPath(path.join(request.user.directories.thumbnailsAvatar, request.body.avatar_url)).catch(error => console.error('Deleted thumbnail retained in place', error));
+        });
+        return response.sendStatus(200);
+    } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason, action: 'reload_or_save_as' });
+        console.error(err);
+        return response.sendStatus(500);
     }
-
-    return response.sendStatus(200);
 });
 
 /**

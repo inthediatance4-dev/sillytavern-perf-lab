@@ -19,7 +19,7 @@ with sync_playwright() as p:
         if '/generate' in request.url and '/api/' in request.url:
             generation_requests.append(request.url)
     page.on('request', watch)
-    page.goto('http://127.0.0.1:8770/', wait_until='networkidle')
+    page.goto('http://127.0.0.1:8771/', wait_until='networkidle')
     page.wait_for_function('window.SillyTavern?.getContext')
     # Finish first-run onboarding with a synthetic persona, using visible UI.
     welcome = page.locator('dialog[open]')
@@ -93,7 +93,7 @@ with sync_playwright() as p:
     assert not errors, errors
     assert not generation_requests, generation_requests
     results.update({'pageErrors': errors, 'generationRequests': generation_requests,
-                    'browser': browser.version, 'origin': 'http://127.0.0.1:8770/'})
+                    'browser': browser.version, 'origin': 'http://127.0.0.1:8771/'})
     (out / 'results.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
     print(json.dumps(results))
     browser.close()

@@ -160,6 +160,10 @@ class SentencePieceTokenizer {
      */
     #instance;
     /**
+     * @type {Promise<import('@agnai/sentencepiece-js').SentencePieceProcessor|null>|undefined} Shared initialization attempt
+     */
+    #loading;
+    /**
      * @type {string} Path to the tokenizer model
      */
     #model;
@@ -187,16 +191,25 @@ class SentencePieceTokenizer {
             return this.#instance;
         }
 
-        try {
-            const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
-            this.#instance = new SentencePieceProcessor();
-            await this.#instance.load(pathToModel);
-            console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
-            return this.#instance;
-        } catch (error) {
-            console.error('Sentencepiece tokenizer failed to load: ' + this.#model, error);
-            return null;
+        if (!this.#loading) {
+            this.#loading = (async () => {
+                try {
+                    const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
+                    const instance = new SentencePieceProcessor();
+                    await instance.load(pathToModel);
+                    console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
+                    this.#instance = instance;
+                    return instance;
+                } catch (error) {
+                    console.error('Sentencepiece tokenizer failed to load: ' + this.#model, error);
+                    return null;
+                }
+            })().finally(() => {
+                this.#loading = undefined;
+            });
         }
+
+        return this.#loading;
     }
 }
 
@@ -208,6 +221,10 @@ class WebTokenizer {
      * @type {Tokenizer} Web tokenizer instance
      */
     #instance;
+    /**
+     * @type {Promise<Tokenizer|null>|undefined} Shared initialization attempt
+     */
+    #loading;
     /**
      * @type {string} Path to the tokenizer model
      */
@@ -236,16 +253,25 @@ class WebTokenizer {
             return this.#instance;
         }
 
-        try {
-            const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
-            const fileBuffer = await fs.promises.readFile(pathToModel);
-            this.#instance = await Tokenizer.fromJSON(fileBuffer);
-            console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
-            return this.#instance;
-        } catch (error) {
-            console.error('Web tokenizer failed to load: ' + this.#model, error);
-            return null;
+        if (!this.#loading) {
+            this.#loading = (async () => {
+                try {
+                    const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
+                    const fileBuffer = await fs.promises.readFile(pathToModel);
+                    const instance = await Tokenizer.fromJSON(fileBuffer);
+                    console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
+                    this.#instance = instance;
+                    return instance;
+                } catch (error) {
+                    console.error('Web tokenizer failed to load: ' + this.#model, error);
+                    return null;
+                }
+            })().finally(() => {
+                this.#loading = undefined;
+            });
         }
+
+        return this.#loading;
     }
 }
 

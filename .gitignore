@@ -12,3 +12,5 @@ node_modules/
 *.bak
 .env
 .env.*
+__pycache__/
+*.pyc

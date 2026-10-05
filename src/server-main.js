@@ -333,6 +333,7 @@ async function preSetupTasks() {
     process.on('SIGTERM', exitProcess);
     process.on('uncaughtException', (err) => {
         console.error('Uncaught exception:', err);
+        process.exitCode = 1;
         exitProcess();
     });
 

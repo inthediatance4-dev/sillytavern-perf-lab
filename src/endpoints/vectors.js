@@ -1,7 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
-import vectra from 'vectra';
 import express from 'express';
 import sanitize from 'sanitize-filename';
 
@@ -17,6 +16,19 @@ import { getCohereVector, getCohereBatchVector } from '../vectors/cohere-vectors
 import { getLlamaCppVector, getLlamaCppBatchVector } from '../vectors/llamacpp-vectors.js';
 import { getVllmVector, getVllmBatchVector } from '../vectors/vllm-vectors.js';
 import { getOllamaVector, getOllamaBatchVector } from '../vectors/ollama-vectors.js';
+
+/** @type {Promise<typeof import('vectra').default>|undefined} */
+let vectraLoading;
+
+function getVectra() {
+    if (!vectraLoading) {
+        vectraLoading = import('vectra').then(module => module.default).catch(error => {
+            vectraLoading = undefined;
+            throw error;
+        });
+    }
+    return vectraLoading;
+}
 
 // Don't forget to add new sources to the SOURCES array
 const SOURCES = [
@@ -295,11 +307,12 @@ function getModelScope(sourceSettings) {
  * @param {string} collectionId - The collection ID
  * @param {string} source - The source of the vector
  * @param {object} sourceSettings - The model for the source
- * @returns {Promise<vectra.LocalIndex>} - The index for the collection
+ * @returns {Promise<import('vectra').LocalIndex>} - The index for the collection
  */
 async function getIndex(directories, collectionId, source, sourceSettings) {
     const model = getModelScope(sourceSettings);
     const pathToFile = path.join(directories.vectors, sanitize(source), sanitize(collectionId), sanitize(model));
+    const vectra = await getVectra();
     const store = new vectra.LocalIndex(pathToFile);
 
     if (!await store.isIndexCreated()) {

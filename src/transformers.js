@@ -3,17 +3,28 @@ import fs from 'node:fs';
 import process from 'node:process';
 import { Buffer } from 'node:buffer';
 
-import { pipeline, env, RawImage } from 'sillytavern-transformers';
 import { getConfigValue } from './util.js';
 import { serverDirectory } from './server-directory.js';
 
-configureTransformers();
+/** @type {Promise<typeof import('sillytavern-transformers')>|undefined} */
+let transformersLoading;
 
-function configureTransformers() {
-    // Limit the number of threads to 1 to avoid issues on Android
-    env.backends.onnx.wasm.numThreads = 1;
-    // Use WASM from a local folder to avoid CDN connections
-    env.backends.onnx.wasm.wasmPaths = path.join(serverDirectory, 'node_modules', 'sillytavern-transformers', 'dist') + path.sep;
+// Ordinary chat startup does not need the inference runtime. Configure it once
+// before publishing it to any of the first image, speech, or vector callers.
+function getTransformers() {
+    if (!transformersLoading) {
+        transformersLoading = import('sillytavern-transformers').then(module => {
+            // Limit the number of threads to 1 to avoid issues on Android.
+            module.env.backends.onnx.wasm.numThreads = 1;
+            // Use local WASM to avoid CDN connections.
+            module.env.backends.onnx.wasm.wasmPaths = path.join(serverDirectory, 'node_modules', 'sillytavern-transformers', 'dist') + path.sep;
+            return module;
+        }).catch(error => {
+            transformersLoading = undefined;
+            throw error;
+        });
+    }
+    return transformersLoading;
 }
 
 const tasks = {
@@ -52,7 +63,7 @@ const tasks = {
 /**
  * Gets a RawImage object from a base64-encoded image.
  * @param {string} image Base64-encoded image
- * @returns {Promise<RawImage|null>} Object representing the image
+ * @returns {Promise<import('sillytavern-transformers').RawImage|null>} Object representing the image
  */
 export async function getRawImage(image) {
     try {
@@ -60,6 +71,7 @@ export async function getRawImage(image) {
         const byteArray = new Uint8Array(buffer);
         const blob = new Blob([byteArray]);
 
+        const { RawImage } = await getTransformers();
         const rawImage = await RawImage.fromBlob(blob);
         return rawImage;
     } catch {
@@ -135,6 +147,7 @@ export async function getPipeline(task, forceModel = '') {
     const model = forceModel || getModelForTask(task);
     const localOnly = !getConfigValue('extensions.models.autoDownload', true, 'boolean');
     console.log('Initializing transformers.js pipeline for task', task, 'with model', model);
+    const { pipeline } = await getTransformers();
     const instance = await pipeline(task, model, { cache_dir: cacheDir, quantized: tasks[task].quantized ?? true, local_files_only: localOnly });
     tasks[task].pipeline = instance;
     tasks[task].currentModel = model;

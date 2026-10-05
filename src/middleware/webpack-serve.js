@@ -37,17 +37,41 @@ export default function getWebpackServeMiddleware() {
         const publicLibConfig = getPublicLibConfig({ forceDist, pruneCache });
         const compiler = webpack(publicLibConfig);
 
-        return new Promise((resolve) => {
-            compiler.run((_error, stats) => {
-                const output = stats?.toString(publicLibConfig.stats);
-                if (output) {
-                    console.log(output);
-                    console.log();
+        return new Promise((resolve, reject) => {
+            const finish = (runError, stats) => {
+                let error = runError;
+                try {
+                    if (!error && !stats) {
+                        error = new Error('Webpack compilation returned no stats.');
+                    } else if (!error && stats.hasErrors()) {
+                        error = new Error('Webpack frontend compilation failed. See the compiler diagnostics.');
+                    }
+
+                    const output = stats?.toString(publicLibConfig.stats);
+                    if (output) {
+                        console.log(output);
+                        console.log();
+                    }
+                } catch (statsError) {
+                    error ??= statsError;
                 }
-                compiler.close(() => {
-                    resolve();
-                });
-            });
+
+                const finishClose = closeError => {
+                    if (error || closeError) reject(error ?? closeError);
+                    else resolve();
+                };
+                try {
+                    compiler.close(finishClose);
+                } catch (closeError) {
+                    finishClose(closeError);
+                }
+            };
+
+            try {
+                compiler.run(finish);
+            } catch (runError) {
+                finish(runError);
+            }
         });
     };
 

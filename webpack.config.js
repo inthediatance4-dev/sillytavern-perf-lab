@@ -2,23 +2,48 @@ import process from 'node:process';
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import isDocker from 'is-docker';
 import webpack from 'webpack';
 import { serverDirectory } from './src/server-directory.js';
-import { getVersion, color } from './src/util.js';
+import { color } from './src/util.js';
+
+// npm package distributions may omit package-lock.json. Both supported npm
+// lockfiles are optional inputs; absence has its own identity rather than
+// preventing startup or adding a missing file to Webpack's build dependencies.
+const cacheInputs = [
+    { file: fileURLToPath(import.meta.url), optional: false },
+    { file: path.join(serverDirectory, 'package.json'), optional: false },
+    { file: path.join(serverDirectory, 'package-lock.json'), optional: true },
+    { file: path.join(serverDirectory, 'npm-shrinkwrap.json'), optional: true },
+].map(({ file, optional }) => {
+    try {
+        const fingerprint = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+        return { file, fingerprint, present: true };
+    } catch (error) {
+        if (optional && error.code === 'ENOENT') return { file, fingerprint: 'absent', present: false };
+        throw error;
+    }
+});
+const cacheBuildDependencies = cacheInputs.filter(input => input.present).map(input => input.file);
 
 /**
- * Generate a cache version string based on the application version, Git revision, and Webpack version.
+ * Identify build configuration and dependency inputs, including uncommitted edits.
+ * Backend-only Git commits do not invalidate the frontend cache. Entry modules
+ * and installed packages are still checked by Webpack's filesystem snapshots.
  * @returns {string} The cache version string.
  */
 function getWebpackCacheVersion() {
     return crypto.createHash('shake256', { outputLength: 8 })
-        .update(JSON.stringify([appVersion.pkgVersion, appVersion.gitRevision, webpack.version]))
+        .update(JSON.stringify([
+            webpack.version,
+            ...cacheInputs.map(input => [path.basename(input.file), input.fingerprint]),
+        ]))
         .digest('hex');
 }
 
 /**
- * Prune old Webpack cache directories that do not match the current cache version.
+ * Move old Webpack cache directories into a recoverable recycle directory.
  * @param {string} webpackRoot The root directory where Webpack caches are stored.
  * @param {string} currentCacheVersion The current cache version to keep.
  */
@@ -34,12 +59,15 @@ function pruneWebpackCache(webpackRoot, currentCacheVersion) {
 
         for (const dir of cacheDirectories) {
             const dirPath = path.join(webpackRoot, dir);
-            if (dir !== currentCacheVersion) {
+            if (dir !== currentCacheVersion && dir !== '.recycle') {
                 try {
-                    fs.rmSync(dirPath, { recursive: true, force: true });
-                    console.debug(`Removed outdated cache directory: ${color.yellow(dir)}`);
+                    const recycleDirectory = path.join(webpackRoot, '.recycle');
+                    fs.mkdirSync(recycleDirectory, { recursive: true });
+                    const recycledPath = path.join(recycleDirectory, `${dir}-${crypto.randomUUID()}`);
+                    fs.renameSync(dirPath, recycledPath);
+                    console.debug(`Recycled outdated cache directory: ${color.yellow(dir)}`);
                 } catch (error) {
-                    console.error(`Failed to remove Webpack cache directory: ${color.red(dir)}`, error);
+                    console.error(`Failed to recycle Webpack cache directory: ${color.red(dir)}. The original is retained.`, error);
                 }
             }
         }
@@ -48,7 +76,9 @@ function pruneWebpackCache(webpackRoot, currentCacheVersion) {
     }
 }
 
-const appVersion = await getVersion();
+// Fixed for this process, just as the build configuration is. Do not re-read
+// package/configuration files for every frontend asset request.
+const cacheVersion = getWebpackCacheVersion();
 
 /**
  * Get the Webpack configuration for the public/lib.js file.
@@ -82,7 +112,6 @@ export default function getPublicLibConfig({ forceDist = false, pruneCache = fal
     }
 
     const webpackRoot = getWebpackRoot();
-    const cacheVersion = getWebpackCacheVersion();
     const cacheDirectory = getCacheDirectory();
     const outputDirectory = getOutputDirectory();
 
@@ -98,6 +127,9 @@ export default function getPublicLibConfig({ forceDist = false, pruneCache = fal
             cacheDirectory: cacheDirectory,
             store: 'pack',
             compression: 'gzip',
+            buildDependencies: {
+                config: cacheBuildDependencies,
+            },
         },
         devtool: false,
         watch: false,

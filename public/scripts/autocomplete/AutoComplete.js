@@ -69,6 +69,11 @@ export class AutoComplete {
     /**@type {function}*/ updateDetailsPositionDebounced;
     /**@type {function}*/ updateFloatingPositionDebounced;
 
+    /**@type {MutationObserver}*/ removalObserver = null;
+    /**@type {Set<()=>void>}*/ pendingKeyUps = new Set();
+    /**@type {number}*/ layoutGeneration = 0;
+    resizeListener = () => this.updatePositionDebounced();
+
     /**@type {(item:AutoCompleteOption)=>any}*/ onSelect;
 
     get matchType() {
@@ -128,7 +133,48 @@ export class AutoComplete {
         if (isFloating) {
             textarea.addEventListener('scroll', () => this.updateFloatingPositionDebounced());
         }
-        window.addEventListener('resize', () => this.updatePositionDebounced());
+        this.ensureConnected();
+    }
+
+    /** Keep layout resources only while the input is in the document. */
+    ensureConnected() {
+        if (!this.textarea.isConnected) {
+            this.releaseLayoutResources();
+            return false;
+        }
+        if (!this.removalObserver) {
+            this.removalObserver = new MutationObserver(mutations => {
+                if (!this.textarea.isConnected) {
+                    this.releaseLayoutResources();
+                } else if (mutations.some(mutation => Array.from(mutation.removedNodes).some(node => node.contains(this.textarea)))) {
+                    // An attached input (or its container) moved: follow its new ancestors.
+                    this.observeInputAncestors();
+                }
+            });
+            this.observeInputAncestors();
+            window.addEventListener('resize', this.resizeListener);
+        }
+        return true;
+    }
+
+    /** Observe only direct child changes along this input's ancestor chain. */
+    observeInputAncestors() {
+        this.removalObserver.disconnect();
+        for (let parent = this.textarea.parentElement; parent; parent = parent.parentElement) {
+            this.removalObserver.observe(parent, { childList: true });
+        }
+    }
+
+    /** Release this input's layout ownership; a later attachment can acquire it again. */
+    releaseLayoutResources() {
+        if (this.removalObserver) this.layoutGeneration++;
+        window.removeEventListener('resize', this.resizeListener);
+        this.removalObserver?.disconnect();
+        this.removalObserver = null;
+        this.clone?.remove();
+        this.clone = null;
+        for (const finish of this.pendingKeyUps) finish();
+        this.hide();
     }
 
     /**
@@ -274,6 +320,8 @@ export class AutoComplete {
      * @param {boolean} isSelect Whether an autocomplete option was just selected.
      */
     async show(isInput = false, isForced = false, isSelect = false) {
+        if (!this.ensureConnected()) return;
+        const layoutGeneration = this.layoutGeneration;
         //TODO check if isInput and isForced are both required
         this.text = this.textarea.value;
         this.isReplaceable = false;
@@ -293,7 +341,9 @@ export class AutoComplete {
 
         // request provider to get name result (potentially "incomplete", i.e. not an actual existing name) for
         // cursor position
-        this.parserResult = await this.getNameAt(this.text, this.textarea.selectionStart);
+        const parserResult = await this.getNameAt(this.text, this.textarea.selectionStart);
+        if (!this.ensureConnected() || layoutGeneration !== this.layoutGeneration) return;
+        this.parserResult = parserResult;
         this.secondaryParserResult = null;
 
         if (!this.parserResult) {
@@ -466,6 +516,7 @@ export class AutoComplete {
      * Create updated DOM.
      */
     render() {
+        if (!this.ensureConnected()) return;
         if (!this.isActive) return this.domWrap.remove();
         if (this.isReplaceable) {
             this.dom.innerHTML = '';
@@ -494,6 +545,7 @@ export class AutoComplete {
      * Create updated DOM for details.
      */
     renderDetails() {
+        if (!this.ensureConnected()) return;
         if (!this.isActive) return this.detailsWrap.remove();
         if (!this.isShowingDetails && this.isReplaceable) return this.detailsWrap.remove();
         this.detailsDom.innerHTML = '';
@@ -514,6 +566,7 @@ export class AutoComplete {
      * Update position of DOM.
      */
     updatePosition() {
+        if (!this.ensureConnected()) return;
         if (this.isFloating) {
             this.updateFloatingPosition();
         } else {
@@ -540,6 +593,7 @@ export class AutoComplete {
      * Update position of details DOM.
      */
     updateDetailsPosition() {
+        if (!this.ensureConnected()) return;
         if (this.isShowingDetails || !this.isReplaceable) {
             if (this.isFloating) {
                 this.updateFloatingDetailsPosition();
@@ -571,6 +625,7 @@ export class AutoComplete {
      * Update position of floating autocomplete.
      */
     updateFloatingPosition() {
+        if (!this.ensureConnected()) return;
         const location = this.getCursorPosition();
         const rect = this.textarea.getBoundingClientRect();
         const layerRect = this.getLayer().getBoundingClientRect();
@@ -594,6 +649,7 @@ export class AutoComplete {
     }
 
     updateFloatingDetailsPosition(location = null) {
+        if (!this.ensureConnected()) return;
         if (!location) location = this.getCursorPosition();
         const rect = this.textarea.getBoundingClientRect();
         const layerRect = this.getLayer().getBoundingClientRect();
@@ -648,9 +704,10 @@ export class AutoComplete {
 
     /**
      * Calculate (keyboard) cursor coordinates within textarea.
-     * @returns {{left:number, top:number, bottom:number}}
+     * @returns {{left:number, top:number, bottom:number}|null}
      */
     getCursorPosition() {
+        if (!this.ensureConnected()) return null;
         const inputRect = this.textarea.getBoundingClientRect();
         const style = window.getComputedStyle(this.textarea);
         if (!this.clone) {
@@ -661,12 +718,6 @@ export class AutoComplete {
             this.clone.style.position = 'fixed';
             this.clone.style.visibility = 'hidden';
             document.body.append(this.clone);
-            const mo = new MutationObserver(muts => {
-                if (muts.find(it => Array.from(it.removedNodes).includes(this.textarea))) {
-                    this.clone.remove();
-                }
-            });
-            mo.observe(this.textarea.parentElement, { childList: true });
         }
         this.clone.style.height = `${inputRect.height}px`;
         this.clone.style.left = `${inputRect.left}px`;
@@ -764,6 +815,7 @@ export class AutoComplete {
      * @param {KeyboardEvent} evt The event.
      */
     async handleKeyDown(evt) {
+        if (!this.ensureConnected()) return;
         // autocomplete is shown and cursor at end of current command name (or inside name and typed or forced)
         if (this.isActive && this.isReplaceable) {
             // actions in the list
@@ -862,9 +914,17 @@ export class AutoComplete {
         }
         // await keyup to see if cursor position or text has changed
         const oldText = this.textarea.value;
+        const layoutGeneration = this.layoutGeneration;
         await new Promise(resolve => {
-            window.addEventListener('keyup', resolve, { once: true });
+            const finish = () => {
+                window.removeEventListener('keyup', finish);
+                this.pendingKeyUps.delete(finish);
+                resolve();
+            };
+            this.pendingKeyUps.add(finish);
+            window.addEventListener('keyup', finish, { once: true });
         });
+        if (!this.ensureConnected() || layoutGeneration !== this.layoutGeneration) return;
         if (this.selectionStart != this.textarea.selectionStart) {
             this.selectionStart = this.textarea.selectionStart;
             this.show(this.isReplaceable || oldText != this.textarea.value);

@@ -2,7 +2,7 @@ import { Popper } from '../lib.js';
 
 import { eventSource, event_types, saveSettings, saveSettingsDebounced, getRequestHeaders, animation_duration, CLIENT_VERSION } from '../script.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from './popup.js';
-import { renderTemplate, renderTemplateAsync } from './templates.js';
+import { renderTemplate, renderTemplateAsync, preloadTemplates } from './templates.js';
 import { delay, deleteValueByPath, equalsIgnoreCaseAndAccents, escapeHtml, isSubsetOf, sanitizeSelector, setValueByPath, versionCompare } from './utils.js';
 import { getContext } from './st-context.js';
 import { isAdmin } from './user.js';
@@ -572,6 +572,52 @@ async function activateExtensions() {
     const extensionNames = extensions.map(x => x[0]);
     const promises = [];
 
+    // Use the same requirements for optional warming and actual activation.
+    // Re-check on each activation turn: an earlier hook can change settings.
+    function getRequirements(manifest) {
+        const extrasRequirements = manifest.requires;
+        const extensionDependencies = manifest.dependencies;
+        const minClientVersion = manifest.minimum_client_version;
+        const meetsClientMinimumVersion = minClientVersion === undefined || versionCompare(clientVersion, minClientVersion);
+        const missingModules = Array.isArray(extrasRequirements) ? extrasRequirements.filter(req => !modules.includes(req)) : [];
+        const meetsModuleRequirements = !Array.isArray(extrasRequirements) || isSubsetOf(modules, extrasRequirements);
+        const missingDependencies = Array.isArray(extensionDependencies) ? extensionDependencies.filter(dep => !extensionNames.includes(dep)) : [];
+        const dependenciesExist = !Array.isArray(extensionDependencies) || isSubsetOf(extensionNames, extensionDependencies);
+        const disabledDependencies = dependenciesExist && Array.isArray(extensionDependencies)
+            ? extensionDependencies.filter(dep => extension_settings.disabledExtensions.includes(dep)) : [];
+        const meetsExtensionDeps = dependenciesExist && disabledDependencies.length === 0;
+        return { meetsClientMinimumVersion, meetsModuleRequirements, missingModules, meetsExtensionDeps, missingDependencies, disabledDependencies };
+    }
+
+    // Only known built-in startup templates. Rendering/localization still occurs
+    // at the original call sites, and third-party paths are not inferred.
+    const startupTemplates = {
+        translate: ['index', 'buttons'],
+        'connection-manager': ['settings'],
+        regex: ['dropdown', 'scriptTemplate'],
+        attachments: ['manage-button', 'attach-button'],
+        caption: ['settings'],
+        expressions: ['settings'],
+        memory: ['settings'],
+        'stable-diffusion': ['button', 'dropdown', 'settings'],
+        tts: ['settings'],
+        assets: ['window'],
+        vectors: ['settings'],
+    };
+    try {
+        const paths = [];
+        for (const [name, manifest] of extensions) {
+            if (!Object.hasOwn(startupTemplates, name) || activeExtensions.has(name) || extension_settings.disabledExtensions.includes(name)) continue;
+            const requirements = getRequirements(manifest);
+            if (!requirements.meetsClientMinimumVersion || !requirements.meetsModuleRequirements || !requirements.meetsExtensionDeps) continue;
+            // Keep the exact key used by renderExtensionTemplate[Async].
+            paths.push(...startupTemplates[name].map(template => `scripts/extensions/${name}/${template}.html`));
+        }
+        void preloadTemplates(paths).catch(error => console.debug('Optional startup template preloading failed.', error));
+    } catch (error) {
+        console.debug('Optional startup template preloading is unavailable.', error);
+    }
+
     for (let entry of extensions) {
         const name = entry[0];
         const manifest = entry[1];
@@ -583,44 +629,12 @@ async function activateExtensions() {
         if (activeExtensions.has(name)) {
             continue;
         }
-        // Client version requirement: pass if 'minimum_client_version' is undefined or null.
-        let meetsClientMinimumVersion = true;
-        if (minClientVersion !== undefined) {
-            meetsClientMinimumVersion = versionCompare(clientVersion, minClientVersion);
+        const { meetsClientMinimumVersion, meetsModuleRequirements, missingModules, meetsExtensionDeps, missingDependencies, disabledDependencies } = getRequirements(manifest);
+        if (extrasRequirements !== undefined && !Array.isArray(extrasRequirements)) {
+            console.warn(`Extension ${name}: manifest.json 'requires' field is not an array. Loading allowed, but any intended requirements were not verified to exist.`);
         }
-
-        // Module requirements: pass if 'requires' is undefined, null, or not an array; check subset if it's an array
-        let meetsModuleRequirements = true;
-        let missingModules = [];
-        if (extrasRequirements !== undefined) {
-            if (Array.isArray(extrasRequirements)) {
-                meetsModuleRequirements = isSubsetOf(modules, extrasRequirements);
-                missingModules = extrasRequirements.filter(req => !modules.includes(req));
-            } else {
-                console.warn(`Extension ${name}: manifest.json 'requires' field is not an array. Loading allowed, but any intended requirements were not verified to exist.`);
-            }
-        }
-
-        // Extension dependencies: pass if 'dependencies' is undefined or not an array; check subset and disabled status if it's an array
-        let meetsExtensionDeps = true;
-        let missingDependencies = [];
-        let disabledDependencies = [];
-        if (extensionDependencies !== undefined) {
-            if (Array.isArray(extensionDependencies)) {
-                // Check if all dependencies exist
-                meetsExtensionDeps = isSubsetOf(extensionNames, extensionDependencies);
-                missingDependencies = extensionDependencies.filter(dep => !extensionNames.includes(dep));
-                // Check for disabled dependencies
-                if (meetsExtensionDeps) {
-                    disabledDependencies = extensionDependencies.filter(dep => extension_settings.disabledExtensions.includes(dep));
-                    if (disabledDependencies.length > 0) {
-                        // Fail if any dependencies are disabled
-                        meetsExtensionDeps = false;
-                    }
-                }
-            } else {
-                console.warn(`Extension ${name}: manifest.json 'dependencies' field is not an array. Loading allowed, but any intended requirements were not verified to exist.`);
-            }
+        if (extensionDependencies !== undefined && !Array.isArray(extensionDependencies)) {
+            console.warn(`Extension ${name}: manifest.json 'dependencies' field is not an array. Loading allowed, but any intended requirements were not verified to exist.`);
         }
 
         const isDisabled = extension_settings.disabledExtensions.includes(name);

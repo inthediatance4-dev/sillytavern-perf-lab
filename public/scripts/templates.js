@@ -7,6 +7,9 @@ import { applyLocale } from './i18n.js';
  */
 const TEMPLATE_CACHE = new Map();
 
+/** @type {Map<string, Promise<function>>} Shared in-flight template requests. */
+const TEMPLATE_REQUESTS = new Map();
+
 /**
  * Loads a URL content using XMLHttpRequest synchronously.
  * @param {string} url URL to load synchronously
@@ -49,6 +52,36 @@ function getUrlAsync(url) {
 }
 
 /**
+ * Shares a cold request with preloading and concurrent render callers.
+ * A synchronous fallback may have already filled the cache while I/O was pending.
+ * @param {string} pathToTemplate Template URL
+ * @returns {Promise<function>} Compiled template
+ */
+function fetchTemplateAsync(pathToTemplate) {
+    const cached = TEMPLATE_CACHE.get(pathToTemplate);
+    if (cached) return Promise.resolve(cached);
+    const pending = TEMPLATE_REQUESTS.get(pathToTemplate);
+    if (pending) return pending;
+    const request = getUrlAsync(pathToTemplate).then(content => {
+        const template = TEMPLATE_CACHE.get(pathToTemplate) ?? Handlebars.compile(content);
+        TEMPLATE_CACHE.set(pathToTemplate, template);
+        return template;
+    }).finally(() => TEMPLATE_REQUESTS.delete(pathToTemplate));
+    TEMPLATE_REQUESTS.set(pathToTemplate, request);
+    return request;
+}
+
+/**
+ * Warms the compiled-template cache without rendering user data or applying locale.
+ * Failed optional requests remain retryable by the ordinary render APIs.
+ * @param {string[]} paths Full template URLs
+ * @returns {Promise<PromiseSettledResult<function>[]>} Individual request results
+ */
+export function preloadTemplates(paths) {
+    return Promise.allSettled([...new Set(paths)].map(fetchTemplateAsync));
+}
+
+/**
  * Renders a Handlebars template asynchronously.
  * @param {string} templateId ID of the template to render
  * @param {Record<string, any>} templateData The data to pass to the template
@@ -58,16 +91,6 @@ function getUrlAsync(url) {
  * @returns {Promise<string>} Rendered template
  */
 export async function renderTemplateAsync(templateId, templateData = {}, sanitize = true, localize = true, fullPath = false) {
-    async function fetchTemplateAsync(pathToTemplate) {
-        let template = TEMPLATE_CACHE.get(pathToTemplate);
-        if (!template) {
-            const templateContent = await getUrlAsync(pathToTemplate);
-            template = Handlebars.compile(templateContent);
-            TEMPLATE_CACHE.set(pathToTemplate, template);
-        }
-        return template;
-    }
-
     try {
         const pathToTemplate = fullPath ? templateId : `/scripts/templates/${templateId}.html`;
         const template = await fetchTemplateAsync(pathToTemplate);

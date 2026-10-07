@@ -901,12 +901,13 @@ export async function selectCharacterById(id, options = {}) {
         const isCurrentCharacter = () => !selected_group && String(this_chid) === String(id) && characters[id]?.avatar === avatar;
         const switchingCharacter = selected_group || String(this_chid) !== String(id);
         if (switchingCharacter) {
+            const previousMetadata = chat_metadata;
             setCharacterId(undefined);
             setCharacterName('');
             resetSelectedGroup();
             await clearChat({ clearData: true });
             // An awaited clear hook may have navigated elsewhere.
-            if (this_chid !== undefined || selected_group) {
+            if (this_chid !== undefined || selected_group || chat_metadata !== previousMetadata) {
                 return false;
             }
             cancelTtsPlay();
@@ -918,12 +919,15 @@ export async function selectCharacterById(id, options = {}) {
             switchMenu && (selected_button = 'character_edit');
         }
 
+        // A newer load can replace metadata while keeping the same character and filename.
+        const preparationMetadata = chat_metadata;
+        const isCurrentPreparation = () => isCurrentCharacter() && chat_metadata === preparationMetadata;
         // Refresh before comparing or assigning chat: this can replace the shallow card.
         try {
             await unshallowCharacter(id);
         } catch (error) {
             // A newly selected card has no loaded chat yet. Leave it retryable after failed preparation.
-            if (switchingCharacter && isCurrentCharacter()) {
+            if (switchingCharacter && isCurrentPreparation()) {
                 setCharacterId(undefined);
                 setCharacterName('');
                 chat_metadata = {};
@@ -932,7 +936,7 @@ export async function selectCharacterById(id, options = {}) {
             }
             throw error;
         }
-        if (!isCurrentCharacter()) {
+        if (!isCurrentPreparation()) {
             return false;
         }
 
@@ -940,12 +944,16 @@ export async function selectCharacterById(id, options = {}) {
             select_selected_character(id, { switchMenu });
         }
         if (characters[id].chat !== chatFile) {
-            return await openCharacterChat(chatFile, { id, avatar, chatAlreadyCleared: Boolean(switchingCharacter) });
+            return await openCharacterChat(chatFile, {
+                id, avatar,
+                chatMetadata: preparationMetadata,
+                chatAlreadyCleared: Boolean(switchingCharacter),
+            });
         }
         if (switchingCharacter) {
             await getChat();
         }
-        return isCurrentCharacter();
+        return isCurrentCharacter() && characters[id].chat === chatFile;
     }
 
     if (selected_group || String(this_chid) !== String(id)) {
@@ -7795,8 +7803,12 @@ export async function openCharacterChat(file_name, expectedCharacter) {
     const isCurrentCharacter = () => !expectedCharacter || (!selected_group
         && String(this_chid) === String(expectedCharacter.id)
         && characters[this_chid]?.avatar === expectedCharacter.avatar);
+    const isCurrentPreparation = () => isCurrentCharacter()
+        && (expectedCharacter?.chatMetadata === undefined || chat_metadata === expectedCharacter.chatMetadata);
+    const isCurrentChat = () => isCurrentCharacter()
+        && (!expectedCharacter || characters[this_chid]?.chat === file_name);
     await waitUntilCondition(() => !isChatSaving, debounce_timeout.extended, 10);
-    if (!isCurrentCharacter()) {
+    if (!isCurrentPreparation()) {
         return false;
     }
     // A direct cross-character transition already cleared the previous chat before selecting this card.
@@ -7804,19 +7816,19 @@ export async function openCharacterChat(file_name, expectedCharacter) {
     if (!expectedCharacter?.chatAlreadyCleared) {
         await clearChat({ clearData: true });
     }
-    if (!isCurrentCharacter()) {
+    if (!isCurrentPreparation()) {
         return false;
     }
     characters[this_chid].chat = file_name;
     chat_metadata = {};
     await getChat();
-    if (!isCurrentCharacter()) {
+    if (!isCurrentChat()) {
         return false;
     }
     $('#selected_chat_pole').val(file_name);
     await createOrEditCharacter(new CustomEvent('newChat'));
     if (expectedCharacter) {
-        return isCurrentCharacter();
+        return isCurrentChat();
     }
 }
 

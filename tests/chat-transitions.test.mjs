@@ -384,3 +384,97 @@ test('failed same-character preparation retains the chat that was already loaded
     assert.deepEqual(h.observations.clears, []);
     assert.deepEqual(h.observations.recoveryEvents, []);
 });
+
+for (const newerFile of ['newer-history', 'default']) {
+    for (const fails of [true, false]) {
+        test(`older preparation ${fails ? 'rejection' : 'resolution'} preserves newer same-character ${newerFile} load`, async () => {
+            const h = harness();
+            let resolvePreparation;
+            let rejectPreparation;
+            h.context.unshallowCharacter = () => new Promise((resolve, reject) => {
+                resolvePreparation = resolve;
+                rejectPreparation = reject;
+            });
+            const older = h.context.openRecentCharacterChat('target.png', 'default');
+            await tick();
+            await h.context.openCharacterChat(newerFile);
+            const newerMetadata = h.context.chat_metadata;
+            const persistedBeforeCompletion = [...h.observations.persisted];
+            if (fails) {
+                rejectPreparation(new Error('synthetic older preparation failure'));
+            } else {
+                resolvePreparation();
+            }
+            await older;
+            assert.equal(h.context.this_chid, 1);
+            assert.equal(h.context.chat_metadata, newerMetadata);
+            assert.equal(h.context.chat_metadata.loaded, newerFile);
+            assert.equal(h.context.characters[1].chat, newerFile);
+            assert.deepEqual(h.observations.loads, [{ id: 1, file: newerFile }]);
+            assert.deepEqual(h.observations.persisted, persistedBeforeCompletion);
+            assert.deepEqual(h.observations.recoveryEvents, []);
+            assert.deepEqual(h.observations.active, []);
+            assert.equal(h.observations.saves, 0);
+            assert.equal(h.observations.errors, fails ? 1 : 0);
+        });
+    }
+}
+
+test('initial awaited clear refuses a newer homepage metadata state', async () => {
+    const h = harness();
+    h.context.clearChat = async () => {
+        h.context.chat_metadata = { home: 'newer-navigation' };
+    };
+    assert.equal(await h.context.selectCharacterById(1, { chatFile: 'history' }), false);
+    assert.equal(h.context.this_chid, undefined);
+    assert.equal(h.context.chat_metadata.home, 'newer-navigation');
+    assert.deepEqual(h.observations.loads, []);
+    assert.deepEqual(h.observations.recoveryEvents, []);
+});
+
+for (const boundary of ['waitUntilCondition', 'clearChat']) {
+    test(`targeted ${boundary} refuses a newer same-character metadata state before filename assignment`, async () => {
+        const h = harness({ this_chid: 1 });
+        h.context[boundary] = async () => {
+            h.context.characters[1].chat = 'newer-history';
+            h.context.chat_metadata = { loaded: 'newer-history' };
+        };
+        assert.equal(await h.context.selectCharacterById(1, { chatFile: 'history' }), false);
+        assert.equal(h.context.characters[1].chat, 'newer-history');
+        assert.equal(h.context.chat_metadata.loaded, 'newer-history');
+        assert.deepEqual(h.observations.loads, []);
+        assert.deepEqual(h.observations.persisted, []);
+    });
+}
+
+test('same-character refresh refuses a newer metadata state before opening requested history', async () => {
+    const h = harness({ this_chid: 1 });
+    h.context.unshallowCharacter = async () => {
+        h.context.characters[1].chat = 'newer-history';
+        h.context.chat_metadata = { loaded: 'newer-history' };
+    };
+    assert.equal(await h.context.selectCharacterById(1, { chatFile: 'history' }), false);
+    assert.equal(h.context.characters[1].chat, 'newer-history');
+    assert.deepEqual(h.observations.loads, []);
+    assert.deepEqual(h.observations.persisted, []);
+});
+
+for (const requestedFile of ['history', 'default']) {
+    test(`targeted ${requestedFile} load refuses newer same-character filename before persistence or settings`, async () => {
+        const h = harness();
+        const getChat = h.context.getChat;
+        h.context.getChat = async () => {
+            await getChat();
+            h.context.characters[1].chat = 'newer-history';
+            h.context.chat_metadata = { loaded: 'newer-history' };
+        };
+        await h.context.openRecentCharacterChat('target.png', requestedFile);
+        assert.equal(h.context.this_chid, 1);
+        assert.equal(h.context.characters[1].chat, 'newer-history');
+        assert.equal(h.context.chat_metadata.loaded, 'newer-history');
+        assert.deepEqual(h.observations.fields, []);
+        assert.deepEqual(h.observations.persisted, []);
+        assert.deepEqual(h.observations.active, []);
+        assert.equal(h.observations.saves, 0);
+    });
+}

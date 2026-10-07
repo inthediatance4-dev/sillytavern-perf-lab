@@ -919,7 +919,19 @@ export async function selectCharacterById(id, options = {}) {
         }
 
         // Refresh before comparing or assigning chat: this can replace the shallow card.
-        await unshallowCharacter(id);
+        try {
+            await unshallowCharacter(id);
+        } catch (error) {
+            // A newly selected card has no loaded chat yet. Leave it retryable after failed preparation.
+            if (switchingCharacter && isCurrentCharacter()) {
+                setCharacterId(undefined);
+                setCharacterName('');
+                chat_metadata = {};
+                selected_button = 'characters';
+                await eventSource.emit(event_types.CHAT_CHANGED, undefined);
+            }
+            throw error;
+        }
         if (!isCurrentCharacter()) {
             return false;
         }
@@ -928,7 +940,7 @@ export async function selectCharacterById(id, options = {}) {
             select_selected_character(id, { switchMenu });
         }
         if (characters[id].chat !== chatFile) {
-            return await openCharacterChat(chatFile, { id, avatar });
+            return await openCharacterChat(chatFile, { id, avatar, chatAlreadyCleared: Boolean(switchingCharacter) });
         }
         if (switchingCharacter) {
             await getChat();
@@ -7787,7 +7799,11 @@ export async function openCharacterChat(file_name, expectedCharacter) {
     if (!isCurrentCharacter()) {
         return false;
     }
-    await clearChat({ clearData: true });
+    // A direct cross-character transition already cleared the previous chat before selecting this card.
+    // Clearing again would save empty itemized prompts against its unopened default filename.
+    if (!expectedCharacter?.chatAlreadyCleared) {
+        await clearChat({ clearData: true });
+    }
     if (!isCurrentCharacter()) {
         return false;
     }

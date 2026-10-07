@@ -5,10 +5,11 @@ import vm from 'node:vm';
 
 const script = readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
 const welcomeScript = readFileSync(new URL('../public/scripts/welcome-screen.js', import.meta.url), 'utf8');
+const promptScript = readFileSync(new URL('../public/scripts/itemized-prompts.js', import.meta.url), 'utf8');
 
 // Execute production orchestration; substitute only network, DOM and extension boundaries.
 function functionSource(source, name) {
-    const start = source.search(new RegExp(`^(?:export )?async function ${name}\\(`, 'm'));
+    const start = source.search(new RegExp(`^(?:export )?(?:async )?function ${name}\\(`, 'm'));
     assert.notEqual(start, -1, `${name} must exist in the application source`);
     const end = source.indexOf('\n}', start);
     assert.notEqual(end, -1);
@@ -18,7 +19,7 @@ function functionSource(source, name) {
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
 function harness(overrides = {}) {
-    const observations = { loads: [], events: [], clears: [], selections: [], persisted: [], active: [], saves: 0, tts: 0, errors: 0, info: 0, unshallowed: [], fields: [] };
+    const observations = { loads: [], events: [], recoveryEvents: [], clears: [], selections: [], persisted: [], active: [], saves: 0, tts: 0, errors: 0, info: 0, unshallowed: [], fields: [] };
     const context = vm.createContext({
         console: { error() {}, debug() {} },
         t: (parts, ...values) => parts.reduce((text, part, i) => text + part + (values[i] ?? ''), ''),
@@ -52,6 +53,10 @@ function harness(overrides = {}) {
         getCurrentChatId: () => context.characters[context.this_chid]?.chat,
         setActiveCharacter: avatar => { observations.active.push(avatar); },
         saveSettingsDebounced: () => { observations.saves++; },
+        event_types: { CHAT_CHANGED: 'chat-changed' },
+        eventSource: { emit: async (type, id) => {
+            if (type === 'chat-changed') observations.recoveryEvents.push(id);
+        } },
         ...overrides,
     });
     const busyDeclaration = welcomeScript.match(/^let recentCharacterChatOpening = false;$/m)?.[0] ?? '';
@@ -262,4 +267,120 @@ test('ordinary openCharacterChat keeps its legacy void return and persistence', 
     assert.equal(await h.context.openCharacterChat('history'), undefined);
     assert.deepEqual(h.observations.loads, [{ id: 1, file: 'history' }]);
     assert.deepEqual(h.observations.persisted, [{ id: 1, file: 'history', event: 'newChat' }]);
+});
+
+function useActualClearChat(h) {
+    const storedPrompts = new Map([
+        ['default', [{ mesId: 0, rawPrompt: 'saved default prompt' }]],
+        ['history', [{ mesId: 1, rawPrompt: 'saved history prompt' }]],
+    ]);
+    const promptWrites = [];
+    Object.assign(h.context, {
+        itemizedPrompts: [{ mesId: 0, rawPrompt: 'prior open prompt' }],
+        chat: [{ mes: 'prior open message' }],
+        mediaLoadScrollHandler: { cancel() {} },
+        cancelDebouncedChatSave() {}, cancelDebouncedMetadataSave() {}, closeMessageEditor() {},
+        extension_prompts: {}, is_delete_mode: false,
+        chatElement: { children: () => ({ remove() {} }) },
+        $: () => ({ length: 0, val() {} }),
+        event_types: { CHAT_CHANGED: 'chat-changed', ITEMIZED_PROMPTS_SAVED: 'prompts-saved', ITEMIZED_PROMPTS_LOADED: 'prompts-loaded' },
+        promptStorage: {
+            setItem: async (id, prompts) => {
+                const snapshot = structuredClone(prompts);
+                promptWrites.push({ id, prompts: snapshot });
+                storedPrompts.set(id, snapshot);
+            },
+            getItem: async id => structuredClone(storedPrompts.get(id)),
+        },
+    });
+    vm.runInContext([
+        functionSource(script, 'getCurrentChatId'),
+        functionSource(script, 'clearChat'),
+        functionSource(promptScript, 'saveItemizedPrompts'),
+        functionSource(promptScript, 'loadItemizedPrompts'),
+    ].join('\n'), h.context);
+    const getChat = h.context.getChat;
+    h.context.getChat = async () => {
+        await getChat();
+        await h.context.loadItemizedPrompts(h.context.getCurrentChatId());
+    };
+    return { storedPrompts, promptWrites };
+}
+
+test('cross-character history does not overwrite unopened default prompt storage with empty prompts', async () => {
+    const h = harness();
+    const { storedPrompts, promptWrites } = useActualClearChat(h);
+    await h.context.openRecentCharacterChat('target.png', 'history');
+    assert.deepEqual(storedPrompts.get('default'), [{ mesId: 0, rawPrompt: 'saved default prompt' }]);
+    assert.deepEqual(promptWrites, []);
+    assert.deepEqual(h.observations.loads, [{ id: 1, file: 'history' }]);
+    assert.equal(h.context.itemizedPrompts[0].rawPrompt, 'saved history prompt');
+});
+
+for (const targeted of [true, false]) {
+    test(`${targeted ? 'targeted same-character' : 'legacy'} history retains normal prompt-saving clear`, async () => {
+        const h = harness({ this_chid: 1 });
+        const { storedPrompts, promptWrites } = useActualClearChat(h);
+        if (targeted) {
+            await h.context.selectCharacterById(1, { chatFile: 'history' });
+        } else {
+            await h.context.openCharacterChat('history');
+        }
+        assert.deepEqual(promptWrites, [{ id: 'default', prompts: [{ mesId: 0, rawPrompt: 'prior open prompt' }] }]);
+        assert.deepEqual(storedPrompts.get('default'), [{ mesId: 0, rawPrompt: 'prior open prompt' }]);
+        assert.equal(h.context.itemizedPrompts[0].rawPrompt, 'saved history prompt');
+    });
+}
+
+test('failed cross-character refresh can retry the default without accepting an unloaded blank chat', async () => {
+    const h = harness();
+    const { storedPrompts, promptWrites } = useActualClearChat(h);
+    h.context.unshallowCharacter = async () => { throw new Error('synthetic refresh failure'); };
+    await h.context.openRecentCharacterChat('target.png', 'default');
+    assert.equal(h.observations.errors, 1);
+    assert.deepEqual(h.observations.loads, []);
+    assert.deepEqual(h.observations.active, []);
+    assert.equal(h.context.this_chid, undefined);
+    assert.equal(h.context.name2, '');
+    assert.deepEqual(Object.keys(h.context.chat_metadata), []);
+    assert.deepEqual(h.observations.recoveryEvents, [undefined]);
+    h.context.unshallowCharacter = async () => {};
+    await h.context.openRecentCharacterChat('target.png', 'default');
+    assert.deepEqual(h.observations.loads, [{ id: 1, file: 'default' }]);
+    assert.deepEqual(h.observations.active, ['target.png']);
+    assert.equal(h.context.itemizedPrompts[0].rawPrompt, 'saved default prompt');
+    assert.deepEqual(storedPrompts.get('default'), [{ mesId: 0, rawPrompt: 'saved default prompt' }]);
+    assert.deepEqual(promptWrites, []);
+});
+
+for (const nextSelection of [
+    { this_chid: 2, name2: 'Other', chat_metadata: { loaded: 'other-default' } },
+    { this_chid: undefined, selected_group: 'other-group', name2: 'Group', chat_metadata: { loaded: 'group-history' } },
+]) {
+    test(`failed refresh preserves navigation selected during preparation ${JSON.stringify(nextSelection)}`, async () => {
+        const h = harness();
+        h.context.unshallowCharacter = async () => {
+            Object.assign(h.context, nextSelection);
+            throw new Error('synthetic stale refresh failure');
+        };
+        await h.context.openRecentCharacterChat('target.png', 'default');
+        assert.equal(h.context.this_chid, nextSelection.this_chid);
+        assert.equal(h.context.name2, nextSelection.name2);
+        assert.equal(h.context.chat_metadata.loaded, nextSelection.chat_metadata.loaded);
+        assert.deepEqual(h.observations.loads, []);
+        assert.deepEqual(h.observations.active, []);
+        assert.equal(h.observations.errors, 1);
+        assert.deepEqual(h.observations.recoveryEvents, []);
+    });
+}
+
+test('failed same-character preparation retains the chat that was already loaded', async () => {
+    const h = harness({ this_chid: 1, name2: 'Target', chat_metadata: { loaded: 'default' } });
+    h.context.unshallowCharacter = async () => { throw new Error('synthetic refresh failure'); };
+    await h.context.openRecentCharacterChat('target.png', 'history');
+    assert.equal(h.context.this_chid, 1);
+    assert.equal(h.context.name2, 'Target');
+    assert.equal(h.context.chat_metadata.loaded, 'default');
+    assert.deepEqual(h.observations.clears, []);
+    assert.deepEqual(h.observations.recoveryEvents, []);
 });

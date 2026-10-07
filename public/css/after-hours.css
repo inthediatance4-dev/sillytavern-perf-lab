@@ -317,6 +317,26 @@ input[type="range"] {
 }
 
 @media screen and (max-width: 1000px) {
+    /* Ten native controls share the row; min-content must not widen the viewport. */
+    body:not(.movingUI):not(.waifuMode) #top-settings-holder > .drawer {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    body:not(.movingUI):not(.waifuMode) #top-settings-holder > .drawer > .drawer-toggle {
+        width: 100%;
+        min-width: 0;
+    }
+
+    body:not(.movingUI):not(.waifuMode) #top-settings-holder > .drawer > .drawer-toggle > .drawer-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: var(--topBarBlockSize);
+        font-size: min(var(--topBarIconSize), calc(8dvw - 2px));
+    }
+
     body:not(.movingUI):not(.waifuMode) #sheld {
         border-radius: 0;
         height: calc(100dvh - var(--topBarBlockSize));

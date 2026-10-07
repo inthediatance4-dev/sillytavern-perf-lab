@@ -24,7 +24,9 @@
 
 ## 隔离与验收
 
-分支 `codex/sillytavern-ui-flow`，新 worktree `.worktrees/ui-flow`，基于 `567300a837f7cef8eb4aa1c5e09d36a8a6901c7c`。实验端口 8774；依赖 junction 只读，新数据来自发行默认内容和人工角色/聊天。保护此前五个工作区共 5,785 份跟踪文件及六份原始备份。
+实际消息编辑与取消验收还复现了原版自动补全的问题：编辑 textarea 移除后，window 的 resize 监听仍调用它，第一次调整窗口在 MutationObserver.observe(null) 抛错，后续调整在 getLayer() 的空值上读取布局。追加一个限于 `public/scripts/autocomplete/AutoComplete.js` 和独立测试的小修复：连接中的输入框保持原有补全和定位行为；已经移除的输入框不再进行布局，不留下自己注册的窗口监听、悬浮层或测量克隆。必须覆盖移除前/后的排队回调以及重复清理，不改解析规则、键盘语义或第三方插件。用实际旧类证明反例，再在浏览器中验证编辑取消、连续 resize 和正常补全仍可用。
+
+分支 `codex/sillytavern-ui-flow`，新 worktree `.worktrees/ui-flow`，基于 `567300a837f7cef8eb4aa1c5e09d36a8a6901c7c`。实验端口 8774；依赖 junction 只读，新数据来自发行默认内容和人工角色/聊天。保护此前五个工作区共 5,785 份跟踪文件及最初六份与追加一份原始备份。
 
 先用实际旧 `scrollOnMediaLoad` 代码和原生 EventTarget 证明失败，再测试清理、用户意图、成功/失败媒体事件、重复事件、重入和取消；实际浏览器补验人工图片的延迟加载、上翻位置、主题切换和保存/重开。没有将模型网络等待宣称为 UI 提速；若浏览器测得差异小，则报告限制。
 

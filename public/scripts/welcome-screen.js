@@ -15,7 +15,6 @@ import {
     is_send_press,
     neutralCharacterName,
     newAssistantChat,
-    openCharacterChat,
     printCharactersDebounced,
     renameGroupOrCharacterChat,
     saveSettingsDebounced,
@@ -44,6 +43,7 @@ const defaultAssistantAvatar = 'default_Assistant.png';
 
 const DEFAULT_MAX_DISPLAYED = 15;
 const DEFAULT_COLLAPSED_DISPLAYED = 3;
+let recentCharacterChatOpening = false;
 
 /**
  * Gets the current recent chats settings from account storage.
@@ -476,25 +476,28 @@ async function sendWelcomePanel(chats, expand = false) {
  * @param {string} fileName Chat file name
  */
 async function openRecentCharacterChat(avatarId, fileName) {
+    if (recentCharacterChatOpening) {
+        return;
+    }
     const characterId = characters.findIndex(x => x.avatar === avatarId);
     if (characterId === -1) {
         console.error(`Character not found for avatar ID: ${avatarId}`);
         return;
     }
 
+    recentCharacterChatOpening = true;
     try {
-        await selectCharacterById(characterId);
-        setActiveCharacter(avatarId);
-        saveSettingsDebounced();
-        const currentChatId = getCurrentChatId();
-        if (currentChatId === fileName) {
-            console.debug(`Chat ${fileName} is already open.`);
+        const accepted = await selectCharacterById(characterId, { chatFile: fileName });
+        if (!accepted) {
             return;
         }
-        await openCharacterChat(fileName);
+        setActiveCharacter(avatarId);
+        saveSettingsDebounced();
     } catch (error) {
         console.error('Error opening recent chat:', error);
         toastr.error(t`Failed to open recent chat. See console for details.`);
+    } finally {
+        recentCharacterChatOpening = false;
     }
 }
 

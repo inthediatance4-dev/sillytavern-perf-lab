@@ -869,20 +869,71 @@ export function resultCheckStatus() {
  * @param {number} id The ID of the character to switch to.
  * @param {object} [options] Options for the switch.
  * @param {boolean} [options.switchMenu=true] Whether to switch the right menu to the character edit menu if the character is already selected.
- * @returns {Promise<void>} A promise that resolves when the character is switched.
+ * @param {string} [options.chatFile] A nonempty chat filename to open directly, skipping the default chat.
+ * @returns {Promise<void|boolean>} Targeted calls resolve to whether the transition was accepted; legacy calls resolve without a value.
  */
-export async function selectCharacterById(id, { switchMenu = true } = {}) {
+export async function selectCharacterById(id, options = {}) {
+    const { switchMenu = true, chatFile } = options;
+    const targeted = Object.hasOwn(options, 'chatFile');
+    if (targeted && (typeof chatFile !== 'string' || !chatFile.trim())) {
+        return false;
+    }
+
     if (characters[id] === undefined) {
-        return;
+        return targeted ? false : undefined;
     }
 
     if (isChatSaving) {
         toastr.info(t`Please wait until the chat is saved before switching characters.`, t`Your chat is still saving...`);
-        return;
+        return targeted ? false : undefined;
     }
 
     if (selected_group && is_group_generating) {
-        return;
+        return targeted ? false : undefined;
+    }
+
+    if (targeted) {
+        if (is_send_press) {
+            return false;
+        }
+
+        const avatar = characters[id].avatar;
+        const isCurrentCharacter = () => !selected_group && String(this_chid) === String(id) && characters[id]?.avatar === avatar;
+        const switchingCharacter = selected_group || String(this_chid) !== String(id);
+        if (switchingCharacter) {
+            setCharacterId(undefined);
+            setCharacterName('');
+            resetSelectedGroup();
+            await clearChat({ clearData: true });
+            // An awaited clear hook may have navigated elsewhere.
+            if (this_chid !== undefined || selected_group) {
+                return false;
+            }
+            cancelTtsPlay();
+            this_edit_mes_id = undefined;
+            selected_button = 'character_edit';
+            setCharacterId(id);
+            chat_metadata = {};
+        } else {
+            switchMenu && (selected_button = 'character_edit');
+        }
+
+        // Refresh before comparing or assigning chat: this can replace the shallow card.
+        await unshallowCharacter(id);
+        if (!isCurrentCharacter()) {
+            return false;
+        }
+
+        if (!switchingCharacter) {
+            select_selected_character(id, { switchMenu });
+        }
+        if (characters[id].chat !== chatFile) {
+            return await openCharacterChat(chatFile, { id, avatar });
+        }
+        if (switchingCharacter) {
+            await getChat();
+        }
+        return isCurrentCharacter();
     }
 
     if (selected_group || String(this_chid) !== String(id)) {
@@ -7728,14 +7779,29 @@ function getFirstMessage() {
     return message;
 }
 
-export async function openCharacterChat(file_name) {
+export async function openCharacterChat(file_name, expectedCharacter) {
+    const isCurrentCharacter = () => !expectedCharacter || (!selected_group
+        && String(this_chid) === String(expectedCharacter.id)
+        && characters[this_chid]?.avatar === expectedCharacter.avatar);
     await waitUntilCondition(() => !isChatSaving, debounce_timeout.extended, 10);
+    if (!isCurrentCharacter()) {
+        return false;
+    }
     await clearChat({ clearData: true });
+    if (!isCurrentCharacter()) {
+        return false;
+    }
     characters[this_chid].chat = file_name;
     chat_metadata = {};
     await getChat();
+    if (!isCurrentCharacter()) {
+        return false;
+    }
     $('#selected_chat_pole').val(file_name);
     await createOrEditCharacter(new CustomEvent('newChat'));
+    if (expectedCharacter) {
+        return isCurrentCharacter();
+    }
 }
 
 ////////// OPTIMZED MAIN API CHANGE FUNCTION ////////////

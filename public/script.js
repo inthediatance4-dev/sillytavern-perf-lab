@@ -216,6 +216,7 @@ import {
 import { checkOpenRouterAuth, initSecrets, readSecretState } from './scripts/secrets.js';
 import { markdownExclusionExt } from './scripts/showdown-exclusion.js';
 import { markdownUnderscoreExt } from './scripts/showdown-underscore.js';
+import { createMediaLoadScrollHandler } from './scripts/media-load-scroll.js';
 import { NOTE_MODULE_NAME, initAuthorsNote, metadata_keys, setFloatingPrompt, shouldWIAddPrompt } from './scripts/authors-note.js';
 import { registerPromptManagerMigration } from './scripts/PromptManager.js';
 import { getRegexedString, regex_placement } from './scripts/extensions/regex/engine.js';
@@ -1529,40 +1530,14 @@ export async function redisplayChat({ targetChat = chat, startIndex = 0, fade = 
     console.info(`Rendered ${targetChat.length - startIndex} messages in ${((performance.now() - t1) / 1000).toFixed(3)} seconds.`);
 }
 
+const mediaLoadScrollHandler = createMediaLoadScrollHandler({
+    scroll: () => scrollChatToBottom({ waitForFrame: true }),
+    shouldScroll: () => !scrollLock && power_user.auto_scroll_chat_to_bottom,
+});
+
 export function scrollOnMediaLoad() {
-    const started = Date.now();
     const media = chatElement.find('.mes_block img, .mes_block video, .mes_block audio').toArray();
-    let mediaLoaded = 0;
-
-    for (const currentElement of media) {
-        if (currentElement instanceof HTMLImageElement) {
-            if (currentElement.complete) {
-                incrementAndCheck();
-            } else {
-                currentElement.addEventListener('load', incrementAndCheck);
-                currentElement.addEventListener('error', incrementAndCheck);
-            }
-        }
-        if (currentElement instanceof HTMLMediaElement) {
-            if (currentElement.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-                incrementAndCheck();
-            } else {
-                currentElement.addEventListener('loadeddata', incrementAndCheck);
-                currentElement.addEventListener('error', incrementAndCheck);
-            }
-        }
-    }
-
-    function incrementAndCheck() {
-        const MAX_DELAY = 1000; // 1 second
-        if ((Date.now() - started) > MAX_DELAY) {
-            return;
-        }
-        mediaLoaded++;
-        if (mediaLoaded === media.length) {
-            scrollChatToBottom({ waitForFrame: true });
-        }
-    }
+    mediaLoadScrollHandler.track(media);
 }
 
 /**
@@ -1582,6 +1557,7 @@ export function cancelDebouncedChatSave() {
  * @param {boolean} [options.clearData=false] Optionally clear the chat array's contents.
  */
 export async function clearChat({ clearData = false } = {}) {
+    mediaLoadScrollHandler.cancel();
     cancelDebouncedChatSave();
     cancelDebouncedMetadataSave();
     closeMessageEditor();

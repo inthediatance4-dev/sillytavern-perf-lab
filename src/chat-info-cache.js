@@ -63,14 +63,15 @@ export function createChatInfoCache(readInfo, options = {}) {
         if (!valid(value) || maxEntries === 0 || ttlMs === 0) return;
         const json = JSON.stringify(value);
         let weight = Buffer.byteLength(json, 'utf8') + json.length * 2 + key.length * 2 + 256;
+        if (weight > maxEntryBytes || weight > maxBytes) return;
         const objects = [value];
         while (objects.length) {
             const object = objects.pop();
             const values = Object.values(object);
             weight += 64 + values.length * 16;
+            if (weight > maxEntryBytes || weight > maxBytes) return;
             for (const child of values) if (child !== null && typeof child === 'object') objects.push(child);
         }
-        if (weight > maxEntryBytes || weight > maxBytes) return;
         discard(key);
         while (entries.size >= maxEntries || retainedBytes + weight > maxBytes) discard(entries.keys().next().value);
         entries.set(key, { version, value, weight, expiresAt: now() + ttlMs });

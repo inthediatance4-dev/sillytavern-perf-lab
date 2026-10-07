@@ -7799,6 +7799,16 @@ function getFirstMessage() {
     return message;
 }
 
+/**
+ * Opens a character chat, optionally guarding an already prepared targeted transition.
+ * @param {string} file_name Chat filename to open.
+ * @param {object} [expectedCharacter] Internal guard for a targeted character transition.
+ * @param {number|string} expectedCharacter.id Expected character index.
+ * @param {string} expectedCharacter.avatar Expected character avatar filename.
+ * @param {object} [expectedCharacter.chatMetadata] The same metadata object reference captured during preparation.
+ * @param {boolean} [expectedCharacter.chatAlreadyCleared=false] True only when the cross-character caller has already cleared the previous chat.
+ * @returns {Promise<void|boolean>} Legacy one-argument calls resolve without a value; guarded calls resolve to whether the transition was accepted.
+ */
 export async function openCharacterChat(file_name, expectedCharacter) {
     const isCurrentCharacter = () => !expectedCharacter || (!selected_group
         && String(this_chid) === String(expectedCharacter.id)

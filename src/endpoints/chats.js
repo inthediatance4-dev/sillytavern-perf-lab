@@ -9,6 +9,7 @@ import _ from 'lodash';
 
 import validateAvatarUrlMiddleware from '../middleware/validateFileName.js';
 import { createTextMatcher } from '../chat-search.js';
+import { createChatInfoCache } from '../chat-info-cache.js';
 import {
     withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO,
     assertChatWritable, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
@@ -427,6 +428,8 @@ export async function getChatInfo(pathToFile, additionalData = {}, withMetadata 
         });
     });
 }
+
+const getRecentChatInfo = createChatInfoCache((file, metadata) => getChatInfo(file, {}, metadata));
 
 export const router = express.Router();
 
@@ -1077,8 +1080,8 @@ router.post('/recent', async function (request, response) {
         const jsonFilesPromise = recentChats.map((file) => {
             const withMetadata = !!request.body.metadata;
             return file.groupId
-                ? getChatInfo(file.filePath, { group: file.groupId }, withMetadata)
-                : getChatInfo(file.filePath, { avatar: file.pngFile }, withMetadata);
+                ? getRecentChatInfo(file.filePath, { group: file.groupId }, withMetadata)
+                : getRecentChatInfo(file.filePath, { avatar: file.pngFile }, withMetadata);
         });
 
         const chatData = (await Promise.allSettled(jsonFilesPromise)).filter(x => x.status === 'fulfilled').map(x => x.value);

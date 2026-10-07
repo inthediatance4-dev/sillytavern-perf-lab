@@ -1,0 +1,436 @@
+/* After Hours — a quiet writing room. Loaded only by the native theme. */
+body {
+    --ah-ink: #0b111c;
+    --ah-panel: #141d2b;
+    --ah-raised: #1b2636;
+    --ah-copper: #e5b184;
+    --ah-muted: #b8ada4;
+    --ah-line: rgba(229, 177, 132, 0.18);
+    --interactable-outline-color: var(--ah-copper);
+    --interactable-outline-color-faint: rgba(229, 177, 132, 0.65);
+    color: var(--SmartThemeBodyColor);
+    background: radial-gradient(ellipse at 12% 0%, #273347 0%, transparent 50%),
+        radial-gradient(ellipse at 95% 100%, #30231f 0%, transparent 45%), var(--ah-ink);
+}
+
+/* Retain native backgrounds and their switching controls beneath the ink wash. */
+#bg1,
+#bg_custom {
+    opacity: 0.18;
+}
+
+::selection {
+    color: #fff4e7;
+    background: #765039;
+}
+
+:is(#top-bar, #chat, #send_form, .drawer-content, .popup, #character_popup, #world_popup, #options) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: var(--ah-line);
+    text-shadow: none;
+}
+
+#top-bar {
+    border: 1px solid var(--ah-line);
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+.drawer-icon {
+    border-radius: 8px;
+    transition: color 140ms ease, background-color 140ms ease;
+}
+
+.drawer-icon.closedIcon {
+    opacity: 0.78;
+}
+
+.drawer-icon:hover,
+.drawer-icon.openIcon {
+    color: var(--ah-copper);
+    background-color: rgba(229, 177, 132, 0.08);
+}
+
+/* Geometry stays in the ordinary native layout; draggable and waifu layouts opt out. */
+body:not(.movingUI):not(.waifuMode) #sheld {
+    border: 1px solid var(--ah-line);
+    border-radius: 18px;
+    background-color: var(--SmartThemeChatTintColor);
+}
+
+body:not(.movingUI):not(.waifuMode) #chat {
+    min-height: 0;
+    max-height: none;
+    padding: 22px clamp(12px, 2.2vw, 34px) 14px;
+    border: 0;
+    border-radius: 18px 18px 0 0;
+}
+
+body:not(.movingUI):not(.waifuMode) #form_sheld {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0 16px 16px;
+}
+
+@media screen and (min-width: 1001px) {
+    body:not(.movingUI):not(.waifuMode) #top-bar,
+    body:not(.movingUI):not(.waifuMode) #top-settings-holder {
+        top: 14px;
+        max-width: calc(100dvw - 32px);
+    }
+
+    body:not(.movingUI):not(.waifuMode) #sheld {
+        top: calc(var(--topBarBlockSize) + 30px);
+        height: calc(100dvh - var(--topBarBlockSize) - 50px);
+        max-height: calc(100dvh - var(--topBarBlockSize) - 50px);
+        max-width: calc(100dvw - 32px);
+    }
+}
+
+.welcomePanel {
+    gap: 18px;
+    padding: 22px 6px 26px;
+}
+
+.welcomePanel .welcomeHeaderTitle {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--ah-line);
+}
+
+.welcomePanel .welcomeHeaderVersionDisplay {
+    font-family: Georgia, 'Noto Sans', serif;
+    font-size: calc(var(--mainFontSize) * 1.65);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+}
+
+.welcomePanel .recentChatsTitle {
+    color: var(--ah-copper);
+    font-size: calc(var(--mainFontSize) * 0.9);
+    letter-spacing: 0.08em;
+}
+
+.welcomeRecent .recentChatList {
+    gap: 10px;
+}
+
+.welcomeRecent .recentChatList .recentChat {
+    padding: 14px;
+    border-color: var(--ah-line);
+    border-radius: 12px;
+    background-color: var(--ah-panel);
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.welcomeRecent .recentChatList .recentChat:hover {
+    background-color: var(--ah-raised);
+    border-color: rgba(229, 177, 132, 0.45);
+}
+
+.welcomeRecent :is(.chatDate, .chatMessage, .chatStats),
+.welcomePanel .noRecentChat {
+    color: var(--ah-muted);
+}
+
+.welcomeRecent .recentChatList .recentChat .chatActions button {
+    min-width: 30px;
+    min-height: 30px;
+}
+
+/* Flat native chat, with a copper margin for the writer's contributions. */
+body:not(.bubblechat):not(.documentstyle) #chat .mes {
+    padding: 22px 10px 18px;
+    border-bottom: 1px solid rgba(229, 177, 132, 0.10);
+}
+
+body:not(.bubblechat):not(.documentstyle) #chat .mes[is_user="true"]:not(.selected) {
+    border-left: 2px solid rgba(229, 177, 132, 0.6);
+    border-radius: 0 10px 10px 0;
+    background-color: var(--SmartThemeUserMesBlurTintColor);
+}
+
+/* The deletion selection must win over both native bubble and user colors. */
+body #chat .mes.selected {
+    background-color: rgb(102, 0, 0);
+}
+
+.mes_block {
+    min-width: 0;
+}
+
+.mes .ch_name {
+    gap: 8px;
+}
+
+.mes .name_text {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.mes[is_user="true"] .name_text {
+    color: var(--ah-copper);
+}
+
+.mes .timestamp {
+    color: var(--ah-muted);
+    opacity: 1;
+    margin-inline-start: 8px;
+    font-size: calc(var(--mainFontSize) * 0.76);
+}
+
+.mes_text,
+.mes_reasoning {
+    font-weight: 400;
+    line-height: 1.8;
+}
+
+.mes_text {
+    padding-top: 12px;
+}
+
+.mes_text p,
+.mes_reasoning p {
+    margin-bottom: 0.9em;
+}
+
+:is(.mes_text, .mes_reasoning) :is(h1, h2, h3) {
+    font-family: Georgia, 'Noto Sans', serif;
+    line-height: 1.35;
+    font-weight: 500;
+}
+
+:is(.mes_text, .mes_reasoning) blockquote {
+    border-left: 2px solid var(--ah-copper);
+    padding: 8px 16px;
+    margin-inline: 0;
+    color: var(--SmartThemeQuoteColor);
+    background-color: rgba(229, 177, 132, 0.045);
+}
+
+:is(.mes_text, .mes_reasoning) pre {
+    border: 1px solid var(--ah-line);
+    border-radius: 10px;
+    background-color: #0b131f;
+}
+
+:is(.mes_text, .mes_reasoning) pre code {
+    font-family: var(--monoFontFamily);
+    line-height: 1.65;
+    text-shadow: none;
+}
+
+:is(.mes_text, .mes_reasoning) :not(pre) > code {
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+    background-color: rgba(229, 177, 132, 0.10);
+    color: #f0c6a2;
+}
+
+.mes_button,
+.extraMesButtons > div {
+    opacity: 0.65;
+    filter: none;
+    transition: color 140ms ease, background-color 140ms ease;
+}
+
+.mes_button:hover,
+.extraMesButtons > div:hover {
+    color: var(--ah-copper);
+}
+
+#send_form {
+    border: 1px solid rgba(229, 177, 132, 0.28);
+    border-radius: 12px;
+}
+
+#send_textarea {
+    padding: 12px 10px;
+    max-height: min(36dvh, 320px);
+    line-height: 1.6;
+    text-shadow: none;
+}
+
+#send_textarea::placeholder {
+    color: var(--ah-muted);
+    opacity: 1;
+}
+
+/* Let native displayNone and generation/connection states control actions. */
+#send_form #send_but {
+    color: var(--ah-copper);
+    border-radius: 8px;
+}
+
+#send_form #send_but:hover {
+    background-color: rgba(229, 177, 132, 0.10);
+}
+
+:is(.drawer-content, #character_popup, #world_popup, #options, .popup) {
+    background-color: var(--ah-panel);
+    border-radius: 14px;
+}
+
+.drawer-content {
+    border-color: rgba(229, 177, 132, 0.25);
+}
+
+.popup[open]::backdrop {
+    background-color: rgba(5, 9, 16, 0.7);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.text_pole,
+textarea:not(#send_textarea),
+select {
+    background-color: #0e1724;
+    border-color: var(--ah-line);
+    border-radius: 7px;
+}
+
+input[type="checkbox"],
+input[type="range"] {
+    accent-color: var(--ah-copper);
+}
+
+/* Only button shape/motion here: destructive and warning backgrounds stay native. */
+.menu_button,
+.right_menu_button {
+    border-radius: 7px;
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+:is(a, button, input, select, textarea, .interactable, .menu_button, .mes_button):focus-visible {
+    outline: 2px solid var(--ah-copper);
+    outline-offset: 2px;
+}
+
+#send_form:has(#send_textarea:focus-visible) {
+    outline: 2px solid var(--ah-copper);
+    outline-offset: 2px;
+    border-color: var(--ah-copper);
+}
+
+#send_textarea:focus-visible {
+    outline: none;
+}
+
+@media screen and (max-width: 1000px) {
+    body:not(.movingUI):not(.waifuMode) #sheld {
+        border-radius: 0;
+        height: calc(100dvh - var(--topBarBlockSize));
+        max-height: calc(100dvh - var(--topBarBlockSize));
+    }
+
+    body:not(.movingUI):not(.waifuMode) #chat {
+        border-radius: 0;
+        padding: 10px 8px;
+    }
+
+    body:not(.movingUI):not(.waifuMode) #form_sheld {
+        padding: 0 8px max(8px, env(safe-area-inset-bottom));
+    }
+
+    body:not(.movingUI):not(.waifuMode) #top-bar {
+        border-radius: 0 0 10px 10px;
+        box-shadow: none;
+    }
+
+    body:not(.movingUI):not(.waifuMode) :is(.drawer-content, #left-nav-panel, #right-nav-panel) {
+        max-height: calc(100dvh - var(--topBarBlockSize));
+        min-height: 0 !important;
+    }
+
+    body:not(.movingUI):not(.waifuMode) :is(#left-nav-panel, #right-nav-panel).openDrawer {
+        height: calc(100dvh - var(--topBarBlockSize));
+    }
+
+    .welcomePanel {
+        padding: 18px 6px;
+        gap: 14px;
+    }
+
+    .welcomePanel .welcomeHeader {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .welcomeRecent .recentChatList .recentChat {
+        padding: 10px;
+    }
+
+    .welcomeRecent .chatNameContainer {
+        flex-wrap: wrap;
+    }
+
+    body:not(.bubblechat):not(.documentstyle) #chat .mes {
+        padding: 18px 6px 14px;
+    }
+
+    .mes .ch_name {
+        flex-wrap: wrap;
+    }
+
+    .mes_buttons,
+    .mes_edit_buttons {
+        flex-wrap: wrap;
+        max-width: 100%;
+        row-gap: 6px;
+    }
+
+    .extraMesButtons {
+        flex-wrap: wrap;
+    }
+
+    .mes_button,
+    .extraMesButtons > div {
+        opacity: 0.9;
+        min-width: 30px;
+        min-height: 30px;
+        padding: 5px;
+    }
+
+    #send_textarea {
+        max-height: min(30dvh, 240px);
+    }
+}
+
+@media screen and (max-height: 500px) {
+    body:not(.movingUI):not(.waifuMode) #sheld {
+        top: var(--topBarBlockSize);
+        height: calc(100dvh - var(--topBarBlockSize));
+        max-height: calc(100dvh - var(--topBarBlockSize));
+    }
+
+    body:not(.movingUI):not(.waifuMode) #top-bar,
+    body:not(.movingUI):not(.waifuMode) #top-settings-holder {
+        top: 0;
+    }
+
+    body:not(.movingUI):not(.waifuMode) #form_sheld {
+        padding-bottom: 4px;
+    }
+
+    #send_textarea {
+        max-height: 26dvh;
+    }
+}
+
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after,
+body.reduced-motion .popup::backdrop {
+    transition: none !important;
+    animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body *,
+    body *::before,
+    body *::after,
+    .popup::backdrop {
+        transition: none !important;
+        animation: none !important;
+    }
+}

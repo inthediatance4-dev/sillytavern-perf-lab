@@ -1787,6 +1787,28 @@ export async function sendTextareaMessage() {
 }
 
 /**
+ * Counts non-system messages after an eligible message in the current history.
+ * @param {ChatMessage[]} messages Chat history
+ * @param {number} messageId Message index, using the existing numeric coercion
+ * @returns {number|undefined} Regex depth, or undefined for an ineligible message
+ */
+function getMessageDepth(messages, messageId) {
+    const index = Number(messageId);
+    if (!Number.isInteger(index) || index < 0 || index >= messages.length || !(index in messages) || messages[index].is_system) {
+        return undefined;
+    }
+
+    let depth = 0;
+    for (let i = index + 1; i < messages.length; i++) {
+        // Skip sparse slots just as the previous map/filter expression did.
+        if (i in messages && !messages[i].is_system) {
+            depth++;
+        }
+    }
+    return depth;
+}
+
+/**
  * Formats the message text into an HTML string using Markdown and other formatting.
  * @param {string} mes Message text
  * @param {string} ch_name Character name
@@ -1848,9 +1870,7 @@ export function messageFormatting(mes, ch_name, isSystem, isUser, messageId, san
         }
 
         const regexPlacement = getRegexPlacement();
-        const usableMessages = chat.map((x, index) => ({ message: x, index: index })).filter(x => !x.message.is_system);
-        const indexOf = usableMessages.findIndex(x => x.index === Number(messageId));
-        const depth = messageId >= 0 && indexOf !== -1 ? (usableMessages.length - indexOf - 1) : undefined;
+        const depth = getMessageDepth(chat, messageId);
 
         // Always override the character name
         mes = getRegexedString(mes, regexPlacement, {

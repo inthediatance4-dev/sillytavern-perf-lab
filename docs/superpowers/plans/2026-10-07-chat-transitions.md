@@ -12,7 +12,7 @@
 
 ### Task 1: Direct recent-character navigation
 
-Files: modify public/script.js selectCharacterById and public/scripts/welcome-screen.js openRecentCharacterChat; create tests/chat-transitions.test.mjs. No group or plugin changes.
+Files: modify public/script.js selectCharacterById and the optional targeted identity guard in openCharacterChat, and public/scripts/welcome-screen.js openRecentCharacterChat; create tests/chat-transitions.test.mjs. No group or plugin changes.
 
 - [ ] Write a source-execution regression harness extracting the actual functions via vm, following tests/frontend-lifecycle.test.mjs. Stub getChat/openCharacterChat to record the character/filename and awaited events, not substitute the selection or welcome orchestration. Include this central behavioral assertion:
 

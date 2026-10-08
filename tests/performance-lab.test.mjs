@@ -236,7 +236,7 @@ test('launcher prepares fixed loopback and rejects external/link data paths', as
     const module = await import('../scripts/start-performance-lab.mjs').catch(() => ({}));
     assert.equal(typeof module.prepareLab, 'function', 'An isolated launcher must exist');
     const result = await module.prepareLab();
-    assert.equal(result.port, 8774);
+    assert.equal(result.port, 8775);
     assert.equal(result.listenAddress, '127.0.0.1');
     assert.ok(result.dataRoot.startsWith(path.resolve('.lab-data')));
     await assert.rejects(module.assertLocalPath(path.resolve('..', 'external-data')), /outside/);

@@ -36,11 +36,17 @@ export function isItemizedPromptsRequestCurrent(request) {
     return request === promptRequest;
 }
 
-/** Reset only the cache still owned by this clear. */
-export function resetItemizedPrompts(request) {
+/**
+ * Reset only the cache still owned by this clear.
+ * @param {symbol} request Clear reservation
+ * @param {object} [options] Cache readiness after reset
+ * @param {boolean} [options.ready=false] True only for an explicitly neutral cache
+ * @returns {boolean} Whether the reset still owned the cache
+ */
+export function resetItemizedPrompts(request, { ready = false } = {}) {
     if (!isItemizedPromptsRequestCurrent(request)) return false;
     itemizedPrompts = [];
-    promptCacheReady = true;
+    promptCacheReady = ready;
     return true;
 }
 
@@ -57,7 +63,7 @@ export async function loadItemizedPrompts(chatId, { request, isCurrent = () => t
     request ??= reserveItemizedPrompts();
     const ownsCache = () => isItemizedPromptsRequestCurrent(request) && isCurrent();
     if (!chatId) {
-        resetItemizedPrompts(request);
+        resetItemizedPrompts(request, { ready: true });
         return;
     }
 

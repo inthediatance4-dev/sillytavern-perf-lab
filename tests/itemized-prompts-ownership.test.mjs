@@ -178,3 +178,25 @@ test('group filename changed during preparation is canceled before starting a pr
     const loading = h.c.getGroupChat('group-A'); await tick(); h.c.groups[0].chat_id = 'new-file'; gate.resolve();
     assert.equal(await loading, false); assert.equal(h.reads.length, 0); assert.equal(h.renders, 0); assert.deepEqual(h.events, []);
 });
+for (const state of ['loaded', 'pending', 'failed']) {
+    test(`repeated clear of an addressed ${state} chat preserves stored inspection prompts`, async () => {
+        const h = harness(); const loading = h.c.loadItemizedPrompts('A');
+        if (state === 'loaded') { h.reads[0].resolve(rows('A')); await loading; }
+        if (state === 'failed') { h.reads[0].reject(new Error('synthetic failure')); await loading; }
+        await h.c.clearChat({ clearData: true }); await h.c.clearChat({ clearData: true });
+        if (state === 'pending') { h.reads[0].resolve(rows('A')); assert.equal(await loading, false); }
+        assert.deepEqual(h.stored.get('A'), rows('A'));
+        assert.deepEqual(h.writes, state === 'loaded' ? [{ id: 'A', rows: rows('A') }] : []);
+        assert.deepEqual(h.cache(), []);
+    });
+}
+test('clear without an addressed chat retains ready neutral empty-save behavior', async () => {
+    const h = harness(); h.c.this_chid = undefined; await h.c.clearChat();
+    assert.equal(await h.c.saveItemizedPrompts('neutral'), undefined);
+    assert.deepEqual(h.stored.get('neutral'), []); assert.deepEqual(h.events, [{ type: 'saved', chatId: 'neutral' }]);
+});
+test('successful reload after repeated clear restores ready save-as behavior', async () => {
+    const h = harness(); h.setCache(rows('A')); await h.c.clearChat(); await h.c.clearChat();
+    const loading = h.c.loadItemizedPrompts('A'); h.reads[0].resolve(rows('A')); await loading;
+    await h.c.saveItemizedPrompts('bookmark'); assert.deepEqual(h.stored.get('bookmark'), rows('A'));
+});

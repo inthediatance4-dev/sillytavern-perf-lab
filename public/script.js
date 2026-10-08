@@ -1646,7 +1646,7 @@ export async function clearChat({ clearData = false } = {}) {
     } else { console.debug('saw no avatars'); }
 
     await saveItemizedPrompts(getCurrentChatId());
-    if (clearSerial !== characterChatLoadSerial || !resetItemizedPrompts(promptClear)) return;
+    if (clearSerial !== characterChatLoadSerial || !resetItemizedPrompts(promptClear, { ready: !getCurrentChatId() })) return;
     if (clearData) chat.length = 0;
 }
 

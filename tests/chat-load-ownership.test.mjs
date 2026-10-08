@@ -30,6 +30,8 @@ function harness(messages = [{ mes: 'hello' }, { mes: 'world' }]) {
         mediaLoadScrollHandler: { cancel() {} }, cancelDebouncedChatSave() {}, cancelDebouncedMetadataSave() {}, closeMessageEditor() {},
         extension_prompts: {}, is_delete_mode: false, chatElement: { children: () => ({ remove() {} }) },
         saveItemizedPrompts: async () => {}, itemizedPrompts: [],
+        reserveItemizedPrompts: () => Symbol(), cancelItemizedPromptsLoad: () => Symbol(),
+        resetItemizedPrompts: () => { c.itemizedPrompts.length = 0; return true; },
         waitUntilCondition: async () => {}, CustomEvent: class {}, createOrEditCharacter: async () => { seen.saves++; },
     });
     const helpers = ['beginCharacterChatLoad', 'isCharacterChatLoadCurrent', 'shouldYieldCharacterChatLoad'].filter(name => source.includes(`function ${name}(`)).map(fn);

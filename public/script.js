@@ -274,7 +274,7 @@ import { extractReasoningFromData, extractReasoningSignatureFromData, initReason
 import { accountStorage } from './scripts/util/AccountStorage.js';
 import { initWelcomeScreen, openPermanentAssistantChat, openPermanentAssistantCard, getPermanentAssistantAvatar } from './scripts/welcome-screen.js';
 import { initDataMaid } from './scripts/data-maid.js';
-import { clearItemizedPrompts, deleteItemizedPromptForMessage, deleteItemizedPrompts, findItemizedPromptSet, initItemizedPrompts, itemizedParams, itemizedPrompts, loadItemizedPrompts, promptItemize, replaceItemizedPromptText, saveItemizedPrompts, swapItemizedPrompts } from './scripts/itemized-prompts.js';
+import { cancelItemizedPromptsLoad, clearItemizedPrompts, deleteItemizedPromptForMessage, deleteItemizedPrompts, findItemizedPromptSet, initItemizedPrompts, itemizedParams, itemizedPrompts, loadItemizedPrompts, promptItemize, replaceItemizedPromptText, reserveItemizedPrompts, resetItemizedPrompts, saveItemizedPrompts, swapItemizedPrompts } from './scripts/itemized-prompts.js';
 import { getSystemMessageByType, initSystemMessages, SAFETY_CHAT, sendSystemMessage, system_message_types, system_messages } from './scripts/system-messages.js';
 import { event_types, eventSource } from './scripts/events.js';
 import { initAccessibility } from './scripts/a11y.js';
@@ -1628,7 +1628,8 @@ export function cancelDebouncedChatSave() {
  * @param {boolean} [options.clearData=false] Optionally clear the chat array's contents.
  */
 export async function clearChat({ clearData = false } = {}) {
-    characterChatLoadSerial++;
+    const clearSerial = ++characterChatLoadSerial;
+    const promptClear = cancelItemizedPromptsLoad();
     mediaLoadScrollHandler.cancel();
     cancelDebouncedChatSave();
     cancelDebouncedMetadataSave();
@@ -1645,8 +1646,7 @@ export async function clearChat({ clearData = false } = {}) {
     } else { console.debug('saw no avatars'); }
 
     await saveItemizedPrompts(getCurrentChatId());
-    itemizedPrompts.length = 0;
-
+    if (clearSerial !== characterChatLoadSerial || !resetItemizedPrompts(promptClear)) return;
     if (clearData) chat.length = 0;
 }
 
@@ -7750,6 +7750,7 @@ function shouldYieldCharacterChatLoad() {
  */
 export async function getChat() {
     const owner = beginCharacterChatLoad();
+    owner.promptRequest = reserveItemizedPrompts();
     try {
         await unshallowCharacter(owner.id);
         if (!isCharacterChatLoadCurrent(owner)) return false;
@@ -7821,7 +7822,7 @@ async function getChatResult(owner) {
         await saveChatConditional();
         if (!isCharacterChatLoadCurrent(owner)) return false;
     }
-    await loadItemizedPrompts(getCurrentChatId());
+    if (await loadItemizedPrompts(owner.file, { request: owner.promptRequest, isCurrent: () => isCharacterChatLoadCurrent(owner) }) === false) return false;
     if (!isCharacterChatLoadCurrent(owner)) return false;
     await printMessages();
     if (!isCharacterChatLoadCurrent(owner)) return false;

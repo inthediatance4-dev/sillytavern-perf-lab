@@ -53,6 +53,7 @@ function harness(t, media = []) {
         saveItemizedPrompts: async () => {}, getCurrentChatId: () => 'synthetic-media-chat',
         characterChatLoadSerial: 0,
         itemizedPrompts: [], chat: [],
+        cancelItemizedPromptsLoad: () => Symbol(), resetItemizedPrompts: () => { context.itemizedPrompts.length = 0; return true; },
     });
     // The legacy source has no singleton. This lets RED execute that old function directly.
     const singletonStart = script.indexOf('const mediaLoadScrollHandler =');

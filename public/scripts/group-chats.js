@@ -83,6 +83,7 @@ import {
     captureChatLifecycleSnapshot,
 } from '../script.js';
 import { printTagList, createTagMapFromList, applyTagsOnCharacterSelect, tag_map, applyTagsOnGroupSelect, printTagFilters, tag_filter_type } from './tags.js';
+import { isItemizedPromptsRequestCurrent, reserveItemizedPrompts } from './itemized-prompts.js';
 import { FILTER_TYPES, FilterHelper } from './filters.js';
 import { isExternalMediaAllowed } from './chats.js';
 import { POPUP_TYPE, Popup, callGenericPopup } from './popup.js';
@@ -252,7 +253,7 @@ async function validateGroup(group) {
  * Loads the chat messages for a specific group.
  * @param {string} groupId - The ID of the group to load chat messages for.
  * @param {boolean} reload - Whether to reload the group chat after loading.
- * @returns {Promise<void>} A promise that resolves when the chat messages have been loaded.
+ * @returns {Promise<void|false>} False when a newer navigation cancels the load.
  */
 export async function getGroupChat(groupId, reload = false) {
     const group = groups.find((x) => x.id === groupId);
@@ -261,12 +262,23 @@ export async function getGroupChat(groupId, reload = false) {
         return;
     }
 
+    if (selected_group !== groupId) return false;
+    const promptRequest = reserveItemizedPrompts();
+    let chat_id = group.chat_id;
+    const ownsSelection = () => isItemizedPromptsRequestCurrent(promptRequest)
+        && selected_group === groupId && groups.find(x => x.id === groupId) === group;
+    const isCurrent = () => ownsSelection() && group.chat_id === chat_id;
+
     // Run validation before any loading
     await validateGroup(group);
+    if (!ownsSelection()) return false;
+    if (chat_id == null) chat_id = group.chat_id;
+    if (!isCurrent()) return false;
     await unshallowGroupMembers(groupId);
+    if (!isCurrent()) return false;
 
-    const chat_id = group.chat_id;
     const data = await loadGroupChat(chat_id);
+    if (!isCurrent()) return false;
     const metadata = data?.[0]?.chat_metadata ?? {};
     const freshChat = !metadata.tainted && (!Array.isArray(data) || !data.length);
 
@@ -280,7 +292,7 @@ export async function getGroupChat(groupId, reload = false) {
         metadata.integrity = uuidv4();
     }
 
-    await loadItemizedPrompts(getCurrentChatId());
+    if (await loadItemizedPrompts(chat_id, { request: promptRequest, isCurrent }) === false || !isCurrent()) return false;
 
     if (group && Array.isArray(group.members) && freshChat) {
         chat.splice(0, chat.length);

@@ -294,12 +294,14 @@ function useActualClearChat(h) {
             getItem: async id => structuredClone(storedPrompts.get(id)),
         },
     });
+    h.context.localforage = { createInstance: () => h.context.promptStorage };
     vm.runInContext([
+        promptScript.slice(0, promptScript.indexOf('export async function replaceItemizedPromptText'))
+            .replace(/^import .*;\r?\n/gm, '').replace('export let itemizedPrompts = [];', 'var itemizedPrompts = [];').replace(/^export /gm, ''),
         functionSource(script, 'getCurrentChatId'),
         functionSource(script, 'clearChat'),
-        functionSource(promptScript, 'saveItemizedPrompts'),
-        functionSource(promptScript, 'loadItemizedPrompts'),
     ].join('\n'), h.context);
+    h.context.itemizedPrompts = [{ mesId: 0, rawPrompt: 'prior open prompt' }];
     const getChat = h.context.getChat;
     h.context.getChat = async () => {
         await getChat();

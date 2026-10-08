@@ -951,7 +951,7 @@ export async function selectCharacterById(id, options = {}) {
             });
         }
         if (switchingCharacter) {
-            await getChat();
+            if (await getChat() === false) return false;
         }
         return isCurrentCharacter() && characters[id].chat === chatFile;
     }
@@ -968,7 +968,7 @@ export async function selectCharacterById(id, options = {}) {
             selected_button = 'character_edit';
             setCharacterId(id);
             chat_metadata = {};
-            await getChat();
+            if (await getChat() === false) return false;
         }
     } else {
         //if clicked on character that was already selected
@@ -1489,13 +1489,13 @@ export async function replaceCurrentChat() {
             characters[this_chid].chat = chats[0].file_name.replace('.jsonl', '');
             $('#selected_chat_pole').val(characters[this_chid].chat);
             saveCharacterDebounced();
-            await getChat();
+            if (await getChat() === false) return false;
         } else {
             // start new chat
             characters[this_chid].chat = `${name2} - ${humanizedDateTime()}`;
             $('#selected_chat_pole').val(characters[this_chid].chat);
             saveCharacterDebounced();
-            await getChat();
+            if (await getChat() === false) return false;
         }
     }
 }
@@ -1628,6 +1628,7 @@ export function cancelDebouncedChatSave() {
  * @param {boolean} [options.clearData=false] Optionally clear the chat array's contents.
  */
 export async function clearChat({ clearData = false } = {}) {
+    characterChatLoadSerial++;
     mediaLoadScrollHandler.cancel();
     cancelDebouncedChatSave();
     cancelDebouncedMetadataSave();
@@ -1734,7 +1735,7 @@ export async function reloadCurrentChatUnsafe() {
     if (selected_group) {
         await getGroupChat(selected_group, true);
     } else if (this_chid !== undefined) {
-        await getChat();
+        if (await getChat() === false) return false;
     } else {
         resetChatState();
         restoreNeutralChat();
@@ -7709,26 +7710,67 @@ export async function unshallowCharacter(characterId) {
     await getOneCharacter(avatar);
 }
 
+// A clear or another load supersedes even a reopen of the same character/file.
+let characterChatLoadSerial = 0;
+
+function beginCharacterChatLoad() {
+    return {
+        serial: ++characterChatLoadSerial,
+        id: this_chid,
+        avatar: characters[this_chid]?.avatar,
+        group: selected_group,
+        file: characters[this_chid]?.chat,
+        metadata: chat_metadata,
+    };
+}
+
+function isCharacterChatLoadCurrent(owner, checkMetadata = true) {
+    return owner.serial === characterChatLoadSerial
+        && String(this_chid) === String(owner.id)
+        && selected_group === owner.group
+        && characters[owner.id]?.avatar === owner.avatar
+        && characters[owner.id]?.chat === owner.file
+        && (!checkMetadata || chat_metadata === owner.metadata);
+}
+
+function shouldYieldCharacterChatLoad() {
+    const count = power_user.chat_truncation || Number.MAX_SAFE_INTEGER;
+    const start = Math.max(0, chat.length - count);
+    let charactersVisible = 0;
+    for (let i = start; i < chat.length; i++) {
+        charactersVisible += typeof chat[i]?.mes === 'string' ? chat[i].mes.length : 0;
+        if (charactersVisible >= 250000) return true;
+    }
+    return false;
+}
+
+/**
+ * Loads the current character chat. Successful legacy calls resolve without a value.
+ * @returns {Promise<void|false>} False only when a newer navigation superseded this load.
+ */
 export async function getChat() {
+    const owner = beginCharacterChatLoad();
     try {
-        await unshallowCharacter(this_chid);
+        await unshallowCharacter(owner.id);
+        if (!isCharacterChatLoadCurrent(owner)) return false;
 
         const response = await fetch('/api/chats/get', {
             method: 'POST',
             headers: getRequestHeaders(),
             cache: 'no-cache',
             body: JSON.stringify({
-                ch_name: characters[this_chid].name,
-                file_name: characters[this_chid].chat,
-                avatar_url: characters[this_chid].avatar,
+                ch_name: characters[owner.id].name,
+                file_name: owner.file,
+                avatar_url: owner.avatar,
             }),
         });
-
+        if (!isCharacterChatLoadCurrent(owner)) return false;
         if (!response.ok) {
             throw new Error('Chat could not be loaded');
         }
 
         const data = await response.json();
+        if (!isCharacterChatLoadCurrent(owner)) return false;
         if (Array.isArray(data) && data.length > 0) {
             /** @type {ChatHeader} */
             const chatHeader = data.shift();
@@ -7740,27 +7782,34 @@ export async function getChat() {
             chat.splice(0, chat.length);
             chat_metadata = {};
         }
+        owner.metadata = chat_metadata;
         if (!chat_metadata.integrity) {
             chat_metadata.integrity = uuidv4();
         }
-        await getChatResult();
-        eventSource.emit(event_types.CHAT_LOADED, { detail: { id: this_chid, character: characters[this_chid] } });
+        if (await getChatResult(owner) === false || !isCharacterChatLoadCurrent(owner)) return false;
+        eventSource.emit(event_types.CHAT_LOADED, { detail: { id: owner.id, character: characters[owner.id] } });
+        if (!isCharacterChatLoadCurrent(owner, false)) return false;
+        owner.metadata = chat_metadata;
 
-        // Focus on the textarea if not already focused on a visible text input
+        // Focus only while this load still owns the chat.
         delay(debounce_timeout.short).then(() => {
+            if (!isCharacterChatLoadCurrent(owner)) return;
             if ($(document.activeElement).is('input:visible, textarea:visible')) {
                 return;
             }
             $('#send_textarea').trigger('click').trigger('focus');
         });
     } catch (error) {
-        await getChatResult();
+        // Preserve real failures' fallback; cancellation must never retry stale rendering.
+        if (!isCharacterChatLoadCurrent(owner)) return false;
+        if (await getChatResult(owner) === false || !isCharacterChatLoadCurrent(owner)) return false;
         console.log(error);
     }
 }
 
-async function getChatResult() {
-    name2 = characters[this_chid].name;
+async function getChatResult(owner) {
+    if (!isCharacterChatLoadCurrent(owner)) return false;
+    name2 = characters[owner.id].name;
     let freshChat = false;
     if (chat.length === 0) {
         const message = getFirstMessage();
@@ -7770,18 +7819,38 @@ async function getChatResult() {
         }
         // Make sure the chat appears on the server
         await saveChatConditional();
+        if (!isCharacterChatLoadCurrent(owner)) return false;
     }
     await loadItemizedPrompts(getCurrentChatId());
+    if (!isCharacterChatLoadCurrent(owner)) return false;
     await printMessages();
-    select_selected_character(this_chid);
+    if (!isCharacterChatLoadCurrent(owner)) return false;
+    // Keep message construction atomic; let the browser service pending tasks before listeners.
+    if (!owner.group && shouldYieldCharacterChatLoad()) {
+        await delay(0);
+        if (!isCharacterChatLoadCurrent(owner)) return false;
+    }
+    select_selected_character(owner.id);
+    if (!isCharacterChatLoadCurrent(owner)) return false;
 
     await eventSource.emit(event_types.CHAT_CHANGED, (getCurrentChatId()));
-    if (freshChat) await eventSource.emit(event_types.CHAT_CREATED);
+    // Extensions can replace metadata while handling an event; navigation still changes serial or selection.
+    if (!isCharacterChatLoadCurrent(owner, false)) return false;
+    owner.metadata = chat_metadata;
+    if (freshChat) {
+        await eventSource.emit(event_types.CHAT_CREATED);
+        if (!isCharacterChatLoadCurrent(owner, false)) return false;
+        owner.metadata = chat_metadata;
+    }
 
     if (chat.length === 1) {
         const chat_id = (chat.length - 1);
         await eventSource.emit(event_types.MESSAGE_RECEIVED, chat_id, 'first_message');
+        if (!isCharacterChatLoadCurrent(owner, false)) return false;
+        owner.metadata = chat_metadata;
         await eventSource.emit(event_types.CHARACTER_MESSAGE_RENDERED, chat_id, 'first_message');
+        if (!isCharacterChatLoadCurrent(owner, false)) return false;
+        owner.metadata = chat_metadata;
     }
 }
 
@@ -7851,7 +7920,7 @@ export async function openCharacterChat(file_name, expectedCharacter) {
     }
     characters[this_chid].chat = file_name;
     chat_metadata = {};
-    await getChat();
+    if (await getChat() === false) return false;
     if (!isCurrentChat()) {
         return false;
     }
@@ -10751,7 +10820,7 @@ export async function doNewChat({ deleteCurrentChat = false } = {}) {
         chat_metadata = {};
         characters[this_chid].chat = `${name2} - ${humanizedDateTime()}`;
         $('#selected_chat_pole').val(characters[this_chid].chat);
-        await getChat();
+        if (await getChat() === false) return false;
         await createOrEditCharacter(new CustomEvent('newChat'));
         if (deleteCurrentChat) await delChat(chat_file_for_del + '.jsonl');
     }

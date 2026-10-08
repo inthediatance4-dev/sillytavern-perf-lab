@@ -51,6 +51,7 @@ function harness(t, media = []) {
         extension_prompts: {}, is_delete_mode: false,
         $: () => ({ length: 0 }),
         saveItemizedPrompts: async () => {}, getCurrentChatId: () => 'synthetic-media-chat',
+        characterChatLoadSerial: 0,
         itemizedPrompts: [], chat: [],
     });
     // The legacy source has no singleton. This lets RED execute that old function directly.

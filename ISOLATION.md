@@ -32,3 +32,11 @@ UI 配置和第三方扩展未修改。交付基于隔离分支，不可将增�
 未进行真实账号/最新生产扩展组合、真实生成、生产 Linux UI、手机设备或长期运行验收。移动模拟数值波动较大且部分退聊天结果更慢，没有作为速度收益结论。长消息仍有主线程长任务，群聊入口及现有 getChat 在途响应应用竞态未改。离线第三方更新失败、声音 404 和缩略图 WASM 路径限制保留。没有完整 ESLint 配置，未宣称全仓库 lint 通过。
 
 此前启动优化见 `docs/2026-10-07-frontend-startup-verification.md`，生命周期与备份边界见 `docs/2026-10-05-lifecycle-verification.md`。本轮没有改变这些问题的部署和跨进程限制。
+
+## Richtext Flow isolated candidate (2026-10-08)
+
+The `codex/sillytavern-richtext-flow` candidate retains atomic message construction and adds one browser task boundary after `printMessages` only when the displayed character messages contain at least 250,000 text characters. It counts only the truncated visible range, stops at the threshold, and leaves general `redisplayChat` unchanged. This is a responsiveness candidate; total load latency and longest blocking time require separate browser measurement.
+
+Each character load owns a serial plus character/avatar, group, filename and metadata identity. `clearChat` invalidates before its first await; same-file loads supersede older serials. Guards stop stale response application, rendering continuation, menu selection, terminal events, delayed focus, retries and outer character persistence. Awaited extension events may legitimately replace metadata; after those events, serial and selection remain authoritative before the metadata reference is refreshed. Successful public `getChat` calls retain their void return, while superseded calls return false for callers to propagate.
+
+Synthetic Node source-function tests cover these boundaries and existing transitions. Browser acceptance, artifact recovery and protected-workspace hash verification are performed separately by the root agent. No production access or deployment is authorized. Evidence and `.bak` files remain in `F:\SillyTavern-Research\2026-10-08-richtext-flow`, outside Git.

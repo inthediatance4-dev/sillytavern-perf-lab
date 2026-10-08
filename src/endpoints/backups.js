@@ -3,6 +3,7 @@ import fs, { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import sanitize from 'sanitize-filename';
 import { CHAT_BACKUPS_PREFIX, getChatInfo } from './chats.js';
+import { withPathLocks, chatLockPaths, recycleChatPath } from '../chat-io.js';
 
 export const router = express.Router();
 
@@ -39,12 +40,10 @@ router.post('/chat/delete', async (request, response) => {
             return response.sendStatus(400);
         }
 
-        if (!fs.existsSync(filePath)) {
-            return response.sendStatus(404);
-        }
-
-        await fsPromises.unlink(filePath);
-        return response.sendStatus(200);
+        return await withPathLocks(chatLockPaths([filePath]), async () => {
+            const recycled = await recycleChatPath(filePath, request.user.directories.backups);
+            return response.sendStatus(recycled ? 200 : 404);
+        });
     } catch (error) {
         console.error(error);
         return response.sendStatus(500);

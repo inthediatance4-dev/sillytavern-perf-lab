@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 
 import express from 'express';
 import sanitize from 'sanitize-filename';
@@ -10,6 +10,7 @@ import _ from 'lodash';
 import validateAvatarUrlMiddleware from '../middleware/validateFileName.js';
 import { createTextMatcher } from '../chat-search.js';
 import { createChatInfoCache } from '../chat-info-cache.js';
+import { createChatBackupScheduler } from '../chat-backup-scheduler.js';
 import {
     withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO,
     assertChatWritable, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
@@ -37,19 +38,20 @@ export const CHAT_BACKUPS_PREFIX = 'chat_';
  * @param {string} directory The user's backup directory.
  * @param {string} name The name of the chat.
  * @param {string} data The serialized chat to save.
- * @param {string} backupPrefix The file prefix. Typically CHAT_BACKUPS_PREFIX.
+ * @param {string} identity Stable hash of the user and canonical history path.
  * @returns
  */
-async function backupChat(directory, name, data, backupPrefix = CHAT_BACKUPS_PREFIX) {
+async function backupChat(directory, name, data, identity) {
     try {
         if (!isBackupEnabled) return;
         await withPathLock(directory, async () => {
-            name = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            const backupFile = path.join(directory, `${backupPrefix}${name}_${generateTimestamp()}_${randomUUID()}.jsonl`);
+            name = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 80) || 'chat';
+            const quotaPrefix = `${CHAT_BACKUPS_PREFIX}${name}_${identity}_`;
+            const backupFile = path.join(directory, `${quotaPrefix}${generateTimestamp()}_${randomUUID()}.jsonl`);
             await writeChatFile(backupFile, data);
-            await recycleOldChatBackups(directory, `${backupPrefix}${name}_`, maxChatBackups);
+            await recycleOldChatBackups(directory, quotaPrefix, maxChatBackups);
             if (!isNaN(maxTotalChatBackups) && maxTotalChatBackups >= 0) {
-                await recycleOldChatBackups(directory, backupPrefix, maxTotalChatBackups);
+                await recycleOldChatBackups(directory, CHAT_BACKUPS_PREFIX, maxTotalChatBackups);
             }
         });
     } catch (err) {
@@ -57,21 +59,12 @@ async function backupChat(directory, name, data, backupPrefix = CHAT_BACKUPS_PRE
     }
 }
 
-/**
- * @type {Map<string, import('lodash').DebouncedFunc<typeof backupChat>>}
- */
-const backupFunctions = new Map();
+const backupScheduler = createChatBackupScheduler(backupChat, { interval: throttleInterval });
 
-/**
- * Gets a backup function for a user.
- * @param {string} handle User handle
- * @returns {typeof backupChat} Backup function
- */
-function getBackupFunction(handle) {
-    if (!backupFunctions.has(handle)) {
-        backupFunctions.set(handle, _.throttle(backupChat, throttleInterval, { leading: true, trailing: true }));
-    }
-    return backupFunctions.get(handle) || (() => { });
+/** Match path-lock normalization, including Windows case-insensitive paths. */
+function backupIdentity(handle, filePath) {
+    const resolved = path.resolve(filePath);
+    return JSON.stringify([handle, process.platform === 'win32' ? resolved.toLowerCase() : resolved]);
 }
 
 /**
@@ -93,7 +86,9 @@ function getPreviewMessage(lastMessage) {
 
 /** Flush throttled backups and await writes before a normal shutdown. */
 export async function flushChatBackups() {
-    await Promise.allSettled([...backupFunctions.values()].map(func => func.flush()));
+    // Queued chat saves can admit snapshots while their file writes finish.
+    await waitForChatIO();
+    await backupScheduler.flush();
     await waitForChatIO();
 }
 
@@ -467,7 +462,7 @@ class IntegrityMismatchError extends Error {
  * @param {Array} chatData The chat array to save.
  * @param {string} filePath Target file path for the data.
  * @param {boolean} skipIntegrityCheck If undefined, the chat's integrity will not be checked.
- * @param {string} handle The users handle, passed to getBackupFunction.
+ * @param {string} handle The user's handle, part of the backup identity.
  * @param {string} cardName Passed to backupChat.
  * @param {string} backupDirectory Passed to backupChat.
  */
@@ -481,8 +476,11 @@ export async function trySaveChat(chatData, filePath, skipIntegrityCheck = false
         }
         const jsonlData = chatData?.map(m => JSON.stringify(m)).join('\n');
         await writeChatFile(filePath, jsonlData);
-        // Match the existing leading/trailing per-user backup throttle.
-        getBackupFunction(handle)(backupDirectory, cardName, jsonlData);
+        if (isBackupEnabled) {
+            const key = backupIdentity(handle, filePath);
+            const identity = createHash('sha256').update(key).digest('hex');
+            backupScheduler.schedule(key, backupDirectory, cardName, jsonlData, identity);
+        }
     });
 }
 

@@ -47,6 +47,6 @@ Files: `src/endpoints/vectors.js`, new `tests/vector-batch-cardinality.test.mjs`
 ## Integration and delivery
 
 - [x] Change own launcher/test expectation to port 8776, append meaningful new tests to test:perf, update ISOLATION and verification doc. No models/config/data/cache staged.
-- [ ] Node 20 and 24 full suite, final real HTTP and browser contracts, inspect all staged/changed names and secret-like values; source-only local commit.
-- [ ] Final independent review; source ZIP/diff/bundle with actual restored checkout and raw Git blob verification. Recheck seven prior workspaces and eight original backups.
+- [x] Node 20 and 24 full suite, final real HTTP and browser contracts, inspect all staged/changed names and secret-like values; source-only local commit.
+- [x] Final independent review; source ZIP/diff/bundle with actual restored checkout and raw Git blob verification. Recheck seven prior workspaces and eight original backups.
 - [x] Identity-bound stop of only owned lab. If already exited, record absence/free port and unavailable exit code accurately. Deliver files/results/limitations; no merge/push/deployment.

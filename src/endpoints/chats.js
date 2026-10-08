@@ -316,12 +316,23 @@ async function checkChatIntegrity(filePath, integritySlug) {
         return true;
     }
 
-    // Parse the first line of the chat file as JSON
+    // An empty file has no history that could be lost by overwriting it.
+    if ((await fs.promises.stat(filePath)).size === 0) {
+        return true;
+    }
+
+    // Strip a UTF-8 BOM an external editor may have added before parsing the header.
     const firstLine = await readFirstLine(filePath);
-    const jsonData = tryParse(firstLine);
+    const jsonData = tryParse(String(firstLine ?? '').replace(/^\uFEFF/, ''));
+
+    // Nonempty malformed headers need the existing explicit overwrite flow.
+    if (typeof jsonData !== 'object' || jsonData === null || Array.isArray(jsonData)) {
+        console.warn(`File "${filePath}" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.`);
+        return false;
+    }
     const chatIntegrity = jsonData?.chat_metadata?.integrity;
 
-    // If the chat has no integrity metadata, assume it's intact
+    // Parsed legacy object headers without integrity metadata remain compatible.
     if (!chatIntegrity) {
         console.debug(`File "${filePath}" does not have integrity metadata matching "${integritySlug}". The integrity validation has been skipped.`);
         return true;
@@ -422,8 +433,13 @@ export async function getChatInfo(pathToFile, additionalData = {}, withMetadata 
                 chatData.match = hasMatcher ? hasAnyMatch : true;
                 resolve(chatData);
             } else {
-                console.warn('Found an invalid or corrupted chat file:', pathToFile);
-                resolve({});
+                console.warn('Found an invalid or corrupted last line in a chat file:', pathToFile);
+                // Keep identity, stat data, metadata and earlier matches visible without repairing the file.
+                // The counter includes nonblank rows; exclude the header and unreadable trailing row.
+                chatData.chat_items = Math.max(0, itemCounter - 2);
+                chatData.mes = '[The message is empty]';
+                chatData.match = hasMatcher ? hasAnyMatch : true;
+                resolve(chatData);
             }
         });
     });

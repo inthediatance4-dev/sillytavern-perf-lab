@@ -163,10 +163,10 @@ async function getBatchVector(source, sourceSettings, texts, isQuery, directorie
                 results.push(...await getOllamaBatchVector(batch, sourceSettings.apiUrl, sourceSettings.model, sourceSettings.keep, directories));
                 break;
             case 'webllm':
-                results.push(...texts.map(x => sourceSettings.embeddings[x]));
+                results.push(...batch.map(x => sourceSettings.embeddings[x]));
                 break;
             case 'koboldcpp':
-                results.push(...texts.map(x => sourceSettings.embeddings[x]));
+                results.push(...batch.map(x => sourceSettings.embeddings[x]));
                 break;
             case 'chutes':
                 results.push(...await getOpenAIBatchVector(batch, source, directories, sourceSettings.model));

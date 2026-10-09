@@ -18,6 +18,9 @@ function deferred() {
 // Evaluate the entire actual module, including its private state and worker.
 // Only ESM imports/exports are removed. Browser initialization is not invoked.
 // Context/jQuery stand-ins expose display and write contracts, not real layout.
+// geometry=false supplies synthetic :visible=false for no layout boxes (zero
+// offsets and no client rects). Native width/height=0 alone may still be visible
+// in jQuery; this adapter does not compute dimensions or getClientRects().
 // Sprite validation/rendering use synthetic data; classification uses the real
 // "none" API path. Native geometry and full application checks are separate.
 function harness(code = source, { vn = false, mobile = false, geometry = true, ancestorHidden = false, emptyCache = false } = {}) {
@@ -108,7 +111,7 @@ for (const vn of [false, true]) {
     });
 }
 
-for (const [name, options] of [['zero geometry', { geometry: false }], ['CSS-hidden ancestor', { ancestorHidden: true }]]) {
+for (const [name, options] of [['no layout boxes (synthetic :visible=false)', { geometry: false }], ['CSS-hidden ancestor', { ancestorHidden: true }]]) {
     test(`stable VN retains sprites and drag geometry with ${name}`, async () => {
         const h = harness(source, { vn: true, ...options });
         await h.run(); h.node('#visual-novel-wrapper').children = ['retained-sprite']; h.drag();

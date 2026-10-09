@@ -36,6 +36,6 @@ Limit: this suppresses outer canceled/stale continuation, with post-render and f
 ### Task3: Root acceptance and delivery
 
 - [ ] Run synthetic real IndexedDB delayed-read/close/retry/reversed-read browser contracts and existing native navigation/inspection contracts. Preserve canceled store contents and late-event absence. Check final model/HTML/IDs/scroll and synthetic source body/order/integrity. Do not advertise CPU/performance gains from this correctness fix.
-- [ ] Run full declared safe test suite on Node20/24; inspect complete outputs/counts/source hashes. Verify nine protected workspaces/10519 files and11 .bak against original Git; cached staged whitelist/secrets/data exclusion.
+- [ ] Run full declared safe test suite on Node20/24; inspect complete outputs/counts/source hashes. Verify nine protected workspaces/10519 files and12 .bak against original Git; cached staged whitelist/secrets/data exclusion.
 - [ ] Add validation report, commit source/docs, sourceZIP/patch/fullbundle and actual restore byte/blob checks. Preserve all failed experiments outside Git. Stop only owned lab gracefully and prove PID/port absent.
 - [ ] Final independent artifact/report review and fresh completion verification. Keep isolated branch/worktree; deliver file links, verified results, unverified boundaries and remaining issues.

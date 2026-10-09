@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const promptSource = readFileSync(new URL('../public/scripts/itemized-prompts.js', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
 const groupSource = readFileSync(new URL('../public/scripts/group-chats.js', import.meta.url), 'utf8');
+const welcomeSource = readFileSync(new URL('../public/scripts/welcome-screen.js', import.meta.url), 'utf8');
 function fn(source, name) {
     const start = source.search(new RegExp(`^(?:export )?(?:async )?function ${name}\\(`, 'm'));
     assert.notEqual(start, -1, `${name} exists`);
@@ -199,4 +200,111 @@ test('successful reload after repeated clear restores ready save-as behavior', a
     const h = harness(); h.setCache(rows('A')); await h.c.clearChat(); await h.c.clearChat();
     const loading = h.c.loadItemizedPrompts('A'); h.reads[0].resolve(rows('A')); await loading;
     await h.c.saveItemizedPrompts('bookmark'); assert.deepEqual(h.stored.get('bookmark'), rows('A'));
+});
+
+
+function groupOpeningHarness() {
+    const h = groupHarness(); const c = h.c;
+    h.active = []; h.settings = 0; h.historyEdits = []; h.clears = 0;
+    for (const group of c.groups) group.chats = [group.chat_id, `${group.chat_id}-history`, `${group.chat_id}-newer`];
+    Object.assign(c, {
+        selected_group: null, isChatSaving: false, is_send_press: false, is_group_generating: false,
+        setCharacterId: value => { c.this_chid = value; }, setCharacterName() {}, setEditedMessageId() {}, cancelTtsPlay() {},
+        setActiveGroup: id => { h.active.push(id); }, saveSettingsDebounced: () => { h.settings++; },
+        waitUntilCondition: async predicate => { assert.equal(predicate(), true); }, debounce_timeout: { extended: 10 },
+        editGroup: async id => { h.historyEdits.push({ id, file: c.groups.find(g => g.id === id).chat_id }); },
+        toastr: { info() {}, error() { assert.fail('unexpected group opening error'); } },
+        t: parts => parts.join(''),
+    });
+    const clear = c.clearChat;
+    c.clearChat = async (...args) => { h.clears++; return clear(...args); };
+    const declarations = [
+        groupSource.match(/^let groupChatOpenSerial = .*;$/m)?.[0],
+        welcomeSource.match(/^let recentGroupChatOpenSerial = .*;$/m)?.[0],
+    ].filter(Boolean);
+    vm.runInContext([...declarations, fn(groupSource, 'resetSelectedGroup'), fn(groupSource, 'openGroupById'),
+        fn(groupSource, 'openGroupChat'), fn(welcomeSource, 'openRecentGroupChat')].join('\n'), c);
+    return h;
+}
+
+test('openGroupById propagates a canceled actual prompt read as false', async () => {
+    const h = groupOpeningHarness(); const opening = h.c.openGroupById('group-A'); await tick();
+    assert.equal(h.reads.length, 1); await h.c.clearChat({ clearData: true }); h.c.resetSelectedGroup();
+    h.reads[0].resolve(rows('A')); assert.equal(await opening, false); assert.equal(h.renders, 0);
+});
+
+test('canceled recent group opening never activates, saves settings or clears HOME again', async () => {
+    const h = groupOpeningHarness(); const opening = h.c.openRecentGroupChat('group-A', 'A-history'); await tick();
+    await h.c.clearChat({ clearData: true }); h.c.resetSelectedGroup();
+    const clearCount = h.clears; h.reads[0].resolve(rows('A')); await opening;
+    assert.deepEqual(h.active, []); assert.equal(h.settings, 0); assert.deepEqual(h.historyEdits, []);
+    assert.equal(h.clears, clearCount); assert.equal(h.c.selected_group, null);
+});
+
+test('already-selected group preserves legacy false and opens another recent history normally', async () => {
+    const h = groupOpeningHarness(); h.c.selected_group = 'group-A';
+    assert.equal(await h.c.openGroupById('group-A'), false);
+    const opening = h.c.openRecentGroupChat('group-A', 'A-history'); await tick();
+    assert.equal(h.reads.length, 1); assert.equal(h.reads[0].id, 'A-history'); h.reads[0].resolve(rows('A-history')); await opening;
+    assert.deepEqual(h.active, ['group-A']); assert.equal(h.settings, 1);
+    assert.deepEqual(h.historyEdits, [{ id: 'group-A', file: 'A-history' }]); assert.equal(h.renders, 1);
+});
+
+for (const guard of ['isChatSaving', 'is_send_press', 'is_group_generating']) {
+    test(`already-selected recent group still refuses ${guard}`, async () => {
+        const h = groupOpeningHarness(); h.c.selected_group = 'group-A'; h.c[guard] = true;
+        h.c.waitUntilCondition = async () => {};
+        const opening = h.c.openRecentGroupChat('group-A', 'A-history'); await tick();
+        for (const read of h.reads) read.resolve(rows(read.id)); await opening;
+        assert.deepEqual(h.active, []); assert.equal(h.settings, 0); assert.equal(h.clears, 0); assert.equal(h.reads.length, 0);
+    });
+}
+
+test('rapid same-group recent entries only continue the newest requested history', async () => {
+    const h = groupOpeningHarness(); h.c.selected_group = 'group-A';
+    const old = h.c.openRecentGroupChat('group-A', 'A-history');
+    const newest = h.c.openRecentGroupChat('group-A', 'A-newer'); await tick();
+    for (const read of h.reads) read.resolve(rows(read.id)); await Promise.all([old, newest]);
+    assert.deepEqual(h.active, ['group-A']); assert.equal(h.settings, 1);
+    assert.deepEqual(h.historyEdits, [{ id: 'group-A', file: 'A-newer' }]); assert.equal(h.reads.length, 1);
+});
+
+test('same-group filename change after selected-group return prevents stale recent continuation', async () => {
+    const h = groupOpeningHarness(); h.c.selected_group = 'group-A'; const original = h.c.openGroupById;
+    h.c.openGroupById = async (...args) => { const result = await original(...args); h.c.groups[0].chat_id = 'A-newer'; return result; };
+    const opening = h.c.openRecentGroupChat('group-A', 'A-history'); await tick();
+    for (const read of h.reads) read.resolve(rows(read.id)); await opening;
+    assert.deepEqual(h.active, []); assert.equal(h.settings, 0); assert.equal(h.clears, 0); assert.equal(h.reads.length, 0);
+});
+
+test('same-group reopen during awaited clear cannot let the older entry start a late read', async () => {
+    const h = groupOpeningHarness(); const gate = deferred(); const clear = h.c.clearChat; let first = true;
+    h.c.clearChat = async (...args) => { await clear(...args); if (first) { first = false; await gate.promise; } };
+    const older = h.c.openGroupById('group-A'); await tick();
+    const newer = h.c.openGroupById('group-A'); await tick(); h.reads[0].resolve(rows('new')); assert.equal(await newer, true);
+    gate.resolve(); await tick(); for (const read of h.reads.slice(1)) read.resolve(rows('old'));
+    assert.equal(await older, false); assert.equal(h.reads.length, 1); assert.deepEqual(h.cache(), rows('new'));
+});
+
+test('native reset during awaited opening clear prevents a late group selection', async () => {
+    const h = groupOpeningHarness(); const gate = deferred(); const clear = h.c.clearChat;
+    h.c.clearChat = async (...args) => { await clear(...args); await gate.promise; };
+    const opening = h.c.openGroupById('group-A'); await tick(); h.c.resetSelectedGroup(); gate.resolve(); await tick();
+    for (const read of h.reads) read.resolve(rows('late'));
+    assert.equal(await opening, false); assert.equal(h.c.selected_group, null); assert.equal(h.reads.length, 0);
+});
+
+test('openGroupById refuses success when prompt ownership changes during awaited rendering', async () => {
+    const h = groupOpeningHarness(); const gate = deferred(); h.c.printMessages = () => gate.promise;
+    const opening = h.c.openGroupById('group-A'); await tick(); h.reads[0].resolve(rows('A')); await tick();
+    const newer = h.c.loadItemizedPrompts('A'); h.reads[1].resolve(rows('new')); await newer; gate.resolve();
+    assert.equal(await opening, false); assert.deepEqual(h.cache(), rows('new'));
+});
+
+test('normal group terminal events may replace metadata without canceling successful opening', async () => {
+    const h = groupOpeningHarness(); h.c.event_types.CHAT_CHANGED = 'chat-changed'; h.c.event_types.GROUP_CHAT_CREATED = 'group-created';
+    h.c.loadGroupChat = async () => []; h.c.saveGroupChat = async () => {};
+    h.c.listener = async type => { if (type === 'chat-changed' || type === 'group-created') h.c.chat_metadata = { from: type }; };
+    const opening = h.c.openGroupById('group-A'); await tick(); h.reads[0].resolve(rows('A'));
+    assert.equal(await opening, true); assert.deepEqual(h.events.map(event => event.type), ['loaded', 'chat-changed', 'group-created']);
 });

@@ -117,6 +117,7 @@ let hideMutedSprites = false;
 let groups = [];
 /** @type {string|null} */
 let selected_group = null;
+let groupChatOpenSerial = 0;
 let group_generation_id = null;
 let fav_grp_checked = false;
 let openGroupId = null;
@@ -323,6 +324,7 @@ export async function getGroupChat(groupId, reload = false) {
         await printMessages();
     }
 
+    if (!isCurrent()) return false;
     updateChatMetadata(metadata, true);
 
     if (reload) {
@@ -331,6 +333,7 @@ export async function getGroupChat(groupId, reload = false) {
 
     await eventSource.emit(event_types.CHAT_CHANGED, getCurrentChatId());
     if (freshChat) await eventSource.emit(event_types.GROUP_CHAT_CREATED);
+    if (!isCurrent()) return false;
 }
 
 /**
@@ -623,6 +626,7 @@ async function getFirstCharacterMessage(character) {
 }
 
 function resetSelectedGroup() {
+    groupChatOpenSerial++;
     selected_group = null;
     is_group_generating = false;
 }
@@ -2037,12 +2041,14 @@ export async function openGroupById(groupId) {
         return false;
     }
 
-    if (!groups.find(x => x.id === groupId)) {
+    const group = groups.find(x => x.id === groupId);
+    if (!group) {
         console.log('Group not found', groupId);
         return false;
     }
 
     if (!is_send_press && !is_group_generating) {
+        groupChatOpenSerial++;
         select_group_chats(groupId, false);
 
         if (selected_group !== groupId) {
@@ -2050,12 +2056,18 @@ export async function openGroupById(groupId) {
             setCharacterId(undefined);
             setCharacterName('');
             resetSelectedGroup();
+            const openSerial = groupChatOpenSerial;
+            const chatId = group.chat_id;
+            const metadata = chat_metadata;
             await clearChat({ clearData: true });
+            if (openSerial !== groupChatOpenSerial || selected_group !== null
+                || groups.find(x => x.id === groupId) !== group || group.chat_id !== chatId
+                || chat_metadata !== metadata) return false;
             cancelTtsPlay();
             selected_group = groupId;
             setEditedMessageId(undefined);
             updateChatMetadata({}, true);
-            await getGroupChat(groupId);
+            if (await getGroupChat(groupId) === false || openSerial !== groupChatOpenSerial) return false;
             return true;
         }
     }

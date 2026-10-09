@@ -20,7 +20,20 @@ Files: public/scripts/itemized-prompts.js; public/script.js; public/scripts/grou
 - [ ] Update existing VM dependencies without weakening assertions. Run new test plus `tests/chat-load-ownership.test.mjs`, `tests/chat-transitions.test.mjs`, `tests/media-load-scroll.test.mjs`, `tests/frontend-lifecycle.test.mjs`. Save RED/GREEN logs, syntax checks, self-review. Explicit stage whitelist, cached check/name list/no data/deps, commit.
 - [ ] Fresh independent spec review then quality review, fix and re-review each blocking finding before root acceptance. Implementer no browser benchmarks/full Node20/24 runs/production access/cleanup.
 
-### Task2: Root acceptance and delivery
+### Task2: Bounded native recent-group cancellation follow-up (2026-10-09)
+
+Files: public/scripts/group-chats.js; public/scripts/welcome-screen.js; tests/itemized-prompts-ownership.test.mjs; this plan/spec and ISOLATION.md. Root backed up welcome-screen.js before the added scope; baseline registry now contains 12 original backups. No new public API, rendering scheduling, prompt format or production changes.
+
+- [x] Reproduce the native canceled IndexedDB group read: getGroupChat returns false but openGroupById reports true, so welcome activates/saves/opens history and clears HOME again. Inspect legacy same-selected-group false compatibility and direct callers.
+- [x] Add actual-source prompt/group/welcome tests first. Preserve task2-red.log with 41 tests, 31 pass and 10 assertion failures, zero cancellations/timeouts; retain aborted/harness-timeout exploratory logs separately and do not count them as RED evidence.
+- [x] Propagate canceled getGroupChat, protect awaited opening clears with an internal serial invalidated by reset/newer group entries, and recheck group object/file/metadata before selection. Recheck the group load owner after rendering/events so stale completed loads cannot report success.
+- [x] Stop stale recent-group continuation using its own entry serial, original group selection/object/file and live saving/generation guards. Keep legacy already-selected false compatible with another history in that same group; do not accept every false.
+- [x] Verify 159 targeted tests across prompt ownership, chat ownership/transitions, media scroll and frontend lifecycle. Preserve task2-green.log separately. Normal CHAT_CHANGED/GROUP_CHAT_CREATED listeners may replace metadata without cancellation.
+- [x] Stage only six listed files after syntax, whitespace, staged-name/data/secret checks; commit the bounded change. Root separately performs browser/full-suite acceptance and independent reviews.
+
+Limit: this suppresses outer canceled/stale continuation, with post-render and final owner checks. It does not roll back already-running group greeting/render/extension effects or cover unrelated direct history/generation/delete races.
+
+### Task3: Root acceptance and delivery
 
 - [ ] Run synthetic real IndexedDB delayed-read/close/retry/reversed-read browser contracts and existing native navigation/inspection contracts. Preserve canceled store contents and late-event absence. Check final model/HTML/IDs/scroll and synthetic source body/order/integrity. Do not advertise CPU/performance gains from this correctness fix.
 - [ ] Run full declared safe test suite on Node20/24; inspect complete outputs/counts/source hashes. Verify nine protected workspaces/10519 files and11 .bak against original Git; cached staged whitelist/secrets/data exclusion.

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
@@ -32,6 +33,23 @@ const checkIntegrity = !!getConfigValue('backups.chat.checkIntegrity', true, 'bo
 const maxChatBackups = Number(getConfigValue('backups.common.numberOfBackups', 50, 'number'));
 
 export const CHAT_BACKUPS_PREFIX = 'chat_';
+
+/**
+ * Builds a stable filename key for a chat's backups.
+ * Non-ASCII characters are replaced with underscores, so names such as CJK ones
+ * would all collapse to the same key and share one backup quota. A short hash of
+ * the raw name keeps those keys distinct while ASCII names stay unchanged (#5780).
+ * @param {string} name The name of the chat.
+ * @returns {string} Sanitized filename key for the backup files.
+ */
+export function getBackupKey(name) {
+    const sanitized = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    if (/[^\x20-\x7E]/.test(name)) {
+        const hash = crypto.createHash('sha256').update(name).digest('hex').slice(0, 8);
+        return `${sanitized}_${hash}`;
+    }
+    return sanitized;
+}
 
 /**
  * Saves a chat to the backups directory.
@@ -361,8 +379,24 @@ async function checkChatIntegrity(filePath, integritySlug) {
  */
 export async function getChatInfo(pathToFile, additionalData = {}, withMetadata = false, matcher = null) {
     const parsedPath = path.parse(pathToFile);
-    const stats = await fs.promises.stat(pathToFile);
     const hasMatcher = (typeof matcher === 'function');
+
+    // A chat that is deleted while a scan is running is not an error: treat it like a corrupted chat and move on.
+    const chatVanished = () => {
+        console.warn('Chat file was deleted while it was being scanned:', pathToFile);
+        return { match: false };
+    };
+
+    let stats;
+    try {
+        stats = await fs.promises.stat(pathToFile);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return chatVanished();
+        }
+        throw error;
+    }
+
     const chatData = {
         match: false,
         file_id: parsedPath.name,
@@ -385,7 +419,12 @@ export async function getChatInfo(pathToFile, additionalData = {}, withMetadata 
         let failed = false;
         const fail = error => {
             failed = true;
-            reject(error);
+            if (error.code === 'ENOENT') {
+                // The file can still disappear between the stat above and the stream opening or while scanning.
+                resolve(chatVanished());
+            } else {
+                reject(error);
+            }
             rl.close();
             fileStream.destroy();
         };

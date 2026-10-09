@@ -35,6 +35,13 @@ function harness(messages, scripts = []) {
         console: { warn() {}, debug() {} },
         extension_settings: { disabledExtensions: [] },
         getRegexScripts: () => scripts,
+        // Upstream 1.19 runs extension hooks through MessageFormatter inside
+        // messageFormatting; identity stages preserve the depth/output contract
+        // under test. Real hook behavior is covered by upstream's own suites.
+        MessageFormatter: {
+            stage: { BEFORE_REGEX: 'beforeRegex', AFTER_REGEX: 'afterRegex', AFTER_MARKDOWN: 'afterMarkdown' },
+            runStage: (stage, value) => value,
+        },
         // Script selection and min/max filtering execute the actual regex engine.
         // Regex execution is a synthetic boundary; Markdown/DOMPurify/style helpers
         // are identity boundaries here. Real browser HTML checks run separately.

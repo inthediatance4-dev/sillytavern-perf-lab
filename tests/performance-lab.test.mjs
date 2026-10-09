@@ -166,8 +166,11 @@ test('expired backups are moved to recoverable storage with one stat per candida
     assert.deepEqual(recycled.sort(), ['synthetic-0', 'synthetic-1', 'synthetic-2', 'synthetic-3']);
 });
 
-test('missing chat info rejects instead of hanging', async () => {
-    await assert.rejects(chats.getChatInfo(path.join(root, 'missing.jsonl')), { code: 'ENOENT' });
+test('missing chat info resolves as a vanished chat instead of hanging', async () => {
+    // Upstream 1.19 treats a chat that disappears during a scan as a degraded
+    // result (match: false) rather than an error; the scan must still settle.
+    const result = await chats.getChatInfo(path.join(root, 'missing.jsonl'));
+    assert.equal(result.match, false);
 });
 
 test('stream errors reject and release the reader', async () => {

@@ -72,7 +72,7 @@ export class AutoComplete {
     /**@type {MutationObserver}*/ removalObserver = null;
     /**@type {Set<()=>void>}*/ pendingKeyUps = new Set();
     /**@type {number}*/ layoutGeneration = 0;
-    resizeListener = () => this.updatePositionDebounced();
+    resizeListener = () => { if (this.isActive) this.updatePositionDebounced(); };
 
     /**@type {(item:AutoCompleteOption)=>any}*/ onSelect;
 
@@ -131,7 +131,11 @@ export class AutoComplete {
         });
         textarea.addEventListener('blur', () => this.hide());
         if (isFloating) {
-            textarea.addEventListener('scroll', () => this.updateFloatingPositionDebounced());
+            textarea.addEventListener('scroll', () => {
+                if (this.isActive) {
+                    this.updateFloatingPositionDebounced();
+                }
+            });
         }
         this.ensureConnected();
     }

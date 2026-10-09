@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'yaml';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const port = 8777;
+const port = 8778;
 
 /** Reject paths outside this lab or passing through a symlink/junction. */
 export async function assertLocalPath(target) {

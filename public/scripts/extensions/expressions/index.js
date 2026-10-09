@@ -95,6 +95,7 @@ const PROMPT_TYPE = {
 let expressionsList = null;
 let lastCharacter = undefined;
 let lastMessage = null;
+let visualNovelMode = false;
 /** @type {{[characterKey: string]: Expression[]}} */
 let spriteCache = {};
 let inApiCall = false;
@@ -484,7 +485,7 @@ async function moduleWorker({ newChat = false } = {}) {
     }
 
     const vnMode = isVisualNovelMode();
-    const vnWrapperVisible = $('#visual-novel-wrapper').is(':visible');
+    const vnStateChanged = vnMode !== visualNovelMode;
 
     if (vnMode) {
         $('#expression-wrapper').hide();
@@ -494,7 +495,7 @@ async function moduleWorker({ newChat = false } = {}) {
         $('#visual-novel-wrapper').hide();
     }
 
-    const vnStateChanged = vnMode !== vnWrapperVisible;
+    visualNovelMode = vnMode;
 
     if (vnStateChanged) {
         lastMessage = null;

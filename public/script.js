@@ -8942,7 +8942,7 @@ export function select_rm_info(type, charId, previousCharId = null) {
 export function select_selected_character(chid, { switchMenu = true } = {}) {
     //character select
     //console.log('select_selected_character() -- starting with input of -- ' + chid + ' (name:' + characters[chid].name + ')');
-    select_rm_create({ switchMenu });
+    select_rm_create({ switchMenu, resetForm: false });
     switchMenu && setMenuType('character_edit');
     $('#delete_button').css('display', 'flex');
     $('#export_button').css('display', 'flex');
@@ -8976,7 +8976,6 @@ export function select_selected_character(chid, { switchMenu = true } = {}) {
     $('#post_history_instructions_textarea').val(characters[chid].data?.post_history_instructions || '');
     $('#tags_textarea').val(Array.isArray(characters[chid].data?.tags) ? characters[chid].data.tags.join(', ') : '');
     $('#creator_textarea').val(characters[chid].data?.creator);
-    $('#character_version_textarea').val(characters[chid].data?.character_version || '');
     $('#personality_textarea').val(characters[chid].personality);
     $('#firstmessage_textarea').val(characters[chid].first_mes);
     $('#scenario_pole').val(characters[chid].scenario);
@@ -9025,8 +9024,9 @@ export function select_selected_character(chid, { switchMenu = true } = {}) {
  * Selects the right menu for creating a new character.
  * @param {object} [options] Options for the switch
  * @param {boolean} [options.switchMenu=true] Whether to switch the menu
+ * @param {boolean} [options.resetForm=true] Whether to restore the creation draft; false prepares the selected-character editor
  */
-function select_rm_create({ switchMenu = true } = {}) {
+function select_rm_create({ switchMenu = true, resetForm = true } = {}) {
     switchMenu && setMenuType('create');
 
     //console.log('select_rm_Create() -- selected button: '+selected_button);
@@ -9037,6 +9037,14 @@ function select_rm_create({ switchMenu = true } = {}) {
     }
 
     switchMenu && selectRightMenuWithAnimation('rm_ch_create_block');
+
+    if (!resetForm) {
+        // These controls are inherited by selection; the remaining fields and chrome are populated there.
+        $('#delete_button_div').css('display', 'none');
+        $('#character_import_button').css('display', '');
+        $('#avatar_div').css('display', 'flex');
+        return;
+    }
 
     $('#set_chat_character_settings').hide();
     $('#delete_button_div').css('display', 'none');

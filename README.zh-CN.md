@@ -1,9 +1,18 @@
+[English](README.md) · **中文**
+
 # SillyTavern 性能与可靠性实验库
 
 **基于 [SillyTavern](https://github.com/SillyTavern/SillyTavern) 1.18.0（AGPL-3.0）的隔离优化实验库。**
 11 轮依次叠加的优化，每轮一个独立分支，各自带测试、浏览器实测证据和经过独立复核的验收报告。**从未部署**：全程未触碰生产服务器，并用跨轮文件哈希快照验证了这一点。
 
 > 这是研究性分支实验，**不是可分发版本**。增量 ZIP/补丁面向实验库的 1.18 基线，不可直接覆盖官方 1.19+ 或任何线上安装。
+
+## 30 秒读懂这个仓库
+
+- **这是什么？** 一个"给 SillyTavern 做体检并逐项改进"的隔离实验库：11 轮优化，每轮都有测试、实测数据和验收报告；另有 1 个分支把官方最新版 1.19.0 同步了进来。
+- **为什么值得看？** 官方 1.19.0 至今没有这些修复/优化（逐文件对比见 [docs/COMPARISON-vs-official-1.19.0.md](docs/COMPARISON-vs-official-1.19.0.md)），例如：表情模式误判（布局读取 40→0 次）、向量批输出数量错误（21 输入产出 63 个）、长富文本主线程阻塞减半、消息深度统计工作量减少 98.3%、聊天文件异步写入+回收保护、备份按历史隔离等。
+- **怎么看？** ① 先读对比文档 → ② 看下面的分支表挑感兴趣的一轮 → ③ 在该分支里打开 `docs/*-verification.md`（做法、实测数字、边界）→ ④ 看代码 diff 和 `tests/`。
+- **结论一句话**：442/442 测试在 Node 20 与 24 双版本实跑通过；生产环境全程未触碰（跨轮文件哈希一致）；未部署，长聊天仍有约 1.2–1.26 秒主线程阻塞（如实记录）。
 
 ## 为什么做它
 
@@ -53,9 +62,10 @@
 | 8 | `codex/sillytavern-richtext-flow` | 富文本让出边界、完整加载归属守卫 |
 | 9 | `codex/sillytavern-prompt-isolation` | 提示词缓存所有权、群聊取消失效传播 |
 | 10 | `codex/sillytavern-character-editor-flow` | 角色编辑器单次准备 |
-| 11 | `codex/sillytavern-expression-mode-flow` | 表情 VN 模式状态修复（末端） |
+| 11 | `codex/sillytavern-expression-mode-flow` | 表情 VN 模式状态修复（11 轮末端） |
+| 12 | `codex/sillytavern-1.19-sync` | **把官方 1.19.0 同步进实验库**：62 个上游改动干净合入、5 处冲突语义合并（保留本库加固，吸收官方容错），测试 442/442；浏览器级复验待做，详见该分支 `docs/2026-10-09-sillytavern-1.19-sync.md` |
 
-附标签：`r1-performance` … `r11-expression-mode`。
+附标签：`r1-performance` … `r11-expression-mode`，以及 `sync-1.19.0`（同步分支）。
 
 ## 运行安全测试
 

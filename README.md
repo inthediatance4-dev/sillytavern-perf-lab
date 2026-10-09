@@ -1,9 +1,18 @@
+**English** · [中文说明](README.zh-CN.md)
+
 # SillyTavern Performance & Reliability Lab
 
 **An isolated, evidence-driven optimization lab built on [SillyTavern](https://github.com/SillyTavern/SillyTavern) 1.18.0 (AGPL-3.0).**
 Eleven sequential optimization rounds, each in its own branch with its own tests, browser evidence and an independently verified delivery report. Nothing here has been deployed: the production server was never touched, and that is checked by file-hash snapshots across all rounds.
 
 > This is a research fork, **not** a distribution. Incremental ZIP/patch artifacts target the lab's isolated 1.18-based baseline and must not be applied over official 1.19+ or a live installation.
+
+## Understand this repo in 30 seconds
+
+- **What is it?** An isolated lab that health-checks SillyTavern and improves it in 11 verified rounds — each round has its own tests, measured evidence and an acceptance report. One extra branch merges official 1.19.0 in.
+- **Why care?** None of these fixes exist in official 1.19.0 yet (file-by-file comparison in [docs/COMPARISON-vs-official-1.19.0.md](docs/COMPARISON-vs-official-1.19.0.md)): expression mode mis-detection (layout reads 40 → 0), wrong batch-embedding count (63 vectors for 21 inputs), long rich-text main-thread blocking roughly halved, message-depth statistics doing 98.3% less work, async chat IO with locks and a recycle bin, per-history backup isolation, and more.
+- **How to read it?** ① Read the comparison doc → ② pick a branch below → ③ open its `docs/*-verification.md` (method, measured numbers, honest limits) → ④ inspect the diff and `tests/`.
+- **One-line status:** 442/442 tests pass on Node 20 and Node 24 (live re-run); production was never touched (cross-round hash snapshots); not deployed; heavy chats still carry a ~1.2–1.26 s main-thread task, disclosed as-is.
 
 ## Why it exists
 
@@ -53,9 +62,10 @@ Start from `main` (SillyTavern 1.18.0 baseline + lab scaffolding). Each branch i
 | 8 | `codex/sillytavern-richtext-flow` | rich-text yield boundary, full load-ownership guards |
 | 9 | `codex/sillytavern-prompt-isolation` | prompt cache ownership, group-cancel propagation |
 | 10 | `codex/sillytavern-character-editor-flow` | single-pass editor preparation |
-| 11 | `codex/sillytavern-expression-mode-flow` | expression VN mode state fix (tip) |
+| 11 | `codex/sillytavern-expression-mode-flow` | expression VN mode state fix (round-11 tip) |
+| 12 | `codex/sillytavern-1.19-sync` | **merge official 1.19.0 into the lab**: 62 upstream changes applied cleanly, 5 conflicts resolved semantically (lab hardening kept, upstream resilience adopted); 442/442 tests pass; browser re-acceptance pending — see `docs/2026-10-09-sillytavern-1.19-sync.md` on that branch |
 
-Tagged: `r1-performance` … `r11-expression-mode`.
+Tagged: `r1-performance` … `r11-expression-mode`, plus `sync-1.19.0` for the sync branch.
 
 ## Running the safe test suite
 

@@ -484,3 +484,55 @@ test('character rename inherits retired chat names while retaining writable acti
         assert.equal((await post('/api/chats/save', { avatar_url: result.data.avatar, file_name: name, chat: rows('active histories') })).status, 200);
     }
 });
+
+
+test('group metadata rejects invalid IDs and readers ignore legacy traversal and aliases', async () => {
+    for (const id of ['../other-user/secret', '..\\secret', '', 42, null]) {
+        assert.equal((await post('/api/groups/create', { chats: [id] })).status, 400);
+        assert.equal((await post('/api/groups/edit', { id: 'invalid-metadata', chats: [id] })).status, 400);
+        assert.equal((await post('/api/groups/create', { chat_id: id })).status, 400);
+    }
+    const outside = path.join(root, 'other-user');
+    fs.mkdirSync(outside);
+    fs.writeFileSync(path.join(outside, 'secret.jsonl'), jsonl('private-cross-user-preview'));
+    fs.symlinkSync(path.join(outside, 'secret.jsonl'), path.join(dirs.groupChats, 'alias.jsonl'));
+    fs.writeFileSync(path.join(dirs.groupChats, 'valid-reader.jsonl'), jsonl('allowed-preview'));
+    fs.writeFileSync(path.join(dirs.groups, 'legacy-reader.json'), JSON.stringify({
+        id: 'legacy-reader', chats: ['../other-user/secret', 'alias', 'valid-reader'],
+    }));
+    const search = await post('/api/chats/search', { group_id: 'legacy-reader' });
+    assert.equal(search.status, 200);
+    assert.deepEqual(search.data.map(row => row.file_name), ['valid-reader']);
+    const recent = await post('/api/chats/recent', { metadata: true });
+    assert.equal(recent.status, 200);
+    assert.ok(recent.data.some(row => row.file_name === 'valid-reader.jsonl'));
+    assert.ok(!JSON.stringify(recent.data).includes('private-cross-user-preview'));
+});
+
+
+for (const failure of ['second-history', 'metadata']) {
+    test(`failed group deletion at ${failure} never leaves active metadata pointing at retired chats`, async () => {
+        const id = `delete-failure-${failure}`;
+        const histories = [0, 1].map(i => `${id}-${i}`);
+        const metadata = path.join(dirs.groups, `${id}.json`);
+        fs.writeFileSync(metadata, JSON.stringify({ id, chats: histories }));
+        for (const chat of histories) fs.writeFileSync(path.join(dirs.groupChats, `${chat}.jsonl`), jsonl(chat));
+        const original = fs.promises.rename;
+        fs.promises.rename = async (source, destination) => {
+            if (source === (failure === 'metadata' ? metadata : path.join(dirs.groupChats, `${histories[1]}.jsonl`))) {
+                throw Object.assign(new Error('injected group move failure'), { code: 'EIO' });
+            }
+            return original(source, destination);
+        };
+        try { assert.equal((await post('/api/groups/delete', { id })).status, 500); }
+        finally { fs.promises.rename = original; }
+        if (failure === 'metadata') {
+            await io.assertChatWritable(metadata, dirs.groups);
+            for (const chat of histories) await io.assertChatWritable(path.join(dirs.groupChats, `${chat}.jsonl`), dirs.groupChats);
+            assert.ok(fs.existsSync(metadata));
+        } else {
+            assert.equal(fs.existsSync(metadata), false);
+            assert.ok((await retained(path.join(dirs.groups, '.recycle'), id)).length > 0);
+        }
+    });
+}

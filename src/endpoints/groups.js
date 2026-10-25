@@ -8,7 +8,7 @@ import { sync as writeFileAtomicSync, default as writeFileAtomic } from 'write-f
 
 import { color, tryParse } from '../util.js';
 import { getFileNameValidationFunction } from '../middleware/validateFileName.js';
-import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, writeChatFile, createChatFileExclusive, recycleRetiredChat, retireChatPath } from '../chat-io.js';
+import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, writeChatFile, createChatFileExclusive, recycleRetiredChat, retireChatPath, isValidGroupChatId } from '../chat-io.js';
 
 export const router = express.Router();
 
@@ -159,6 +159,8 @@ router.post('/create', async (request, response) => {
         return response.sendStatus(400);
     }
 
+    if ((request.body.chats !== undefined && (!Array.isArray(request.body.chats) || !request.body.chats.every(isValidGroupChatId)))
+        || (request.body.chat_id !== undefined && !isValidGroupChatId(request.body.chat_id))) return response.sendStatus(400);
     warnOnGroupMetadata(request.body);
     const id = String(Date.now());
     const groupMetadata = {
@@ -200,6 +202,8 @@ router.post('/edit', getFileNameValidationFunction('id'), async (request, respon
     if (!request.body || !request.body.id) {
         return response.sendStatus(400);
     }
+    if ((request.body.chats !== undefined && (!Array.isArray(request.body.chats) || !request.body.chats.every(isValidGroupChatId)))
+        || (request.body.chat_id !== undefined && !isValidGroupChatId(request.body.chat_id))) return response.sendStatus(400);
     warnOnGroupMetadata(request.body);
     const id = request.body.id;
     const pathToFile = path.join(request.user.directories.groups, sanitize(`${id}.json`));
@@ -229,8 +233,12 @@ router.post('/delete', getFileNameValidationFunction('id'), async (request, resp
         await withPathLocks([...chatLockPaths([pathToGroup]), request.user.directories.groupChats], async () => {
             await assertChatWritable(pathToGroup, request.user.directories.groups);
             const group = JSON.parse(await fsPromises.readFile(pathToGroup, 'utf8'));
+            // Hide the group before retiring histories: partial cleanup must not leave an active group.
+            // The metadata and any moved histories remain available in recovery storage.
+            await recycleRetiredChat(pathToGroup, request.user.directories.groups);
             if (group && Array.isArray(group.chats)) {
                 for (const chat of group.chats) {
+                    if (!isValidGroupChatId(chat)) continue;
                     const file = path.join(request.user.directories.groupChats, sanitize(`${chat}.jsonl`));
                     try {
                         await assertChatWritable(file, request.user.directories.groupChats);
@@ -242,7 +250,6 @@ router.post('/delete', getFileNameValidationFunction('id'), async (request, resp
                     }
                 }
             }
-            await recycleRetiredChat(pathToGroup, request.user.directories.groups);
         });
         return response.send({ ok: true });
     } catch (error) {

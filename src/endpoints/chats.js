@@ -14,7 +14,7 @@ import { createChatInfoCache } from '../chat-info-cache.js';
 import { createChatBackupScheduler } from '../chat-backup-scheduler.js';
 import {
     withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO,
-    assertChatWritable, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
+    assertChatWritable, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
 } from '../chat-io.js';
 import {
     getConfigValue,
@@ -974,9 +974,14 @@ router.post('/search', validateAvatarUrlMiddleware, async function (request, res
 
             // Find group chat files for given group ID
             const groupChatsDir = path.join(request.user.directories.groupChats);
-            chatFiles = targetGroup.chats
-                .map(chatId => path.join(groupChatsDir, `${chatId}.jsonl`))
-                .filter(fileName => fs.existsSync(fileName));
+            for (const chatId of targetGroup.chats) {
+                try {
+                    const file = await resolveGroupChatPath(groupChatsDir, chatId);
+                    if (fs.existsSync(file)) chatFiles.push(file);
+                } catch (error) {
+                    if (!(error instanceof ChatLifecycleError)) throw error;
+                }
+            }
         } else {
             // Regular character chat directory
             const character_name = avatar_url.replace('.png', '');
@@ -1091,7 +1096,12 @@ router.post('/recent', async function (request, response) {
 
                     if (Array.isArray(groupData.chats)) {
                         for (const chat of groupData.chats) {
-                            const filePath = path.join(request.user.directories.groupChats, `${chat}.jsonl`);
+                            let filePath;
+                            try { filePath = await resolveGroupChatPath(request.user.directories.groupChats, chat); }
+                            catch (error) {
+                                if (error instanceof ChatLifecycleError) continue;
+                                throw error;
+                            }
                             if (!fs.existsSync(filePath)) {
                                 continue;
                             }

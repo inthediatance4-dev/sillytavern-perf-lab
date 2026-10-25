@@ -15,7 +15,14 @@ npm run perf:lab
 启动器固定使用 `127.0.0.1:8780`、当前检出的 `.lab-data/` 与 `.lab-config.yaml`。
 即使配置已存在，每次启动也会重新强制隔离设置：本地 IPv4、关闭 SSL、自动打开浏览器、
 扩展自动更新与服务器插件。移除继承的 `SILLYTAVERN_*` 环境覆盖，拒绝经过符号链接的数据或配置路径，
-端口占用即报错。无浏览器或真实生成验收结论。
+端口占用即报错。
+
+浏览器验收脚本 `tests/browser-performance-lab.py` 与 `tests/browser-lifecycle-lab.py`
+默认访问该隔离启动器，而不是旧的 8771 端口。`LAB_URL` 或 `LAB_ORIGIN`、
+`LAB_BROWSER_EXECUTABLE`、`LAB_EVIDENCE_DIR` 可覆盖地址、浏览器和证据目录；
+未设置浏览器路径时使用 Playwright 自带 Chromium，证据默认在仓库 `.evidence/browser/`。
+页面没有单独的实验室标记，脚本只在标题为 SillyTavern 且地址属于配置源时才写入人工数据。
+需要已安装的 Python Playwright 与 Chromium。本文件不记录新的浏览器或真实生成验收结论。
 
 `test:perf` 当前列出 28 个测试文件；历史 Git 对象缺失时，三个历史源码比较套件会明确跳过。
 基准脚本 `bench:perf` 仍要求历史 Git 对象。部分测试需要本地监听权限。

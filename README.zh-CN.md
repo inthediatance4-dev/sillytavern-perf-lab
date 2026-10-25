@@ -22,6 +22,13 @@ npm run perf:lab
 扩展自动更新和服务器插件，并移除继承的 `SILLYTAVERN_*` 环境覆盖。端口占用时直接报错。
 仅使用人工数据，同一个数据根目录只运行一个服务器进程。
 
+`python tests/browser-performance-lab.py` 与 `python tests/browser-lifecycle-lab.py`
+默认访问同一地址。可用 `LAB_URL` 或 `LAB_ORIGIN`、`LAB_BROWSER_EXECUTABLE`、
+`LAB_EVIDENCE_DIR` 覆盖。未设置浏览器路径时使用 Playwright 自带 Chromium。
+证据默认写到仓库 `.evidence/browser/`。页面没有单独的实验室标记；脚本核对
+SillyTavern 标题和源地址后再创建人工数据。运行前需要安装 Playwright 及 Chromium
+（`playwright install chromium`）。
+
 2026-10-25 在 Node 20.19.2 下，无需套接字的 `node --test` 选择报告 **20 项通过**；
 此沙箱的输出每个文件计一项，不代表完整套件的独立用例数或浏览器验收。
 完整运行报告 28 个文件项：20 通过，8 个需要本地监听权限的套件因沙箱限制失败。

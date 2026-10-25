@@ -1,27 +1,33 @@
-"""Acceptance on the independent loopback application; synthetic data only."""
+"""Acceptance on the isolated performance lab; synthetic data only.
+
+Defaults to the launcher at http://127.0.0.1:8780/ and writes evidence under
+the repo `.evidence/browser` directory. See tests/lab_browser.py.
+"""
 import json
 import pathlib
+import sys
 import uuid
-import os
 from playwright.sync_api import sync_playwright
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from lab_browser import assert_lab_page, evidence_dir, lab_origin, launch_chromium
+
 root = pathlib.Path(__file__).resolve().parent.parent
-out = pathlib.Path(r'F:\SillyTavern-Research\2026-10-05-lifecycle\browser')
-out.mkdir(parents=True, exist_ok=True)
+origin = lab_origin()
+out = evidence_dir(root)
 errors = []
 generation_requests = []
 with sync_playwright() as p:
-    browser = p.chromium.launch(
-        executable_path=os.environ.get('LAB_BROWSER_EXECUTABLE', 'C:/Program Files/Google/Chrome/Application/chrome.exe'),
-        headless=True, args=['--disable-gpu'])
+    browser = launch_chromium(p)
     page = browser.new_page(viewport={'width': 1440, 'height': 1000}, locale='en-US')
     page.on('pageerror', lambda error: errors.append(str(error)))
     def watch(request):
         if '/generate' in request.url and '/api/' in request.url:
             generation_requests.append(request.url)
     page.on('request', watch)
-    page.goto('http://127.0.0.1:8771/', wait_until='domcontentloaded')
+    page.goto(origin, wait_until='domcontentloaded')
     page.wait_for_function('window.SillyTavern?.getContext')
+    assert_lab_page(page, origin)
     page.evaluate("() => { window.__labApplicationReady = false; const context = SillyTavern.getContext(); context.eventSource.once(context.eventTypes.APP_READY, () => { window.__labApplicationReady = true; }); }")
     page.wait_for_function("window.__labApplicationReady || document.querySelector('dialog[open] .onboarding') || (document.querySelector('.character_select') && !document.querySelector('.splash-screen'))", timeout=60000)
     # Finish first-run onboarding with a synthetic persona, using visible UI.
@@ -198,7 +204,7 @@ with sync_playwright() as p:
     assert not errors, errors
     assert not generation_requests, generation_requests
     results.update({'pageErrors': errors, 'generationRequests': generation_requests,
-                    'browser': browser.version, 'origin': 'http://127.0.0.1:8771/'})
+                    'browser': browser.version, 'origin': origin})
     (out / 'results.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
     print(json.dumps(results))
     browser.close()

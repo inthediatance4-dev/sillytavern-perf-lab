@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import yaml from 'yaml';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Browser acceptance defaults to this origin (tests/lab_browser.py).
 const port = 8780;
 
 /** Reject paths outside this lab or passing through a symlink/junction. */

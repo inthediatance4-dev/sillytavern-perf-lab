@@ -29,6 +29,14 @@ browser launch, extension auto-updates and server plugins, and rejects inherited
 server process per data root. See [ISOLATION.md](ISOLATION.md) for recovery,
 limitations and dated evidence, and [中文说明](README.zh-CN.md).
 
+`python tests/browser-performance-lab.py` and `python tests/browser-lifecycle-lab.py`
+target that same origin. `LAB_URL` or `LAB_ORIGIN`, `LAB_BROWSER_EXECUTABLE`, and
+`LAB_EVIDENCE_DIR` override the URL, browser, and evidence directory. An unset
+browser path uses Playwright's bundled Chromium. Evidence defaults to
+`.evidence/browser/`. The page has no separate lab marker; the scripts check the
+SillyTavern title and origin, then create synthetic data only. Install Playwright
+and its Chromium (`playwright install chromium`) before running them.
+
 Current verification (2026-10-25, Node 20.19.2): the socket-free `node --test`
 selection reports **20 tests passed**, one runner entry per selected file in this
 sandbox. This is not the full suite's individual-case count or browser acceptance.

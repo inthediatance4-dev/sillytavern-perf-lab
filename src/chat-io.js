@@ -4,11 +4,24 @@ import { randomUUID, createHash } from 'node:crypto';
 import writeFileAtomic from 'write-file-atomic';
 import sanitize from 'sanitize-filename';
 
-const queues = new Map();
+/** @typedef {'shared' | 'exclusive'} LockMode */
+
+/**
+ * @typedef {object} LockGate
+ * @property {number} activeShared
+ * @property {boolean} activeExclusive
+ * @property {number} exclusivePending Queued or active exclusive reservations not yet released
+ * @property {Array<{ mode: LockMode, resolve: () => void }>} waiters
+ */
+
+/** @type {Map<string, LockGate>} */
+const gates = new Map();
+/** Completion of every reservation already accepted, including ones still waiting. */
+const pendingIO = new Set();
 
 /**
  * Serialize work for one path, including validation before the actual write.
- * Rejections do not poison the queue. Different paths remain independent.
+ * A string path is an exclusive lock. Rejections do not poison the gate.
  * @template T
  * @param {string} filePath Queue identity
  * @param {() => Promise<T>} task Operation
@@ -23,22 +36,143 @@ function pathKey(filePath) {
     return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
-/** Reserve every queue synchronously; never hold one lock while awaiting another. */
-export function withPathLocks(filePaths, task) {
-    const keys = [...new Set(filePaths.map(pathKey))].sort();
-    const previous = [...new Set(keys.map(key => queues.get(key)).filter(Boolean))];
-    const result = Promise.all(previous).then(task);
-    const tail = result.then(() => undefined, () => undefined);
-    for (const key of keys) queues.set(key, tail);
-    tail.then(() => {
-        for (const key of keys) if (queues.get(key) === tail) queues.delete(key);
-    });
-    return result;
+/**
+ * @param {Array<string | { path: string, mode: LockMode }>} entries
+ * @returns {Array<{ key: string, mode: LockMode }>}
+ */
+function normalizeLockRequests(entries) {
+    /** @type {Map<string, LockMode>} */
+    const modes = new Map();
+    for (const entry of entries) {
+        const isString = typeof entry === 'string';
+        const mode = isString ? 'exclusive' : entry.mode;
+        const filePath = isString ? entry : entry.path;
+        if (mode !== 'shared' && mode !== 'exclusive') throw new TypeError(`Invalid lock mode: ${mode}`);
+        if (typeof filePath !== 'string' || filePath.length === 0) throw new TypeError('Lock path must be a non-empty string');
+        const key = pathKey(filePath);
+        // One call holds each path once. Exclusive covers a shared request for the same path.
+        if (modes.get(key) !== 'exclusive') modes.set(key, mode);
+    }
+    return [...modes.entries()]
+        .map(([key, mode]) => ({ key, mode }))
+        .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }
 
-/** File operations share their parent directory queue with directory retirement. */
+/**
+ * @param {string} key
+ * @returns {LockGate}
+ */
+function getGate(key) {
+    let gate = gates.get(key);
+    if (!gate) {
+        gate = { activeShared: 0, activeExclusive: false, exclusivePending: 0, waiters: [] };
+        gates.set(key, gate);
+    }
+    return gate;
+}
+
+/**
+ * Grant the longest prefix that writer preference allows.
+ * Shared reservations already queued ahead of an exclusive still run together.
+ * A later shared reservation is not granted while an exclusive is waiting.
+ * @param {LockGate} gate
+ */
+function pump(gate) {
+    if (gate.activeExclusive) return;
+    while (gate.waiters.length > 0) {
+        const next = gate.waiters[0];
+        if (next.mode === 'exclusive') {
+            if (gate.activeShared > 0) return;
+            gate.waiters.shift();
+            gate.activeExclusive = true;
+            next.resolve();
+            return;
+        }
+        gate.waiters.shift();
+        gate.activeShared++;
+        next.resolve();
+    }
+}
+
+/**
+ * @param {string} key
+ * @param {LockMode} mode
+ * @returns {Promise<void>}
+ */
+function reserve(key, mode) {
+    const gate = getGate(key);
+    if (mode === 'exclusive') gate.exclusivePending++;
+    const immediate = mode === 'shared'
+        ? !gate.activeExclusive && gate.exclusivePending === 0 && gate.waiters.length === 0
+        : !gate.activeExclusive && gate.activeShared === 0 && gate.waiters.length === 0;
+    if (immediate) {
+        if (mode === 'shared') gate.activeShared++;
+        else gate.activeExclusive = true;
+        return Promise.resolve();
+    }
+    return new Promise(resolve => {
+        gate.waiters.push({ mode, resolve });
+    });
+}
+
+/**
+ * @param {string} key
+ * @param {LockMode} mode
+ */
+function release(key, mode) {
+    const gate = gates.get(key);
+    if (!gate) return;
+    if (mode === 'shared') {
+        if (gate.activeShared > 0) gate.activeShared--;
+    } else {
+        gate.activeExclusive = false;
+        if (gate.exclusivePending > 0) gate.exclusivePending--;
+    }
+    pump(gate);
+    if (gate.activeShared === 0 && !gate.activeExclusive && gate.exclusivePending === 0 && gate.waiters.length === 0 && gates.get(key) === gate) {
+        gates.delete(key);
+    }
+}
+
+/**
+ * Reserve every requested path synchronously, then wait until all of them are granted.
+ * The task does not start while any requested lock is still queued, and this call
+ * never awaits one lock before reserving the others.
+ * A string entry is exclusive. `{ path, mode: 'shared' | 'exclusive' }` selects the mode.
+ * Shared holders of one path run together. An exclusive request waits for shared
+ * holders already in progress and blocks shared requests that arrive after it.
+ * @template T
+ * @param {Array<string | { path: string, mode: LockMode }>} entries Lock requests
+ * @param {() => Promise<T>} task Operation
+ * @returns {Promise<T>}
+ */
+export function withPathLocks(entries, task) {
+    const requests = normalizeLockRequests(entries);
+    const grants = requests.map(request => reserve(request.key, request.mode));
+    const result = Promise.all(grants).then(task);
+    const settled = result.finally(() => {
+        for (const request of requests) release(request.key, request.mode);
+    });
+    const done = settled.then(() => undefined, () => undefined);
+    pendingIO.add(done);
+    done.then(() => {
+        pendingIO.delete(done);
+    });
+    return settled;
+}
+
+/**
+ * Ordinary file operations: shared lock on the parent directory plus an exclusive
+ * lock on the file. Directory retirement, rename, delete, and backup pruning pass
+ * the directory itself as an exclusive string to withPathLocks / withPathLock.
+ * @param {string[]} filePaths Files, not the directories being retired
+ * @returns {Array<{ path: string, mode: LockMode }>}
+ */
 export function chatLockPaths(filePaths) {
-    return filePaths.flatMap(file => [path.dirname(file), file]);
+    return filePaths.flatMap(file => [
+        { path: path.dirname(file), mode: 'shared' },
+        { path: file, mode: 'exclusive' },
+    ]);
 }
 
 export class ChatLifecycleError extends Error {
@@ -274,7 +408,7 @@ export async function inheritChatRetirements(sourceDirectory, targetDirectory, l
 
 /** Publish complete bytes with an exclusive hard link; readers never see a partial target.
  * Staging files move to recovery storage. Requires same-filesystem hard-link support.
- * The caller holds the destination's parent and file locks.
+ * The caller holds the destination's parent shared and the file exclusively.
  */
 async function publishExclusive(filePath, prepare) {
     const staging = path.join(path.dirname(filePath), '.chat-staging');
@@ -369,9 +503,9 @@ export async function renameChatFile(source, destination, lifecycleRoot) {
     });
 }
 
-/** Wait for all operations that have already entered the queues. */
+/** Wait for every reservation that has already been accepted, including those still queued. */
 export async function waitForChatIO() {
-    while (queues.size) await Promise.all([...queues.values()]);
+    while (pendingIO.size) await Promise.all([...pendingIO]);
 }
 
 /**
@@ -461,7 +595,7 @@ async function pruneRecycleStorage(recycleRoot, maxBytes) {
  * `limit` (config `backups.common.numberOfBackups`) caps how many visible
  * backup files stay in the directory. It is not a disk bound: expired files
  * move into `.recycle` and remain until `maxRecycleBytes` says otherwise.
- * The caller holds the backup directory lock across creation and pruning.
+ * The caller holds the backup directory exclusively across creation and pruning.
  * @param {string} directory Backup directory
  * @param {string} prefix Chat backup name prefix
  * @param {number} limit Number of visible backups to keep

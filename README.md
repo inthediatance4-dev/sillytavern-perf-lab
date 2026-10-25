@@ -15,7 +15,7 @@ npm run lint
 npm run perf:lab
 ```
 
-`test:perf` runs 30 test files with synthetic fixtures (some bind localhost
+`test:perf` runs 31 test files with synthetic fixtures (some bind localhost
 sockets). The three independent historical-oracle suites skip gracefully when
 Git or their historical objects are unavailable; a full-history checkout enables
 those comparisons. `bench:perf` still requires historical Git objects.
@@ -59,6 +59,10 @@ failed attempt restores it when the visible path is still absent. An ordinary
 save of a path that is still retired still conflicts.
 Character merge, including bulk merge, still uses `withCharacterEdit`, and
 rename still takes the card and chat locks in one `withPathLocks` call.
+Ordinary file operations take a shared lock on the parent directory and an
+exclusive lock on the file, so different group chats in one directory can
+proceed together. Directory retirement, rename, delete, and backup pruning
+take that directory exclusively and are not starved by later shared holders.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

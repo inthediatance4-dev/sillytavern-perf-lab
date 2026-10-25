@@ -6,7 +6,8 @@ Commits:
 
 - `5895fd7` fence exclusive directory ops against child writers
 - `d9f3636` prefer process start over a drifting Windows boot id
-- this file, in the following doc commit
+- `c33b0fa` record this note
+- this doc commit syncs `README.md`, `README.zh-CN.md`, and `ISOLATION.md` to the protocol below
 
 ## What changed
 
@@ -65,7 +66,10 @@ Recorded on Node v20.19.2. The doc commit does not change runtime behavior.
 - A real `win-boot:` step from `Date.now() - os.uptime()`, and the PowerShell or WMIC process-start probe, including a probe that exceeds 200ms.
 - A data root close to Windows `MAX_PATH`, including `ERROR_FILENAME_EXCED_RANGE` as Node reports it on that host. The Linux run used the length seam, not a too-long real path.
 - The browser lab was not started.
-- `README.md` and `ISOLATION.md` still describe `<dataRoot>/.st-path-locks/<sha256>.lock`, shared holders as in-process only, and a 2 second `win-boot:` window. They were not edited in this round.
+
+## User docs
+
+`README.md`, `README.zh-CN.md`, and `ISOLATION.md` are synced to this protocol. They name the shared parent fence (`<sha256>.shared.<token>` / `<sha256>.exclusive`), the `ENAMETOOLONG` fallback at `os.tmpdir()/st-lab-path-locks/<sha256(dataRoot)>/`, quarantine of an old symlink or oversized entry, a 120 second `win-boot:` window, omission of an unstable `bootId`, and preference for `processStartMs`. That docs commit does not change runtime behavior and re-runs `npm run lint` only.
 
 ## Residuals
 

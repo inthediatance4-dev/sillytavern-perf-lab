@@ -66,33 +66,50 @@ exclusive lock on the file, so different group chats in one directory can
 proceed together. Directory retirement, rename, delete, and backup pruning
 take that directory exclusively and are not starved by later shared holders.
 In-process path locks are always on. Cross-process exclusion is off unless
-`exclusiveDataRoot` or `crossProcessPathLocks` is set. With either flag, each
-exclusive holder also keeps a hashed file in `<dataRoot>/.st-path-locks/` for
-the critical section, created with `O_EXCL` and removed only when its bytes
-still match. Keys are reserved in sorted order before any wait. A nested
-`withPathLocks` may take other paths only while no exclusive cross-process
-lock is held. It cannot wait on a key the caller already holds exclusively,
-upgrade a shared key to exclusive, or take another path while an exclusive
-cross-process lock is still held. The backup writer runs after that lock is
-released. Shared holders do not take those
-files: atomic replacement already protects readers of a complete file. A live
+`exclusiveDataRoot` or `crossProcessPathLocks` is set. With either flag, an
+exclusive file also takes a shared parent fence when that parent is not
+already exclusive. Under `<dataRoot>/.st-path-locks/`, a shared holder is
+`<sha256>.shared.<token>` and an exclusive holder is `<sha256>.exclusive`.
+Each is created with `O_EXCL` and removed only when its bytes still match.
+Shared holders of one hash coexist. An exclusive acquire waits until that
+hash has no live `.shared.*` file, and a shared acquire waits until
+`<sha256>.exclusive` is gone. After either create, the loser drops its file.
+A shared-only reservation still creates no file; atomic replacement still
+protects readers of a complete file. `ENAMETOOLONG`, including a Windows
+path-too-long message, moves the whole set to
+`os.tmpdir()/st-lab-path-locks/<sha256(dataRoot)>/` (mode `0o700`) and
+retries, leaving nothing from that attempt on the primary root. A symlink,
+a non-regular file, or a regular file larger than 4096 bytes, once older
+than 60 seconds, is renamed into `.quarantine` and the create is retried
+once. A younger unusable entry stays and fails with `path_lock_unavailable`.
+Keys are reserved in sorted order before any wait. A nested `withPathLocks`
+may take other paths only while no exclusive cross-process lock is held. It
+cannot wait on a key the caller already holds exclusively, upgrade a shared
+key to exclusive, or take another path while an exclusive cross-process lock
+is still held. The backup writer runs after that lock is released. A live
 lock in another process is polled with a short backoff and then fails with
-`path_lock_busy` (default wait 15 seconds) instead of hanging. A dead pid, or
-a reused pid whose boot id or process start does not match, is reclaimed by
-renaming the lock aside and deleting it only when the bytes are still stale.
-Another host's file, or a symlink, is left in place. No compiler is required.
+`path_lock_busy` (default wait 15 seconds) instead of hanging. A dead pid,
+or a reused pid, is reclaimed by renaming the lock aside and deleting it
+only when the bytes are still stale. Another host's file is left in place.
+No compiler is required.
 A process that does not opt in is not excluded by these files. `exclusiveDataRoot` is off unless
 the lab launcher or config turns it on. The owner file records pid, host,
 start time, a random token, and, when the host can provide them, a boot id
 and the process start time. Linux uses `/proc/sys/kernel/random/boot_id` and
 `/proc/<pid>/stat` starttime plus `btime`. Windows stores a best-effort
-`win-boot:` time from `os.uptime()` (samples within 2 seconds match; a clock
-step can change it) and may add process start from a PowerShell or WMIC probe
-that is omitted if it is missing or slower than 200ms. A later start refuses
-while `process.kill(pid, 0)` reports the pid alive, including `EPERM`, and the
-stored boot id and process start still match. A mismatch is pid reuse and is
-reclaimed. An older lock with neither identity field is kept while its pid is
-alive. A dead same-host owner, or a reused pid, is reclaimed by exactly one
+`win-boot:` time from `os.uptime()` (samples within 120 seconds match).
+When both sides have `processStartMs`, that value decides: a match stays
+live even if `bootId` differs, and a mismatch is reuse even if the boot
+stamps match. Boot id is used only when neither side has a start time. A
+start time on only one side stays live. If two local samples more than 2
+seconds apart fall outside the 120 second window, later payloads omit the
+unstable `bootId` and keep pid, token, and `processStartMs`. Process start
+comes from a PowerShell or WMIC probe and is omitted when the probe is
+missing or slower than 200ms; same-boot pid reuse then cannot be told
+apart. A later start refuses while `process.kill(pid, 0)` reports the pid
+alive, including `EPERM`, and that identity still matches. A mismatch is
+pid reuse and is reclaimed. An older lock with neither identity field is
+kept while its pid is alive. A dead same-host owner, or a reused pid, is reclaimed by exactly one
 process: it creates `<dataRoot>/.st-lab-owner.lock.reclaim` with `O_EXCL`,
 renames the stale owner file aside, checks the bytes, and only then deletes
 them and creates the owner file with `O_EXCL`. That reclaim file expires by
@@ -104,7 +121,7 @@ can leave the file; the next acquire on this host reclaims it. No compiler is
 required. If an unexpected filesystem error means ownership cannot be
 determined, startup logs a warning and continues. A live owner on this host
 still refuses the second process. The owner file is the whole-root gate.
-Per-path exclusion is the `.st-path-locks` file described above, and only for
+Per-path exclusion is the `.st-path-locks` files described above, and only for
 processes that opted in. A process started without either flag can still share
 the root.
 This follow-up reports failed character publications correctly, falls back to a

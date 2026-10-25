@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { historicalSource } from './helpers/historical-source.mjs';
 import { readFileSync } from 'node:fs';
-import test from 'node:test';
+import nodeTest from 'node:test';
 import vm from 'node:vm';
 
 const source = readFileSync(process.env.CHARACTER_EDITOR_SOURCE ?? new URL('../public/script.js', import.meta.url), 'utf8');
@@ -9,7 +9,11 @@ const source = readFileSync(process.env.CHARACTER_EDITOR_SOURCE ?? new URL('../p
 // The immutable ancestor makes the same comparison reproducible in a checkout.
 const baseline = process.env.CHARACTER_EDITOR_BASELINE
     ? readFileSync(process.env.CHARACTER_EDITOR_BASELINE, 'utf8')
-    : execFileSync('git', ['show', 'cfeca4bf431403a5e0204a8e2f8150ac8dc83759:public/script.js'], { cwd: new URL('..', import.meta.url), encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 });
+    : await historicalSource('cfeca4bf431403a5e0204a8e2f8150ac8dc83759:public/script.js');
+const test = baseline === null
+    ? (name, run) => nodeTest(name, { skip: 'Historical Git oracle unavailable; use a full-history checkout' }, run)
+    : nodeTest;
+
 const worldSource = readFileSync(new URL('../public/scripts/world-info.js', import.meta.url), 'utf8');
 const chatSource = readFileSync(new URL('../public/scripts/chats.js', import.meta.url), 'utf8');
 function fn(text, name) {

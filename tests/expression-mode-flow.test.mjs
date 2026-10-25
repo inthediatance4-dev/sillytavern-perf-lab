@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { historicalSource } from './helpers/historical-source.mjs';
 import { readFileSync } from 'node:fs';
-import test from 'node:test';
+import nodeTest from 'node:test';
 import vm from 'node:vm';
 
 const root = new URL('../', import.meta.url);
 const file = 'public/scripts/extensions/expressions/index.js';
-const baseline = execFileSync('git', ['show', `0b2bdbc9d17433b191f921b5a946772c7676dc2f:${file}`], { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 });
+const baseline = await historicalSource(`0b2bdbc9d17433b191f921b5a946772c7676dc2f:${file}`, root);
+const test = baseline === null
+    ? (name, run) => nodeTest(name, { skip: 'Historical Git oracle unavailable; use a full-history checkout' }, run)
+    : nodeTest;
+
 const source = process.env.EXPRESSION_MODE_SOURCE === 'baseline' ? baseline : readFileSync(process.env.EXPRESSION_MODE_SOURCE || new URL(`../${file}`, import.meta.url), 'utf8');
 const plain = value => JSON.parse(JSON.stringify(value));
 function deferred() {

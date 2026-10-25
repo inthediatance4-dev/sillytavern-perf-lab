@@ -216,7 +216,8 @@ backups:
   allowFullDataBackup: true
   # Common settings for all backup types
   common:
-    # Number of backups to keep for each chat and settings file
+    # Number of visible backups to keep for each chat and settings file.
+    # This is not a disk bound: expired chat backups move into the backup directory's .recycle folder.
     numberOfBackups: 50
   chat:
     # Enable automatic chat backups
@@ -225,6 +226,10 @@ backups:
     checkIntegrity: true
     # Maximum number of chat backups to keep per user (starting from the most recent). Set to -1 to keep all backups.
     maxTotalBackups: -1
+    # Byte budget for recycled chat backups under the backup directory's .recycle folder.
+    # Only those already-recycled artifacts are purged, oldest first. Visible backups and primary chats are not deleted.
+    # Set to -1 to keep recycled backups indefinitely. Set to 0 to purge recycle storage.
+    maxRecycleBytes: -1
     # Interval in milliseconds to throttle chat backups per user
     throttleInterval: 10000
 

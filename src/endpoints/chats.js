@@ -31,7 +31,10 @@ const isBackupEnabled = !!getConfigValue('backups.chat.enabled', true, 'boolean'
 const maxTotalChatBackups = Number(getConfigValue('backups.chat.maxTotalBackups', -1, 'number'));
 const throttleInterval = Number(getConfigValue('backups.chat.throttleInterval', 10_000, 'number'));
 const checkIntegrity = !!getConfigValue('backups.chat.checkIntegrity', true, 'boolean');
+// numberOfBackups limits visible backup files only. It is not a disk bound.
+// maxRecycleBytes limits bytes already inside the backup directory's .recycle folder; -1 keeps them all.
 const maxChatBackups = Number(getConfigValue('backups.common.numberOfBackups', 50, 'number'));
+const maxRecycleBytes = Number(getConfigValue('backups.chat.maxRecycleBytes', -1, 'number'));
 
 export const CHAT_BACKUPS_PREFIX = 'chat_';
 
@@ -68,9 +71,10 @@ async function backupChat(directory, name, data, identity) {
             const quotaPrefix = `${CHAT_BACKUPS_PREFIX}${name}_${identity}_`;
             const backupFile = path.join(directory, `${quotaPrefix}${generateTimestamp()}_${randomUUID()}.jsonl`);
             await writeChatFile(backupFile, data);
-            await recycleOldChatBackups(directory, quotaPrefix, maxChatBackups);
+            const recycleOptions = { maxRecycleBytes };
+            await recycleOldChatBackups(directory, quotaPrefix, maxChatBackups, recycleOptions);
             if (!isNaN(maxTotalChatBackups) && maxTotalChatBackups >= 0) {
-                await recycleOldChatBackups(directory, CHAT_BACKUPS_PREFIX, maxTotalChatBackups);
+                await recycleOldChatBackups(directory, CHAT_BACKUPS_PREFIX, maxTotalChatBackups, recycleOptions);
             }
         });
     } catch (err) {

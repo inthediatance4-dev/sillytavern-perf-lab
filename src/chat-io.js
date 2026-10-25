@@ -262,48 +262,130 @@ export async function writeChatFile(filePath, data) {
     await writeFileAtomic(filePath, data, 'utf8');
 }
 
+function isLexicalChild(parent, target) {
+    const relative = path.relative(path.resolve(parent), path.resolve(target));
+    return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
+
+/**
+ * List files already inside a recycle directory. Symlinks are not followed.
+ * @param {string} recycleRoot
+ * @returns {Promise<Array<{target: string, bytes: number, mtime: number}>>}
+ */
+async function listRecycleFiles(recycleRoot) {
+    const files = [];
+    async function visit(current) {
+        const stat = await fs.promises.lstat(current);
+        if (stat.isSymbolicLink()) {
+            files.push({ target: current, bytes: stat.size, mtime: stat.mtimeMs });
+            return;
+        }
+        if (stat.isDirectory()) {
+            const names = await fs.promises.readdir(current);
+            for (const name of names) await visit(path.join(current, name));
+            return;
+        }
+        if (stat.isFile()) files.push({ target: current, bytes: stat.size, mtime: stat.mtimeMs });
+    }
+    let rootStat;
+    try { rootStat = await fs.promises.lstat(recycleRoot); }
+    catch (error) { if (error.code === 'ENOENT') return files; throw error; }
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) return files;
+    const names = await fs.promises.readdir(recycleRoot);
+    for (const name of names) await visit(path.join(recycleRoot, name));
+    return files;
+}
+
+async function removeEmptyRecycleDirectories(recycleRoot) {
+    async function visit(current) {
+        const stat = await fs.promises.lstat(current);
+        if (stat.isSymbolicLink() || !stat.isDirectory()) return;
+        const names = await fs.promises.readdir(current);
+        for (const name of names) await visit(path.join(current, name));
+        if (pathKey(current) === pathKey(recycleRoot)) return;
+        const remaining = await fs.promises.readdir(current);
+        if (remaining.length === 0) await fs.promises.rmdir(current);
+    }
+    try { await visit(recycleRoot); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+
+/**
+ * Delete oldest artifacts already inside `.recycle` until the byte budget holds.
+ * This is the only automatic unlink on the backup path. Visible backups and primary chats are outside this directory and are never removed here.
+ * @param {string} recycleRoot
+ * @param {number} maxBytes
+ * @returns {Promise<string[]>} Removed paths
+ */
+async function pruneRecycleStorage(recycleRoot, maxBytes) {
+    const files = await listRecycleFiles(recycleRoot);
+    files.sort((a, b) => a.mtime - b.mtime || a.target.localeCompare(b.target));
+    let total = files.reduce((sum, file) => sum + file.bytes, 0);
+    const removed = [];
+    for (const file of files) {
+        if (total <= maxBytes) break;
+        if (!isLexicalChild(recycleRoot, file.target)) throw new Error('Refusing to prune outside recycled backup storage');
+        await fs.promises.rm(file.target, { force: true });
+        total -= file.bytes;
+        removed.push(file.target);
+    }
+    if (removed.length) await removeEmptyRecycleDirectories(recycleRoot);
+    return removed;
+}
+
 /**
  * Scan chat backups once and move expired files into recoverable storage.
+ * `limit` (config `backups.common.numberOfBackups`) caps how many visible
+ * backup files stay in the directory. It is not a disk bound: expired files
+ * move into `.recycle` and remain until `maxRecycleBytes` says otherwise.
  * The caller holds the backup directory lock across creation and pruning.
  * @param {string} directory Backup directory
  * @param {string} prefix Chat backup name prefix
- * @param {number} limit Number of backups to keep
+ * @param {number} limit Number of visible backups to keep
+ * @param {{ maxRecycleBytes?: number }} [options] Byte budget for `.recycle`. Negative means unlimited.
  * @returns {Promise<{scanned: number, recycled: string[]}>}
  */
-export async function recycleOldChatBackups(directory, prefix, limit) {
+export async function recycleOldChatBackups(directory, prefix, limit, options = {}) {
     if (!Number.isSafeInteger(limit) || limit < 0) throw new RangeError('Backup retention must be a non-negative integer');
+    const maxRecycleBytes = options.maxRecycleBytes ?? -1;
     const names = (await fs.promises.readdir(directory, { withFileTypes: true }))
         .filter(entry => entry.isFile() && entry.name.startsWith(prefix) && entry.name.endsWith('.jsonl'))
         .map(entry => entry.name);
-    if (names.length <= limit) return { scanned: names.length, recycled: [] };
-    const records = [];
-    // Bound concurrent metadata reads to avoid a burst of file descriptors.
-    for (let offset = 0; offset < names.length; offset += 32) {
-        const batch = await Promise.all(names.slice(offset, offset + 32).map(async name => {
-            try {
-                const stat = await fs.promises.stat(path.join(directory, name));
-                return { name, mtime: stat.mtimeMs };
-            } catch (error) {
-                if (error.code === 'ENOENT') return null;
-                throw error;
-            }
-        }));
-        records.push(...batch.filter(Boolean));
-    }
-    records.sort((a, b) => a.mtime - b.mtime);
-    const expired = records.slice(0, Math.max(0, records.length - limit));
     const recycled = [];
-    if (!expired.length) return { scanned: names.length, recycled };
-    const recycleDirectory = path.join(directory, '.recycle', `${Date.now()}-${randomUUID()}`);
-    await fs.promises.mkdir(recycleDirectory, { recursive: true });
-    for (const record of expired) {
-        const destination = path.join(recycleDirectory, record.name);
-        try {
-            await fs.promises.rename(path.join(directory, record.name), destination);
-            recycled.push(destination);
-        } catch (error) {
-            if (error.code !== 'ENOENT') throw error;
+    if (names.length > limit) {
+        const records = [];
+        // Bound concurrent metadata reads to avoid a burst of file descriptors.
+        for (let offset = 0; offset < names.length; offset += 32) {
+            const batch = await Promise.all(names.slice(offset, offset + 32).map(async name => {
+                try {
+                    const stat = await fs.promises.stat(path.join(directory, name));
+                    return { name, mtime: stat.mtimeMs };
+                } catch (error) {
+                    if (error.code === 'ENOENT') return null;
+                    throw error;
+                }
+            }));
+            records.push(...batch.filter(Boolean));
         }
+        records.sort((a, b) => a.mtime - b.mtime);
+        const expired = records.slice(0, Math.max(0, records.length - limit));
+        if (expired.length) {
+            const recycleDirectory = path.join(directory, '.recycle', `${Date.now()}-${randomUUID()}`);
+            await fs.promises.mkdir(recycleDirectory, { recursive: true });
+            for (const record of expired) {
+                const destination = path.join(recycleDirectory, record.name);
+                try {
+                    await fs.promises.rename(path.join(directory, record.name), destination);
+                    recycled.push(destination);
+                } catch (error) {
+                    if (error.code !== 'ENOENT') throw error;
+                }
+            }
+        }
+    }
+    // Negative budgets keep every recycled artifact. Zero purges recycle storage.
+    if (Number.isFinite(maxRecycleBytes) && maxRecycleBytes >= 0) {
+        await pruneRecycleStorage(path.join(directory, '.recycle'), maxRecycleBytes);
     }
     return { scanned: names.length, recycled };
 }

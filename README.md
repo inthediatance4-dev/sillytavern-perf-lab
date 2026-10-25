@@ -15,7 +15,7 @@ npm run lint
 npm run perf:lab
 ```
 
-`test:perf` runs 28 test files with synthetic fixtures (some bind localhost
+`test:perf` runs 29 test files with synthetic fixtures (some bind localhost
 sockets). The three independent historical-oracle suites skip gracefully when
 Git or their historical objects are unavailable; a full-history checkout enables
 those comparisons. `bench:perf` still requires historical Git objects.
@@ -50,6 +50,9 @@ Recent reviews added character edit lifecycle locks, shutdown request/handler
 draining, group-history path validation and repeated launcher isolation checks.
 Shutdown drain now also tracks sync handlers that return a promise and stops
 waiting after `SILLYTAVERN_DRAIN_TIMEOUT_MS` (default 30 seconds).
+`backups.common.numberOfBackups` limits visible backup files only.
+`backups.chat.maxRecycleBytes` (default `-1`, unlimited) can prune oldest
+artifacts already inside the backup directory's `.recycle` folder.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

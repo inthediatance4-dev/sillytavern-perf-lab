@@ -5,34 +5,49 @@ import path from 'node:path';
 import { classifyPidLiveness, readProcessIdentity } from './process-identity.js';
 
 /**
- * Cross-process lock files for exclusive path reservations.
- * Shared holders do not create these files. Readers of a finished file are
- * already protected by atomic replacement. Directory retirement and other
- * exclusive directory operations pass the directory key itself, so they take
- * a file here too.
+ * Cross-process locks for path reservations.
  *
- * The lock name is a sha256 of the normalized path under `<root>/.st-path-locks/`,
- * which stays inside the data root and avoids putting the target path into
- * the filesystem name (Windows MAX_PATH). The holder creates it with O_EXCL,
- * keeps it for the critical section, then renames it aside and unlinks it
- * only when the bytes still match. A dead pid, or a live pid whose boot id
- * or process start no longer matches, is reclaimed by renaming that file
- * aside and deleting it only when the bytes are still the stale payload.
- * Another host's file is left in place. No compiler is required.
+ * Exclusive keys use one O_EXCL file, `<sha256>.exclusive`. Shared keys, including
+ * the parent directory of an exclusive file, use one O_EXCL file per holder,
+ * `<sha256>.shared.<token>`. Holders of the same shared key coexist. An exclusive
+ * acquire waits until that hash has no live `.shared.*` file, and a shared acquire
+ * waits until `<sha256>.exclusive` is gone. After either create, the caller checks
+ * the other side again and drops its file if the other side won the race.
  *
- * A live holder is polled with capped backoff until {@link timeoutMs}. The
- * in-process queue has already chosen which reservation is waiting, so the
- * poll does not reorder local waiters. When the wait expires the caller gets
- * `path_lock_busy` instead of hanging.
+ * The directory is `<root>/.st-path-locks/` until a create fails with ENAMETOOLONG
+ * (Windows path-too-long is the same code). The process then switches to
+ * `os.tmpdir()/st-lab-path-locks/<sha256(dataRoot)>/` (mode 0o700) and retries the
+ * whole set. Nothing is left behind in the primary directory from that attempt.
+ *
+ * A symlink, a non-regular file, or a file larger than {@link MAX_LOCK_BYTES} that
+ * is older than {@link LOCK_QUARANTINE_MIN_AGE_MS} is renamed into `.quarantine`
+ * and the create is retried once. A regular file with a live JSON identity is not
+ * removed. Dead and reused holders are reclaimed by the same identity rules as
+ * before. Another host's file is left in place. No compiler is required.
+ *
+ * Keys are taken in sorted order after the in-process grants. A live holder is
+ * polled with capped backoff until {@link timeoutMs}, then the caller gets
+ * `path_lock_busy`.
  */
 
 export const PATH_LOCK_DIRECTORY = '.st-path-locks';
 
+export const PATH_LOCK_QUARANTINE_DIRECTORY = '.quarantine';
+
 /** Live cross-process holders are not waited on forever. */
 export const DEFAULT_PATH_LOCK_TIMEOUT_MS = 15000;
 
-const MAX_LOCK_BYTES = 4096;
+/**
+ * Unusable lock entries younger than this stay in place and fail the acquire.
+ * Old ones are renamed aside so a wedged key can be taken again.
+ */
+export const LOCK_QUARANTINE_MIN_AGE_MS = 60 * 1000;
+
+/** @type {number} */
+export const MAX_LOCK_BYTES = 4096;
+
 const MAX_POLL_MS = 25;
+const SHARED_TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class PathLockError extends Error {
     /**
@@ -45,26 +60,49 @@ export class PathLockError extends Error {
     }
 }
 
+/** Thrown inside one acquire so the whole sorted set can move to the fallback root. */
+class PathLockRestart extends Error {
+    constructor() {
+        super('path_lock_restart');
+        this.name = 'PathLockRestart';
+    }
+}
+
 /** @type {boolean} */
 let enabled = false;
 /** @type {string|null} */
 let lockRoot = null;
+/** @type {string|null} */
+let storageDir = null;
+/** @type {'primary'|'fallback'|null} */
+let storageKind = null;
 /** @type {number} */
 let timeoutMs = DEFAULT_PATH_LOCK_TIMEOUT_MS;
 /** @type {boolean} */
 let warned = false;
+/** @type {boolean} */
+let quarantineLogged = false;
+/**
+ * Test seam. When positive, a primary lock path at least this long is treated
+ * as ENAMETOOLONG before any file is created. Zero uses the real OS error only.
+ * @type {number}
+ */
+let pathLengthLimit = 0;
 
 /**
  * Opt in, or pass `{ enabled: false }` to return to in-process locks only.
  * `root` is the directory that will contain `.st-path-locks`. It is not
- * created until an exclusive lock is taken.
+ * created until a cross-process lock is taken.
  * @param {{ enabled?: boolean, root?: string, timeoutMs?: number }} [options]
  */
 export function configureCrossProcessPathLocks(options = {}) {
     warned = false;
+    quarantineLogged = false;
     if (!options || options.enabled !== true) {
         enabled = false;
         lockRoot = null;
+        storageDir = null;
+        storageKind = null;
         timeoutMs = DEFAULT_PATH_LOCK_TIMEOUT_MS;
         return;
     }
@@ -86,12 +124,50 @@ export function configureCrossProcessPathLocks(options = {}) {
         if (!error || error.code !== 'ENOENT') throw error;
     }
     lockRoot = root;
+    storageDir = path.join(root, PATH_LOCK_DIRECTORY);
+    storageKind = 'primary';
     enabled = true;
 }
 
 /** @returns {boolean} */
 export function crossProcessPathLocksEnabled() {
     return enabled;
+}
+
+/**
+ * Short root used when the primary `.st-path-locks` path cannot be created.
+ * The hash is the normalized data root, so every process on this host picks
+ * the same directory.
+ * @param {string} root
+ * @returns {string}
+ */
+export function fallbackPathLockDirectory(root) {
+    let resolved = path.resolve(root);
+    try {
+        resolved = fs.realpathSync(resolved);
+    } catch (error) {
+        if (!error || error.code !== 'ENOENT') throw error;
+    }
+    const hash = createHash('sha256').update(resolved).digest('hex');
+    return path.join(os.tmpdir(), 'st-lab-path-locks', hash);
+}
+
+/**
+ * Which directory currently receives lock files.
+ * @returns {{ kind: 'primary'|'fallback', directory: string }|null}
+ */
+export function activePathLockLocation() {
+    if (!enabled || !storageDir || !storageKind) return null;
+    return { kind: storageKind, directory: storageDir };
+}
+
+/**
+ * Force the primary root to look too long. Pass 0 to follow the OS only.
+ * @param {number} limit
+ */
+export function setPathLockPathLimitForTest(limit) {
+    if (!Number.isFinite(limit) || limit < 0) throw new RangeError('Path lock length limit must be a non-negative number');
+    pathLengthLimit = limit;
 }
 
 /**
@@ -103,16 +179,24 @@ function digestKey(key) {
 }
 
 /**
- * Hashed lock path for an already normalized key. Null when the feature is off.
- * The file name is the digest, not the target path, so a long Windows path
- * does not land in the filesystem name. The payload stores that same digest
- * when the path itself would exceed {@link MAX_LOCK_BYTES}.
+ * Hashed exclusive path for an already normalized key. Null when the feature is off.
  * @param {string} key
  * @returns {string|null}
  */
 export function exclusiveLockPathFor(key) {
-    if (!lockRoot) return null;
-    return path.join(lockRoot, PATH_LOCK_DIRECTORY, `${digestKey(key)}.lock`);
+    if (!storageDir) return null;
+    return path.join(storageDir, `${digestKey(key)}.exclusive`);
+}
+
+/**
+ * Hashed shared path for one holder. Null when the feature is off.
+ * @param {string} key
+ * @param {string} token
+ * @returns {string|null}
+ */
+export function sharedLockPathFor(key, token) {
+    if (!storageDir) return null;
+    return path.join(storageDir, `${digestKey(key)}.shared.${token}`);
 }
 
 /**
@@ -126,6 +210,15 @@ function warnOnce(error) {
 }
 
 /**
+ * @param {string} reason
+ */
+function logQuarantine(reason) {
+    if (quarantineLogged) return;
+    quarantineLogged = true;
+    console.warn(`Cross-process path lock quarantined an unusable ${reason} entry`);
+}
+
+/**
  * @param {number} ms
  * @returns {Promise<void>}
  */
@@ -133,6 +226,101 @@ function delay(ms) {
     return new Promise(resolve => {
         setTimeout(resolve, ms);
     });
+}
+
+/**
+ * @param {string} filePath
+ * @returns {number}
+ */
+function pathUnits(filePath) {
+    return process.platform === 'win32' ? filePath.length : Buffer.byteLength(filePath);
+}
+
+/**
+ * @param {Error|NodeJS.ErrnoException|undefined} error
+ * @returns {boolean}
+ */
+function isPathTooLong(error) {
+    if (!error) return false;
+    if (error.code === 'ENAMETOOLONG') return true;
+    // Node reports Windows ERROR_FILENAME_EXCED_RANGE as ENAMETOOLONG. Some
+    // hosts only leave the text. Do not treat a generic EINVAL as this case.
+    const message = String(error.message || '');
+    return /ENAMETOOLONG|filename or extension is too long|path too long/i.test(message);
+}
+
+/**
+ * @param {string} filePath
+ * @returns {boolean}
+ */
+function primaryTooLong(filePath) {
+    if (storageKind !== 'primary' || pathLengthLimit <= 0) return false;
+    return pathUnits(filePath) >= pathLengthLimit;
+}
+
+/**
+ * @param {string} reason
+ * @returns {boolean}
+ */
+function switchToFallback(reason) {
+    if (storageKind !== 'primary' || !lockRoot) return false;
+    const next = fallbackPathLockDirectory(lockRoot);
+    try {
+        fs.mkdirSync(next, { recursive: true, mode: 0o700 });
+        try { fs.chmodSync(next, 0o700); } catch { /* platforms without chmod still have the directory */ }
+    } catch (error) {
+        warnOnce(error);
+        return false;
+    }
+    const record = {
+        kind: 'fallback',
+        reason,
+        dataRoot: lockRoot,
+        directory: next,
+        since: new Date().toISOString(),
+    };
+    try {
+        fs.writeFileSync(path.join(next, 'root.json'), `${JSON.stringify(record)}\n`, { mode: 0o600 });
+    } catch (error) {
+        warnOnce(error);
+    }
+    storageDir = next;
+    storageKind = 'fallback';
+    return true;
+}
+
+/**
+ * @returns {'ok'|'switched'|'unavailable'}
+ */
+function ensureLockDirectory() {
+    if (!storageDir) return 'unavailable';
+    if (primaryTooLong(storageDir)) {
+        return switchToFallback('ENAMETOOLONG') ? 'switched' : 'unavailable';
+    }
+    try {
+        fs.mkdirSync(storageDir, { recursive: true, mode: storageKind === 'fallback' ? 0o700 : 0o755 });
+        return 'ok';
+    } catch (error) {
+        if (isPathTooLong(error) && switchToFallback('ENAMETOOLONG')) return 'switched';
+        warnOnce(error);
+        return 'unavailable';
+    }
+}
+
+/**
+ * Move the whole set to the fallback root before any primary file is created
+ * when the longest name (a shared holder) cannot fit.
+ * @param {Array<{ key: string }>} requests
+ * @returns {'ok'|'unavailable'}
+ */
+function ensureRootFits(requests) {
+    if (storageKind !== 'primary' || !storageDir) return 'ok';
+    for (const request of requests) {
+        const sample = path.join(storageDir, `${digestKey(request.key)}.shared.00000000-0000-0000-0000-000000000000`);
+        if (!primaryTooLong(sample)) continue;
+        return switchToFallback('ENAMETOOLONG') ? 'ok' : 'unavailable';
+    }
+    return 'ok';
 }
 
 function readFlags() {
@@ -271,21 +459,47 @@ function lockPayload(key) {
 }
 
 /**
+ * @param {string} text
+ * @returns {string|null}
+ */
+function payloadToken(text) {
+    try {
+        const owner = JSON.parse(text);
+        if (owner && typeof owner.token === 'string' && SHARED_TOKEN.test(owner.token)) return owner.token;
+    } catch {
+        return null;
+    }
+    return null;
+}
+
+/**
  * @param {string} filePath
  * @param {string} payload
- * @returns {{ status: 'created' }|{ status: 'busy' }|{ status: 'refuse' }|{ status: 'environment', error: NodeJS.ErrnoException }}
+ * @returns {{ status: 'created' }|{ status: 'busy' }|{ status: 'refuse' }|{ status: 'too-long' }|{ status: 'retry' }|{ status: 'unavailable' }}
  */
-function createExclusive(filePath, payload) {
+function createLockFile(filePath, payload) {
+    if (primaryTooLong(filePath)) return { status: 'too-long' };
     let fd;
     try {
         fd = fs.openSync(filePath, exclusiveCreateFlags(), 0o644);
     } catch (error) {
+        if (isPathTooLong(error)) {
+            try { fs.unlinkSync(filePath); } catch { /* the name was not created */ }
+            return { status: 'too-long' };
+        }
+        if (error.code === 'ENOENT') {
+            const ensured = ensureLockDirectory();
+            if (ensured === 'switched') return { status: 'too-long' };
+            if (ensured === 'unavailable') return { status: 'unavailable' };
+            return { status: 'retry' };
+        }
         // Windows reports EPERM when the name exists and cannot be replaced.
         if (error.code === 'EEXIST' || error.code === 'EPERM' || error.code === 'EBUSY' || error.code === 'EAGAIN') {
             return { status: 'busy' };
         }
         if (error.code === 'ELOOP' || error.code === 'EISDIR') return { status: 'refuse' };
-        return { status: 'environment', error };
+        warnOnce(error);
+        return { status: 'unavailable' };
     }
     try {
         const buffer = Buffer.from(payload, 'utf8');
@@ -293,10 +507,9 @@ function createExclusive(filePath, payload) {
         while (offset < buffer.length) {
             const wrote = fs.writeSync(fd, buffer, offset, buffer.length - offset, offset);
             if (wrote <= 0) {
-                const error = new Error(`Could not write ${filePath}`);
-                error.code = 'EIO';
                 unlinkIfSameFile(filePath, fd);
-                return { status: 'environment', error };
+                warnOnce(new Error(`Could not write ${path.basename(filePath)}`));
+                return { status: 'unavailable' };
             }
             offset += wrote;
         }
@@ -304,13 +517,19 @@ function createExclusive(filePath, payload) {
         fs.fsyncSync(fd);
     } catch (error) {
         unlinkIfSameFile(filePath, fd);
-        return { status: 'environment', error };
+        if (isPathTooLong(error)) return { status: 'too-long' };
+        warnOnce(error);
+        return { status: 'unavailable' };
     } finally {
         try { fs.closeSync(fd); } catch { /* the directory entry already has the bytes */ }
     }
     const seen = readRegular(filePath);
     if (seen.status === 'ok' && seen.text === payload) return { status: 'created' };
-    if (seen.status === 'environment') return seen;
+    if (seen.status === 'environment') {
+        if (isPathTooLong(seen.error)) return { status: 'too-long' };
+        warnOnce(seen.error);
+        return { status: 'unavailable' };
+    }
     if (seen.status === 'symlink' || seen.status === 'not-file') return { status: 'refuse' };
     if (seen.status === 'missing') return { status: 'busy' };
     // The new file could not be re-read (Windows EPERM). Remove it when the
@@ -371,12 +590,34 @@ function classifyPayload(text, key) {
 }
 
 /**
- * @param {string} lockPath
+ * A regular file that still looks like a live holder. Used when a quarantine
+ * rename races with a real lock landing on the same name.
+ * @param {string} text
+ * @returns {boolean}
+ */
+function looksLikeLiveHolder(text) {
+    let owner;
+    try {
+        owner = JSON.parse(text);
+    } catch {
+        return false;
+    }
+    if (!owner || typeof owner !== 'object' || Array.isArray(owner)) return false;
+    if (typeof owner.hostname !== 'string' || owner.hostname.length === 0) return false;
+    if (!Number.isInteger(owner.pid) || owner.pid <= 0) return false;
+    const named = Object.prototype.hasOwnProperty.call(owner, 'key') || Object.prototype.hasOwnProperty.call(owner, 'keyHash');
+    if (!named || typeof owner.token !== 'string' || owner.token.length === 0) return false;
+    if (owner.hostname !== os.hostname()) return true;
+    return classifyPidLiveness(owner) === 'live';
+}
+
+/**
+ * @param {string} filePath
  * @param {string} key
  * @returns {{ state: 'missing' }|{ state: 'live', text: string }|{ state: 'stale', text: string }|{ state: 'refuse' }|{ state: 'environment', error: NodeJS.ErrnoException }}
  */
-function inspectLockFile(lockPath, key) {
-    const seen = readRegular(lockPath);
+function inspectLockFile(filePath, key) {
+    const seen = readRegular(filePath);
     if (seen.status === 'missing') return { state: 'missing' };
     if (seen.status === 'busy') return { state: 'live', text: '' };
     if (seen.status === 'symlink' || seen.status === 'not-file') return { state: 'refuse' };
@@ -414,36 +655,380 @@ function takeStaleLock(lockPath, expectedText, key) {
 }
 
 /**
+ * @param {import('node:fs').Stats} listed
+ * @returns {'symlink'|'not-file'|'oversize'|null}
+ */
+function quarantineReason(listed) {
+    if (listed.isSymbolicLink()) return 'symlink';
+    if (!listed.isFile()) return 'not-file';
+    if (listed.size > MAX_LOCK_BYTES) return 'oversize';
+    return null;
+}
+
+/**
+ * Rename an old unusable entry aside. A regular file that looks like a live
+ * holder is put back. Returns `too-long` when the primary root must be abandoned.
+ * @param {string} filePath
+ * @returns {'quarantined'|'missing'|'young'|'not-candidate'|'restored'|'error'|'too-long'}
+ */
+function quarantineIfStale(filePath) {
+    /** @type {import('node:fs').Stats} */
+    let listed;
+    try {
+        listed = fs.lstatSync(filePath);
+    } catch (error) {
+        if (error.code === 'ENOENT') return 'missing';
+        if (isPathTooLong(error)) return 'too-long';
+        return 'error';
+    }
+    const reason = quarantineReason(listed);
+    if (!reason) return 'not-candidate';
+    const age = Number.isFinite(listed.mtimeMs) ? Date.now() - listed.mtimeMs : 0;
+    if (age < LOCK_QUARANTINE_MIN_AGE_MS) return 'young';
+    if (!storageDir) return 'error';
+    const destDir = path.join(storageDir, PATH_LOCK_QUARANTINE_DIRECTORY);
+    try {
+        fs.mkdirSync(destDir, { recursive: true, mode: 0o700 });
+    } catch (error) {
+        if (isPathTooLong(error)) return 'too-long';
+        return 'error';
+    }
+    const dest = path.join(destDir, `${path.basename(filePath)}.${process.pid}.${randomBytes(4).toString('hex')}`);
+    try {
+        fs.renameSync(filePath, dest);
+    } catch (error) {
+        if (error.code === 'ENOENT') return 'missing';
+        if (isPathTooLong(error)) return 'too-long';
+        return 'error';
+    }
+    const moved = readRegular(dest);
+    if (moved.status === 'ok' && looksLikeLiveHolder(moved.text)) {
+        restoreOrLeave(dest, filePath);
+        return 'restored';
+    }
+    logQuarantine(reason);
+    return 'quarantined';
+}
+
+/**
+ * @param {string} hash
+ * @returns {{ exclusive: string|null, shared: string[], missingDir: boolean, error: NodeJS.ErrnoException|null }}
+ */
+function listHashEntries(hash) {
+    if (!storageDir) return { exclusive: null, shared: [], missingDir: true, error: null };
+    /** @type {string[]} */
+    let names;
+    try {
+        names = fs.readdirSync(storageDir);
+    } catch (error) {
+        if (error.code === 'ENOENT') return { exclusive: null, shared: [], missingDir: true, error: null };
+        return { exclusive: null, shared: [], missingDir: false, error };
+    }
+    const prefix = `${hash}.shared.`;
+    /** @type {string[]} */
+    const shared = [];
+    let exclusive = null;
+    for (const name of names) {
+        if (name === `${hash}.exclusive`) {
+            exclusive = path.join(storageDir, name);
+            continue;
+        }
+        if (!name.startsWith(prefix)) continue;
+        const token = name.slice(prefix.length);
+        if (!SHARED_TOKEN.test(token)) continue;
+        shared.push(path.join(storageDir, name));
+    }
+    return { exclusive, shared, missingDir: false, error: null };
+}
+
+/**
+ * Drop dead shared holders. Live ones stay. Old symlinks and oversized blobs
+ * are quarantined. A young unusable entry blocks the key.
+ * @param {string} key
+ * @returns {{ restart: boolean, live: number, blocked: boolean }}
+ */
+function assessShared(key) {
+    const listed = listHashEntries(digestKey(key));
+    if (listed.error) {
+        if (isPathTooLong(listed.error) && switchToFallback('ENAMETOOLONG')) return { restart: true, live: 0, blocked: false };
+        warnOnce(listed.error);
+        return { restart: false, live: 0, blocked: true };
+    }
+    let live = 0;
+    let blocked = false;
+    for (const sharedPath of listed.shared) {
+        const inspection = inspectLockFile(sharedPath, key);
+        if (inspection.state === 'missing') continue;
+        if (inspection.state === 'live') {
+            live += 1;
+            continue;
+        }
+        if (inspection.state === 'stale') {
+            const taken = takeStaleLock(sharedPath, inspection.text, key);
+            if (taken === 'removed' || taken === 'missing') continue;
+            if (taken === 'changed') live += 1;
+            else blocked = true;
+            continue;
+        }
+        if (inspection.state === 'refuse') {
+            const result = quarantineIfStale(sharedPath);
+            if (result === 'too-long' && switchToFallback('ENAMETOOLONG')) return { restart: true, live, blocked: false };
+            if (result === 'quarantined' || result === 'missing') continue;
+            if (result === 'restored') live += 1;
+            else blocked = true;
+            continue;
+        }
+        if (isPathTooLong(inspection.error) && switchToFallback('ENAMETOOLONG')) return { restart: true, live, blocked: false };
+        blocked = true;
+    }
+    return { restart: false, live, blocked };
+}
+
+/**
+ * @param {string} key
+ * @returns {string|null}
+ */
+function parentLockKey(key) {
+    const parent = path.dirname(key);
+    if (!parent || parent === key) return null;
+    return process.platform === 'win32' ? parent.toLowerCase() : parent;
+}
+
+/**
+ * @param {string} key
+ * @returns {boolean}
+ */
+function isExistingDirectory(key) {
+    try {
+        return fs.lstatSync(key).isDirectory();
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Shared parents of exclusive files join the sorted set. An exclusive directory
+ * already conflicts with shared holders of that same key, so it does not also
+ * take its own parent. Callers that already requested the parent keep that mode.
+ * @param {Array<{ key: string, mode: 'shared'|'exclusive' }>} requests
+ * @returns {Array<{ key: string, mode: 'shared'|'exclusive' }>}
+ */
+function expandParentFences(requests) {
+    /** @type {Map<string, 'shared'|'exclusive'>} */
+    const modes = new Map();
+    for (const request of requests) {
+        if (!request || (request.mode !== 'shared' && request.mode !== 'exclusive')) {
+            throw new TypeError('Invalid lock mode');
+        }
+        if (typeof request.key !== 'string' || request.key.length === 0) throw new TypeError('Lock path must be a non-empty string');
+        if (modes.get(request.key) !== 'exclusive') modes.set(request.key, request.mode);
+    }
+    for (const [key, mode] of modes) {
+        if (mode !== 'exclusive' || isExistingDirectory(key)) continue;
+        const parent = parentLockKey(key);
+        if (!parent) continue;
+        if (modes.get(parent) !== 'exclusive') modes.set(parent, 'shared');
+    }
+    return [...modes.entries()]
+        .map(([key, mode]) => ({ key, mode }))
+        .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+}
+
+/**
+ * @param {{ lockPath: string, payload: string }|null} held
+ */
+function releaseHeld(held) {
+    if (held) releaseOne(held);
+}
+
+/**
+ * @param {string} key
+ * @returns {Promise<{ lockPath: string, payload: string }>}
+ */
+async function acquireShared(key) {
+    const deadline = Date.now() + timeoutMs;
+    let waitMs = 5;
+    let quarantines = 0;
+    for (;;) {
+        const payload = lockPayload(key);
+        const token = payloadToken(payload);
+        if (!token || !storageDir) throw new PathLockError('path_lock_unavailable');
+        const lockPath = path.join(storageDir, `${digestKey(key)}.shared.${token}`);
+        const exclusivePath = exclusiveLockPathFor(key);
+        if (!exclusivePath || primaryTooLong(lockPath)) {
+            if (switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+            throw new PathLockError('path_lock_unavailable');
+        }
+        const sharedState = assessShared(key);
+        if (sharedState.restart) throw new PathLockRestart();
+        const exclusiveState = inspectLockFile(exclusivePath, key);
+        if (exclusiveState.state === 'environment') {
+            if (isPathTooLong(exclusiveState.error) && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+            warnOnce(exclusiveState.error);
+            throw new PathLockError('path_lock_unavailable');
+        }
+        if (exclusiveState.state === 'refuse') {
+            if (quarantines < 1) {
+                const result = quarantineIfStale(exclusivePath);
+                if (result === 'too-long' && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+                if (result === 'quarantined' || result === 'missing' || result === 'restored') {
+                    quarantines += 1;
+                    continue;
+                }
+            }
+            throw new PathLockError('path_lock_unavailable');
+        }
+        if (exclusiveState.state === 'stale') {
+            const taken = takeStaleLock(exclusivePath, exclusiveState.text, key);
+            if (taken === 'removed' || taken === 'missing') continue;
+            if (taken === 'refuse') throw new PathLockError('path_lock_unavailable');
+        }
+        if (exclusiveState.state === 'live' || exclusiveState.state === 'stale') {
+            if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+            await delay(waitMs);
+            waitMs = Math.min(waitMs * 2, MAX_POLL_MS);
+            continue;
+        }
+        if (sharedState.blocked) throw new PathLockError('path_lock_unavailable');
+        const created = createLockFile(lockPath, payload);
+        if (created.status === 'too-long') {
+            if (switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+            throw new PathLockError('path_lock_unavailable');
+        }
+        if (created.status === 'retry') {
+            if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+            continue;
+        }
+        if (created.status === 'unavailable') throw new PathLockError('path_lock_unavailable');
+        if (created.status === 'refuse') {
+            if (quarantines < 1) {
+                const result = quarantineIfStale(lockPath);
+                if (result === 'too-long' && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+                if (result === 'quarantined' || result === 'missing' || result === 'restored') {
+                    quarantines += 1;
+                    continue;
+                }
+            }
+            throw new PathLockError('path_lock_unavailable');
+        }
+        if (created.status === 'created') {
+            const again = inspectLockFile(exclusivePath, key);
+            if (again.state === 'live') {
+                releaseHeld({ lockPath, payload });
+                if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+                await delay(waitMs);
+                waitMs = Math.min(waitMs * 2, MAX_POLL_MS);
+                continue;
+            }
+            if (again.state === 'stale') {
+                const taken = takeStaleLock(exclusivePath, again.text, key);
+                if (taken !== 'removed' && taken !== 'missing') {
+                    releaseHeld({ lockPath, payload });
+                    if (taken === 'refuse') throw new PathLockError('path_lock_unavailable');
+                    if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+                    await delay(waitMs);
+                    waitMs = Math.min(waitMs * 2, MAX_POLL_MS);
+                    continue;
+                }
+            }
+            if (again.state === 'refuse') {
+                releaseHeld({ lockPath, payload });
+                if (quarantines < 1) {
+                    const result = quarantineIfStale(exclusivePath);
+                    if (result === 'too-long' && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+                    quarantines += 1;
+                    if (result === 'quarantined' || result === 'missing' || result === 'restored') continue;
+                }
+                throw new PathLockError('path_lock_unavailable');
+            }
+            if (again.state === 'environment') {
+                releaseHeld({ lockPath, payload });
+                if (isPathTooLong(again.error) && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+                warnOnce(again.error);
+                throw new PathLockError('path_lock_unavailable');
+            }
+            return { lockPath, payload };
+        }
+        if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+        await delay(waitMs);
+        waitMs = Math.min(waitMs * 2, MAX_POLL_MS);
+    }
+}
+
+/**
  * @param {string} key
  * @returns {Promise<{ lockPath: string, payload: string }>}
  */
 async function acquireOne(key) {
-    const lockPath = exclusiveLockPathFor(key);
-    if (!lockPath) throw new PathLockError('path_lock_unavailable');
     const payload = lockPayload(key);
     const deadline = Date.now() + timeoutMs;
     let waitMs = 5;
+    let quarantines = 0;
     for (;;) {
-        const created = createExclusive(lockPath, payload);
-        if (created.status === 'created') return { lockPath, payload };
-        if (created.status === 'environment' && created.error && created.error.code === 'ENOENT') {
-            try {
-                fs.mkdirSync(path.dirname(lockPath), { recursive: true });
-            } catch (error) {
-                warnOnce(error);
-                throw new PathLockError('path_lock_unavailable');
-            }
-            continue;
-        }
-        if (created.status === 'environment') {
-            warnOnce(created.error);
+        const lockPath = exclusiveLockPathFor(key);
+        if (!lockPath || primaryTooLong(lockPath)) {
+            if (switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
             throw new PathLockError('path_lock_unavailable');
         }
-        if (created.status === 'refuse') throw new PathLockError('path_lock_unavailable');
+        const sharedState = assessShared(key);
+        if (sharedState.restart) throw new PathLockRestart();
+        if (sharedState.blocked) throw new PathLockError('path_lock_unavailable');
+        if (sharedState.live > 0) {
+            if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+            await delay(waitMs);
+            waitMs = Math.min(waitMs * 2, MAX_POLL_MS);
+            continue;
+        }
+        const created = createLockFile(lockPath, payload);
+        if (created.status === 'too-long') {
+            if (switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+            throw new PathLockError('path_lock_unavailable');
+        }
+        if (created.status === 'retry') {
+            if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+            continue;
+        }
+        if (created.status === 'unavailable') throw new PathLockError('path_lock_unavailable');
+        if (created.status === 'created') {
+            const after = assessShared(key);
+            if (after.restart) {
+                releaseHeld({ lockPath, payload });
+                throw new PathLockRestart();
+            }
+            if (after.live === 0 && !after.blocked) return { lockPath, payload };
+            releaseHeld({ lockPath, payload });
+            if (after.blocked) throw new PathLockError('path_lock_unavailable');
+            if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+            await delay(waitMs);
+            waitMs = Math.min(waitMs * 2, MAX_POLL_MS);
+            continue;
+        }
+        if (created.status === 'refuse') {
+            if (quarantines < 1) {
+                const result = quarantineIfStale(lockPath);
+                if (result === 'too-long' && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+                if (result === 'quarantined' || result === 'missing' || result === 'restored') {
+                    quarantines += 1;
+                    continue;
+                }
+            }
+            throw new PathLockError('path_lock_unavailable');
+        }
         const inspection = inspectLockFile(lockPath, key);
         if (inspection.state === 'missing') continue;
-        if (inspection.state === 'refuse') throw new PathLockError('path_lock_unavailable');
+        if (inspection.state === 'refuse') {
+            if (quarantines < 1) {
+                const result = quarantineIfStale(lockPath);
+                if (result === 'too-long' && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
+                if (result === 'quarantined' || result === 'missing' || result === 'restored') {
+                    quarantines += 1;
+                    continue;
+                }
+            }
+            throw new PathLockError('path_lock_unavailable');
+        }
         if (inspection.state === 'environment') {
+            if (isPathTooLong(inspection.error) && switchToFallback('ENAMETOOLONG')) throw new PathLockRestart();
             warnOnce(inspection.error);
             throw new PathLockError('path_lock_unavailable');
         }
@@ -459,23 +1044,36 @@ async function acquireOne(key) {
 }
 
 /**
- * Take exclusive filesystem locks in the already sorted key order.
+ * Take filesystem locks in sorted key order. Shared and exclusive keys of one
+ * reservation are one sequence, so a parent fence is held before the child
+ * file. A pure shared reservation does not create files.
  * The set is chosen by the caller before it waits, and this function does
- * not start a later key until the earlier one is held.
- * @param {string[]} keys
+ * not start a later key until the earlier one is held. On a path-length
+ * failure every file from this attempt is released before the fallback retry.
+ * @param {Array<{ key: string, mode: 'shared'|'exclusive' }>} requests
  * @returns {Promise<Array<{ lockPath: string, payload: string }>>}
  */
-export async function acquireExclusivePathLocks(keys) {
-    if (!enabled || keys.length === 0) return [];
-    /** @type {Array<{ lockPath: string, payload: string }>} */
-    const held = [];
-    try {
-        for (const key of keys) held.push(await acquireOne(key));
-        return held;
-    } catch (error) {
-        releaseExclusivePathLocks(held);
-        throw error;
+export async function acquireCrossProcessPathLocks(requests) {
+    if (!enabled || !Array.isArray(requests) || requests.length === 0) return [];
+    if (!requests.some(request => request && request.mode === 'exclusive')) return [];
+    const expanded = expandParentFences(requests);
+    for (let attempt = 0; attempt < 2; attempt++) {
+        if (ensureRootFits(expanded) === 'unavailable') throw new PathLockError('path_lock_unavailable');
+        /** @type {Array<{ lockPath: string, payload: string }>} */
+        const held = [];
+        try {
+            for (const request of expanded) {
+                if (request.mode === 'shared') held.push(await acquireShared(request.key));
+                else held.push(await acquireOne(request.key));
+            }
+            return held;
+        } catch (error) {
+            releaseCrossProcessPathLocks(held);
+            if (error instanceof PathLockRestart && attempt === 0) continue;
+            throw error;
+        }
     }
+    throw new PathLockError('path_lock_unavailable');
 }
 
 /**
@@ -500,7 +1098,7 @@ function releaseOne(held) {
  * Release in reverse acquisition order. A payload that is no longer ours is put back.
  * @param {Array<{ lockPath: string, payload: string }>|undefined} held
  */
-export function releaseExclusivePathLocks(held) {
+export function releaseCrossProcessPathLocks(held) {
     if (!held || held.length === 0) return;
     for (let index = held.length - 1; index >= 0; index--) releaseOne(held[index]);
 }

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
 import writeFileAtomic from 'write-file-atomic';
 import sanitize from 'sanitize-filename';
-import { acquireExclusivePathLocks, PathLockError, releaseExclusivePathLocks } from './path-fs-lock.js';
+import { acquireCrossProcessPathLocks, PathLockError, releaseCrossProcessPathLocks } from './path-fs-lock.js';
 
 /** @typedef {'shared' | 'exclusive'} LockMode */
 
@@ -197,12 +197,15 @@ export function runAfterExclusiveFsLocks(task) {
  * A string entry is exclusive. `{ path, mode: 'shared' | 'exclusive' }` selects the mode.
  * Shared holders of one path run together. An exclusive request waits for shared
  * holders already in progress and blocks shared requests that arrive after it.
- * When cross-process locks are enabled, each exclusive key also holds a file under
- * `<root>/.st-path-locks/` for the critical section. Those files are chosen here, in
- * this same sorted order, before any wait, and taken only after the in-process grants
- * so a local queue is not reordered. Shared keys stay in-process: atomic replacement
- * already keeps readers of a finished file off partial bytes. A live lock in another
- * process is polled and then fails with `path_lock_busy` rather than waiting forever.
+ * When cross-process locks are enabled, each exclusive key and each shared parent
+ * in the same reservation hold a file under the path-lock directory. Those files
+ * are taken only after the in-process grants, in the same sorted key order, so a
+ * later key cannot be held while an earlier one is still waiting. An exclusive
+ * file also takes a shared filesystem lock on its parent directory. Shared parent
+ * files from different files coexist. An exclusive directory lock waits until
+ * those shared holders are gone. A reservation that is only shared does not
+ * create a filesystem file. A live lock in another process is polled and then
+ * fails with `path_lock_busy` rather than waiting forever.
  * @template T
  * @param {Array<string | { path: string, mode: LockMode }>} entries Lock requests
  * @param {() => Promise<T>} task Operation
@@ -236,7 +239,10 @@ export function withPathLocks(entries, task) {
     let trackedFs = false;
     const result = Promise.all(grants).then(async () => {
         try {
-            fsHeld = await acquireExclusivePathLocks(exclusiveKeys);
+            // Shared-only reservations stay in-process. Mixed and exclusive
+            // reservations take filesystem locks for every requested key, and
+            // an exclusive file adds a shared parent fence inside that call.
+            fsHeld = await acquireCrossProcessPathLocks(exclusiveKeys.length > 0 ? requests : []);
         } catch (error) {
             if (error instanceof PathLockError) throw new ChatLifecycleError(error.reason);
             throw error;
@@ -249,7 +255,7 @@ export function withPathLocks(entries, task) {
     });
     const settled = result.finally(() => {
         try {
-            releaseExclusivePathLocks(fsHeld);
+            releaseCrossProcessPathLocks(fsHeld);
         } finally {
             // Drop the depth only after the files are released so a deferred
             // waiter cannot acquire while these locks are still on disk.
@@ -272,7 +278,9 @@ export function withPathLocks(entries, task) {
  * Ordinary file operations: shared lock on the parent directory plus an exclusive
  * lock on the file. Directory retirement, rename, delete, and backup pruning pass
  * the directory itself as an exclusive string to withPathLocks / withPathLock.
- * Only the exclusive keys take a cross-process file when that feature is enabled.
+ * When cross-process locks are enabled, the shared parent is a filesystem
+ * fence and the file stays exclusive, so a directory rename in another
+ * process waits for the file writer.
  * @param {string[]} filePaths Files, not the directories being retired
  * @returns {Array<{ path: string, mode: LockMode }>}
  */

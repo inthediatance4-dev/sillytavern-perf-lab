@@ -1154,12 +1154,12 @@ router.post('/edit', validateAvatarUrlMiddleware, characterEditHandler(async fun
     try {
         if (!request.file) {
             const avatarPath = path.join(request.user.directories.characters, request.body.avatar_url);
-            await writeCharacterData(avatarPath, char, targetFile, request);
+            if (!await writeCharacterData(avatarPath, char, targetFile, request)) throw new Error('Character edit did not complete');
         } else {
             const crop = tryParse(request.query.crop);
             const newAvatarPath = path.join(request.file.destination, request.file.filename);
             invalidateThumbnail(request.user.directories, 'avatar', request.body.avatar_url);
-            await writeCharacterData(newAvatarPath, char, targetFile, request, crop);
+            if (!await writeCharacterData(newAvatarPath, char, targetFile, request, crop)) throw new Error('Character edit did not complete');
             fs.unlinkSync(newAvatarPath);
 
             // Bust cache to reload the new avatar
@@ -1198,7 +1198,7 @@ router.post('/edit-avatar', validateAvatarUrlMiddleware, characterEditHandler(as
 
         const crop = tryParse(request.query.crop);
         const fileName = request.body.avatar_url.slice(0, -4);
-        await writeCharacterData(uploadPath, data, fileName, request, crop);
+        if (!await writeCharacterData(uploadPath, data, fileName, request, crop)) throw new Error('Character edit did not complete');
 
         // Remove uploaded temp file
         fs.unlinkSync(uploadPath);
@@ -1257,7 +1257,7 @@ router.post('/edit-attribute', validateAvatarUrlMiddleware, characterEditHandler
         char.data[request.body.field] = request.body.value;
         let newCharJSON = JSON.stringify(char);
         const targetFile = request.body.avatar_url.slice(0, -4);
-        await writeCharacterData(avatarPath, newCharJSON, targetFile, request);
+        if (!await writeCharacterData(avatarPath, newCharJSON, targetFile, request)) throw new Error('Character edit did not complete');
         return response.sendStatus(200);
     } catch (err) {
         console.error('An error occurred, character edit invalidated.', err);
@@ -1334,7 +1334,7 @@ async function mergeCharacterUpdate(avatarPath, avatar, updateData, request, sho
         }
 
         const targetImg = avatar.slice(0, -4);
-        await writeCharacterData(avatarPath, JSON.stringify(character), targetImg, request);
+        if (!await writeCharacterData(avatarPath, JSON.stringify(character), targetImg, request)) throw new Error('Character edit did not complete');
         return { ok: true };
     });
 }

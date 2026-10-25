@@ -325,3 +325,30 @@ test('started saves isolate nested prompt rows until deferred serialization', as
     assert.equal(h.stored.get('A')[0].rawPrompt[0].content, 'original');
     assert.equal(h.stored.get('A')[0].rawPrompt[0].extra.value, 1);
 });
+
+for (const clone of [undefined, structuredClone, () => { throw new Error('DataCloneError'); }]) {
+    test(`prompt saves fall back to detached JSON when clone is ${clone === structuredClone ? 'non-cloneable' : clone ? 'rejected' : 'unavailable'}`, async () => {
+        const h = harness();
+        h.c.structuredClone = clone;
+        const value = [{ mesId: 0, rawPrompt: { text: 'before' }, extension: () => {} }];
+        h.setCache(value);
+        h.c.setGate = deferred();
+        const saving = h.c.saveItemizedPrompts('A');
+        value[0].rawPrompt.text = 'after';
+        h.c.setGate.resolve();
+        await saving;
+        assert.deepEqual(h.stored.get('A'), [{ mesId: 0, rawPrompt: { text: 'before' } }]);
+        assert.equal(h.events.at(-1).type, 'saved');
+    });
+}
+
+test('unserializable fallback preserves the previous stored prompts', async () => {
+    const h = harness();
+    h.c.structuredClone = undefined;
+    const cyclic = {}; cyclic.self = cyclic;
+    h.setCache([cyclic]);
+    await h.c.saveItemizedPrompts('A');
+    assert.deepEqual(h.stored.get('A'), rows('A'));
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.events.length, 0);
+});

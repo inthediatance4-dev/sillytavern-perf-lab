@@ -64,3 +64,28 @@ for (const route of ['/edit', '/edit-avatar', '/edit-attribute', '/merge-attribu
         });
     }
 }
+
+for (const route of ['/edit', '/edit-avatar', '/edit-attribute', '/merge-attributes']) {
+    test(`${route} reports failed publication and releases the lifecycle lock`, async () => {
+        const avatar = `${route.slice(1)}-failed.png`;
+        const target = path.join(dirs.characters, avatar);
+        const original = fs.readFileSync(path.join(dirs.characters, fs.readdirSync(dirs.characters).find(name => name.endsWith('.png'))));
+        fs.writeFileSync(target, original);
+        const upload = path.join(dirs.uploads, avatar);
+        fs.writeFileSync(upload, original);
+        const body = { avatar_url: avatar, avatar, ch_name: 'Failure', field: 'description', value: 'edited', description: 'edited' };
+        const file = ['/edit', '/edit-avatar'].includes(route) ? { destination: dirs.uploads, filename: avatar } : undefined;
+        const read = Jimp.read;
+        Jimp.read = async () => {
+            const image = new Jimp({ width: 1, height: 1 });
+            image.getBuffer = async () => Buffer.from('invalid PNG');
+            return image;
+        };
+        try {
+            assert.equal((await invoke(route, body, file)).status, 500);
+            assert.deepEqual(fs.readFileSync(target), original);
+            if (file) assert.equal(fs.existsSync(upload), true);
+        } finally { Jimp.read = read; }
+        assert.equal((await invoke(route, body, file)).status, 200);
+    });
+}

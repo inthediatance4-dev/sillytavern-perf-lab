@@ -101,7 +101,15 @@ export async function saveItemizedPrompts(chatId) {
             return;
         }
         // Keep the started save's rows independent of a later load or reset.
-        const snapshot = structuredClone(itemizedPrompts);
+        let snapshot;
+        try {
+            snapshot = structuredClone(itemizedPrompts);
+        } catch {
+            // Older browsers and extension-added functions cannot use structuredClone.
+            // Prompts are JSON data: omit unsupported properties without sharing rows.
+            // If JSON also fails (e.g. cycles), the outer catch preserves stored data.
+            snapshot = JSON.parse(JSON.stringify(itemizedPrompts));
+        }
         await promptStorage.setItem(chatId, snapshot);
         await eventSource.emit(event_types.ITEMIZED_PROMPTS_SAVED, { chatId: chatId });
     } catch {

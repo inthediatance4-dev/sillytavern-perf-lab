@@ -69,3 +69,29 @@ test('disconnect does not release an async persistence handler before it complet
     await stopping;
     assert.equal(completed, true);
 });
+
+test('shutdown rejects handlers delayed by earlier middleware', async () => {
+    const { createPersistenceTracker } = await import('../src/request-drain.js');
+    const tracker = createPersistenceTracker();
+    let invoked = false;
+    const entry = { handle: async () => { invoked = true; } };
+    tracker.trackRouter({ stack: [{ route: { stack: [entry] } }] });
+    await tracker.stop();
+    let status;
+    entry.handle({}, { sendStatus(code) { status = code; } }, assert.ifError);
+    assert.equal(status, 503);
+    assert.equal(invoked, false);
+});
+
+test('rejected handlers reach Express and do not prevent draining', async () => {
+    const { createPersistenceTracker } = await import('../src/request-drain.js');
+    const tracker = createPersistenceTracker();
+    const failure = new Error('write failed');
+    const entry = { handle: async () => { throw failure; } };
+    tracker.trackRouter({ stack: [{ route: { stack: [entry] } }] });
+    let forwarded;
+    entry.handle({}, {}, error => { forwarded = error; });
+    await tracker.stop();
+    assert.equal(forwarded, failure);
+    await tracker.stop();
+});

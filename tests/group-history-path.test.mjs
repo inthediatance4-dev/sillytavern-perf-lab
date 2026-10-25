@@ -21,3 +21,33 @@ test('group IDs cannot traverse to another user or silently alias sanitized name
     await fs.writeFile(path.join(directory, '安全 history.jsonl'), 'allowed');
     assert.equal(await resolveGroupChatPath(directory, '安全 history'), path.join(directory, '安全 history.jsonl'));
 });
+
+test('direct group endpoints reject malformed IDs and info refuses aliases and retirement', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'group-reader-routes-'));
+    globalThis.DATA_ROOT = root;
+    const config = path.join(root, 'config.yaml');
+    await fs.writeFile(config, 'backups:\n  chat:\n    enabled: false\n');
+    const util = await import('../src/util.js');
+    util.setConfigFilePath(config);
+    const { router } = await import('../src/endpoints/chats.js');
+    const { retireChatPath } = await import('../src/chat-io.js');
+    const directory = path.join(root, 'group-chats');
+    await fs.mkdir(directory);
+    const outside = path.join(root, 'secret.jsonl');
+    await fs.writeFile(outside, '{"mes":"private"}');
+    await fs.symlink(outside, path.join(directory, 'alias.jsonl'));
+    await fs.writeFile(path.join(directory, 'retired.jsonl'), '{"mes":"retired"}');
+    await retireChatPath(path.join(directory, 'retired.jsonl'), directory, 'test');
+    function invoke(route, id) {
+        const handler = router.stack.find(layer => layer.route?.path === route).route.stack.at(-1).handle;
+        return new Promise((resolve, reject) => {
+            const response = { code: 200, status(code) { this.code = code; return this; }, send() { resolve(this.code); return this; }, sendStatus(code) { this.code = code; return this.send(); } };
+            handler({ body: { id }, user: { directories: { groupChats: directory }, profile: { handle: 'test' } } }, response, reject);
+        });
+    }
+    for (const route of ['/group/get', '/group/info', '/group/save', '/group/delete']) {
+        for (const id of ['../secret', 'bad:name', 42]) assert.equal(await invoke(route, id), 400);
+    }
+    assert.equal(await invoke('/group/info', 'alias'), 409);
+    assert.equal(await invoke('/group/info', 'retired'), 409);
+});

@@ -1,3 +1,4 @@
+import { trackPersistenceRouter } from '../request-drain.js';
 import fs from 'node:fs';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
@@ -8,7 +9,7 @@ import { sync as writeFileAtomicSync, default as writeFileAtomic } from 'write-f
 
 import { color, tryParse } from '../util.js';
 import { getFileNameValidationFunction } from '../middleware/validateFileName.js';
-import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, writeChatFile, createChatFileExclusive, recycleRetiredChat, retireChatPath, isValidGroupChatId } from '../chat-io.js';
+import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, writeChatFile, createChatFileExclusive, recycleRetiredChat, retireChatPath, resolveGroupChatPath, isValidGroupChatId } from '../chat-io.js';
 
 export const router = express.Router();
 
@@ -66,13 +67,14 @@ export async function migrateGroupChatsMetadataFormat(userDirectories) {
                     }
                     for (const chatId of groupData.chats) {
                         try {
-                            const chatFileName = sanitize(`${chatId}.jsonl`);
+                            if (!isValidGroupChatId(chatId)) continue;
+                            const chatFileName = `${chatId}.jsonl`;
                             const chatFileDirent = groupChatFiles.find(f => f.isFile() && f.name === chatFileName);
                             if (!chatFileDirent) {
                                 console.warn(color.yellow(`Group chat file ${chatId} not found, skipping migration.`));
                                 continue;
                             }
-                            const chatFilePath = path.join(userDirs.groupChats, chatFileName);
+                            const chatFilePath = await resolveGroupChatPath(userDirs.groupChats, chatId);
                             const chatMetadata = allMetadata[chatId] || {};
                             const chatDataRaw = await fsPromises.readFile(chatFilePath, 'utf8');
                             const chatData = chatDataRaw.split('\n').filter(line => line.trim()).map(line => tryParse(line)).filter(Boolean);
@@ -258,3 +260,5 @@ router.post('/delete', getFileNameValidationFunction('id'), async (request, resp
         return response.sendStatus(500);
     }
 });
+
+trackPersistenceRouter(router);

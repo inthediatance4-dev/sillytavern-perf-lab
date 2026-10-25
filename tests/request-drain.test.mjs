@@ -48,3 +48,24 @@ test('closed responses release the drain and completion is idempotent', async ()
     await stopping;
     assert.equal(response.listenerCount('finish'), 0);
 });
+
+test('disconnect does not release an async persistence handler before it completes', async () => {
+    const { createPersistenceTracker } = await import('../src/request-drain.js');
+    const tracker = createPersistenceTracker();
+    const drain = createRequestDrain(tracker);
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    let completed = false;
+    const entry = { handle: async () => { await gate; completed = true; } };
+    tracker.trackRouter({ stack: [{ route: { stack: [entry] } }] });
+    const response = new EventEmitter();
+    drain.middleware({}, response, () => entry.handle({}, response, assert.ifError));
+    response.emit('close');
+    let stopped = false;
+    const stopping = drain.stop().then(() => { stopped = true; });
+    await Promise.resolve();
+    assert.equal(stopped, false);
+    release();
+    await stopping;
+    assert.equal(completed, true);
+});

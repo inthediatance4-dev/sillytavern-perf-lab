@@ -1,3 +1,4 @@
+import { trackPersistenceRouter } from '../request-drain.js';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +15,7 @@ import { createChatInfoCache } from '../chat-info-cache.js';
 import { createChatBackupScheduler } from '../chat-backup-scheduler.js';
 import {
     withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO,
-    assertChatWritable, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
+    assertChatWritable, isValidGroupChatId, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
 } from '../chat-io.js';
 import {
     getConfigValue,
@@ -863,7 +864,8 @@ router.post('/group/get', async (request, response) => {
     }
 
     const id = request.body.id;
-    const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+    if (!isValidGroupChatId(id)) return response.sendStatus(400);
+    const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
 
     try {
         return await withPathLocks(chatLockPaths([chatFilePath]), async () => {
@@ -883,11 +885,16 @@ router.post('/group/info', async (request, response) => {
         }
 
         const id = request.body.id;
-        const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+        if (!isValidGroupChatId(id)) return response.sendStatus(400);
+        const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
 
-        const chatInfo = await getChatInfo(chatFilePath);
+        const chatInfo = await withPathLocks(chatLockPaths([chatFilePath]), async () => {
+            await assertChatWritable(chatFilePath, request.user.directories.groupChats);
+            return getChatInfo(chatFilePath);
+        });
         return response.send(chatInfo);
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason });
         console.error(error);
         return response.sendStatus(500);
     }
@@ -900,7 +907,8 @@ router.post('/group/delete', async (request, response) => {
         }
 
         const id = request.body.id;
-        const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+        if (!isValidGroupChatId(id)) return response.sendStatus(400);
+        const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
 
         await withPathLocks(chatLockPaths([chatFilePath]), async () => {
             await recycleRetiredChat(chatFilePath, request.user.directories.groupChats);
@@ -921,8 +929,9 @@ router.post('/group/save', async function (request, response) {
         }
 
         const id = request.body.id;
+        if (!isValidGroupChatId(id)) return response.sendStatus(400);
         const handle = request.user.profile.handle;
-        const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+        const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
         const chatData = request.body.chat;
 
         if (Array.isArray(chatData)) {
@@ -1156,3 +1165,5 @@ router.post('/recent', async function (request, response) {
         return response.sendStatus(500);
     }
 });
+
+trackPersistenceRouter(router);

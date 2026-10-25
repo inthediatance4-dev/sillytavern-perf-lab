@@ -15,7 +15,7 @@ npm run lint
 npm run perf:lab
 ```
 
-`test:perf` runs 32 test files with synthetic fixtures (some bind localhost
+`test:perf` runs 33 test files with synthetic fixtures (some bind localhost
 sockets). The three independent historical-oracle suites skip gracefully when
 Git or their historical objects are unavailable; a full-history checkout enables
 those comparisons. `bench:perf` still requires historical Git objects.
@@ -65,7 +65,20 @@ Ordinary file operations take a shared lock on the parent directory and an
 exclusive lock on the file, so different group chats in one directory can
 proceed together. Directory retirement, rename, delete, and backup pruning
 take that directory exclusively and are not starved by later shared holders.
-Those path locks stay inside one process. `exclusiveDataRoot` is off unless
+In-process path locks are always on. Cross-process exclusion is off unless
+`exclusiveDataRoot` or `crossProcessPathLocks` is set. With either flag, each
+exclusive holder also keeps a hashed file in `<dataRoot>/.st-path-locks/` for
+the critical section, created with `O_EXCL` and removed only when its bytes
+still match. Keys are reserved in sorted order before any wait. A nested
+`withPathLocks` may take other paths, but it cannot wait on a key the caller
+already holds exclusively or upgrade a shared key to exclusive. Shared holders do not take those
+files: atomic replacement already protects readers of a complete file. A live
+lock in another process is polled with a short backoff and then fails with
+`path_lock_busy` (default wait 15 seconds) instead of hanging. A dead pid, or
+a reused pid whose boot id or process start does not match, is reclaimed by
+renaming the lock aside and deleting it only when the bytes are still stale.
+Another host's file, or a symlink, is left in place. No compiler is required.
+A process that does not opt in is not excluded by these files. `exclusiveDataRoot` is off unless
 the lab launcher or config turns it on. The owner file records pid, host,
 start time, a random token, and, when the host can provide them, a boot id
 and the process start time. Linux uses `/proc/sys/kernel/random/boot_id` and
@@ -87,8 +100,10 @@ The owner file is removed on exit when its bytes still match, including
 can leave the file; the next acquire on this host reclaims it. No compiler is
 required. If an unexpected filesystem error means ownership cannot be
 determined, startup logs a warning and continues. A live owner on this host
-still refuses the second process. It is not per-file cross-process locking.
-A process started without the flag can still share the root.
+still refuses the second process. The owner file is the whole-root gate.
+Per-path exclusion is the `.st-path-locks` file described above, and only for
+processes that opted in. A process started without either flag can still share
+the root.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

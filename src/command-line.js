@@ -36,6 +36,7 @@ import { initConfig } from './config-init.js';
  * @property {string} requestProxyUrl Request proxy URL
  * @property {string[]} requestProxyBypass Request proxy bypass list
  * @property {boolean} exclusiveDataRoot If this process must exclusively own the data root
+ * @property {boolean} crossProcessPathLocks If exclusive chat paths also take a cross-process file lock
  * @property {function(): URL} getIPv4ListenUrl Get IPv4 listen URL
  * @property {function(): URL} getIPv6ListenUrl Get IPv6 listen URL
  * @property {function(import('./server-startup.js').ServerStartupResult): Promise<string>} getBrowserLaunchHostname Get browser launch hostname
@@ -83,6 +84,7 @@ export class CommandLineParser {
             requestProxyUrl: '',
             requestProxyBypass: [],
             exclusiveDataRoot: false,
+            crossProcessPathLocks: false,
             getIPv4ListenUrl: function () {
                 throw new Error('getIPv4ListenUrl is not implemented');
             },
@@ -250,6 +252,11 @@ export class CommandLineParser {
                 default: null,
                 describe: 'Refuse to start when another live process already owns this data root',
             })
+            .option('crossProcessPathLocks', {
+                type: 'boolean',
+                default: null,
+                describe: 'Hold a cross-process lock for each exclusive chat path. exclusiveDataRoot enables this too',
+            })
             /* DEPRECATED options */
             .option('autorun', {
                 type: 'boolean',
@@ -332,6 +339,7 @@ export class CommandLineParser {
             requestProxyUrl: cliArguments.requestProxyUrl ?? getConfigValue('requestProxy.url', defaultConfig.requestProxyUrl),
             requestProxyBypass: cliArguments.requestProxyBypass ?? getConfigValue('requestProxy.bypass', defaultConfig.requestProxyBypass),
             exclusiveDataRoot: cliArguments.exclusiveDataRoot ?? getConfigValue('exclusiveDataRoot', defaultConfig.exclusiveDataRoot, 'boolean'),
+            crossProcessPathLocks: cliArguments.crossProcessPathLocks ?? getConfigValue('crossProcessPathLocks', defaultConfig.crossProcessPathLocks, 'boolean'),
             getIPv4ListenUrl: function () {
                 const isValid = ipRegex.v4({ exact: true }).test(this.listenAddressIPv4);
                 return new URL(

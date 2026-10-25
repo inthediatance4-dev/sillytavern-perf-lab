@@ -1,8 +1,10 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
 import writeFileAtomic from 'write-file-atomic';
 import sanitize from 'sanitize-filename';
+import { acquireExclusivePathLocks, PathLockError, releaseExclusivePathLocks } from './path-fs-lock.js';
 
 /** @typedef {'shared' | 'exclusive'} LockMode */
 
@@ -18,6 +20,14 @@ import sanitize from 'sanitize-filename';
 const gates = new Map();
 /** Completion of every reservation already accepted, including ones still waiting. */
 const pendingIO = new Set();
+/**
+ * Keys held by the withPathLocks calls on this async stack.
+ * A nested call may take other keys (a save schedules the backup writer this way).
+ * It must not wait on a key this stack already holds exclusively, or upgrade a
+ * shared key to exclusive: the outer call would be waiting for itself.
+ * @type {AsyncLocalStorage<Map<string, LockMode>>}
+ */
+const heldModes = new AsyncLocalStorage();
 
 /**
  * Serialize work for one path, including validation before the actual write.
@@ -137,10 +147,19 @@ function release(key, mode) {
 /**
  * Reserve every requested path synchronously, then wait until all of them are granted.
  * The task does not start while any requested lock is still queued, and this call
- * never awaits one lock before reserving the others.
+ * never awaits one lock before reserving the others. A nested call may lock other
+ * paths, which is how a save schedules the backup writer. It fails with
+ * `lock_reentered` if it needs a key this stack already holds exclusively, or if it
+ * would upgrade a shared key to exclusive. Release the outer reservation first.
  * A string entry is exclusive. `{ path, mode: 'shared' | 'exclusive' }` selects the mode.
  * Shared holders of one path run together. An exclusive request waits for shared
  * holders already in progress and blocks shared requests that arrive after it.
+ * When cross-process locks are enabled, each exclusive key also holds a file under
+ * `<root>/.st-path-locks/` for the critical section. Those files are chosen here, in
+ * this same sorted order, before any wait, and taken only after the in-process grants
+ * so a local queue is not reordered. Shared keys stay in-process: atomic replacement
+ * already keeps readers of a finished file off partial bytes. A live lock in another
+ * process is polled and then fails with `path_lock_busy` rather than waiting forever.
  * @template T
  * @param {Array<string | { path: string, mode: LockMode }>} entries Lock requests
  * @param {() => Promise<T>} task Operation
@@ -148,10 +167,39 @@ function release(key, mode) {
  */
 export function withPathLocks(entries, task) {
     const requests = normalizeLockRequests(entries);
+    const outer = heldModes.getStore();
+    if (outer) {
+        for (const request of requests) {
+            const held = outer.get(request.key);
+            if (held === 'exclusive' || (held && request.mode === 'exclusive')) {
+                return Promise.reject(new ChatLifecycleError('lock_reentered'));
+            }
+        }
+    }
     const grants = requests.map(request => reserve(request.key, request.mode));
-    const result = Promise.all(grants).then(task);
+    const exclusiveKeys = [];
+    const scope = new Map(outer);
+    for (const request of requests) {
+        if (request.mode === 'exclusive') exclusiveKeys.push(request.key);
+        scope.set(request.key, request.mode);
+    }
+    /** @type {Array<{ lockPath: string, payload: string }>} */
+    let fsHeld = [];
+    const result = Promise.all(grants).then(async () => {
+        try {
+            fsHeld = await acquireExclusivePathLocks(exclusiveKeys);
+        } catch (error) {
+            if (error instanceof PathLockError) throw new ChatLifecycleError(error.reason);
+            throw error;
+        }
+        return heldModes.run(scope, task);
+    });
     const settled = result.finally(() => {
-        for (const request of requests) release(request.key, request.mode);
+        try {
+            releaseExclusivePathLocks(fsHeld);
+        } finally {
+            for (const request of requests) release(request.key, request.mode);
+        }
     });
     const done = settled.then(() => undefined, () => undefined);
     pendingIO.add(done);
@@ -165,6 +213,7 @@ export function withPathLocks(entries, task) {
  * Ordinary file operations: shared lock on the parent directory plus an exclusive
  * lock on the file. Directory retirement, rename, delete, and backup pruning pass
  * the directory itself as an exclusive string to withPathLocks / withPathLock.
+ * Only the exclusive keys take a cross-process file when that feature is enabled.
  * @param {string[]} filePaths Files, not the directories being retired
  * @returns {Array<{ path: string, mode: LockMode }>}
  */
@@ -176,11 +225,26 @@ export function chatLockPaths(filePaths) {
 }
 
 export class ChatLifecycleError extends Error {
+    /**
+     * @param {string} reason
+     */
     constructor(reason) {
-        super(`Chat lifecycle conflict: ${reason}. Reload the chat list or save under a different name.`);
+        const detail = reason === 'path_lock_busy'
+            ? 'another process holds this path lock'
+            : reason === 'path_lock_unavailable'
+                ? 'the cross-process path lock could not be taken'
+                : reason === 'lock_reentered'
+                    ? 'a path lock cannot be taken while one is already held'
+                    : reason;
+        super(`Chat lifecycle conflict: ${detail}. Reload the chat list or save under a different name.`);
         this.name = 'ChatLifecycleError';
         this.reason = reason;
     }
+}
+
+/** Normalized queue key for a path. Cross-process lock files hash this string. */
+export function pathLockKey(filePath) {
+    return pathKey(filePath);
 }
 
 function markerPath(filePath, lifecycleRoot) {

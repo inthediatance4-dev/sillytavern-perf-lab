@@ -6,7 +6,7 @@ module.exports = {
     // Match the project's four-space, single-quote, semicolon style. Keep legacy
     // upstream code parse-checked; enforce these rules on lab modules and tools.
     overrides: [{
-        files: ['src/chat-*.js', 'src/request-drain.js', 'src/data-root-owner.js', 'src/process-identity.js', 'src/character-lifecycle.js', 'src/endpoints/chats.js', 'src/endpoints/groups.js', 'src/server-main.js', 'scripts/*.mjs', 'tests/*.mjs'],
+        files: ['src/chat-*.js', 'src/request-drain.js', 'src/data-root-owner.js', 'src/process-identity.js', 'src/path-fs-lock.js', 'src/character-lifecycle.js', 'src/endpoints/chats.js', 'src/endpoints/groups.js', 'src/server-main.js', 'scripts/*.mjs', 'tests/*.mjs'],
         rules: {
             'constructor-super': 'error',
             'no-unreachable': 'error',

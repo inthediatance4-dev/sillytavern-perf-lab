@@ -66,14 +66,22 @@ exclusive lock on the file, so different group chats in one directory can
 proceed together. Directory retirement, rename, delete, and backup pruning
 take that directory exclusively and are not starved by later shared holders.
 Those path locks stay inside one process. `exclusiveDataRoot` is off unless
-the lab launcher or config turns it on. The owner file records pid, host, and
-start time. A second process on this host refuses while that pid is alive
-(`process.kill(pid, 0)`; `EPERM` still means alive). A dead same-host owner is
-reclaimed by exactly one process: it creates `<dataRoot>/.st-lab-owner.lock.reclaim`
-with `O_EXCL`, renames the stale owner file aside, checks the bytes, and only
-then deletes them and creates the owner file with `O_EXCL`. That reclaim file
-expires by age, so a crashed reclaimer cannot block the next start. A lock
-from another host is left in place, as is a symlink or an unreadable file.
+the lab launcher or config turns it on. The owner file records pid, host,
+start time, a random token, and, when the host can provide them, a boot id
+and the process start time. Linux uses `/proc/sys/kernel/random/boot_id` and
+`/proc/<pid>/stat` starttime plus `btime`. Windows stores a best-effort
+`win-boot:` time from `os.uptime()` (samples within 2 seconds match; a clock
+step can change it) and may add process start from a PowerShell or WMIC probe
+that is omitted if it is missing or slower than 200ms. A later start refuses
+while `process.kill(pid, 0)` reports the pid alive, including `EPERM`, and the
+stored boot id and process start still match. A mismatch is pid reuse and is
+reclaimed. An older lock with neither identity field is kept while its pid is
+alive. A dead same-host owner, or a reused pid, is reclaimed by exactly one
+process: it creates `<dataRoot>/.st-lab-owner.lock.reclaim` with `O_EXCL`,
+renames the stale owner file aside, checks the bytes, and only then deletes
+them and creates the owner file with `O_EXCL`. That reclaim file expires by
+age, so a crashed reclaimer cannot block the next start. A lock from another
+host is left in place, as is a symlink or an unreadable file.
 The owner file is removed on exit when its bytes still match, including
 `process.exit` and an uncaught exception. A signal that skips the exit hook
 can leave the file; the next acquire on this host reclaims it. No compiler is

@@ -1,7 +1,8 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { classifyPidLiveness, readProcessIdentity } from './process-identity.js';
 
 /** Name of the exclusive data-root owner file inside the data root. */
 export const DATA_ROOT_OWNER_LOCK = '.st-lab-owner.lock';
@@ -27,8 +28,14 @@ const ACQUIRE_PAUSE_MS = 10;
 /**
  * Opt-in ownership of one data root directory.
  * This is not per-file cross-process locking. The owner file records pid,
- * host, and start time. The first process creates it with O_EXCL. A dead
- * same-host owner is reclaimed by exactly one process: it claims
+ * host, start time, a random token, and the boot id and process start time
+ * when this host can provide them. The first process creates it with O_EXCL.
+ * `process.kill(pid, 0)` is not enough: the kernel may have reused that pid.
+ * A same-host owner is reclaimed when the pid is dead (ESRCH) or when the
+ * pid still signals alive but the boot id or process start time disagrees.
+ * EPERM with a matching identity is a live owner and is refused. A lock that
+ * has neither identity field is kept while its pid is alive, so older locks
+ * fail closed. Reclaim is single-winner: one process claims
  * `.st-lab-owner.lock.reclaim` with O_EXCL (or takes over an expired marker
  * by renaming that marker aside and checking it), renames the stale owner
  * file to a unique name, and deletes it only when the bytes still match.
@@ -39,7 +46,7 @@ const ACQUIRE_PAUSE_MS = 10;
  * acquire on this host reclaims it. No compiler or native addon is required.
  * If an unexpected filesystem error means ownership cannot be determined,
  * acquire logs a warning and returns without a lock so startup can continue.
- * A live owner on this host still refuses.
+ * A live matching owner on this host still refuses.
  */
 export class DataRootOwnershipError extends Error {
     /**
@@ -63,7 +70,7 @@ const pauseBuffer = new Int32Array(new SharedArrayBuffer(4));
 
 /**
  * @param {string} text
- * @returns {{ kind: 'empty' }|{ kind: 'corrupt' }|{ kind: 'owner', owner: { pid: number, hostname: string, startedAt: string }, text: string }}
+ * @returns {{ kind: 'empty' }|{ kind: 'corrupt' }|{ kind: 'owner', owner: { pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number }, text: string }}
  */
 function classifyOwner(text) {
     if (text.length === 0) return { kind: 'empty' };
@@ -73,27 +80,18 @@ function classifyOwner(text) {
         if (!Number.isInteger(owner.pid) || owner.pid <= 0) return { kind: 'corrupt' };
         if (typeof owner.hostname !== 'string' || owner.hostname.length === 0) return { kind: 'corrupt' };
         if (typeof owner.startedAt !== 'string' || owner.startedAt.length === 0) return { kind: 'corrupt' };
+        if (Object.prototype.hasOwnProperty.call(owner, 'token')) {
+            if (typeof owner.token !== 'string' || owner.token.length === 0 || owner.token.length > 128) return { kind: 'corrupt' };
+        }
+        if (Object.prototype.hasOwnProperty.call(owner, 'bootId')) {
+            if (typeof owner.bootId !== 'string' || owner.bootId.length === 0 || owner.bootId.length > 256) return { kind: 'corrupt' };
+        }
+        if (Object.prototype.hasOwnProperty.call(owner, 'processStartMs')) {
+            if (!Number.isSafeInteger(owner.processStartMs) || owner.processStartMs < 0) return { kind: 'corrupt' };
+        }
         return { owner, text, kind: 'owner' };
     } catch {
         return { kind: 'corrupt' };
-    }
-}
-
-/**
- * @param {number} pid
- * @returns {boolean}
- */
-function pidAlive(pid) {
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch (error) {
-        // POSIX and Windows: no such process.
-        if (error.code === 'ESRCH') return false;
-        // Windows returns EPERM when the pid exists but cannot be signaled.
-        if (error.code === 'EPERM') return true;
-        // Any other failure fails closed so a live owner is not reclaimed.
-        return true;
     }
 }
 
@@ -331,7 +329,7 @@ function corruptLeftInPlace(lockPath) {
 
 /**
  * @param {string} resolved
- * @param {{ pid: number, hostname: string, startedAt: string }} owner
+ * @param {{ pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number }} owner
  * @returns {DataRootOwnershipError}
  */
 function lockedError(resolved, owner) {
@@ -358,10 +356,28 @@ function inspectLock(lockPath, resolved) {
     if (classified.owner.hostname !== os.hostname()) {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }
-    if (pidAlive(classified.owner.pid)) {
+    const liveness = classifyPidLiveness(classified.owner);
+    if (liveness === 'live') {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }
     return { action: 'reclaim', text: seen.text };
+}
+
+/**
+ * Payload for a new owner. Identity fields are omitted when this host cannot
+ * read them. Callers that later see a live pid and no identity keep the lock.
+ * @param {number} pid
+ * @param {string} hostname
+ * @param {string} startedAt
+ * @returns {string}
+ */
+function ownerPayload(pid, hostname, startedAt) {
+    const identity = readProcessIdentity(pid);
+    /** @type {{ pid: number, hostname: string, startedAt: string, token: string, bootId?: string, processStartMs?: number }} */
+    const record = { pid, hostname, startedAt, token: randomUUID() };
+    if (identity.bootId) record.bootId = identity.bootId;
+    if (Number.isSafeInteger(identity.processStartMs)) record.processStartMs = identity.processStartMs;
+    return `${JSON.stringify(record)}\n`;
 }
 
 function reclaimPayload() {
@@ -568,7 +584,7 @@ export function releaseDataRootOwnership() {
 /**
  * Create `<dataRoot>/.st-lab-owner.lock` and keep this process as its owner.
  * @param {string} dataRoot
- * @returns {{ lockPath: string|null, pid: number, hostname: string, startedAt: string, unverified?: boolean }}
+ * @returns {{ lockPath: string|null, pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number, unverified?: boolean }}
  */
 export function acquireDataRootOwnership(dataRoot) {
     if (typeof dataRoot !== 'string' || dataRoot.length === 0) {
@@ -598,7 +614,7 @@ export function acquireDataRootOwnership(dataRoot) {
 /**
  * @param {string} resolved
  * @param {string} subject
- * @returns {{ lockPath: string|null, pid: number, hostname: string, startedAt: string, unverified?: boolean }}
+ * @returns {{ lockPath: string|null, pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number, unverified?: boolean }}
  */
 function acquireResolved(resolved, subject) {
     const lockPath = path.join(resolved, DATA_ROOT_OWNER_LOCK);
@@ -606,7 +622,8 @@ function acquireResolved(resolved, subject) {
     const startedAt = new Date().toISOString();
     const hostname = os.hostname();
     const pid = process.pid;
-    const payload = `${JSON.stringify({ pid, hostname, startedAt })}\n`;
+    const payload = ownerPayload(pid, hostname, startedAt);
+    const record = JSON.parse(payload);
     /** @type {string|null} */
     let heldReclaim = null;
     const finishHeld = () => {
@@ -637,7 +654,15 @@ function acquireResolved(resolved, subject) {
             if (created.status === 'created') {
                 finishHeld();
                 installRelease(lockPath, payload);
-                return { lockPath, pid, hostname, startedAt };
+                return {
+                    lockPath,
+                    pid,
+                    hostname,
+                    startedAt,
+                    token: record.token,
+                    bootId: record.bootId,
+                    processStartMs: record.processStartMs,
+                };
             }
             if (created.status === 'environment') return giveUp(created.error);
             if (created.status === 'symlink') {

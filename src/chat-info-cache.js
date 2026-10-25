@@ -5,6 +5,8 @@ import path from 'node:path';
  * Create a process-local cache for recent-chat info, without caller annotations.
  * Every access stats the resolved file with bigint timestamps. A read is retained
  * only if its pre/post identities match and it still owns the pending slot.
+ * Metadata is a freshness heuristic: external in-place writes preserving the
+ * entire identity tuple can remain cached until expiry.
  *
  * Limits count retained snapshots, not file sizes. Byte weights conservatively
  * include UTF-8 JSON, UTF-16 strings and key/object overhead; they are estimates,

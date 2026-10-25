@@ -169,22 +169,34 @@ test('stable concurrent reads coalesce and return independent objects', async ()
 
 test('a write during a pending read prevents storing that unstable snapshot', async () => {
     const create = await factory();
-    const file = fixture(path.join(root, 'pending-write.jsonl'), 'old');
     const gate = deferred();
     let reads = 0;
-    const get = create(async file => {
-        reads++;
-        const result = await chats.getChatInfo(file);
-        if (reads === 1) await gate.promise;
-        return result;
+    let stats = 0;
+    let current = version(1n);
+    // Publish the write only after the pre-read stat and before the post-read stat.
+    // A fixture rewrite at reader start can precede getChatInfo's stat, and a
+    // same-size write that does not move ctime then looks like a stable snapshot.
+    const get = create(async () => {
+        const attempt = ++reads;
+        if (attempt === 1) await gate.promise;
+        return info(attempt === 1 ? 'unstable' : 'fresh');
+    }, {
+        stat: async () => { stats++; return current; },
     });
-    const pending = get(file);
-    while (reads === 0) await new Promise(resolve => setImmediate(resolve));
-    fixture(file, 'new');
+    const pending = get('pending-write');
+    await turns();
+    assert.equal(reads, 1);
+    assert.equal(stats, 1);
+    current = version(2n);
     gate.resolve();
-    await pending;
-    assert.equal((await get(file)).mes, 'new');
-    assert.equal(reads, 2);
+    assert.equal((await pending).mes, 'unstable');
+    assert.equal(stats, 2);
+    current = version(1n);
+    assert.equal((await get('pending-write')).mes, 'fresh');
+    assert.equal(reads, 2, 'Pre-write identity must not retain the in-flight snapshot');
+    current = version(2n);
+    assert.equal((await get('pending-write')).mes, 'fresh');
+    assert.equal(reads, 3, 'Post-write identity must re-read instead of reusing the in-flight snapshot');
 });
 
 test('older read completion cannot replace or clear a newer version cache or pending read', async () => {

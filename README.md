@@ -70,8 +70,11 @@ In-process path locks are always on. Cross-process exclusion is off unless
 exclusive holder also keeps a hashed file in `<dataRoot>/.st-path-locks/` for
 the critical section, created with `O_EXCL` and removed only when its bytes
 still match. Keys are reserved in sorted order before any wait. A nested
-`withPathLocks` may take other paths, but it cannot wait on a key the caller
-already holds exclusively or upgrade a shared key to exclusive. Shared holders do not take those
+`withPathLocks` may take other paths only while no exclusive cross-process
+lock is held. It cannot wait on a key the caller already holds exclusively,
+upgrade a shared key to exclusive, or take another path while an exclusive
+cross-process lock is still held. The backup writer runs after that lock is
+released. Shared holders do not take those
 files: atomic replacement already protects readers of a complete file. A live
 lock in another process is polled with a short backoff and then fails with
 `path_lock_busy` (default wait 15 seconds) instead of hanging. A dead pid, or

@@ -22,12 +22,16 @@ const gates = new Map();
 const pendingIO = new Set();
 /**
  * Keys held by the withPathLocks calls on this async stack.
- * A nested call may take other keys (a save schedules the backup writer this way).
- * It must not wait on a key this stack already holds exclusively, or upgrade a
- * shared key to exclusive: the outer call would be waiting for itself.
+ * A nested call may take other keys only when this stack does not hold an
+ * exclusive cross-process lock. It must not wait on a key this stack already
+ * holds exclusively, or upgrade a shared key to exclusive: the outer call
+ * would be waiting for itself. Two processes that nest exclusive keys in
+ * opposite orders deadlock on the filesystem locks.
  * @type {AsyncLocalStorage<Map<string, LockMode>>}
  */
 const heldModes = new AsyncLocalStorage();
+/** Frames in this process that currently hold exclusive cross-process lock files. */
+let exclusiveFsDepth = 0;
 
 /**
  * Serialize work for one path, including validation before the actual write.
@@ -145,12 +149,51 @@ function release(key, mode) {
 }
 
 /**
+ * True when this async stack already holds an exclusive key.
+ * @param {Map<string, LockMode>|undefined} store
+ * @returns {boolean}
+ */
+function scopeHoldsExclusive(store) {
+    if (!store) return false;
+    for (const mode of store.values()) {
+        if (mode === 'exclusive') return true;
+    }
+    return false;
+}
+
+/**
+ * Run `task` after this process has dropped every exclusive cross-process path
+ * lock, and outside the caller's held-key scope. `setImmediate` is required:
+ * the holder's release is a microtask, and a nested microtask would still see
+ * those files. The caller must not await this from inside the holder that
+ * keeps the depth above zero, or the wait never ends. The backup writer uses
+ * it so a save does not keep the chat file lock while the backup directory
+ * lock is taken.
+ * @template T
+ * @param {() => (Promise<T>|T)} task
+ * @returns {Promise<T>}
+ */
+export function runAfterExclusiveFsLocks(task) {
+    async function drained() {
+        while (exclusiveFsDepth > 0) {
+            await new Promise(resolve => {
+                setImmediate(resolve);
+            });
+        }
+        return heldModes.exit(() => task());
+    }
+    return drained();
+}
+
+/**
  * Reserve every requested path synchronously, then wait until all of them are granted.
  * The task does not start while any requested lock is still queued, and this call
  * never awaits one lock before reserving the others. A nested call may lock other
- * paths, which is how a save schedules the backup writer. It fails with
- * `lock_reentered` if it needs a key this stack already holds exclusively, or if it
- * would upgrade a shared key to exclusive. Release the outer reservation first.
+ * paths only while this stack holds no exclusive cross-process file. It fails with
+ * `lock_reentered` if it needs a key this stack already holds exclusively, if it
+ * would upgrade a shared key to exclusive, or if an exclusive filesystem lock is
+ * still held. Release the outer reservation first; queue later locks with
+ * {@link runAfterExclusiveFsLocks}.
  * A string entry is exclusive. `{ path, mode: 'shared' | 'exclusive' }` selects the mode.
  * Shared holders of one path run together. An exclusive request waits for shared
  * holders already in progress and blocks shared requests that arrive after it.
@@ -175,6 +218,11 @@ export function withPathLocks(entries, task) {
                 return Promise.reject(new ChatLifecycleError('lock_reentered'));
             }
         }
+        // Disjoint keys are still unsafe: the caller already holds filesystem
+        // locks, so this call would acquire later keys out of sorted order.
+        if (exclusiveFsDepth > 0 && scopeHoldsExclusive(outer)) {
+            return Promise.reject(new ChatLifecycleError('lock_reentered'));
+        }
     }
     const grants = requests.map(request => reserve(request.key, request.mode));
     const exclusiveKeys = [];
@@ -185,6 +233,7 @@ export function withPathLocks(entries, task) {
     }
     /** @type {Array<{ lockPath: string, payload: string }>} */
     let fsHeld = [];
+    let trackedFs = false;
     const result = Promise.all(grants).then(async () => {
         try {
             fsHeld = await acquireExclusivePathLocks(exclusiveKeys);
@@ -192,12 +241,22 @@ export function withPathLocks(entries, task) {
             if (error instanceof PathLockError) throw new ChatLifecycleError(error.reason);
             throw error;
         }
+        if (fsHeld.length > 0) {
+            exclusiveFsDepth += 1;
+            trackedFs = true;
+        }
         return heldModes.run(scope, task);
     });
     const settled = result.finally(() => {
         try {
             releaseExclusivePathLocks(fsHeld);
         } finally {
+            // Drop the depth only after the files are released so a deferred
+            // waiter cannot acquire while these locks are still on disk.
+            if (trackedFs) {
+                exclusiveFsDepth -= 1;
+                trackedFs = false;
+            }
             for (const request of requests) release(request.key, request.mode);
         }
     });

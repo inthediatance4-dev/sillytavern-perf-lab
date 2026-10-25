@@ -95,14 +95,24 @@ export function crossProcessPathLocksEnabled() {
 }
 
 /**
+ * @param {string} key
+ * @returns {string}
+ */
+function digestKey(key) {
+    return createHash('sha256').update(key).digest('hex');
+}
+
+/**
  * Hashed lock path for an already normalized key. Null when the feature is off.
+ * The file name is the digest, not the target path, so a long Windows path
+ * does not land in the filesystem name. The payload stores that same digest
+ * when the path itself would exceed {@link MAX_LOCK_BYTES}.
  * @param {string} key
  * @returns {string|null}
  */
 export function exclusiveLockPathFor(key) {
     if (!lockRoot) return null;
-    const digest = createHash('sha256').update(key).digest('hex');
-    return path.join(lockRoot, PATH_LOCK_DIRECTORY, `${digest}.lock`);
+    return path.join(lockRoot, PATH_LOCK_DIRECTORY, `${digestKey(key)}.lock`);
 }
 
 /**
@@ -236,7 +246,12 @@ function restoreOrLeave(uniquePath, originalPath) {
  */
 function lockPayload(key) {
     const identity = readProcessIdentity(process.pid);
-    /** @type {{ pid: number, hostname: string, startedAt: string, token: string, key: string, bootId?: string, processStartMs?: number }} */
+    /**
+     * `key` is kept when it fits. A long path is replaced with `keyHash` so the
+     * file stays under the read cap. An oversized file is treated as not a lock
+     * and would otherwise be left in place forever.
+     * @type {{ pid: number, hostname: string, startedAt: string, token: string, key?: string, keyHash?: string, bootId?: string, processStartMs?: number }}
+     */
     const record = {
         pid: process.pid,
         hostname: os.hostname(),
@@ -246,7 +261,13 @@ function lockPayload(key) {
     };
     if (identity.bootId) record.bootId = identity.bootId;
     if (Number.isSafeInteger(identity.processStartMs)) record.processStartMs = identity.processStartMs;
-    return `${JSON.stringify(record)}\n`;
+    let text = `${JSON.stringify(record)}\n`;
+    if (Buffer.byteLength(text) <= MAX_LOCK_BYTES) return text;
+    delete record.key;
+    record.keyHash = digestKey(key);
+    text = `${JSON.stringify(record)}\n`;
+    if (Buffer.byteLength(text) > MAX_LOCK_BYTES) throw new PathLockError('path_lock_unavailable');
+    return text;
 }
 
 /**
@@ -310,6 +331,23 @@ function createExclusive(filePath, payload) {
 }
 
 /**
+ * A payload names this key either by the path itself or by its sha256.
+ * Missing both, or a mismatch, is stale. A live owner file from this process
+ * always has one of the two.
+ * @param {Record<string, unknown>} owner
+ * @param {string} key
+ * @returns {boolean}
+ */
+function payloadNamesKey(owner, key) {
+    const named = Object.prototype.hasOwnProperty.call(owner, 'key');
+    const hashed = Object.prototype.hasOwnProperty.call(owner, 'keyHash');
+    if (!named && !hashed) return false;
+    if (named && owner.key !== key) return false;
+    if (hashed && owner.keyHash !== digestKey(key)) return false;
+    return true;
+}
+
+/**
  * @param {string} text
  * @param {string} key
  * @returns {'live'|'stale'}
@@ -323,7 +361,7 @@ function classifyPayload(text, key) {
         return 'stale';
     }
     if (!owner || typeof owner !== 'object' || Array.isArray(owner)) return 'stale';
-    if (owner.key !== key) return 'stale';
+    if (!payloadNamesKey(owner, key)) return 'stale';
     if (typeof owner.hostname !== 'string' || owner.hostname.length === 0) return 'stale';
     // Another host may still be the owner. Do not delete that file.
     if (owner.hostname !== os.hostname()) return 'live';

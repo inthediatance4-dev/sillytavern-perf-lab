@@ -34,7 +34,7 @@ npm run perf:lab
 
 ## 恢复与运行限制
 
-进程内路径锁协调同一进程的协作写入。`exclusiveDataRoot` 或 `crossProcessPathLocks` 打开后，独占操作还会在 `<dataRoot>/.st-path-locks/<sha256>.lock` 上用 `O_EXCL` 互斥；共享持有者仍只在进程内，完整文件的读者靠原子替换。活锁按退避等待，默认 15 秒后返回 `path_lock_busy`。死亡或 pid 复用的锁由改名核对后删除。未打开标志的进程、其他主机的锁文件和符号链接不在此保证内。关闭排空只协调本进程。
+进程内路径锁协调同一进程的协作写入。`exclusiveDataRoot` 或 `crossProcessPathLocks` 打开后，独占操作还会在 `<dataRoot>/.st-path-locks/<sha256>.lock` 上用 `O_EXCL` 互斥；共享持有者仍只在进程内，完整文件的读者靠原子替换。持有独占跨进程锁时不能再进入 `withPathLocks`，备份写入会等该锁释放后才取备份目录。活锁按退避等待，默认 15 秒后返回 `path_lock_busy`。死亡或 pid 复用的锁由改名核对后删除。未打开标志的进程、其他主机的锁文件和符号链接不在此保证内。关闭排空只协调本进程。
 实验室启动器设置 `exclusiveDataRoot`，并传入 `--exclusiveDataRoot true`。服务器创建 `<dataRoot>/.st-lab-owner.lock`，写入 pid、主机名、启动时间、随机 token，以及能读到的启动标识和进程启动时间。Linux 使用 `/proc/sys/kernel/random/boot_id` 和 `/proc/<pid>/stat` 的 starttime（配合 `/proc/stat` 的 `btime`）。Windows 写入由 `os.uptime()` 近似得到的 `win-boot:` 时间（相差 2 秒内视为同一次启动），进程启动时间只在 PowerShell 或 WMIC 能在 200ms 内返回时写入，否则省略；此时同一次启动内的 pid 复用无法区分，缺少身份字段且 pid 仍存活的锁会保留。`process.kill(pid, 0)` 报存活（含 `EPERM`）且身份一致时，第二个进程拒绝启动。身份不一致视为 pid 复用。已退出的同一主机所有者，或被复用的 pid，由恰好一个进程回收：它用 `O_EXCL` 创建同目录的 `.st-lab-owner.lock.reclaim`，把过期锁文件原子改名到唯一路径，核对内容后才删除，再用 `O_EXCL` 创建新锁。回收标记按年龄过期，崩溃的回收者不会永久挡住下次启动。其他主机的锁、符号链接和无法读取的文件都留在原地，需要人工删除。正常退出、`process.exit` 和未捕获异常只会删除内容仍与本次写入一致的锁。`SIGKILL` 等信号不运行退出处理，文件可能留下，同一主机上的下次获取会回收它。不需要编译器或 Node 头文件。如果意外的文件系统错误让所有权无法判断，启动会记录警告并继续；这不是存活所有者冲突。未打开该标志的进程仍可共用同一个数据根。外部写入、插件后台任务和外部文件系统替换不在此保证内。
 关闭会先停止接纳请求，再等待已接纳的响应和持久化处理器。
 等待上限为 `SILLYTAVERN_DRAIN_TIMEOUT_MS`（默认 30 秒）；超时会记录日志并继续关闭，而不是一直挂起。

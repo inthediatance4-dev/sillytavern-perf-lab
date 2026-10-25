@@ -14,7 +14,7 @@ import { createTextMatcher } from '../chat-search.js';
 import { createChatInfoCache } from '../chat-info-cache.js';
 import { createChatBackupScheduler } from '../chat-backup-scheduler.js';
 import {
-    withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO,
+    withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO, runAfterExclusiveFsLocks,
     assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, isValidGroupChatId, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
 } from '../chat-io.js';
 import {
@@ -66,7 +66,10 @@ export function getBackupKey(name) {
 async function backupChat(directory, name, data, identity) {
     try {
         if (!isBackupEnabled) return;
-        await withPathLock(directory, async () => {
+        // The scheduler starts this from the save that still holds the chat
+        // file lock. Wait until that exclusive filesystem lock is released so
+        // the backup directory is not taken in the opposite order.
+        await runAfterExclusiveFsLocks(() => withPathLock(directory, async () => {
             name = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 80) || 'chat';
             const quotaPrefix = `${CHAT_BACKUPS_PREFIX}${name}_${identity}_`;
             const backupFile = path.join(directory, `${quotaPrefix}${generateTimestamp()}_${randomUUID()}.jsonl`);
@@ -76,7 +79,7 @@ async function backupChat(directory, name, data, identity) {
             if (!isNaN(maxTotalChatBackups) && maxTotalChatBackups >= 0) {
                 await recycleOldChatBackups(directory, CHAT_BACKUPS_PREFIX, maxTotalChatBackups, recycleOptions);
             }
-        });
+        }));
     } catch (err) {
         console.error(`Could not backup chat for ${name}`, err);
     }

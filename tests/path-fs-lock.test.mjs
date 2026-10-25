@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { pathLockKey, withPathLocks, ChatLifecycleError } from '../src/chat-io.js';
+import { pathLockKey, runAfterExclusiveFsLocks, withPathLocks, ChatLifecycleError } from '../src/chat-io.js';
 import { readProcessIdentity } from '../src/process-identity.js';
 import {
     configureCrossProcessPathLocks,
@@ -26,6 +26,7 @@ const target = process.argv[4];
 const marker = process.argv[5];
 const timeoutMs = Number(process.argv[6]);
 const releaseFile = process.argv[7] || '';
+const nested = process.argv[8] || '';
 if (enabled) configureCrossProcessPathLocks({ enabled: true, root, timeoutMs });
 try {
     await withPathLocks([target], async () => {
@@ -34,6 +35,11 @@ try {
         while (releaseFile && !fs.existsSync(releaseFile)) {
             if (Date.now() - started > 8000) throw new Error('release wait expired');
             await new Promise(resolve => setTimeout(resolve, 15));
+        }
+        if (nested) {
+            await withPathLocks([nested], async () => {
+                fs.writeFileSync(marker, 'nested:' + Date.now());
+            });
         }
         fs.writeFileSync(marker, 'done:' + Date.now());
     });
@@ -355,30 +361,128 @@ exclusiveTest('a timed-out later path releases the earlier filesystem lock', asy
     }
 });
 
-exclusiveTest('a nested lock may take another path but cannot re-enter a held key', async () => {
+exclusiveTest('a nested lock cannot take another path while an exclusive filesystem lock is held', async () => {
     const root = await freshDir('nested');
     const outer = path.join(root, 'outer.jsonl');
     const inner = path.join(root, 'inner.jsonl');
+    const shared = path.join(root, 'shared.jsonl');
     configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 500 });
-    let sawBoth = false;
-    await withPathLocks([outer], async () => {
+    await assert.rejects(withPathLocks([outer], async () => {
         await Promise.resolve();
-        await withPathLocks([inner], async () => {
-            const names = await fs.readdir(path.join(root, PATH_LOCK_DIRECTORY));
-            const locks = names.filter(name => name.endsWith('.lock')).sort();
-            assert.deepEqual(locks, [
-                path.basename(exclusiveLockPathFor(pathLockKey(inner))),
-                path.basename(exclusiveLockPathFor(pathLockKey(outer))),
-            ].sort());
-            sawBoth = true;
-        });
-    });
-    assert.equal(sawBoth, true);
+        const names = await fs.readdir(path.join(root, PATH_LOCK_DIRECTORY));
+        assert.deepEqual(names.filter(name => name.endsWith('.lock')), [path.basename(exclusiveLockPathFor(pathLockKey(outer)))]);
+        await withPathLocks([inner], async () => 'inner');
+    }), error => error instanceof ChatLifecycleError && error.reason === 'lock_reentered');
     assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(outer))).then(() => true, () => false), false);
+    assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(inner))).then(() => true, () => false), false);
     await assert.rejects(withPathLocks([outer], async () => {
         await withPathLocks([outer], async () => 'again');
     }), error => error instanceof ChatLifecycleError && error.reason === 'lock_reentered');
+    await assert.rejects(withPathLocks([{ path: shared, mode: 'shared' }], async () => {
+        await withPathLocks([shared], async () => 'upgrade');
+    }), error => error instanceof ChatLifecycleError && error.reason === 'lock_reentered');
     assert.equal(await withPathLocks([outer], async () => 'after'), 'after');
+    assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(outer))).then(() => true, () => false), false);
+});
+
+exclusiveTest('in-process nesting of a different path still runs when filesystem locks are off', async () => {
+    const root = await freshDir('nested-off');
+    const outer = path.join(root, 'outer.jsonl');
+    const inner = path.join(root, 'inner.jsonl');
+    let ran = false;
+    assert.equal(await withPathLocks([outer], async () => {
+        return withPathLocks([inner], async () => {
+            ran = true;
+            return 'inner';
+        });
+    }), 'inner');
+    assert.equal(ran, true);
+});
+
+exclusiveTest('opposite nested filesystem locks reject instead of waiting on each other', async () => {
+    const root = await freshDir('opposite');
+    const alpha = path.join(root, 'alpha.jsonl');
+    const beta = path.join(root, 'beta.jsonl');
+    const alphaMarker = path.join(root, 'alpha.txt');
+    const betaMarker = path.join(root, 'beta.txt');
+    const releaseFile = path.join(root, 'release');
+    configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 500 });
+    const first = startHelper([root, 'on', alpha, alphaMarker, '8000', releaseFile, beta]);
+    const second = startHelper([root, 'on', beta, betaMarker, '8000', releaseFile, alpha]);
+    try {
+        await Promise.all([
+            waitForMarker(alphaMarker, text => text.startsWith('entered:')),
+            waitForMarker(betaMarker, text => text.startsWith('entered:')),
+        ]);
+        assert.equal(JSON.parse(await fs.readFile(exclusiveLockPathFor(pathLockKey(alpha)), 'utf8')).pid, first.pid);
+        assert.equal(JSON.parse(await fs.readFile(exclusiveLockPathFor(pathLockKey(beta)), 'utf8')).pid, second.pid);
+        await fs.writeFile(releaseFile, 'go');
+        const results = await Promise.all([
+            waitForMarker(alphaMarker, text => text.startsWith('err:'), 2000),
+            waitForMarker(betaMarker, text => text.startsWith('err:'), 2000),
+        ]);
+        assert.deepEqual(results, ['err:lock_reentered', 'err:lock_reentered']);
+    } finally {
+        await fs.writeFile(releaseFile, 'go').catch(() => {});
+        await Promise.all([stopChild(first), stopChild(second)]);
+    }
+    assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(alpha))).then(() => true, () => false), false);
+    assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(beta))).then(() => true, () => false), false);
+});
+
+exclusiveTest('a deferred second lock does not overlap the outer filesystem lock', async () => {
+    const root = await freshDir('deferred');
+    const outer = path.join(root, 'outer.jsonl');
+    const inner = path.join(root, 'inner.jsonl');
+    configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 500 });
+    let overlapped = false;
+    let sawOuter = true;
+    /** @type {Promise<string>} */
+    let follow;
+    await withPathLocks([outer], async () => {
+        follow = runAfterExclusiveFsLocks(async () => {
+            sawOuter = await fs.access(exclusiveLockPathFor(pathLockKey(outer))).then(() => true, () => false);
+            await withPathLocks([inner], async () => {
+                const outerHeld = await fs.access(exclusiveLockPathFor(pathLockKey(outer))).then(() => true, () => false);
+                const innerHeld = await fs.access(exclusiveLockPathFor(pathLockKey(inner))).then(() => true, () => false);
+                overlapped = outerHeld && innerHeld;
+            });
+            return 'inner';
+        });
+        await Promise.resolve();
+        assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(outer))).then(() => true, () => false), true);
+    });
+    assert.equal(await follow, 'inner');
+    assert.equal(sawOuter, false);
+    assert.equal(overlapped, false);
+    assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(outer))).then(() => true, () => false), false);
+    assert.equal(await fs.access(exclusiveLockPathFor(pathLockKey(inner))).then(() => true, () => false), false);
+});
+
+exclusiveTest('a long path stores a key hash and does not leave a lock file', async () => {
+    const root = await freshDir('long-path');
+    const file = path.join(root, `${'p'.repeat(5000)}.jsonl`);
+    configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 500 });
+    const key = pathLockKey(file);
+    assert.ok(Buffer.byteLength(JSON.stringify({ key })) > 4096);
+    await withPathLocks([file], async () => {
+        const payload = JSON.parse(await fs.readFile(exclusiveLockPathFor(key), 'utf8'));
+        assert.equal(Object.hasOwn(payload, 'key'), false);
+        assert.equal(payload.keyHash, exclusiveLockPathFor(key).split(path.sep).pop().replace(/\.lock$/, ''));
+        assert.equal(payload.pid, process.pid);
+    });
+    assert.equal(await fs.access(exclusiveLockPathFor(key)).then(() => true, () => false), false);
+    const dead = {
+        pid: exitedPid(),
+        hostname: os.hostname(),
+        startedAt: '2000-01-01T00:00:00.000Z',
+        token: 'dead-hash',
+        keyHash: exclusiveLockPathFor(key).split(path.sep).pop().replace(/\.lock$/, ''),
+    };
+    await fs.mkdir(path.dirname(exclusiveLockPathFor(key)), { recursive: true });
+    await fs.writeFile(exclusiveLockPathFor(key), `${JSON.stringify(dead)}\n`);
+    assert.equal(await withPathLocks([file], async () => 'reclaimed'), 'reclaimed');
+    assert.equal(await fs.access(exclusiveLockPathFor(key)).then(() => true, () => false), false);
 });
 
 exclusiveTest('path lock acquisition does not invoke a compiler', async () => {
@@ -389,4 +493,6 @@ exclusiveTest('path lock acquisition does not invoke a compiler', async () => {
     assert.equal(source.includes('child_process'), false);
     assert.match(server, /cliArgs\.exclusiveDataRoot \|\| cliArgs\.crossProcessPathLocks/);
     assert.match(server, /configureCrossProcessPathLocks/);
+    const chats = await fs.readFile(new URL('../src/endpoints/chats.js', import.meta.url), 'utf8');
+    assert.match(chats, /runAfterExclusiveFsLocks\(\(\) => withPathLock\(directory/);
 });

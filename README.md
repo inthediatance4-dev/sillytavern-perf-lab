@@ -15,7 +15,7 @@ npm run lint
 npm run perf:lab
 ```
 
-`test:perf` runs 31 test files with synthetic fixtures (some bind localhost
+`test:perf` runs 32 test files with synthetic fixtures (some bind localhost
 sockets). The three independent historical-oracle suites skip gracefully when
 Git or their historical objects are unavailable; a full-history checkout enables
 those comparisons. `bench:perf` still requires historical Git objects.
@@ -25,8 +25,10 @@ scripts and tests; it is not a full recommended-rule gate.
 `perf:lab` opens a server at **http://127.0.0.1:8780/** using this checkout's
 `.lab-data/` and `.lab-config.yaml`. Every launch enforces loopback, disables SSL,
 browser launch, extension auto-updates and server plugins, and rejects inherited
-`SILLYTAVERN_*` overrides. It refuses an occupied port. Use synthetic data and one
-server process per data root. See [ISOLATION.md](ISOLATION.md) for recovery,
+`SILLYTAVERN_*` overrides. It refuses an occupied port and sets
+`exclusiveDataRoot`, so the server creates `<dataRoot>/.st-lab-owner.lock`
+and a second opted-in process cannot share that directory. Use synthetic data
+and one server process per data root. See [ISOLATION.md](ISOLATION.md) for recovery,
 limitations and dated evidence, and [中文说明](README.zh-CN.md).
 
 `python tests/browser-performance-lab.py` and `python tests/browser-lifecycle-lab.py`
@@ -63,6 +65,12 @@ Ordinary file operations take a shared lock on the parent directory and an
 exclusive lock on the file, so different group chats in one directory can
 proceed together. Directory retirement, rename, delete, and backup pruning
 take that directory exclusively and are not starved by later shared holders.
+Those path locks stay inside one process. `exclusiveDataRoot` is off unless
+the lab launcher or config turns it on. The owner file records pid, host, and
+start time, is reclaimed when that pid is dead on the same host, and is
+removed on exit. It is not per-file cross-process locking. A lock from another
+host is left in place. PID reuse can make a dead lock look alive, and a
+process started without the flag can still share the root.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

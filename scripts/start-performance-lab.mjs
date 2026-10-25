@@ -45,6 +45,7 @@ export async function prepareLab() {
         config.browserLaunch.enabled = false;
         config.extensions.autoUpdate = false;
         config.enableServerPlugins = false;
+        config.exclusiveDataRoot = true;
         config.logging.minLogLevel = 1;
         // Keep backup semantics; a small retention makes fixture recycling visible.
         config.backups.common.numberOfBackups = 5;
@@ -60,8 +61,26 @@ export async function prepareLab() {
     config.browserLaunch = { ...config.browserLaunch, enabled: false };
     config.extensions = { ...config.extensions, autoUpdate: false };
     config.enableServerPlugins = false;
+    config.exclusiveDataRoot = true;
     await fs.writeFile(configPath, yaml.stringify(config));
     return { root, dataRoot, configPath, port, listenAddress: '127.0.0.1' };
+}
+
+/** Arguments for the lab server. The child holds the data-root owner lock. */
+export function labServerArguments(lab) {
+    return [
+        'server.js',
+        '--configPath', lab.configPath,
+        '--dataRoot', lab.dataRoot,
+        '--port', String(lab.port),
+        '--listen', 'false',
+        '--listenAddressIPv4', '127.0.0.1',
+        '--enableIPv4', 'true',
+        '--enableIPv6', 'false',
+        '--browserLaunchEnabled', 'false',
+        '--ssl', 'false',
+        '--exclusiveDataRoot', 'true',
+    ];
 }
 
 async function assertPortAvailable() {
@@ -79,7 +98,7 @@ async function main() {
     if (process.argv.includes('--check')) { console.log(JSON.stringify(lab)); return; }
     await assertPortAvailable();
     const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('SILLYTAVERN_')));
-    const args = ['server.js', '--configPath', lab.configPath, '--dataRoot', lab.dataRoot, '--port', String(port), '--listen', 'false', '--listenAddressIPv4', '127.0.0.1', '--enableIPv4', 'true', '--enableIPv6', 'false', '--browserLaunchEnabled', 'false', '--ssl', 'false'];
+    const args = labServerArguments(lab);
     console.log(`Independent lab: http://127.0.0.1:${port}/ (data: ${lab.dataRoot})`);
     const child = spawn(process.execPath, args, { cwd: root, env, stdio: 'inherit', windowsHide: true });
     child.once('error', error => { console.error(error.message); process.exitCode = 1; });

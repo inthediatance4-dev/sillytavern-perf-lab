@@ -35,6 +35,7 @@ import { initConfig } from './config-init.js';
  * @property {boolean} requestProxyEnabled If enable outgoing request proxy
  * @property {string} requestProxyUrl Request proxy URL
  * @property {string[]} requestProxyBypass Request proxy bypass list
+ * @property {boolean} exclusiveDataRoot If this process must exclusively own the data root
  * @property {function(): URL} getIPv4ListenUrl Get IPv4 listen URL
  * @property {function(): URL} getIPv6ListenUrl Get IPv6 listen URL
  * @property {function(import('./server-startup.js').ServerStartupResult): Promise<string>} getBrowserLaunchHostname Get browser launch hostname
@@ -81,6 +82,7 @@ export class CommandLineParser {
             requestProxyEnabled: false,
             requestProxyUrl: '',
             requestProxyBypass: [],
+            exclusiveDataRoot: false,
             getIPv4ListenUrl: function () {
                 throw new Error('getIPv4ListenUrl is not implemented');
             },
@@ -243,6 +245,11 @@ export class CommandLineParser {
                 default: null,
                 describe: 'Interval in seconds to write a heartbeat file. 0 to disable.',
             })
+            .option('exclusiveDataRoot', {
+                type: 'boolean',
+                default: null,
+                describe: 'Refuse to start when another live process already owns this data root',
+            })
             /* DEPRECATED options */
             .option('autorun', {
                 type: 'boolean',
@@ -324,6 +331,7 @@ export class CommandLineParser {
             requestProxyEnabled: cliArguments.requestProxyEnabled ?? getConfigValue('requestProxy.enabled', defaultConfig.requestProxyEnabled, 'boolean'),
             requestProxyUrl: cliArguments.requestProxyUrl ?? getConfigValue('requestProxy.url', defaultConfig.requestProxyUrl),
             requestProxyBypass: cliArguments.requestProxyBypass ?? getConfigValue('requestProxy.bypass', defaultConfig.requestProxyBypass),
+            exclusiveDataRoot: cliArguments.exclusiveDataRoot ?? getConfigValue('exclusiveDataRoot', defaultConfig.exclusiveDataRoot, 'boolean'),
             getIPv4ListenUrl: function () {
                 const isValid = ipRegex.v4({ exact: true }).test(this.listenAddressIPv4);
                 return new URL(

@@ -71,6 +71,7 @@ import { init as statsInit, onExit as statsOnExit } from './endpoints/stats.js';
 import { checkForNewContent } from './endpoints/content-manager.js';
 import { init as settingsInit } from './endpoints/settings.js';
 import { createRequestDrain } from './request-drain.js';
+import { acquireDataRootOwnership } from './data-root-owner.js';
 import { flushChatBackups } from './endpoints/chats.js';
 import { redirectDeprecatedEndpoints, ServerStartup, setupPrivateEndpoints } from './server-startup.js';
 import { diskCache } from './endpoints/characters.js';
@@ -96,6 +97,16 @@ const cliArgs = globalThis.COMMAND_LINE_ARGS;
 if (!cliArgs.enableIPv6 && !cliArgs.enableIPv4) {
     console.error('error: You can\'t disable all internet protocols: at least IPv6 or IPv4 must be enabled.');
     process.exit(1);
+}
+
+// Opt-in. Ordinary startup and tests leave this unset. The lab launcher sets it.
+if (cliArgs.exclusiveDataRoot) {
+    try {
+        acquireDataRootOwnership(globalThis.DATA_ROOT);
+    } catch (error) {
+        console.error(error.message);
+        process.exit(1);
+    }
 }
 
 // Set keep-alive preference for all HTTP/HTTPS requests.

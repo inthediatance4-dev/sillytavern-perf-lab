@@ -21,7 +21,8 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 function harness(overrides = {}) {
     const observations = { loads: [], events: [], recoveryEvents: [], clears: [], selections: [], persisted: [], active: [], saves: 0, tts: 0, errors: 0, info: 0, unshallowed: [], fields: [] };
     const context = vm.createContext({
-        console: { error() {}, debug() {} },
+        console: { error() {}, debug() {}, log() {} },
+        structuredClone,
         t: (parts, ...values) => parts.reduce((text, part, i) => text + part + (values[i] ?? ''), ''),
         toastr: { error: () => { observations.errors++; }, info: () => { observations.info++; } },
         characters: [

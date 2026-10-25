@@ -101,7 +101,7 @@ export async function saveItemizedPrompts(chatId) {
             return;
         }
         // Keep the started save's rows independent of a later load or reset.
-        const snapshot = itemizedPrompts.slice();
+        const snapshot = structuredClone(itemizedPrompts);
         await promptStorage.setItem(chatId, snapshot);
         await eventSource.emit(event_types.ITEMIZED_PROMPTS_SAVED, { chatId: chatId });
     } catch {

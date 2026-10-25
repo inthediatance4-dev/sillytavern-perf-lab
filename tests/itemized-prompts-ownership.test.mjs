@@ -22,9 +22,10 @@ function harness() {
     const stored = new Map([['A', rows('A')], ['B', rows('B')]]);
     const reads = [], writes = [], events = [], logs = [];
     const c = vm.createContext({
+        structuredClone,
         localforage: { createInstance: () => ({
             getItem(id) { const gate = deferred(); reads.push({ id, ...gate }); return gate.promise; },
-            async setItem(id, value) { const snapshot = plain(value); writes.push({ id, rows: snapshot }); await c.setGate?.promise; stored.set(id, snapshot); },
+            async setItem(id, value) { await c.setGate?.promise; const snapshot = plain(value); writes.push({ id, rows: snapshot }); stored.set(id, snapshot); },
         }) },
         console: { log: (...args) => logs.push(args), debug() {}, warn() {} },
         event_types: { ITEMIZED_PROMPTS_LOADED: 'loaded', ITEMIZED_PROMPTS_SAVED: 'saved' },
@@ -307,4 +308,20 @@ test('normal group terminal events may replace metadata without canceling succes
     h.c.listener = async type => { if (type === 'chat-changed' || type === 'group-created') h.c.chat_metadata = { from: type }; };
     const opening = h.c.openGroupById('group-A'); await tick(); h.reads[0].resolve(rows('A'));
     assert.equal(await opening, true); assert.deepEqual(h.events.map(event => event.type), ['loaded', 'chat-changed', 'group-created']);
+});
+
+test('started saves isolate nested prompt rows until deferred serialization', async () => {
+    const h = harness();
+    const load = h.c.loadItemizedPrompts('A');
+    const value = [{ mesId: 0, rawPrompt: [{ content: 'original', extra: { value: 1 } }] }];
+    h.reads[0].resolve(value);
+    await load;
+    h.c.setGate = deferred();
+    const saving = h.c.saveItemizedPrompts('A');
+    value[0].rawPrompt[0].content = 'changed';
+    value[0].rawPrompt[0].extra.value = 2;
+    h.c.setGate.resolve();
+    await saving;
+    assert.equal(h.stored.get('A')[0].rawPrompt[0].content, 'original');
+    assert.equal(h.stored.get('A')[0].rawPrompt[0].extra.value, 1);
 });

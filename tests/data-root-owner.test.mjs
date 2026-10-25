@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
+import { spawn, spawnSync } from 'node:child_process';
+import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { acquireDataRootOwnership, DATA_ROOT_OWNER_LOCK, releaseDataRootOwnership } from '../src/data-root-owner.js';
+import {
+    acquireDataRootOwnership,
+    DATA_ROOT_OWNER_LOCK,
+    DATA_ROOT_OWNER_RECLAIM,
+    DATA_ROOT_RECLAIM_TIMEOUT_MS,
+    releaseDataRootOwnership,
+} from '../src/data-root-owner.js';
 
 const moduleUrl = new URL('../src/data-root-owner.js', import.meta.url).href;
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'st-owner-'));
@@ -18,7 +25,7 @@ const marker = process.argv[4];
 try {
     acquireDataRootOwnership(root);
 } catch (error) {
-    if (marker) fs.writeFileSync(marker, 'err');
+    if (marker) fs.writeFileSync(marker, 'err\\n' + (error && error.message ? error.message : error));
     console.error(error.message);
     process.exit(1);
 }
@@ -64,13 +71,18 @@ test('a live owner blocks another process and leaves the lock unchanged', async 
     const dataRoot = await freshRoot('live');
     const owned = acquireDataRootOwnership(dataRoot);
     const before = await fs.readFile(owned.lockPath, 'utf8');
+    const warnings = [];
+    const originalWarn = console.warn;
+    console.warn = (message) => warnings.push(String(message));
     try {
         const child = runAcquire(dataRoot);
         assert.notEqual(child.status, 0);
         assert.match(child.stderr, new RegExp(`pid ${process.pid}`));
         assert.match(child.stderr, new RegExp(os.hostname().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
         assert.equal(await fs.readFile(owned.lockPath, 'utf8'), before);
+        assert.deepEqual(warnings, []);
     } finally {
+        console.warn = originalWarn;
         releaseDataRootOwnership();
     }
     assert.equal(await fs.access(owned.lockPath).then(() => true, () => false), false);
@@ -156,22 +168,24 @@ test('a symlink owner file is not followed or rewritten', async () => {
     assert.equal(stat.isSymbolicLink(), true);
 });
 
-test('two processes cannot both reclaim one stale owner', async () => {
-    const dataRoot = await freshRoot('race');
+function normalizeOutcome(text) {
+    return text.startsWith('err') ? 'err' : text;
+}
+
+async function assertSingleReclaimWinner(dataRoot) {
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
-    const stale = { pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' };
-    await fs.writeFile(lockPath, `${JSON.stringify(stale)}\n`);
     const firstMarker = path.join(dataRoot, 'first.txt');
     const secondMarker = path.join(dataRoot, 'second.txt');
     const first = spawn(process.execPath, [helper, dataRoot, 'hold', firstMarker], { stdio: 'ignore' });
     const second = spawn(process.execPath, [helper, dataRoot, 'hold', secondMarker], { stdio: 'ignore' });
     try {
         const markers = await Promise.all([waitForMarker(firstMarker), waitForMarker(secondMarker)]);
-        assert.deepEqual(markers.slice().sort(), ['err', 'ok']);
+        assert.deepEqual(markers.map(normalizeOutcome).sort(), ['err', 'ok'], markers.join(' | '));
         const current = JSON.parse(await fs.readFile(lockPath, 'utf8'));
-        const winner = markers[0] === 'ok' ? first : second;
+        const winner = normalizeOutcome(markers[0]) === 'ok' ? first : second;
         assert.equal(current.pid, winner.pid);
         assert.equal(current.hostname, os.hostname());
+        assert.equal(await fs.access(path.join(dataRoot, DATA_ROOT_OWNER_RECLAIM)).then(() => true, () => false), false);
         winner.kill('SIGKILL');
         await new Promise(resolve => winner.once('exit', resolve));
         const reclaimed = acquireDataRootOwnership(dataRoot);
@@ -185,5 +199,122 @@ test('two processes cannot both reclaim one stale owner', async () => {
     } finally {
         first.kill('SIGKILL');
         second.kill('SIGKILL');
+    }
+}
+
+test('two processes cannot both reclaim one stale owner', async () => {
+    const dataRoot = await freshRoot('race');
+    const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
+    const stale = { pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' };
+    await fs.writeFile(lockPath, `${JSON.stringify(stale)}\n`);
+    await assertSingleReclaimWinner(dataRoot);
+});
+
+test('a stale reclaim marker is taken over once and a fresh one is not', async () => {
+    assert.equal(DATA_ROOT_OWNER_RECLAIM, '.st-lab-owner.lock.reclaim');
+    assert.ok(DATA_ROOT_RECLAIM_TIMEOUT_MS >= 1000);
+    const dataRoot = await freshRoot('reclaim-timeout');
+    const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
+    const reclaimPath = path.join(dataRoot, DATA_ROOT_OWNER_RECLAIM);
+    const staleOwner = `${JSON.stringify({ pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' })}\n`;
+    const freshMarker = `${JSON.stringify({ pid: exitedPid(), hostname: os.hostname(), claimedAt: new Date().toISOString() })}\n`;
+    await fs.writeFile(lockPath, staleOwner);
+    await fs.writeFile(reclaimPath, freshMarker);
+    assert.throws(() => acquireDataRootOwnership(dataRoot), /Could not acquire/);
+    assert.equal(await fs.readFile(lockPath, 'utf8'), staleOwner);
+    assert.equal(await fs.readFile(reclaimPath, 'utf8'), freshMarker);
+
+    const expired = new Date(Date.now() - DATA_ROOT_RECLAIM_TIMEOUT_MS - 5000);
+    await fs.utimes(reclaimPath, expired, expired);
+    const owned = acquireDataRootOwnership(dataRoot);
+    try {
+        const current = JSON.parse(await fs.readFile(lockPath, 'utf8'));
+        assert.equal(current.pid, process.pid);
+        assert.equal(owned.lockPath, lockPath);
+        assert.equal(await fs.access(reclaimPath).then(() => true, () => false), false);
+    } finally {
+        releaseDataRootOwnership();
+    }
+});
+
+test('acquiring a data root never spawns a compiler', async () => {
+    const source = await fs.readFile(new URL('../src/data-root-owner.js', import.meta.url), 'utf8');
+    assert.equal(source.includes('gcc'), false);
+    assert.equal(source.includes('node_api'), false);
+    assert.equal(source.includes('child_process'), false);
+    assert.equal(source.includes('execFile'), false);
+    assert.equal(source.includes('data-root-flock'), false);
+    assert.equal(await fs.access(new URL('../src/data-root-flock.c', import.meta.url)).then(() => true, () => false), false);
+
+    const dataRoot = await freshRoot('no-compiler');
+    if (process.platform === 'win32') {
+        const owned = acquireDataRootOwnership(dataRoot);
+        assert.equal(owned.pid, process.pid);
+        releaseDataRootOwnership();
+        return;
+    }
+    const bin = path.join(temp, 'fake-bin');
+    await fs.mkdir(bin, { recursive: true });
+    const log = path.join(temp, 'compiler-log');
+    const script = `#!/bin/sh\nprintf '%s\\n' "$0" >> ${JSON.stringify(log)}\nexit 1\n`;
+    for (const name of ['gcc', 'cc', 'clang']) {
+        const file = path.join(bin, name);
+        await fs.writeFile(file, script, { mode: 0o755 });
+    }
+    const child = spawnSync(process.execPath, [helper, dataRoot, 'exit'], {
+        encoding: 'utf8',
+        timeout: 10000,
+        env: { ...process.env, PATH: bin },
+    });
+    assert.equal(child.status, 0, child.stderr);
+    assert.equal(await fs.access(log).then(() => true, () => false), false);
+});
+
+test('EPERM from process.kill means the same-host owner is alive', async () => {
+    const dataRoot = await freshRoot('eperm');
+    const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
+    const payload = `${JSON.stringify({ pid: 424242, hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' })}\n`;
+    await fs.writeFile(lockPath, payload);
+    const original = process.kill;
+    process.kill = function patchedKill(pid, signal) {
+        if (pid === 424242 && signal === 0) {
+            const error = new Error('operation not permitted');
+            error.code = 'EPERM';
+            throw error;
+        }
+        return original.call(this, pid, signal);
+    };
+    try {
+        assert.throws(() => acquireDataRootOwnership(dataRoot), /pid 424242/);
+        assert.equal(await fs.readFile(lockPath, 'utf8'), payload);
+    } finally {
+        process.kill = original;
+    }
+});
+
+test('an unexpected environment error warns and continues', async () => {
+    const dataRoot = await freshRoot('environment');
+    const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
+    const original = fsSync.openSync;
+    fsSync.openSync = function patchedOpen() {
+        const error = new Error('simulated EIO');
+        error.code = 'EIO';
+        throw error;
+    };
+    const warnings = [];
+    const originalWarn = console.warn;
+    console.warn = (message) => warnings.push(String(message));
+    try {
+        const owned = acquireDataRootOwnership(dataRoot);
+        assert.equal(owned.unverified, true);
+        assert.equal(owned.lockPath, null);
+        assert.equal(warnings.length, 1);
+        assert.match(warnings[0], /could not be determined/i);
+        assert.match(warnings[0], /Continuing without an exclusive owner lock/);
+        assert.match(warnings[0], /EIO/);
+        assert.equal(await fs.access(lockPath).then(() => true, () => false), false);
+    } finally {
+        fsSync.openSync = original;
+        console.warn = originalWarn;
     }
 });

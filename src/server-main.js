@@ -321,6 +321,9 @@ async function preSetupTasks() {
     const exitProcess = async () => {
         if (isExiting) return;
         isExiting = true;
+        // stop() rejects new work immediately. Its wait is bounded by
+        // SILLYTAVERN_DRAIN_TIMEOUT_MS (default 30s) and then shutdown continues.
+        console.log('Stopping admission and draining in-flight requests.');
         await requestDrain.stop();
         await flushChatBackups();
         await statsOnExit();

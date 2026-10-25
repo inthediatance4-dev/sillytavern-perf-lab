@@ -29,7 +29,7 @@ import { CharXParser, persistCharXAssets } from '../charx.js';
 import cacheBuster from '../middleware/cacheBuster.js';
 import { randomUUID } from 'node:crypto';
 import {
-    withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, retireChatPath, rollbackChatRetirement,
+    withPathLocks, chatLockPaths, assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, ChatLifecycleError, retireChatPath, rollbackChatRetirement,
     recycleChatPath, createChatFileExclusive, fingerprintChatPath, inheritChatRetirements,
 } from '../chat-io.js';
 
@@ -825,8 +825,10 @@ async function importFromByaf(uploadPath, { request }, preservedFileName) {
             const chatName = sanitize(`${scenario.title || card.name} - ${humanizedDateTime()}-${randomUUID()} imported.jsonl`, { replacement: sanitizeSafeCharacterReplacements });
             const filePath = path.join(request.user.directories.chats, path.basename(fileName), chatName);
             await withPathLocks(chatLockPaths([filePath]), async () => {
-                await assertChatWritable(filePath, request.user.directories.chats);
-                await createChatFileExclusive(filePath, ByafParser.getChatFromScenario(scenario, request.body.user_name, card.name, byafData.chatBackgrounds));
+                await usingRetiredPathReuse(filePath, request.user.directories.chats, async () => {
+                    await assertChatWritable(filePath, request.user.directories.chats);
+                    await createChatFileExclusive(filePath, ByafParser.getChatFromScenario(scenario, request.body.user_name, card.name, byafData.chatBackgrounds));
+                });
             });
             console.log(`Created ${chatName} chat from BYAF import`);
             return chatName;
@@ -1041,14 +1043,37 @@ router.post('/create', getFileNameValidationFunction('file_name'), async functio
         const chatsPath = path.join(request.user.directories.chats, internalName);
         const avatarPath = path.join(request.user.directories.characters, avatarName);
         await withPathLocks([...chatLockPaths([avatarPath]), chatsPath], async () => {
-            await assertChatWritable(chatsPath, request.user.directories.chats);
-            await assertChatWritable(avatarPath, request.user.directories.characters);
-            if (fs.existsSync(avatarPath)) throw new ChatLifecycleError('target_exists');
-            await fsPromises.mkdir(chatsPath, { recursive: true });
-            const uploadPath = request.file ? path.join(request.file.destination, request.file.filename) : undefined;
-            const result = await writeCharacterData(uploadPath ?? DEFAULT_AVATAR_PATH, char, internalName, request, tryParse(request.query.crop));
-            if (!result) throw new Error('Character creation did not complete');
-            if (uploadPath) await recycleChatPath(uploadPath).catch(error => console.error('Imported character upload retained in place', error));
+            // Create admission only. An existing chats directory is still mkdir'd; an existing avatar stays target_exists.
+            // Markers are recycled only after the card is published. A failed attempt removes an empty directory it created, then restores the marker.
+            await usingRetiredPathReuses([
+                { filePath: chatsPath, lifecycleRoot: request.user.directories.chats },
+                { filePath: avatarPath, lifecycleRoot: request.user.directories.characters },
+            ], async () => {
+                await assertChatWritable(chatsPath, request.user.directories.chats);
+                await assertChatWritable(avatarPath, request.user.directories.characters);
+                if (fs.existsSync(avatarPath)) throw new ChatLifecycleError('target_exists');
+                let createdDirectory = false;
+                try {
+                    await fsPromises.lstat(chatsPath);
+                } catch (error) {
+                    if (error.code !== 'ENOENT') throw error;
+                    createdDirectory = true;
+                }
+                await fsPromises.mkdir(chatsPath, { recursive: true });
+                try {
+                    const uploadPath = request.file ? path.join(request.file.destination, request.file.filename) : undefined;
+                    const result = await writeCharacterData(uploadPath ?? DEFAULT_AVATAR_PATH, char, internalName, request, tryParse(request.query.crop));
+                    if (!result) throw new Error('Character creation did not complete');
+                    if (uploadPath) await recycleChatPath(uploadPath).catch(error => console.error('Imported character upload retained in place', error));
+                } catch (error) {
+                    if (createdDirectory) {
+                        await fsPromises.rmdir(chatsPath).catch(cleanupError => {
+                            if (cleanupError.code !== 'ENOENT') console.error('Empty character chat directory retained after a failed create', cleanupError);
+                        });
+                    }
+                    throw error;
+                }
+            });
         });
         return response.send(avatarName);
     } catch (err) {
@@ -1079,36 +1104,41 @@ router.post('/rename', validateAvatarUrlMiddleware, async function (request, res
     try {
         await withPathLocks([...chatLockPaths([oldAvatarPath, newAvatarPath]), oldChatsPath, newChatsPath], async () => {
             await assertChatWritable(oldChatsPath, request.user.directories.chats);
-            await assertChatWritable(newChatsPath, request.user.directories.chats);
-            if (fs.existsSync(newAvatarPath) || fs.existsSync(newChatsPath)) throw new ChatLifecycleError('target_exists');
-            const originalAvatar = await fsPromises.readFile(oldAvatarPath);
-            const oldData = getCharaCardV2(JSON.parse(read(originalAvatar)), request.user.directories);
-            _.set(oldData, 'data.name', newName);
-            _.set(oldData, 'name', newName);
-            await createChatFileExclusive(newAvatarPath, write(originalAvatar, JSON.stringify(oldData)));
-            let retirement;
-            let inherited = [];
-            let moved = false;
-            try {
-                inherited = await inheritChatRetirements(oldChatsPath, newChatsPath, request.user.directories.chats);
-                retirement = await retireChatPath(oldChatsPath, request.user.directories.chats, 'character_renamed');
-                if (fs.existsSync(oldChatsPath)) {
-                    await fsPromises.rename(oldChatsPath, newChatsPath);
-                    moved = true;
-                }
-                await recycleChatPath(oldAvatarPath, request.user.directories.characters);
-            } catch (error) {
+            await usingRetiredPathReuses([
+                { filePath: newChatsPath, lifecycleRoot: request.user.directories.chats },
+                { filePath: newAvatarPath, lifecycleRoot: request.user.directories.characters },
+            ], async () => {
+                await assertChatWritable(newChatsPath, request.user.directories.chats);
+                if (fs.existsSync(newAvatarPath) || fs.existsSync(newChatsPath)) throw new ChatLifecycleError('target_exists');
+                const originalAvatar = await fsPromises.readFile(oldAvatarPath);
+                const oldData = getCharaCardV2(JSON.parse(read(originalAvatar)), request.user.directories);
+                _.set(oldData, 'data.name', newName);
+                _.set(oldData, 'name', newName);
+                await createChatFileExclusive(newAvatarPath, write(originalAvatar, JSON.stringify(oldData)));
+                let retirement;
+                let inherited = [];
+                let moved = false;
                 try {
-                    if ((await fsPromises.readFile(oldAvatarPath)).equals(originalAvatar)) {
-                        if (moved) await fsPromises.rename(newChatsPath, oldChatsPath);
-                        if (retirement) await rollbackChatRetirement(retirement);
-                        for (const marker of inherited) await rollbackChatRetirement(marker);
-                        await recycleChatPath(newAvatarPath, request.user.directories.characters);
+                    inherited = await inheritChatRetirements(oldChatsPath, newChatsPath, request.user.directories.chats);
+                    retirement = await retireChatPath(oldChatsPath, request.user.directories.chats, 'character_renamed');
+                    if (fs.existsSync(oldChatsPath)) {
+                        await fsPromises.rename(oldChatsPath, newChatsPath);
+                        moved = true;
                     }
-                } catch (recoveryError) { console.error('Character rename recovery remains fail-closed', recoveryError); }
-                throw error;
-            }
-            if (request.user.directories.thumbnailsAvatar) await recycleChatPath(path.join(request.user.directories.thumbnailsAvatar, oldAvatarName)).catch(error => console.error('Old thumbnail retained in place', error));
+                    await recycleChatPath(oldAvatarPath, request.user.directories.characters);
+                } catch (error) {
+                    try {
+                        if ((await fsPromises.readFile(oldAvatarPath)).equals(originalAvatar)) {
+                            if (moved) await fsPromises.rename(newChatsPath, oldChatsPath);
+                            if (retirement) await rollbackChatRetirement(retirement);
+                            for (const marker of inherited) await rollbackChatRetirement(marker);
+                            await recycleChatPath(newAvatarPath, request.user.directories.characters);
+                        }
+                    } catch (recoveryError) { console.error('Character rename recovery remains fail-closed', recoveryError); }
+                    throw error;
+                }
+                if (request.user.directories.thumbnailsAvatar) await recycleChatPath(path.join(request.user.directories.thumbnailsAvatar, oldAvatarName)).catch(error => console.error('Old thumbnail retained in place', error));
+            });
         });
         // Return new avatar name to ST
         return response.send({ avatar: newAvatarName });

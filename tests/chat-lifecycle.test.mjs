@@ -368,15 +368,53 @@ test('two character renames toward one new name do not overwrite the first publi
     assert.equal((await post('/api/chats/save', { avatar_url: `${activeSource}.png`, file_name: 'renamed-chat', chat: rows('loser remains active') })).status, 200);
 });
 
-test('creating a character with a retired directory name is rejected before any mkdir or upload mutation', async () => {
+test('a deleted character name can be created again, while an ordinary save stays retired until then', async () => {
     const card = 'RetiredCreate'; const source = file('retired-create-chat', 'retired create history', card);
     fs.writeFileSync(path.join(dirs.characters, `${card}.png`), 'retired-create avatar');
     assert.equal((await post('/api/characters/delete', { avatar_url: `${card}.png`, delete_chats: true })).status, 200);
-    const name = `retired-create-${crypto.randomUUID()}.png`; const upload = path.join(dirs.uploads, name); fs.writeFileSync(upload, 'artificial upload retained');
-    assert.equal((await post('/api/characters/create', { ch_name: card, file_name: card, _upload: name })).status, 409);
+    const late = await post('/api/chats/save', { avatar_url: `${card}.png`, file_name: 'retired-create-chat', chat: rows('late'), force: true });
+    assert.equal(late.status, 409);
+    assert.equal(late.data.reason, 'retired_path');
     assert.equal(fs.existsSync(path.dirname(source)), false);
-    assert.equal(fs.existsSync(path.join(dirs.characters, `${card}.png`)), false);
-    assert.equal(await fs.promises.readFile(upload, 'utf8'), 'artificial upload retained');
+    const name = `retired-create-${crypto.randomUUID()}.png`; const upload = path.join(dirs.uploads, name);
+    const { default: encode } = await import('../src/png/encode.js'); const { deflateSync } = await import('node:zlib');
+    const header = Buffer.alloc(13); header.writeUInt32BE(1, 0); header.writeUInt32BE(1, 4); header[8] = 8; header[9] = 6;
+    fs.writeFileSync(upload, Buffer.from(encode([{ name: 'IHDR', data: header }, { name: 'IDAT', data: deflateSync(Buffer.from([0, 255, 0, 255, 255])) }, { name: 'IEND', data: Buffer.alloc(0) }])));
+    const created = await post('/api/characters/create', { ch_name: card, file_name: card, _upload: name });
+    assert.equal(created.status, 200);
+    assert.equal(created.data, `${card}.png`);
+    assert.equal(fs.existsSync(path.join(dirs.characters, `${card}.png`)), true);
+    assert.equal(fs.existsSync(path.join(dirs.chats, card, 'retired-create-chat.jsonl')), false);
+    assert.equal(fs.existsSync(upload), false);
+    assert.ok((await retained(path.join(dirs.chats, '.recycle'), 'retired create history')).length > 0);
+    assert.equal((await post('/api/chats/save', { avatar_url: `${card}.png`, file_name: 'fresh-after-recreate', chat: rows('fresh') })).status, 200);
+});
+
+test('chat rename can return to an absent retired name, and delete then rename reuses it', async () => {
+    file('cycle-a', 'cycle-body');
+    assert.equal((await rename('cycle-a', 'cycle-b')).status, 200);
+    assert.equal((await save('cycle-a', 'stale-cycle', { force: true })).status, 409);
+    assert.equal((await rename('cycle-b', 'cycle-a')).status, 200);
+    assert.match(await fs.promises.readFile(path.join(dirs.chats, 'Synthetic', 'cycle-a.jsonl'), 'utf8'), /cycle-body/);
+    assert.equal((await save('cycle-b', 'stale-cycle-b', { force: true })).status, 409);
+    file('reuse-source', 'reuse-body');
+    file('reuse-other', 'other-body');
+    assert.equal((await remove('reuse-source')).status, 200);
+    assert.equal((await save('reuse-source', 'stale-deleted', { force: true })).status, 409);
+    assert.equal((await rename('reuse-other', 'reuse-source')).status, 200);
+    assert.match(await fs.promises.readFile(path.join(dirs.chats, 'Synthetic', 'reuse-source.jsonl'), 'utf8'), /other-body/);
+});
+
+test('character rename can return to an absent previous name', async () => {
+    await characterFixture('RenameCycleA');
+    assert.equal((await post('/api/characters/rename', { avatar_url: 'RenameCycleA.png', new_name: 'RenameCycleB' })).status, 200);
+    assert.equal((await post('/api/chats/save', { avatar_url: 'RenameCycleA.png', file_name: 'renamed-chat', chat: rows('stale'), force: true })).status, 409);
+    const back = await post('/api/characters/rename', { avatar_url: 'RenameCycleB.png', new_name: 'RenameCycleA' });
+    assert.equal(back.status, 200);
+    assert.equal(back.data.avatar, 'RenameCycleA.png');
+    assert.match(await fs.promises.readFile(path.join(dirs.chats, 'RenameCycleA', 'renamed-chat.jsonl'), 'utf8'), /RenameCycleA history/);
+    assert.equal((await post('/api/chats/save', { avatar_url: 'RenameCycleB.png', file_name: 'renamed-chat', chat: rows('stale'), force: true })).status, 409);
+    assert.equal((await post('/api/chats/save', { avatar_url: 'RenameCycleA.png', file_name: 'renamed-chat', chat: rows('active again') })).status, 200);
 });
 
 test('malformed import request bodies settle without disrupting subsequent HTTP requests', async () => {

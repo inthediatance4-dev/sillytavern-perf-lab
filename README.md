@@ -15,7 +15,7 @@ npm run lint
 npm run perf:lab
 ```
 
-`test:perf` runs 29 test files with synthetic fixtures (some bind localhost
+`test:perf` runs 30 test files with synthetic fixtures (some bind localhost
 sockets). The three independent historical-oracle suites skip gracefully when
 Git or their historical objects are unavailable; a full-history checkout enables
 those comparisons. `bench:perf` still requires historical Git objects.
@@ -53,6 +53,12 @@ waiting after `SILLYTAVERN_DRAIN_TIMEOUT_MS` (default 30 seconds).
 `backups.common.numberOfBackups` limits visible backup files only.
 `backups.chat.maxRecycleBytes` (default `-1`, unlimited) can prune oldest
 artifacts already inside the backup directory's `.recycle` folder.
+Deliberate character create and rename targets can reuse an absent retired
+name. The marker is recycled only after that create or rename publishes; a
+failed attempt restores it when the visible path is still absent. An ordinary
+save of a path that is still retired still conflicts.
+Character merge, including bulk merge, still uses `withCharacterEdit`, and
+rename still takes the card and chat locks in one `withPathLocks` call.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

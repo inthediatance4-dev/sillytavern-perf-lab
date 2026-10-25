@@ -15,7 +15,7 @@ import { createChatInfoCache } from '../chat-info-cache.js';
 import { createChatBackupScheduler } from '../chat-backup-scheduler.js';
 import {
     withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO,
-    assertChatWritable, isValidGroupChatId, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
+    assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, isValidGroupChatId, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
 } from '../chat-io.js';
 import {
     getConfigValue,
@@ -747,8 +747,10 @@ router.post('/group/import', async function (request, response) {
         const pathToNewFile = path.join(request.user.directories.groupChats, `${chatname}.jsonl`);
         const data = validateImportedChat(await fs.promises.readFile(pathToUpload, 'utf8'));
         await withPathLocks(chatLockPaths([pathToNewFile]), async () => {
-            await assertChatWritable(pathToNewFile, request.user.directories.groupChats);
-            await createChatFileExclusive(pathToNewFile, data);
+            await usingRetiredPathReuse(pathToNewFile, request.user.directories.groupChats, async () => {
+                await assertChatWritable(pathToNewFile, request.user.directories.groupChats);
+                await createChatFileExclusive(pathToNewFile, data);
+            });
         });
         // Publication is complete. Failure to archive the upload leaves it in place.
         await recycleChatPath(pathToUpload).catch(error => console.error('Imported upload retained in place', error));
@@ -841,17 +843,19 @@ router.post('/import', validateAvatarUrlMiddleware, async function (request, res
         importedChats.forEach(() => fileNames.push(`${characterName} - ${humanizedDateTime()}-${randomUUID()} imported.jsonl`));
         const paths = fileNames.map(name => path.join(directoryPath, name));
         await withPathLocks(chatLockPaths(paths), async () => {
-            const published = [];
-            try {
-                for (let index = 0; index < paths.length; index++) {
-                    await assertChatWritable(paths[index], request.user.directories.chats);
-                    await createChatFileExclusive(paths[index], importedChats[index]);
-                    published.push(paths[index]);
+            await usingRetiredPathReuses(paths.map(filePath => ({ filePath, lifecycleRoot: request.user.directories.chats })), async () => {
+                const published = [];
+                try {
+                    for (let index = 0; index < paths.length; index++) {
+                        await assertChatWritable(paths[index], request.user.directories.chats);
+                        await createChatFileExclusive(paths[index], importedChats[index]);
+                        published.push(paths[index]);
+                    }
+                } catch (error) {
+                    for (const candidate of published) await recycleChatPath(candidate, request.user.directories.chats).catch(recoveryError => console.error('Failed import candidate retained in place', recoveryError));
+                    throw error;
                 }
-            } catch (error) {
-                for (const candidate of published) await recycleChatPath(candidate, request.user.directories.chats).catch(recoveryError => console.error('Failed import candidate retained in place', recoveryError));
-                throw error;
-            }
+            });
         });
         await recycleChatPath(pathToUpload).catch(error => console.error('Imported upload retained in place', error));
         return response.send({ res: true, fileNames });

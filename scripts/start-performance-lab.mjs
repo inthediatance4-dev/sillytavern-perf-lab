@@ -28,7 +28,7 @@ export async function assertLocalPath(target) {
     return resolved;
 }
 
-/** Create fresh lab configuration once, using distribution defaults only. */
+/** Create defaults once and enforce isolation on every launch. */
 export async function prepareLab() {
     const dataRoot = await assertLocalPath(path.join(root, '.lab-data'));
     const configPath = await assertLocalPath(path.join(root, '.lab-config.yaml'));
@@ -49,6 +49,17 @@ export async function prepareLab() {
         config.backups.common.numberOfBackups = 5;
         await fs.writeFile(configPath, yaml.stringify(config), { flag: 'wx' });
     }
+    const config = yaml.parse(await fs.readFile(configPath, 'utf8'));
+    config.dataRoot = dataRoot;
+    config.listen = false;
+    config.listenAddress = { ipv4: '127.0.0.1', ipv6: '::1' };
+    config.protocol = { ipv4: true, ipv6: false };
+    config.port = port;
+    config.ssl = { ...config.ssl, enabled: false };
+    config.browserLaunch = { ...config.browserLaunch, enabled: false };
+    config.extensions = { ...config.extensions, autoUpdate: false };
+    config.enableServerPlugins = false;
+    await fs.writeFile(configPath, yaml.stringify(config));
     return { root, dataRoot, configPath, port, listenAddress: '127.0.0.1' };
 }
 

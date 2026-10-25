@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
 import writeFileAtomic from 'write-file-atomic';
+import sanitize from 'sanitize-filename';
 
 const queues = new Map();
 
@@ -305,4 +306,17 @@ export async function recycleOldChatBackups(directory, prefix, limit) {
         }
     }
     return { scanned: names.length, recycled };
+}
+
+/** Reject metadata IDs rather than silently mapping them to another history. */
+export function isValidGroupChatId(id) {
+    return typeof id === 'string' && id.length > 0 && sanitize(id) === id && id !== '.' && id !== '..';
+}
+
+/** Apply the same containment, alias and retirement policy as chat writes. */
+export async function resolveGroupChatPath(directory, id) {
+    if (!isValidGroupChatId(id)) throw new ChatLifecycleError('invalid_chat_id');
+    const file = path.join(directory, `${id}.jsonl`);
+    await assertChatWritable(file, directory);
+    return file;
 }

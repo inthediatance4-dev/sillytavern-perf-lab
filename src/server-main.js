@@ -70,6 +70,7 @@ import { router as usersPublicRouter } from './endpoints/users-public.js';
 import { init as statsInit, onExit as statsOnExit } from './endpoints/stats.js';
 import { checkForNewContent } from './endpoints/content-manager.js';
 import { init as settingsInit } from './endpoints/settings.js';
+import { createRequestDrain } from './request-drain.js';
 import { flushChatBackups } from './endpoints/chats.js';
 import { redirectDeprecatedEndpoints, ServerStartup, setupPrivateEndpoints } from './server-startup.js';
 import { diskCache } from './endpoints/characters.js';
@@ -102,6 +103,8 @@ http.globalAgent = new http.Agent({ keepAlive: cliArgs.enableKeepAlive });
 https.globalAgent = new https.Agent({ keepAlive: cliArgs.enableKeepAlive });
 
 const app = express();
+const requestDrain = createRequestDrain();
+app.use(requestDrain.middleware);
 app.use(helmet({
     contentSecurityPolicy: false,
 }));
@@ -318,6 +321,7 @@ async function preSetupTasks() {
     const exitProcess = async () => {
         if (isExiting) return;
         isExiting = true;
+        await requestDrain.stop();
         await flushChatBackups();
         await statsOnExit();
         if (typeof cleanupPlugins === 'function') {

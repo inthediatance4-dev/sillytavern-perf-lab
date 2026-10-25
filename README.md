@@ -67,10 +67,14 @@ proceed together. Directory retirement, rename, delete, and backup pruning
 take that directory exclusively and are not starved by later shared holders.
 Those path locks stay inside one process. `exclusiveDataRoot` is off unless
 the lab launcher or config turns it on. The owner file records pid, host, and
-start time, is reclaimed when that pid is dead on the same host, and is
-removed on exit. It is not per-file cross-process locking. A lock from another
-host is left in place. PID reuse can make a dead lock look alive, and a
-process started without the flag can still share the root.
+start time. This process holds an exclusive flock on that file until it exits,
+and only the flock holder may replace a same-host record, so two processes
+cannot reclaim one dead owner. A lock from another host is left in place, as
+is a symlink or an unreadable file. The file is removed on exit when its bytes
+still match, including `process.exit` and an uncaught exception. A signal that
+skips the exit hook can leave the file; the kernel has already dropped the
+flock, and the next acquire on this host reclaims it. It is not per-file
+cross-process locking. A process started without the flag can still share the root.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

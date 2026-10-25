@@ -2,17 +2,49 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { acquireDataRootOwnership, DATA_ROOT_OWNER_LOCK, releaseDataRootOwnership } from '../src/data-root-owner.js';
 
 const moduleUrl = new URL('../src/data-root-owner.js', import.meta.url).href;
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'st-owner-'));
 const helper = path.join(temp, 'acquire-once.mjs');
-await fs.writeFile(helper, `import { acquireDataRootOwnership } from ${JSON.stringify(moduleUrl)};\nacquireDataRootOwnership(process.argv[2]);\n`);
+await fs.writeFile(helper, `
+import fs from 'node:fs';
+import { acquireDataRootOwnership } from ${JSON.stringify(moduleUrl)};
+const root = process.argv[2];
+const mode = process.argv[3] || 'exit';
+const marker = process.argv[4];
+try {
+    acquireDataRootOwnership(root);
+} catch (error) {
+    if (marker) fs.writeFileSync(marker, 'err');
+    console.error(error.message);
+    process.exit(1);
+}
+if (mode === 'exit-code') process.exit(1);
+if (mode === 'throw') setTimeout(() => { throw new Error('boom'); }, 30);
+if (mode === 'hold') {
+    if (marker) fs.writeFileSync(marker, 'ok');
+    setInterval(() => {}, 1000);
+}
+`);
 
-function runAcquire(dataRoot) {
-    return spawnSync(process.execPath, [helper, dataRoot], { encoding: 'utf8', timeout: 10000 });
+function runAcquire(dataRoot, mode = 'exit') {
+    return spawnSync(process.execPath, [helper, dataRoot, mode], { encoding: 'utf8', timeout: 10000 });
+}
+
+async function waitForMarker(file) {
+    const started = Date.now();
+    while (Date.now() - started < 8000) {
+        try {
+            return await fs.readFile(file, 'utf8');
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    throw new Error(`Timed out waiting for ${file}`);
 }
 
 function exitedPid() {
@@ -101,4 +133,57 @@ test('a missing data root is created and a child exit removes the lock', async (
     assert.equal(await fs.access(path.join(dataRoot, DATA_ROOT_OWNER_LOCK)).then(() => true, () => false), false);
     const stat = await fs.stat(dataRoot);
     assert.equal(stat.isDirectory(), true);
+});
+
+test('process.exit and an uncaught exception remove the lock', async () => {
+    for (const mode of ['exit-code', 'throw']) {
+        const dataRoot = await freshRoot(mode);
+        const child = runAcquire(dataRoot, mode);
+        assert.notEqual(child.status, 0, child.stderr);
+        assert.equal(await fs.access(path.join(dataRoot, DATA_ROOT_OWNER_LOCK)).then(() => true, () => false), false, mode);
+    }
+});
+
+test('a symlink owner file is not followed or rewritten', async () => {
+    const dataRoot = await freshRoot('symlink');
+    const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
+    const victim = path.join(dataRoot, 'victim');
+    await fs.writeFile(victim, 'keep');
+    await fs.symlink(victim, lockPath);
+    assert.throws(() => acquireDataRootOwnership(dataRoot), /left in place/);
+    assert.equal(await fs.readFile(victim, 'utf8'), 'keep');
+    const stat = await fs.lstat(lockPath);
+    assert.equal(stat.isSymbolicLink(), true);
+});
+
+test('two processes cannot both reclaim one stale owner', async () => {
+    const dataRoot = await freshRoot('race');
+    const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
+    const stale = { pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' };
+    await fs.writeFile(lockPath, `${JSON.stringify(stale)}\n`);
+    const firstMarker = path.join(dataRoot, 'first.txt');
+    const secondMarker = path.join(dataRoot, 'second.txt');
+    const first = spawn(process.execPath, [helper, dataRoot, 'hold', firstMarker], { stdio: 'ignore' });
+    const second = spawn(process.execPath, [helper, dataRoot, 'hold', secondMarker], { stdio: 'ignore' });
+    try {
+        const markers = await Promise.all([waitForMarker(firstMarker), waitForMarker(secondMarker)]);
+        assert.deepEqual(markers.slice().sort(), ['err', 'ok']);
+        const current = JSON.parse(await fs.readFile(lockPath, 'utf8'));
+        const winner = markers[0] === 'ok' ? first : second;
+        assert.equal(current.pid, winner.pid);
+        assert.equal(current.hostname, os.hostname());
+        winner.kill('SIGKILL');
+        await new Promise(resolve => winner.once('exit', resolve));
+        const reclaimed = acquireDataRootOwnership(dataRoot);
+        try {
+            const after = JSON.parse(await fs.readFile(lockPath, 'utf8'));
+            assert.equal(after.pid, process.pid);
+            assert.equal(reclaimed.pid, process.pid);
+        } finally {
+            releaseDataRootOwnership();
+        }
+    } finally {
+        first.kill('SIGKILL');
+        second.kill('SIGKILL');
+    }
 });

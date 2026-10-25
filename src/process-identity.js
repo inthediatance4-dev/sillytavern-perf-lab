@@ -12,18 +12,40 @@ import os from 'node:os';
  * with `Date.now()`.
  *
  * Windows has no portable boot id. The recorded value is
- * `win-boot:<unix-seconds>` from `Date.now() - os.uptime()`, and two samples
- * within 2 seconds still count as the same boot. That value can move if the
- * clock steps. Process start is a best-effort PowerShell `ToFileTime()` read,
- * or WMIC if PowerShell cannot be started. The probe is skipped unless it
- * stays under {@link WINDOWS_PROBE_BUDGET_MS}. A miss, a timeout, or a slow
- * host omits `processStartMs` and later checks do not retry. Same-boot pid
- * reuse then cannot be distinguished, and a live pid is kept (fail closed).
- * This probe never runs on other platforms and never invokes a compiler.
+ * `win-boot:<unix-seconds>` from `Date.now() - os.uptime()`. Two stamps within
+ * {@link WIN_BOOT_MATCH_TOLERANCE_SEC} seconds (120) still count as the same
+ * boot, so a modest clock step is not pid reuse. A real reboot moves the stamp
+ * by the previous uptime, which is usually much larger. Process start is
+ * preferred when both sides have it: a matching `processStartMs` stays live
+ * even if `win-boot:` drifted, and a different start is reuse even if the
+ * boot stamps match. Boot id is only the secondary check when process start
+ * cannot be compared.
+ * If two local Windows samples taken more than {@link WIN_BOOT_STABILITY_GAP_MS}
+ * apart fall outside that tolerance, later payloads omit `bootId` and keep
+ * pid, token, and `processStartMs`. Process start is a best-effort PowerShell
+ * `ToFileTime()` read, or WMIC if PowerShell cannot be started. The probe is
+ * skipped unless it stays under {@link WINDOWS_PROBE_BUDGET_MS}. A miss, a
+ * timeout, or a slow host omits `processStartMs` and later checks do not
+ * retry. Same-boot pid reuse then cannot be distinguished, and a live pid is
+ * kept (fail closed). This probe never runs on other platforms and never
+ * invokes a compiler.
  */
 
 /** USER_HZ for `/proc/<pid>/stat` starttime. It is the Linux ABI value, not the timer Hz. */
 const LINUX_USER_HZ = 100;
+
+/**
+ * `win-boot:` stamps within this many seconds are the same boot.
+ * `Date.now() - os.uptime()` is whole seconds and moves when the clock steps.
+ */
+export const WIN_BOOT_MATCH_TOLERANCE_SEC = 120;
+
+/**
+ * A second Windows boot sample is a stability check only after this gap.
+ * Samples closer together keep the first stamp. A pair outside
+ * {@link WIN_BOOT_MATCH_TOLERANCE_SEC} omits boot id from new payloads.
+ */
+export const WIN_BOOT_STABILITY_GAP_MS = 2000;
 
 /** Cold PowerShell/WMIC must finish inside this or the field is omitted. */
 const WINDOWS_PROBE_BUDGET_MS = 200;
@@ -33,6 +55,10 @@ const FILETIME_UNIX_EPOCH_MS = 11644473600000;
 
 /** @type {string|null|undefined} */
 let cachedBootId;
+/** @type {{ id: string|undefined, at: number }|null} */
+let windowsBootSample = null;
+/** @type {boolean} */
+let windowsBootUnstable = false;
 /** @type {number|null|undefined} */
 let cachedBtimeSeconds;
 /** @type {boolean} */
@@ -69,9 +95,47 @@ function readBootIdUncached() {
 }
 
 /**
+ * Decide whether a Windows boot stamp is stable enough to store.
+ * The first sample is kept. A later sample at most {@link WIN_BOOT_STABILITY_GAP_MS}
+ * later does not count. A later sample outside {@link WIN_BOOT_MATCH_TOLERANCE_SEC}
+ * marks the source unstable so callers omit `bootId`.
+ * @param {{ id: string|undefined, at: number }|null} previous
+ * @param {{ id: string|undefined, at: number }} next
+ * @returns {{ bootId: string|undefined, unstable: boolean, sample: { id: string|undefined, at: number } }}
+ */
+export function settleWindowsBootSample(previous, next) {
+    if (!previous) {
+        return { bootId: next.id, unstable: false, sample: { id: next.id, at: next.at } };
+    }
+    if (next.at - previous.at <= WIN_BOOT_STABILITY_GAP_MS) {
+        return { bootId: previous.id, unstable: false, sample: previous };
+    }
+    if (!previous.id || !next.id || !bootIdsMatch(previous.id, next.id)) {
+        return { bootId: undefined, unstable: true, sample: { id: undefined, at: next.at } };
+    }
+    return { bootId: next.id, unstable: false, sample: { id: next.id, at: next.at } };
+}
+
+/**
+ * @returns {string|undefined}
+ */
+function readWindowsBootId() {
+    if (windowsBootUnstable) return undefined;
+    const next = { id: readBootIdUncached(), at: Date.now() };
+    const settled = settleWindowsBootSample(windowsBootSample, next);
+    windowsBootSample = settled.sample;
+    if (settled.unstable) {
+        windowsBootUnstable = true;
+        return undefined;
+    }
+    return settled.bootId;
+}
+
+/**
  * @returns {string|undefined}
  */
 export function readBootId() {
+    if (process.platform === 'win32') return readWindowsBootId();
     if (cachedBootId === undefined) cachedBootId = readBootIdUncached() ?? null;
     return cachedBootId ?? undefined;
 }
@@ -217,6 +281,7 @@ export function readProcessIdentity(pid) {
 
 /**
  * Windows boot stamps are approximate. Exact ids still have to match.
+ * `win-boot:` values within {@link WIN_BOOT_MATCH_TOLERANCE_SEC} seconds match.
  * @param {string} recorded
  * @param {string} current
  * @returns {boolean}
@@ -226,7 +291,7 @@ export function bootIdsMatch(recorded, current) {
     const recordedBoot = /^win-boot:(\d+)$/.exec(recorded);
     const currentBoot = /^win-boot:(\d+)$/.exec(current);
     if (!recordedBoot || !currentBoot) return false;
-    return Math.abs(Number(recordedBoot[1]) - Number(currentBoot[1])) <= 2;
+    return Math.abs(Number(recordedBoot[1]) - Number(currentBoot[1])) <= WIN_BOOT_MATCH_TOLERANCE_SEC;
 }
 
 /**
@@ -250,27 +315,42 @@ function signalPid(pid) {
  * Whether `owner` still names the process that created it.
  * `dead` and `reused` may be reclaimed. `live` must be kept.
  * A lock with no boot id and no process start is live while the pid is alive.
+ * When both sides have `processStartMs`, that match decides and `bootId` does
+ * not override it. Boot id is checked only when process start is absent on
+ * both sides. A start time on only one side fails closed (`live`).
  * Identity that cannot be re-read is live as well.
+ * `observed` supplies a forged signal and identity for tests. Production
+ * callers omit it and the live process table is probed.
  * @param {{ pid: number, bootId?: string, processStartMs?: number }} owner
+ * @param {{ signaled?: 'alive'|'dead'|'eperm'|'unknown', identity?: { bootId?: string, processStartMs?: number } }} [observed]
  * @returns {'live'|'dead'|'reused'}
  */
-export function classifyPidLiveness(owner) {
-    const signaled = signalPid(owner.pid);
+export function classifyPidLiveness(owner, observed) {
+    const signaled = observed && observed.signaled ? observed.signaled : signalPid(owner.pid);
     if (signaled === 'dead') return 'dead';
     if (signaled === 'unknown') return 'live';
     const recordedBoot = typeof owner.bootId === 'string' && owner.bootId.length > 0 ? owner.bootId : null;
     const recordedStart = Number.isSafeInteger(owner.processStartMs) ? owner.processStartMs : null;
     if (!recordedBoot && recordedStart === null) return 'live';
+    /** @type {{ bootId?: string, processStartMs?: number }} */
     let current;
-    try {
-        current = readProcessIdentity(owner.pid);
-    } catch {
-        return 'live';
+    if (observed && Object.prototype.hasOwnProperty.call(observed, 'identity')) {
+        current = observed.identity || {};
+    } else {
+        try {
+            current = readProcessIdentity(owner.pid);
+        } catch {
+            return 'live';
+        }
     }
     const currentBoot = typeof current.bootId === 'string' && current.bootId.length > 0 ? current.bootId : null;
     const currentStart = Number.isSafeInteger(current.processStartMs) ? current.processStartMs : null;
+    // Process start is the stronger identity. A Windows boot stamp can move
+    // while this pid is still the process that started at recordedStart.
+    if (recordedStart !== null && currentStart !== null) {
+        return recordedStart === currentStart ? 'live' : 'reused';
+    }
+    if (recordedStart !== null || currentStart !== null) return 'live';
     if (recordedBoot && currentBoot && !bootIdsMatch(recordedBoot, currentBoot)) return 'reused';
-    if (recordedStart !== null && currentStart !== null && recordedStart !== currentStart) return 'reused';
-    if ((recordedBoot && !currentBoot) || (recordedStart !== null && currentStart === null)) return 'live';
     return 'live';
 }

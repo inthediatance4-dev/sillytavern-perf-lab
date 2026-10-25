@@ -1,3 +1,5 @@
+import { trackPersistenceRouter } from '../request-drain.js';
+import { withCharacterEdit } from '../character-lifecycle.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import { promises as fsPromises } from 'node:fs';
@@ -1117,7 +1119,20 @@ router.post('/rename', validateAvatarUrlMiddleware, async function (request, res
     }
 });
 
-router.post('/edit', validateAvatarUrlMiddleware, async function (request, response) {
+/** Apply one lifecycle boundary to each existing-card edit route. */
+function characterEditHandler(handler) {
+    return async (request, response) => {
+        try {
+            return await withCharacterEdit(request.user.directories.characters, request.body?.avatar_url, () => handler(request, response));
+        } catch (error) {
+            if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason });
+            console.error(error);
+            return response.sendStatus(500);
+        }
+    };
+}
+
+router.post('/edit', validateAvatarUrlMiddleware, characterEditHandler(async function (request, response) {
     if (!request.body) {
         console.warn('Error: no response body detected');
         response.status(400).send('Error: no response body detected');
@@ -1134,7 +1149,7 @@ router.post('/edit', validateAvatarUrlMiddleware, async function (request, respo
     char.chat = request.body.chat;
     char.create_date = request.body.create_date;
     char = JSON.stringify(char);
-    let targetFile = (request.body.avatar_url).replace('.png', '');
+    let targetFile = request.body.avatar_url.slice(0, -4);
 
     try {
         if (!request.file) {
@@ -1156,9 +1171,9 @@ router.post('/edit', validateAvatarUrlMiddleware, async function (request, respo
         console.error('An error occurred, character edit invalidated.', err);
         return response.sendStatus(500);
     }
-});
+}));
 
-router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request, response) {
+router.post('/edit-avatar', validateAvatarUrlMiddleware, characterEditHandler(async function (request, response) {
     try {
         if (!request.file) {
             return response.status(400).send('Error: no file uploaded');
@@ -1182,7 +1197,7 @@ router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request
         }
 
         const crop = tryParse(request.query.crop);
-        const fileName = request.body.avatar_url.replace('.png', '');
+        const fileName = request.body.avatar_url.slice(0, -4);
         await writeCharacterData(uploadPath, data, fileName, request, crop);
 
         // Remove uploaded temp file
@@ -1197,7 +1212,7 @@ router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request
         console.error('An error occurred while editing avatar', err);
         return response.sendStatus(500);
     }
-});
+}));
 
 /**
  * Handle a POST request to edit a character attribute.
@@ -1209,7 +1224,7 @@ router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request
  * @param {Object} response - The HTTP response object.
  * @returns {void}
  */
-router.post('/edit-attribute', validateAvatarUrlMiddleware, async function (request, response) {
+router.post('/edit-attribute', validateAvatarUrlMiddleware, characterEditHandler(async function (request, response) {
     console.debug(request.body);
     if (!request.body) {
         console.warn('Error: no response body detected');
@@ -1241,14 +1256,14 @@ router.post('/edit-attribute', validateAvatarUrlMiddleware, async function (requ
         char[request.body.field] = request.body.value;
         char.data[request.body.field] = request.body.value;
         let newCharJSON = JSON.stringify(char);
-        const targetFile = (request.body.avatar_url).replace('.png', '');
+        const targetFile = request.body.avatar_url.slice(0, -4);
         await writeCharacterData(avatarPath, newCharJSON, targetFile, request);
         return response.sendStatus(200);
     } catch (err) {
         console.error('An error occurred, character edit invalidated.', err);
         return response.sendStatus(500);
     }
-});
+}));
 
 /**
  * Sentinel value that signals a field should be completely removed (unset)
@@ -1293,33 +1308,35 @@ function processUnsetSentinels(target, source) {
  * @returns {Promise<{ok: boolean, error?: string, skipped?: boolean}>} Result of the merge operation, including any validation error
  */
 async function mergeCharacterUpdate(avatarPath, avatar, updateData, request, shouldSkip = null) {
-    const pngStringData = await readCharacterData(avatarPath);
-    if (!pngStringData) {
-        return { ok: false, error: 'Invalid character file' };
-    }
+    return withCharacterEdit(request.user.directories.characters, avatar, async () => {
+        const pngStringData = await readCharacterData(avatarPath);
+        if (!pngStringData) {
+            return { ok: false, error: 'Invalid character file' };
+        }
 
-    let character = JSON.parse(pngStringData);
+        let character = JSON.parse(pngStringData);
 
-    if (typeof shouldSkip === 'function' && shouldSkip(character)) {
-        return { ok: false, skipped: true };
-    }
+        if (typeof shouldSkip === 'function' && shouldSkip(character)) {
+            return { ok: false, skipped: true };
+        }
 
-    const update = _.cloneDeep(updateData);
-    _.unset(update, 'json_data');
-    _.unset(character, 'json_data');
+        const update = _.cloneDeep(updateData);
+        _.unset(update, 'json_data');
+        _.unset(character, 'json_data');
 
-    character = deepMerge(character, update);
-    processUnsetSentinels(character, update);
+        character = deepMerge(character, update);
+        processUnsetSentinels(character, update);
 
-    const validator = new TavernCardValidator(character);
-    //Accept either V1 or V2.
-    if (!validator.validate()) {
-        return { ok: false, error: validator.lastValidationError ?? 'Validation failed' };
-    }
+        const validator = new TavernCardValidator(character);
+        //Accept either V1 or V2.
+        if (!validator.validate()) {
+            return { ok: false, error: validator.lastValidationError ?? 'Validation failed' };
+        }
 
-    const targetImg = avatar.replace('.png', '');
-    await writeCharacterData(avatarPath, JSON.stringify(character), targetImg, request);
-    return { ok: true };
+        const targetImg = avatar.slice(0, -4);
+        await writeCharacterData(avatarPath, JSON.stringify(character), targetImg, request);
+        return { ok: true };
+    });
 }
 
 /**
@@ -1428,6 +1445,7 @@ router.post('/merge-attributes', getFileNameValidationFunction('avatar'), async 
             response.status(400).send({ message: `Validation failed for ${update.avatar}`, error: result.error });
         }
     } catch (exception) {
+        if (exception instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: exception.reason });
         response.status(500).send({ message: 'Unexpected error while saving character.', error: exception.toString() });
     }
 });
@@ -1724,3 +1742,5 @@ router.post('/export', validateAvatarUrlMiddleware, async function (request, res
         response.sendStatus(500);
     }
 });
+
+trackPersistenceRouter(router);

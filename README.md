@@ -77,7 +77,9 @@ Shared holders of one hash coexist. An exclusive acquire waits until that
 hash has no live `.shared.*` file, and a shared acquire waits until
 `<sha256>.exclusive` is gone. After either create, the loser drops its file.
 A shared-only reservation still creates no file; atomic replacement still
-protects readers of a complete file. Storage is selected once at configuration, independently of reservation names;
+protects readers of a complete file. All cooperating processes must use the same host temporary directory and
+normalized data root. Stop old server versions before upgrading this protocol.
+Storage is selected once at configuration, independently of reservation names;
 path errors fail closed without switching namespaces. A symlink,
 a non-regular file, or a regular file larger than 4096 bytes, once older
 than 60 seconds, is renamed into `.quarantine` and the create is retried
@@ -86,11 +88,13 @@ Keys are reserved in sorted order before any wait. A nested `withPathLocks`
 may take other paths only while no exclusive cross-process lock is held. It
 cannot wait on a key the caller already holds exclusively, upgrade a shared
 key to exclusive, or take another path while an exclusive cross-process lock
-is still held. The backup writer runs after that lock is released. A live
+is still held. The backup writer waits for its originating reservation and enclosing
+reservations to release; unrelated holders do not postpone it. A live
 lock in another process is polled with a short backoff and then fails with
 `path_lock_busy` (default wait 15 seconds) instead of hanging. A dead pid,
 or a reused pid, is reclaimed by renaming the lock aside and deleting it
-only when the bytes are still stale. Another host's file is left in place.
+only when the bytes are still stale, under the acquisition gate. Cleanup uses
+bounded short sibling names. Another host's file is left in place.
 No compiler is required.
 A process that does not opt in is not excluded by these files. `exclusiveDataRoot` is off unless
 the lab launcher or config turns it on. The owner file records pid, host,
@@ -100,13 +104,15 @@ and the process start time. Linux uses `/proc/sys/kernel/random/boot_id` and
 `win-boot:` time from `os.uptime()` (samples within 120 seconds match).
 When both sides have `processStartMs`, that value decides: a match stays
 live even if `bootId` differs, and a mismatch is reuse even if the boot
-stamps match. Boot id is used only when neither side has a start time. A
+stamps match. An exact Linux boot id is used only when neither side has a start time.
+Approximate Windows boot estimates never authorize reclaim of an existing PID. A
 start time on only one side stays live. If two local samples more than 2
 seconds apart fall outside the 120 second window, later payloads omit the
 unstable `bootId` and keep pid, token, and `processStartMs`. Process start
-comes from a PowerShell or WMIC probe and is omitted when the probe is
+comes from a PowerShell probe and is omitted when the probe is
 missing or slower than 200ms; same-boot pid reuse then cannot be told
-apart. A later start refuses while `process.kill(pid, 0)` reports the pid
+apart. Only this process's own start time is cached; foreign PIDs are re-probed.
+A later start refuses while `process.kill(pid, 0)` reports the pid
 alive, including `EPERM`, and that identity still matches. A mismatch is
 pid reuse and is reclaimed. An older lock with neither identity field is
 kept while its pid is alive. A dead same-host owner, or a reused pid, is reclaimed by exactly one

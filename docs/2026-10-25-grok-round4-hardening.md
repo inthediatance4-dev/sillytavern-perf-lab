@@ -1,5 +1,15 @@
 # Grok round-4 hardening (2026-10-25)
 
+> Superseded by the [review fixes](2026-10-26-lock-review-fixes.md).
+> The namespace agreement and rename/restore safety claims below were incorrect:
+> the length seam did not exercise real shared-only path failures, and moving a
+> replacement live lock could break exclusion. The Windows boot fallback and
+> cached foreign identities could also reclaim live owners. Verification below
+> is a historical record, not proof of those guarantees. Current code selects
+> one short namespace, serializes acquisition, and fails closed on approximate
+> Windows identity. WMIC has been removed.
+
+
 Local-only follow-up on `codex-improvements` after `f9051e5`. No push. Tag `grok-handoff-start` and branch `backup-before-grok-r2` were not moved. No Windows host and no browser lab were used.
 
 Commits:

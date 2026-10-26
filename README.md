@@ -70,7 +70,9 @@ In-process path locks are always on. Cross-process exclusion is off unless
 exclusive file also takes a shared parent fence when that parent is not
 already exclusive. Under `os.tmpdir()/st-lab-path-locks/<sha256(dataRoot)>/`, a shared holder is
 `<sha256>.shared.<token>` and an exclusive holder is `<sha256>.exclusive`.
-Each is created with `O_EXCL` and removed only when its bytes still match.
+Acquisition uses a per-key directory gate to serialize inspection, reclaim,
+quarantine, and publication. An interrupted gate fails closed; remove abandoned
+`.gate` directories only with all contenders stopped. Each holder file is created with `O_EXCL` and removed only when its bytes still match.
 Shared holders of one hash coexist. An exclusive acquire waits until that
 hash has no live `.shared.*` file, and a shared acquire waits until
 `<sha256>.exclusive` is gone. After either create, the loser drops its file.

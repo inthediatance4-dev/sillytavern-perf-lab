@@ -1021,6 +1021,35 @@ async function acquireOne(key) {
 }
 
 /**
+ * Serialize inspection, reclaim, quarantine and publication for one key.
+ * Gates are deliberately never reclaimed: an interrupted acquisition fails
+ * closed until an operator removes the gate with all contenders stopped.
+ * Releases need no gate because their live identity cannot be reclaimed.
+ * @param {string} key
+ * @param {() => Promise<{ lockPath: string, payload: string }>} acquire
+ */
+async function serializeAcquisition(key, acquire) {
+    if (ensureLockDirectory() === 'unavailable') throw new PathLockError('path_lock_unavailable');
+    const gate = path.join(storageDir, `${digestKey(key)}.gate`);
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+        try {
+            fs.mkdirSync(gate, { mode: 0o700 });
+            break;
+        } catch (error) {
+            if (error.code !== 'EEXIST') throw new PathLockError('path_lock_unavailable');
+            if (Date.now() >= deadline) throw new PathLockError('path_lock_busy');
+            await delay(MAX_POLL_MS);
+        }
+    }
+    try {
+        return await acquire();
+    } finally {
+        fs.rmdirSync(gate);
+    }
+}
+
+/**
  * Take filesystem locks in sorted key order. Shared and exclusive keys of one
  * reservation are one sequence, so a parent fence is held before the child
  * file. A pure shared reservation does not create files.
@@ -1040,8 +1069,8 @@ export async function acquireCrossProcessPathLocks(requests) {
         const held = [];
         try {
             for (const request of expanded) {
-                if (request.mode === 'shared') held.push(await acquireShared(request.key));
-                else held.push(await acquireOne(request.key));
+                held.push(await serializeAcquisition(request.key, () => request.mode === 'shared'
+                    ? acquireShared(request.key) : acquireOne(request.key)));
             }
             return held;
         } catch (error) {

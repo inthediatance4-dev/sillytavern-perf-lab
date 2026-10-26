@@ -787,3 +787,24 @@ exclusiveTest('all reservations select the short namespace before acquisition', 
         await fs.rm(expected, { recursive: true, force: true });
     }
 });
+
+exclusiveTest('waiting reclaimers cannot move a replacement live lock past the acquisition gate', async () => {
+    const root = await freshDir('serialized-reclaim');
+    const target = path.join(root, 'directory');
+    await fs.mkdir(target);
+    configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 150 });
+    const lock = exclusiveLockPathFor(pathLockKey(target));
+    await fs.mkdir(path.dirname(lock), { recursive: true });
+    const gate = lock.replace(/\.exclusive$/, '.gate');
+    await fs.mkdir(gate);
+    await fs.writeFile(lock, JSON.stringify({ pid: 2147483647, hostname: os.hostname(), key: pathLockKey(target) }));
+    const contenders = [1, 2].map(() => withPathLocks([target], async () => assert.fail('live lock stolen')));
+    // A serialized publisher replaces the stale bytes before releasing its gate.
+    const live = JSON.stringify({ pid: process.pid, hostname: os.hostname(), key: pathLockKey(target) });
+    await fs.writeFile(lock, live);
+    await fs.rmdir(gate);
+    for (const contender of contenders) {
+        await assert.rejects(contender, error => error.reason === 'path_lock_busy');
+    }
+    assert.equal(await fs.readFile(lock, 'utf8'), live);
+});

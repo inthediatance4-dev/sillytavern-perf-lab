@@ -511,7 +511,7 @@ function createLockFile(filePath, payload) {
     if (seen.status === 'missing') return { status: 'busy' };
     // The new file could not be re-read (Windows EPERM). Remove it when the
     // moved bytes are still ours so a later acquire does not treat this process as the holder.
-    const unique = `${filePath}.${process.pid}.${randomBytes(6).toString('hex')}.unread`;
+    const unique = path.join(path.dirname(filePath), `.c${randomBytes(12).toString('hex')}`);
     try {
         fs.renameSync(filePath, unique);
     } catch {
@@ -610,7 +610,7 @@ function inspectLockFile(filePath, key) {
  * @returns {'removed'|'missing'|'changed'|'refuse'|'environment'}
  */
 function takeStaleLock(lockPath, expectedText, key) {
-    const unique = `${lockPath}.${process.pid}.${randomBytes(6).toString('hex')}.stale`;
+    const unique = path.join(path.dirname(lockPath), `.c${randomBytes(12).toString('hex')}`);
     try {
         fs.renameSync(lockPath, unique);
     } catch (error) {
@@ -670,7 +670,7 @@ function quarantineIfStale(filePath) {
         if (isPathTooLong(error)) return 'too-long';
         return 'error';
     }
-    const dest = path.join(destDir, `${path.basename(filePath)}.${process.pid}.${randomBytes(4).toString('hex')}`);
+    const dest = path.join(destDir, `.c${randomBytes(12).toString('hex')}`);
     try {
         fs.renameSync(filePath, dest);
     } catch (error) {
@@ -1086,11 +1086,12 @@ export async function acquireCrossProcessPathLocks(requests) {
  * @param {{ lockPath: string, payload: string }} held
  */
 function releaseOne(held) {
-    const unique = `${held.lockPath}.${process.pid}.${randomBytes(6).toString('hex')}.release`;
+    const unique = path.join(path.dirname(held.lockPath), `.c${randomBytes(12).toString('hex')}`);
     try {
         fs.renameSync(held.lockPath, unique);
-    } catch {
-        return;
+    } catch (error) {
+        if (error.code === 'ENOENT') return;
+        throw error;
     }
     const seen = readRegular(unique);
     if (seen.status === 'ok' && seen.text === held.payload) {

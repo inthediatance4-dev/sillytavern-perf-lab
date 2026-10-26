@@ -472,3 +472,19 @@ test('two processes cannot both reclaim one reused pid', async () => {
     }
     await assertSingleReclaimWinner(dataRoot);
 });
+
+test('owner cleanup uses bounded sibling names and failed release can be retried', () => {
+    const root = fsSync.mkdtempSync(path.join(temp, 'bounded-owner-'));
+    acquireDataRootOwnership(root);
+    const rename = fsSync.renameSync;
+    fsSync.renameSync = () => { throw Object.assign(new Error('blocked'), { code: 'EACCES' }); };
+    try { assert.throws(() => releaseDataRootOwnership(), /blocked/); }
+    finally { fsSync.renameSync = rename; }
+    fsSync.renameSync = (from, to) => {
+        assert(to.length <= from.length, 'cleanup must fit the canonical path budget');
+        return rename(from, to);
+    };
+    try { releaseDataRootOwnership(); }
+    finally { fsSync.renameSync = rename; }
+    assert.equal(fsSync.existsSync(path.join(root, DATA_ROOT_OWNER_LOCK)), false);
+});

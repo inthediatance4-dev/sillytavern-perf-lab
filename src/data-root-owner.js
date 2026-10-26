@@ -107,8 +107,8 @@ function pause(ms) {
  * @param {string} label
  * @returns {string}
  */
-function uniqueSibling(filePath, label) {
-    return `${filePath}.${process.pid}.${randomBytes(6).toString('hex')}.${label}`;
+function uniqueSibling(filePath, _label) {
+    return path.join(path.dirname(filePath), `.c${randomBytes(6).toString('hex')}`);
 }
 
 function readFlags() {
@@ -550,18 +550,18 @@ function releaseOwnedLock(swallow) {
     if (!ownedPath) return;
     const lockPath = ownedPath;
     const payload = ownedPayload;
-    ownedPath = null;
-    ownedPayload = null;
-    if (releaseHook) {
-        process.removeListener('exit', releaseHook);
-        releaseHook = null;
-    }
     const unique = uniqueSibling(lockPath, 'release');
     try {
         fs.renameSync(lockPath, unique);
     } catch (error) {
         if (error.code === 'ENOENT' || swallow) return;
         throw error;
+    }
+    ownedPath = null;
+    ownedPayload = null;
+    if (releaseHook) {
+        process.removeListener('exit', releaseHook);
+        releaseHook = null;
     }
     const seen = readRegularFile(unique);
     if (seen.status === 'ok' && seen.text === payload) {

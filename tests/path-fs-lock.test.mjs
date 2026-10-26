@@ -808,3 +808,21 @@ exclusiveTest('waiting reclaimers cannot move a replacement live lock past the a
     }
     assert.equal(await fs.readFile(lock, 'utf8'), live);
 });
+
+exclusiveTest('release names fit whenever canonical lock names fit', async () => {
+    const fsSync = (await import('node:fs')).default;
+    const root = await freshDir('bounded-release');
+    configureCrossProcessPathLocks({ enabled: true, root });
+    const rename = fsSync.renameSync;
+    const destinations = [];
+    fsSync.renameSync = (from, to) => {
+        if (to.length > from.length) throw Object.assign(new Error('path too long'), { code: 'ENAMETOOLONG' });
+        destinations.push(to);
+        return rename(from, to);
+    };
+    try {
+        await withPathLocks([path.join(root, 'file')], async () => {});
+        assert.equal(destinations.length, 2);
+        assert.deepEqual((await fs.readdir(activePathLockLocation().directory)).filter(name => !name.startsWith('.c')), []);
+    } finally { fsSync.renameSync = rename; }
+});

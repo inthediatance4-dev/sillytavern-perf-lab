@@ -38,7 +38,7 @@ test('process start wins over a skewed win-boot stamp', () => {
     assert.equal(classifyPidLiveness(
         { pid: 424242, bootId: 'win-boot:1000' },
         { signaled: 'alive', identity: { bootId: `win-boot:${1000 + WIN_BOOT_MATCH_TOLERANCE_SEC + 1}` } },
-    ), 'reused');
+    ), 'live');
     assert.equal(classifyPidLiveness(owner, {
         signaled: 'alive',
         identity: { bootId: 'win-boot:9000' },
@@ -100,4 +100,11 @@ test('Windows re-probes foreign PIDs across successive incarnations', async () =
     }), 'live');
     const own = identity.readProcessIdentity(process.pid);
     assert.deepEqual(identity.readProcessIdentity(process.pid), own);
+});
+
+ test('a fresh observer after a clock step cannot reclaim by Windows boot estimate', () => {
+    const fresh = settleWindowsBootSample(null, { id: 'win-boot:1300', at: 9000 });
+    assert.equal(classifyPidLiveness({ pid: 42, bootId: 'win-boot:1000' }, {
+        signaled: 'alive', identity: { bootId: fresh.bootId },
+    }), 'live');
 });

@@ -11,24 +11,9 @@ import os from 'node:os';
  * seconds, so the result is stable for one process but only roughly aligned
  * with `Date.now()`.
  *
- * Windows has no portable boot id. The recorded value is
- * `win-boot:<unix-seconds>` from `Date.now() - os.uptime()`. Two stamps within
- * {@link WIN_BOOT_MATCH_TOLERANCE_SEC} seconds (120) still count as the same
- * boot, so a modest clock step is not pid reuse. A real reboot moves the stamp
- * by the previous uptime, which is usually much larger. Process start is
- * preferred when both sides have it: a matching `processStartMs` stays live
- * even if `win-boot:` drifted, and a different start is reuse even if the
- * boot stamps match. Boot id is only the secondary check when process start
- * cannot be compared.
- * If two local Windows samples taken more than {@link WIN_BOOT_STABILITY_GAP_MS}
- * apart fall outside that tolerance, later payloads omit `bootId` and keep
- * pid, token, and `processStartMs`. Process start is a best-effort PowerShell
- * `ToFileTime()` read, or WMIC if PowerShell cannot be started. The probe is
- * skipped unless it stays under {@link WINDOWS_PROBE_BUDGET_MS}. A miss, a
- * timeout, or a slow host omits `processStartMs` and later checks do not
- * retry. Same-boot pid reuse then cannot be distinguished, and a live pid is
- * kept (fail closed). This probe never runs on other platforms and never
- * invokes a compiler.
+ * Windows boot estimates are diagnostic only: clock changes cannot authorize
+ * reclaiming an existing PID. Reliable process start identities decide reuse;
+ * unavailable identity fails closed. Only this process's start time is cached.
  */
 
 /** USER_HZ for `/proc/<pid>/stat` starttime. It is the Linux ABI value, not the timer Hz. */
@@ -351,6 +336,8 @@ export function classifyPidLiveness(owner, observed) {
         return recordedStart === currentStart ? 'live' : 'reused';
     }
     if (recordedStart !== null || currentStart !== null) return 'live';
-    if (recordedBoot && currentBoot && !bootIdsMatch(recordedBoot, currentBoot)) return 'reused';
+    if (recordedBoot && currentBoot
+        && !recordedBoot.startsWith('win-boot:') && !currentBoot.startsWith('win-boot:')
+        && !bootIdsMatch(recordedBoot, currentBoot)) return 'reused';
     return 'live';
 }

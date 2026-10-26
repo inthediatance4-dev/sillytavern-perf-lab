@@ -258,10 +258,10 @@ function readWindowsProcessStartMs(pid) {
     if (process.platform !== 'win32') return undefined;
     if (windowsProbeDisabled) return undefined;
     if (!Number.isInteger(pid) || pid <= 0) return undefined;
-    if (windowsStartCache.has(pid)) return windowsStartCache.get(pid);
+    if (pid === process.pid && windowsStartCache.has(pid)) return windowsStartCache.get(pid);
     const value = probeWindowsProcessStartMs(pid);
     // Cache only a hit. A miss disables the probe entirely so startup is not blocked again.
-    if (value !== undefined) windowsStartCache.set(pid, value);
+    if (pid === process.pid && value !== undefined) windowsStartCache.set(pid, value);
     return value;
 }
 

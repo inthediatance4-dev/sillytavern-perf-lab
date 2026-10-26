@@ -81,3 +81,23 @@ test('an unstable Windows boot sample is omitted after two reads more than 2s ap
     assert.equal(unstable.unstable, true);
     assert.equal(unstable.bootId, undefined);
 });
+
+async function windowsIdentityFixture(probe) {
+    const { readFile } = await import('node:fs/promises');
+    let source = await readFile(new URL('../src/process-identity.js', import.meta.url), 'utf8');
+    source = source.replace("import { execFileSync } from 'node:child_process';", `const execFileSync = ${probe};`)
+        .replaceAll('process.platform', "'win32'");
+    return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}#${Math.random()}`);
+}
+
+test('Windows re-probes foreign PIDs across successive incarnations', async () => {
+    const identity = await windowsIdentityFixture('(() => { let start = 133000000000000000; return () => String(start += 10000000); })()');
+    const first = identity.readProcessIdentity(424242);
+    const second = identity.readProcessIdentity(424242);
+    assert.notEqual(first.processStartMs, second.processStartMs);
+    assert.equal(identity.classifyPidLiveness({ pid: 424242, ...second }, {
+        signaled: 'alive', identity: second,
+    }), 'live');
+    const own = identity.readProcessIdentity(process.pid);
+    assert.deepEqual(identity.readProcessIdentity(process.pid), own);
+});

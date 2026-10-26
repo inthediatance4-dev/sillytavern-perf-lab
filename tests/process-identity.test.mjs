@@ -108,3 +108,14 @@ test('Windows re-probes foreign PIDs across successive incarnations', async () =
         signaled: 'alive', identity: { bootId: fresh.bootId },
     }), 'live');
 });
+
+test('Windows omits identity when PowerShell is unavailable instead of mixing WMIC timestamps', async () => {
+    const identity = await windowsIdentityFixture(`(command => {
+        if (command !== 'powershell.exe') throw new Error('unexpected provider');
+        throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+    })`);
+    assert.equal(identity.readProcessIdentity(424242).processStartMs, undefined);
+    assert.equal(identity.classifyPidLiveness({ pid: 424242, processStartMs: 50000 }, {
+        signaled: 'alive', identity: identity.readProcessIdentity(424242),
+    }), 'live');
+});

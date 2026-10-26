@@ -32,7 +32,7 @@ export const WIN_BOOT_MATCH_TOLERANCE_SEC = 120;
  */
 export const WIN_BOOT_STABILITY_GAP_MS = 2000;
 
-/** Cold PowerShell/WMIC must finish inside this or the field is omitted. */
+/** Cold PowerShell must finish inside this or the field is omitted. */
 const WINDOWS_PROBE_BUDGET_MS = 200;
 
 /** Windows FILETIME epoch (1601-01-01) to Unix epoch, in milliseconds. */
@@ -180,20 +180,6 @@ function parseFileTime(stdout) {
 }
 
 /**
- * @param {string} stdout
- * @returns {number|undefined}
- */
-function parseWmicCreation(stdout) {
-    const match = String(stdout).match(/CreationDate=(\d{14})\.(\d+)/);
-    if (!match) return undefined;
-    const digits = match[1];
-    const iso = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}T${digits.slice(8, 10)}:${digits.slice(10, 12)}:${digits.slice(12, 14)}Z`;
-    const parsed = Date.parse(iso);
-    if (!Number.isFinite(parsed)) return undefined;
-    return parsed;
-}
-
-/**
  * @param {number} pid
  * @returns {number|undefined}
  */
@@ -217,22 +203,8 @@ function probeWindowsProcessStartMs(pid) {
             }
         }
     }
-    if (Date.now() - started >= WINDOWS_PROBE_BUDGET_MS) {
-        windowsProbeDisabled = true;
-        return undefined;
-    }
-    try {
-        const stdout = execFileSync('wmic', ['process', 'where', `ProcessId=${pid}`, 'get', 'CreationDate', '/value'], {
-            timeout: Math.max(1, WINDOWS_PROBE_BUDGET_MS - (Date.now() - started)),
-            windowsHide: true,
-            encoding: 'utf8',
-            stdio: ['ignore', 'pipe', 'ignore'],
-        });
-        return parseWmicCreation(stdout);
-    } catch {
-        windowsProbeDisabled = true;
-        return undefined;
-    }
+    windowsProbeDisabled = true;
+    return undefined;
 }
 
 /**

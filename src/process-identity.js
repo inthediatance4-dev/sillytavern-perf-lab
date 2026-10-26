@@ -217,7 +217,7 @@ function readWindowsProcessStartMs(pid) {
     if (!Number.isInteger(pid) || pid <= 0) return undefined;
     if (pid === process.pid && windowsStartCache.has(pid)) return windowsStartCache.get(pid);
     const value = probeWindowsProcessStartMs(pid);
-    // Cache only a hit. A miss disables the probe entirely so startup is not blocked again.
+    // Cache only our own immutable start time; foreign PIDs can be reused.
     if (pid === process.pid && value !== undefined) windowsStartCache.set(pid, value);
     return value;
 }
@@ -273,8 +273,8 @@ function signalPid(pid) {
  * `dead` and `reused` may be reclaimed. `live` must be kept.
  * A lock with no boot id and no process start is live while the pid is alive.
  * When both sides have `processStartMs`, that match decides and `bootId` does
- * not override it. Boot id is checked only when process start is absent on
- * both sides. A start time on only one side fails closed (`live`).
+ * not override it. Exact boot id is checked only when process start is absent
+ * on both sides. Approximate Windows boot stamps never authorize reclaim. A start time on only one side fails closed (`live`).
  * Identity that cannot be re-read is live as well.
  * `observed` supplies a forged signal and identity for tests. Production
  * callers omit it and the live process table is probed.

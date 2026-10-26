@@ -85,7 +85,7 @@ test('an unstable Windows boot sample is omitted after two reads more than 2s ap
 async function windowsIdentityFixture(probe) {
     const { readFile } = await import('node:fs/promises');
     let source = await readFile(new URL('../src/process-identity.js', import.meta.url), 'utf8');
-    source = source.replace("import { execFileSync } from 'node:child_process';", `const execFileSync = ${probe};`)
+    source = source.replace("import { execFileSync } from 'node:child_process';", `export const probes = []; const probe = ${probe}; const execFileSync = (...args) => { probes.push(args[0]); return probe(...args); };`)
         .replaceAll('process.platform', "'win32'");
     return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}#${Math.random()}`);
 }
@@ -102,7 +102,7 @@ test('Windows re-probes foreign PIDs across successive incarnations', async () =
     assert.deepEqual(identity.readProcessIdentity(process.pid), own);
 });
 
- test('a fresh observer after a clock step cannot reclaim by Windows boot estimate', () => {
+test('a fresh observer after a clock step cannot reclaim by Windows boot estimate', () => {
     const fresh = settleWindowsBootSample(null, { id: 'win-boot:1300', at: 9000 });
     assert.equal(classifyPidLiveness({ pid: 42, bootId: 'win-boot:1000' }, {
         signaled: 'alive', identity: { bootId: fresh.bootId },
@@ -115,6 +115,7 @@ test('Windows omits identity when PowerShell is unavailable instead of mixing WM
         throw Object.assign(new Error('missing'), { code: 'ENOENT' });
     })`);
     assert.equal(identity.readProcessIdentity(424242).processStartMs, undefined);
+    assert.deepEqual(identity.probes, ['powershell.exe']);
     assert.equal(identity.classifyPidLiveness({ pid: 424242, processStartMs: 50000 }, {
         signaled: 'alive', identity: identity.readProcessIdentity(424242),
     }), 'live');

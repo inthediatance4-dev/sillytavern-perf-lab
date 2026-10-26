@@ -124,8 +124,8 @@ export function configureCrossProcessPathLocks(options = {}) {
         if (!error || error.code !== 'ENOENT') throw error;
     }
     lockRoot = root;
-    storageDir = path.join(root, PATH_LOCK_DIRECTORY);
-    storageKind = 'primary';
+    storageDir = fallbackPathLockDirectory(root);
+    storageKind = 'fallback';
     enabled = true;
 }
 
@@ -262,31 +262,8 @@ function primaryTooLong(filePath) {
  * @param {string} reason
  * @returns {boolean}
  */
-function switchToFallback(reason) {
-    if (storageKind !== 'primary' || !lockRoot) return false;
-    const next = fallbackPathLockDirectory(lockRoot);
-    try {
-        fs.mkdirSync(next, { recursive: true, mode: 0o700 });
-        try { fs.chmodSync(next, 0o700); } catch { /* platforms without chmod still have the directory */ }
-    } catch (error) {
-        warnOnce(error);
-        return false;
-    }
-    const record = {
-        kind: 'fallback',
-        reason,
-        dataRoot: lockRoot,
-        directory: next,
-        since: new Date().toISOString(),
-    };
-    try {
-        fs.writeFileSync(path.join(next, 'root.json'), `${JSON.stringify(record)}\n`, { mode: 0o600 });
-    } catch (error) {
-        warnOnce(error);
-    }
-    storageDir = next;
-    storageKind = 'fallback';
-    return true;
+function switchToFallback(_reason) {
+    return false;
 }
 
 /**

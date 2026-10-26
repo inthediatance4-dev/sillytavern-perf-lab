@@ -314,7 +314,7 @@ exclusiveTest('an exclusive holder keeps one lock file and the next waiter stays
     const entered = deferred();
     const first = withPathLocks([file], async () => {
         order.push('first');
-        const names = await fs.readdir(path.join(root, PATH_LOCK_DIRECTORY));
+        const names = await fs.readdir(fallbackPathLockDirectory(root));
         assert.deepEqual(names.filter(name => name.endsWith('.exclusive')), [path.basename(exclusiveLockPathFor(pathLockKey(file)))]);
         entered.resolve();
         await release.promise;
@@ -409,7 +409,7 @@ exclusiveTest('a nested lock cannot take another path while an exclusive filesys
     configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 500 });
     await assert.rejects(withPathLocks([outer], async () => {
         await Promise.resolve();
-        const names = await fs.readdir(path.join(root, PATH_LOCK_DIRECTORY));
+        const names = await fs.readdir(fallbackPathLockDirectory(root));
         assert.deepEqual(names.filter(name => name.endsWith('.exclusive')), [path.basename(exclusiveLockPathFor(pathLockKey(outer)))]);
         await withPathLocks([inner], async () => 'inner');
     }), error => error instanceof ChatLifecycleError && error.reason === 'lock_reentered');
@@ -573,7 +573,7 @@ exclusiveTest('shared parent fences let two files in one process run together', 
     });
     await entered.promise;
     const second = await withPathLocks(chatLockPaths([beta]), async () => {
-        const names = await lockNames(path.join(root, PATH_LOCK_DIRECTORY));
+        const names = await lockNames(fallbackPathLockDirectory(root));
         assert.equal(names.filter(name => SHARED_LOCK_NAME.test(name)).length, 2);
         assert.equal(names.filter(name => name.endsWith('.exclusive')).length, 2);
         return 'second';
@@ -581,7 +581,7 @@ exclusiveTest('shared parent fences let two files in one process run together', 
     assert.equal(second, 'second');
     release.resolve();
     await first;
-    const left = await lockNames(path.join(root, PATH_LOCK_DIRECTORY));
+    const left = await lockNames(fallbackPathLockDirectory(root));
     assert.deepEqual(left.filter(name => SHARED_LOCK_NAME.test(name) || name.endsWith('.exclusive')), []);
 });
 
@@ -630,7 +630,7 @@ exclusiveTest('two child processes hold the same parent shared fence together', 
             waitForMarker(alphaMarker, text => text.startsWith('entered:')),
             waitForMarker(betaMarker, text => text.startsWith('entered:')),
         ]);
-        const names = await lockNames(path.join(root, PATH_LOCK_DIRECTORY));
+        const names = await lockNames(fallbackPathLockDirectory(root));
         assert.equal(names.filter(name => SHARED_LOCK_NAME.test(name)).length, 2);
         assert.equal(names.filter(name => name.endsWith('.exclusive')).length, 2);
     } finally {
@@ -758,7 +758,7 @@ exclusiveTest('an old symlink or oversized lock is quarantined and a live file i
     assert.equal(await fs.readFile(lockPath, 'utf8'), liveText);
 });
 
-exclusiveTest('a too-long primary lock path falls back and leaves no primary lock', async () => {
+exclusiveTest('all reservations select the short namespace before acquisition', async () => {
     const root = await freshDir('fallback-root');
     const file = path.join(root, 'chat.jsonl');
     const primaryDir = path.join(root, PATH_LOCK_DIRECTORY);
@@ -767,6 +767,7 @@ exclusiveTest('a too-long primary lock path falls back and leaves no primary loc
     assert.equal(path.basename(expected).length, 64);
     assert.equal(expected.startsWith(path.join(os.tmpdir(), 'st-lab-path-locks')), true);
     configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 500 });
+    assert.equal(activePathLockLocation().directory, expected);
     setPathLockPathLimitForTest(1);
     try {
         await withPathLocks([file], async () => {
@@ -777,9 +778,6 @@ exclusiveTest('a too-long primary lock path falls back and leaves no primary loc
             assert.equal(String(lockPath).startsWith(`${expected}${path.sep}`), true);
             const payload = JSON.parse(await fs.readFile(lockPath, 'utf8'));
             assert.equal(payload.pid, process.pid);
-            const record = JSON.parse(await fs.readFile(path.join(expected, 'root.json'), 'utf8'));
-            assert.equal(record.kind, 'fallback');
-            assert.equal(record.directory, expected);
             assert.equal((await fs.stat(expected)).mode & 0o777, 0o700);
         });
         const primaryNames = await lockNames(primaryDir);

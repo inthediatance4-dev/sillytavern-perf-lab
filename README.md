@@ -68,17 +68,15 @@ take that directory exclusively and are not starved by later shared holders.
 In-process path locks are always on. Cross-process exclusion is off unless
 `exclusiveDataRoot` or `crossProcessPathLocks` is set. With either flag, an
 exclusive file also takes a shared parent fence when that parent is not
-already exclusive. Under `<dataRoot>/.st-path-locks/`, a shared holder is
+already exclusive. Under `os.tmpdir()/st-lab-path-locks/<sha256(dataRoot)>/`, a shared holder is
 `<sha256>.shared.<token>` and an exclusive holder is `<sha256>.exclusive`.
 Each is created with `O_EXCL` and removed only when its bytes still match.
 Shared holders of one hash coexist. An exclusive acquire waits until that
 hash has no live `.shared.*` file, and a shared acquire waits until
 `<sha256>.exclusive` is gone. After either create, the loser drops its file.
 A shared-only reservation still creates no file; atomic replacement still
-protects readers of a complete file. `ENAMETOOLONG`, including a Windows
-path-too-long message, moves the whole set to
-`os.tmpdir()/st-lab-path-locks/<sha256(dataRoot)>/` (mode `0o700`) and
-retries, leaving nothing from that attempt on the primary root. A symlink,
+protects readers of a complete file. Storage is selected once at configuration, independently of reservation names;
+path errors fail closed without switching namespaces. A symlink,
 a non-regular file, or a regular file larger than 4096 bytes, once older
 than 60 seconds, is renamed into `.quarantine` and the create is retried
 once. A younger unusable entry stays and fails with `path_lock_unavailable`.

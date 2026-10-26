@@ -826,3 +826,30 @@ exclusiveTest('release names fit whenever canonical lock names fit', async () =>
         assert.deepEqual((await fs.readdir(activePathLockLocation().directory)).filter(name => !name.startsWith('.c')), []);
     } finally { fsSync.renameSync = rename; }
 });
+
+exclusiveTest('a completed save starts deferred backup while an unrelated lock stays held', async () => {
+    const root = await freshDir('independent-backup');
+    configureCrossProcessPathLocks({ enabled: true, root });
+    const entered = deferred();
+    const release = deferred();
+    const unrelated = withPathLocks([path.join(root, 'unrelated')], async () => {
+        entered.resolve();
+        await release.promise;
+    });
+    await entered.promise;
+    let backup;
+    let timer;
+    try {
+        await withPathLocks([path.join(root, 'save')], async () => {
+            backup = runAfterExclusiveFsLocks(() => withPathLocks([path.join(root, 'backups')], async () => 'written'));
+        });
+        assert.equal(await Promise.race([backup, new Promise(resolve => {
+            timer = setTimeout(() => resolve('blocked by unrelated lock'), 500);
+        })]), 'written');
+    } finally {
+        clearTimeout(timer);
+        release.resolve();
+        await unrelated;
+        await backup;
+    }
+});

@@ -30,6 +30,8 @@ const pendingIO = new Set();
  * @type {AsyncLocalStorage<Map<string, LockMode>>}
  */
 const heldModes = new AsyncLocalStorage();
+/** Completion of this reservation and any enclosing reservations. */
+const reservationDone = new AsyncLocalStorage();
 /** Frames in this process that currently hold exclusive cross-process lock files. */
 let exclusiveFsDepth = 0;
 
@@ -162,27 +164,16 @@ function scopeHoldsExclusive(store) {
 }
 
 /**
- * Run `task` after this process has dropped every exclusive cross-process path
- * lock, and outside the caller's held-key scope. `setImmediate` is required:
- * the holder's release is a microtask, and a nested microtask would still see
- * those files. The caller must not await this from inside the holder that
- * keeps the depth above zero, or the wait never ends. The backup writer uses
- * it so a save does not keep the chat file lock while the backup directory
- * lock is taken.
+ * Run `task` after the originating reservation and its enclosing reservations
+ * release their locks, outside their held-key scope. Do not await this from
+ * inside the reservation itself.
  * @template T
  * @param {() => (Promise<T>|T)} task
  * @returns {Promise<T>}
  */
 export function runAfterExclusiveFsLocks(task) {
-    async function drained() {
-        while (exclusiveFsDepth > 0) {
-            await new Promise(resolve => {
-                setImmediate(resolve);
-            });
-        }
-        return heldModes.exit(() => task());
-    }
-    return drained();
+    const completion = reservationDone.getStore() || Promise.resolve();
+    return completion.then(() => heldModes.exit(() => reservationDone.exit(task)));
 }
 
 /**
@@ -227,6 +218,9 @@ export function withPathLocks(entries, task) {
             return Promise.reject(new ChatLifecycleError('lock_reentered'));
         }
     }
+    let notifyReleased;
+    const released = new Promise(resolve => { notifyReleased = resolve; });
+    const completion = Promise.all([reservationDone.getStore(), released]);
     const grants = requests.map(request => reserve(request.key, request.mode));
     const exclusiveKeys = [];
     const scope = new Map(outer);
@@ -251,7 +245,7 @@ export function withPathLocks(entries, task) {
             exclusiveFsDepth += 1;
             trackedFs = true;
         }
-        return heldModes.run(scope, task);
+        return heldModes.run(scope, () => reservationDone.run(completion, task));
     });
     const settled = result.finally(() => {
         try {
@@ -264,6 +258,7 @@ export function withPathLocks(entries, task) {
                 trackedFs = false;
             }
             for (const request of requests) release(request.key, request.mode);
+            notifyReleased();
         }
     });
     const done = settled.then(() => undefined, () => undefined);

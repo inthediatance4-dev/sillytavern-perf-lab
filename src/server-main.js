@@ -72,7 +72,6 @@ import { checkForNewContent } from './endpoints/content-manager.js';
 import { init as settingsInit } from './endpoints/settings.js';
 import { createRequestDrain } from './request-drain.js';
 import { acquireDataRootOwnership } from './data-root-owner.js';
-import { configureCrossProcessPathLocks } from './path-fs-lock.js';
 import { flushChatBackups } from './endpoints/chats.js';
 import { redirectDeprecatedEndpoints, ServerStartup, setupPrivateEndpoints } from './server-startup.js';
 import { diskCache } from './endpoints/characters.js';
@@ -109,17 +108,6 @@ if (cliArgs.exclusiveDataRoot) {
         process.exit(1);
     }
 }
-// Exclusive data-root mode also coordinates writers per path. The dedicated
-// flag does the same without the whole-root owner file. A failure here must
-// not stop startup; in-process locks still apply.
-if (cliArgs.exclusiveDataRoot || cliArgs.crossProcessPathLocks) {
-    try {
-        configureCrossProcessPathLocks({ enabled: true, root: globalThis.DATA_ROOT });
-    } catch (error) {
-        console.warn(`Cross-process path locks were not enabled: ${error.message}`);
-    }
-}
-
 // Set keep-alive preference for all HTTP/HTTPS requests.
 http.globalAgent = new http.Agent({ keepAlive: cliArgs.enableKeepAlive });
 https.globalAgent = new https.Agent({ keepAlive: cliArgs.enableKeepAlive });

@@ -4,7 +4,6 @@ import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
 import writeFileAtomic from 'write-file-atomic';
 import sanitize from 'sanitize-filename';
-import { acquireCrossProcessPathLocks, PathLockError, releaseCrossProcessPathLocks } from './path-fs-lock.js';
 
 /** @typedef {'shared' | 'exclusive'} LockMode */
 
@@ -22,18 +21,13 @@ const gates = new Map();
 const pendingIO = new Set();
 /**
  * Keys held by the withPathLocks calls on this async stack.
- * A nested call may take other keys only when this stack does not hold an
- * exclusive cross-process lock. It must not wait on a key this stack already
- * holds exclusively, or upgrade a shared key to exclusive: the outer call
- * would be waiting for itself. Two processes that nest exclusive keys in
- * opposite orders deadlock on the filesystem locks.
+ * Nested calls must not wait on a key already held exclusively or upgrade a
+ * shared key to exclusive: the outer call would be waiting for itself.
  * @type {AsyncLocalStorage<Map<string, LockMode>>}
  */
 const heldModes = new AsyncLocalStorage();
 /** Completion of this reservation and any enclosing reservations. */
 const reservationDone = new AsyncLocalStorage();
-/** Frames in this process that currently hold exclusive cross-process lock files. */
-let exclusiveFsDepth = 0;
 
 /**
  * Serialize work for one path, including validation before the actual write.
@@ -151,19 +145,6 @@ function release(key, mode) {
 }
 
 /**
- * True when this async stack already holds an exclusive key.
- * @param {Map<string, LockMode>|undefined} store
- * @returns {boolean}
- */
-function scopeHoldsExclusive(store) {
-    if (!store) return false;
-    for (const mode of store.values()) {
-        if (mode === 'exclusive') return true;
-    }
-    return false;
-}
-
-/**
  * Run `task` after the originating reservation and its enclosing reservations
  * release their locks, outside their held-key scope. Do not await this from
  * inside the reservation itself.
@@ -171,7 +152,7 @@ function scopeHoldsExclusive(store) {
  * @param {() => (Promise<T>|T)} task
  * @returns {Promise<T>}
  */
-export function runAfterExclusiveFsLocks(task) {
+export function runAfterPathLocks(task) {
     const completion = reservationDone.getStore() || Promise.resolve();
     return completion.then(() => heldModes.exit(() => reservationDone.exit(task)));
 }
@@ -179,24 +160,13 @@ export function runAfterExclusiveFsLocks(task) {
 /**
  * Reserve every requested path synchronously, then wait until all of them are granted.
  * The task does not start while any requested lock is still queued, and this call
- * never awaits one lock before reserving the others. A nested call may lock other
- * paths only while this stack holds no exclusive cross-process file. It fails with
- * `lock_reentered` if it needs a key this stack already holds exclusively, if it
- * would upgrade a shared key to exclusive, or if an exclusive filesystem lock is
- * still held. Release the outer reservation first; queue later locks with
- * {@link runAfterExclusiveFsLocks}.
+ * never awaits one lock before reserving the others. Nested calls fail with
+ * `lock_reentered` when they need a key already held exclusively or would
+ * upgrade a shared key to exclusive. Queue follow-up work after release with
+ * {@link runAfterPathLocks}.
  * A string entry is exclusive. `{ path, mode: 'shared' | 'exclusive' }` selects the mode.
  * Shared holders of one path run together. An exclusive request waits for shared
  * holders already in progress and blocks shared requests that arrive after it.
- * When cross-process locks are enabled, each exclusive key and each shared parent
- * in the same reservation hold a file under the path-lock directory. Those files
- * are taken only after the in-process grants, in the same sorted key order, so a
- * later key cannot be held while an earlier one is still waiting. An exclusive
- * file also takes a shared filesystem lock on its parent directory. Shared parent
- * files from different files coexist. An exclusive directory lock waits until
- * those shared holders are gone. A reservation that is only shared does not
- * create a filesystem file. A live lock in another process is polled and then
- * fails with `path_lock_busy` rather than waiting forever.
  * @template T
  * @param {Array<string | { path: string, mode: LockMode }>} entries Lock requests
  * @param {() => Promise<T>} task Operation
@@ -212,54 +182,20 @@ export function withPathLocks(entries, task) {
                 return Promise.reject(new ChatLifecycleError('lock_reentered'));
             }
         }
-        // Disjoint keys are still unsafe: the caller already holds filesystem
-        // locks, so this call would acquire later keys out of sorted order.
-        if (exclusiveFsDepth > 0 && scopeHoldsExclusive(outer)) {
-            return Promise.reject(new ChatLifecycleError('lock_reentered'));
-        }
     }
     let notifyReleased;
     const released = new Promise(resolve => { notifyReleased = resolve; });
     const completion = Promise.all([reservationDone.getStore(), released]);
     const grants = requests.map(request => reserve(request.key, request.mode));
-    const exclusiveKeys = [];
     const scope = new Map(outer);
     for (const request of requests) {
-        if (request.mode === 'exclusive') exclusiveKeys.push(request.key);
         scope.set(request.key, request.mode);
     }
-    /** @type {Array<{ lockPath: string, payload: string }>} */
-    let fsHeld = [];
-    let trackedFs = false;
-    const result = Promise.all(grants).then(async () => {
-        try {
-            // Shared-only reservations stay in-process. Mixed and exclusive
-            // reservations take filesystem locks for every requested key, and
-            // an exclusive file adds a shared parent fence inside that call.
-            fsHeld = await acquireCrossProcessPathLocks(exclusiveKeys.length > 0 ? requests : []);
-        } catch (error) {
-            if (error instanceof PathLockError) throw new ChatLifecycleError(error.reason);
-            throw error;
-        }
-        if (fsHeld.length > 0) {
-            exclusiveFsDepth += 1;
-            trackedFs = true;
-        }
-        return heldModes.run(scope, () => reservationDone.run(completion, task));
-    });
+    const result = Promise.all(grants).then(() =>
+        heldModes.run(scope, () => reservationDone.run(completion, task)));
     const settled = result.finally(() => {
-        try {
-            releaseCrossProcessPathLocks(fsHeld);
-        } finally {
-            // Drop the depth only after the files are released so a deferred
-            // waiter cannot acquire while these locks are still on disk.
-            if (trackedFs) {
-                exclusiveFsDepth -= 1;
-                trackedFs = false;
-            }
-            for (const request of requests) release(request.key, request.mode);
-            notifyReleased();
-        }
+        for (const request of requests) release(request.key, request.mode);
+        notifyReleased();
     });
     const done = settled.then(() => undefined, () => undefined);
     pendingIO.add(done);
@@ -273,9 +209,6 @@ export function withPathLocks(entries, task) {
  * Ordinary file operations: shared lock on the parent directory plus an exclusive
  * lock on the file. Directory retirement, rename, delete, and backup pruning pass
  * the directory itself as an exclusive string to withPathLocks / withPathLock.
- * When cross-process locks are enabled, the shared parent is a filesystem
- * fence and the file stays exclusive, so a directory rename in another
- * process waits for the file writer.
  * @param {string[]} filePaths Files, not the directories being retired
  * @returns {Array<{ path: string, mode: LockMode }>}
  */
@@ -291,20 +224,16 @@ export class ChatLifecycleError extends Error {
      * @param {string} reason
      */
     constructor(reason) {
-        const detail = reason === 'path_lock_busy'
-            ? 'another process holds this path lock'
-            : reason === 'path_lock_unavailable'
-                ? 'the cross-process path lock could not be taken'
-                : reason === 'lock_reentered'
-                    ? 'a path lock cannot be taken while one is already held'
-                    : reason;
+        const detail = reason === 'lock_reentered'
+            ? 'a path lock cannot be taken while one is already held'
+            : reason;
         super(`Chat lifecycle conflict: ${detail}. Reload the chat list or save under a different name.`);
         this.name = 'ChatLifecycleError';
         this.reason = reason;
     }
 }
 
-/** Normalized queue key for a path. Cross-process lock files hash this string. */
+/** Normalized queue key for a path. */
 export function pathLockKey(filePath) {
     return pathKey(filePath);
 }

@@ -16,7 +16,6 @@ import {
     MAX_LOCK_BYTES,
     PATH_LOCK_DIRECTORY,
     PATH_LOCK_QUARANTINE_DIRECTORY,
-    setPathLockPathLimitForTest,
     sharedLockPathFor,
 } from '../src/path-fs-lock.js';
 
@@ -109,12 +108,10 @@ function exclusiveTest(name, fn) {
         });
         await previous;
         configureCrossProcessPathLocks({ enabled: false });
-        setPathLockPathLimitForTest(0);
         try {
             await fn();
         } finally {
             configureCrossProcessPathLocks({ enabled: false });
-            setPathLockPathLimitForTest(0);
             release();
         }
     });
@@ -768,7 +765,6 @@ exclusiveTest('all reservations select the short namespace before acquisition', 
     assert.equal(expected.startsWith(path.join(os.tmpdir(), 'st-lab-path-locks')), true);
     configureCrossProcessPathLocks({ enabled: true, root, timeoutMs: 500 });
     assert.equal(activePathLockLocation().directory, expected);
-    setPathLockPathLimitForTest(1);
     try {
         await withPathLocks([file], async () => {
             const location = activePathLockLocation();
@@ -783,7 +779,6 @@ exclusiveTest('all reservations select the short namespace before acquisition', 
         const primaryNames = await lockNames(primaryDir);
         assert.deepEqual(primaryNames.filter(name => name.endsWith('.exclusive') || SHARED_LOCK_NAME.test(name)), []);
     } finally {
-        setPathLockPathLimitForTest(0);
         await fs.rm(expected, { recursive: true, force: true });
     }
 });

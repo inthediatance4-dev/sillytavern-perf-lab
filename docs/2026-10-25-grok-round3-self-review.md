@@ -1,5 +1,11 @@
 # Grok round-3 self-review (2026-10-25)
 
+> Historical review, superseded by [the locking simplification](2026-10-26-locking-simplification.md).
+> The per-path cross-process protocol, its flags, storage namespaces, parent
+> filesystem fences, acquisition gates, and protocol-only tests described below
+> have been deleted. These are historical findings and test results, not current
+> guarantees. Current locking uses the data-root owner lock and in-process queues.
+
 Reviewed `git diff a73dd78..HEAD` on `codex-improvements` before the fix commit: `7680483` (pid-reuse identity) and `73269ac` (opt-in cross-process exclusive path locks). No push. Tag `grok-handoff-start` and branch `backup-before-grok-r2` were not moved. The nested-lock fix is option (a): while an exclusive cross-process file is held, `withPathLocks` refuses another entry, and the backup writer acquires the backup directory only after that file is released. A global sort of keys acquired by later nested calls was not used. Those calls no longer run while the outer files are held.
 
 ## Findings

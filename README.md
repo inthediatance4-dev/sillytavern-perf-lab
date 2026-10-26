@@ -65,39 +65,14 @@ Ordinary file operations take a shared lock on the parent directory and an
 exclusive lock on the file, so different group chats in one directory can
 proceed together. Directory retirement, rename, delete, and backup pruning
 take that directory exclusively and are not starved by later shared holders.
-In-process path locks are always on. Cross-process exclusion is off unless
-`exclusiveDataRoot` or `crossProcessPathLocks` is set. With either flag, an
-exclusive file also takes a shared parent fence when that parent is not
-already exclusive. Under `os.tmpdir()/st-lab-path-locks/<sha256(dataRoot)>/`, a shared holder is
-`<sha256>.shared.<token>` and an exclusive holder is `<sha256>.exclusive`.
-Acquisition uses a per-key directory gate to serialize inspection, reclaim,
-quarantine, and publication. An interrupted gate fails closed; remove abandoned
-`.gate` directories only with all contenders stopped. Each holder file is created with `O_EXCL` and removed only when its bytes still match.
-Shared holders of one hash coexist. An exclusive acquire waits until that
-hash has no live `.shared.*` file, and a shared acquire waits until
-`<sha256>.exclusive` is gone. After either create, the loser drops its file.
-A shared-only reservation still creates no file; atomic replacement still
-protects readers of a complete file. All cooperating processes must use the same host temporary directory and
-normalized data root. Stop old server versions before upgrading this protocol.
-Storage is selected once at configuration, independently of reservation names;
-path errors fail closed without switching namespaces. A symlink,
-a non-regular file, or a regular file larger than 4096 bytes, once older
-than 60 seconds, is renamed into `.quarantine` and the create is retried
-once. A younger unusable entry stays and fails with `path_lock_unavailable`.
-Keys are reserved in sorted order before any wait. A nested `withPathLocks`
-may take other paths only while no exclusive cross-process lock is held. It
-cannot wait on a key the caller already holds exclusively, upgrade a shared
-key to exclusive, or take another path while an exclusive cross-process lock
-is still held. The backup writer waits for its originating reservation and enclosing
-reservations to release; unrelated holders do not postpone it. A live
-lock in another process is polled with a short backoff and then fails with
-`path_lock_busy` (default wait 15 seconds) instead of hanging. A dead pid,
-or a reused pid, is reclaimed by renaming the lock aside and deleting it
-only when the bytes are still stale, under the acquisition gate. Cleanup uses
-bounded short sibling names. Another host's file is left in place.
-No compiler is required.
-A process that does not opt in is not excluded by these files. `exclusiveDataRoot` is off unless
-the lab launcher or config turns it on. The owner file records pid, host,
+In-process shared/exclusive path locks are always on and use a queue; they create
+no lock files. Keys are reserved in sorted order before any wait. Nested calls
+cannot wait on a key already held exclusively or upgrade a shared key to exclusive.
+The backup writer waits for its originating and enclosing reservations to release;
+unrelated holders do not postpone it.
+Concurrent servers sharing a data root are unsupported. Use the exclusive
+data-root owner lock to prevent a second cooperating server from starting.
+`exclusiveDataRoot` is off unless the lab launcher or config turns it on. The owner file records pid, host,
 start time, a random token, and, when the host can provide them, a boot id
 and the process start time. Linux uses `/proc/sys/kernel/random/boot_id` and
 `/proc/<pid>/stat` starttime plus `btime`. Windows stores a best-effort
@@ -127,9 +102,10 @@ can leave the file; the next acquire on this host reclaims it. No compiler is
 required. If an unexpected filesystem error means ownership cannot be
 determined, startup logs a warning and continues. A live owner on this host
 still refuses the second process. The owner file is the whole-root gate.
-Per-path exclusion is the `.st-path-locks` files described above, and only for
-processes that opted in. A process started without either flag can still share
-the root.
+Path queues coordinate work within this process only. Every server using a data
+root must enable `exclusiveDataRoot`; external writers are outside this guarantee.
+Owner reclaim and release use bounded short cleanup names. Failed release keeps
+ownership bookkeeping so an explicit release can retry.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

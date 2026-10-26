@@ -1,5 +1,11 @@
 # Grok round-4 hardening (2026-10-25)
 
+> Historical review, superseded by [the locking simplification](2026-10-26-locking-simplification.md).
+> The per-path cross-process protocol, its flags, storage namespaces, parent
+> filesystem fences, acquisition gates, and protocol-only tests described below
+> have been deleted. These are historical findings and test results, not current
+> guarantees. Current locking uses the data-root owner lock and in-process queues.
+
 > Superseded by the [review fixes](2026-10-26-lock-review-fixes.md).
 > The namespace agreement and rename/restore safety claims below were incorrect:
 > the length seam did not exercise real shared-only path failures, and moving a

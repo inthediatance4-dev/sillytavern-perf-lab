@@ -1,5 +1,11 @@
 # Lock review fixes (2026-10-26)
 
+> Historical review, superseded by [the locking simplification](2026-10-26-locking-simplification.md).
+> The per-path cross-process protocol, its flags, storage namespaces, parent
+> filesystem fences, acquisition gates, and protocol-only tests described below
+> have been deleted. These are historical findings and test results, not current
+> guarantees. Current locking uses the data-root owner lock and in-process queues.
+
 This supersedes the protocol guarantees in the round-4 self-review. All five
 P1 findings and both P2 findings in the external review were addressed.
 
@@ -37,9 +43,9 @@ Validation on this Linux host:
 - `node --test tests/process-identity.test.mjs tests/path-fs-lock.test.mjs tests/data-root-owner.test.mjs tests/path-lock-fairness.test.mjs tests/chat-backup-isolation.test.mjs`: 70 passed, no failures or skips.
 - `git diff --check`: passed.
 
-No reviewed P1 or P2 remains intentionally unfixed. The optional suggestion to
-remove the filesystem protocol in favor of whole-root ownership was not adopted:
-explicit `crossProcessPathLocks` still supports cooperating processes. Actual
-Windows PowerShell startup, Windows path limits, and browser behavior were not
-exercised. Compiler-free code is not evidence of Windows locking correctness.
-No full performance suite was run. No push or history rewrite was performed.
+The subsequent user decision removed concurrent-server support on one data root
+and deleted the per-path filesystem protocol. The Windows identity fixes,
+bounded owner cleanup names, retriable release bookkeeping, and reservation-based
+backup scheduling remain. Actual Windows PowerShell startup and browser behavior
+were not exercised by this historical review. No full performance suite was run
+for that review. No push or history rewrite was performed.

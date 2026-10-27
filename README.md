@@ -104,8 +104,9 @@ determined, startup logs a warning and continues. A live owner on this host
 still refuses the second process. The owner file is the whole-root gate.
 Path queues coordinate work within this process only. Every server using a data
 root must enable `exclusiveDataRoot`; external writers are outside this guarantee.
-Owner reclaim and release use bounded short cleanup names. Failed release keeps
-ownership bookkeeping so an explicit release can retry.
+Owner reclaim and release use bounded short cleanup names. Release read or cleanup
+failures retain ownership bookkeeping and any pending cleanup path for explicit
+release retries.
 This follow-up reports failed character publications correctly, falls back to a
 detached JSON prompt snapshot when structured cloning is unavailable or rejects a
 value, and skips unavailable historical test oracles. Unserializable prompt data

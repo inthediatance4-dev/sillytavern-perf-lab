@@ -488,3 +488,52 @@ test('owner cleanup uses bounded sibling names and failed release can be retried
     finally { fsSync.renameSync = rename; }
     assert.equal(fsSync.existsSync(path.join(root, DATA_ROOT_OWNER_LOCK)), false);
 });
+
+test('an expired marker cannot revoke a paused live reclaimer', async () => {
+    const root = await freshRoot('paused-reclaim');
+    const lockPath = path.join(root, DATA_ROOT_OWNER_LOCK);
+    const reclaimPath = path.join(root, DATA_ROOT_OWNER_RECLAIM);
+    fsSync.writeFileSync(lockPath, JSON.stringify({ pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01' }));
+    const rename = fsSync.renameSync;
+    let paused = false;
+    fsSync.renameSync = (from, to) => {
+        if (from === lockPath && !paused) {
+            paused = true;
+            // Pause after stale-owner validation, immediately before its rename.
+            const expired = new Date(Date.now() - DATA_ROOT_RECLAIM_TIMEOUT_MS - 1000);
+            fsSync.utimesSync(reclaimPath, expired, expired);
+            const before = fsSync.readFileSync(lockPath, 'utf8');
+            for (let contender = 0; contender < 2; contender++) {
+                const child = runAcquire(root);
+                assert.notEqual(child.status, 0, child.stderr);
+                assert.match(child.stderr, /Could not acquire/);
+                assert.equal(fsSync.readFileSync(lockPath, 'utf8'), before);
+            }
+        }
+        return rename(from, to);
+    };
+    try {
+        const owned = acquireDataRootOwnership(root);
+        assert.equal(paused, true);
+        assert.equal(JSON.parse(fsSync.readFileSync(lockPath, 'utf8')).token, owned.token);
+    } finally {
+        fsSync.renameSync = rename;
+        releaseDataRootOwnership();
+    }
+});
+
+test('release retains bookkeeping after reading the renamed owner fails', async () => {
+    const root = await freshRoot('release-read-failure');
+    const owned = acquireDataRootOwnership(root);
+    const read = fsSync.readSync;
+    fsSync.readSync = () => { throw Object.assign(new Error('transient read failure'), { code: 'EIO' }); };
+    try {
+        assert.throws(() => releaseDataRootOwnership(), /transient read failure/);
+    } finally {
+        fsSync.readSync = read;
+    }
+    assert.equal(fsSync.existsSync(owned.lockPath), true);
+    assert.throws(() => acquireDataRootOwnership(root), /already owns/);
+    releaseDataRootOwnership();
+    assert.equal(fsSync.existsSync(owned.lockPath), false);
+});

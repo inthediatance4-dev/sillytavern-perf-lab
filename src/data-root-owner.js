@@ -9,12 +9,12 @@ export const DATA_ROOT_OWNER_LOCK = '.st-lab-owner.lock';
 
 /**
  * Sibling created with O_EXCL so only one process may reclaim a stale owner.
- * A marker older than {@link DATA_ROOT_RECLAIM_TIMEOUT_MS} can itself be reclaimed.
+ * An expired marker can be reclaimed only after its process is confirmed dead.
  */
 export const DATA_ROOT_OWNER_RECLAIM = '.st-lab-owner.lock.reclaim';
 
 /**
- * Age after which a reclaim marker no longer blocks another acquire.
+ * Minimum age before a dead process's reclaim marker can be taken over.
  * A crashed reclaimer cannot hold the data root shut forever.
  */
 export const DATA_ROOT_RECLAIM_TIMEOUT_MS = 10000;
@@ -64,6 +64,8 @@ export class DataRootOwnershipError extends Error {
 let ownedPath = null;
 /** @type {string|null} */
 let ownedPayload = null;
+/** @type {string|null} Pending cleanup retained when restoration fails. */
+let ownedReleasePath = null;
 /** @type {(() => void)|null} */
 let releaseHook = null;
 const pauseBuffer = new Int32Array(new SharedArrayBuffer(4));
@@ -296,11 +298,29 @@ function reclaimMarkerState(reclaimPath, ourPayload) {
         return { state: 'refuse', error: reclaimLeftInPlace(reclaimPath) };
     }
     if (seen.status !== 'ok') return { state: 'environment', error: seen.error };
-    if (markerAgeMs(listed.mtimeMs) >= DATA_ROOT_RECLAIM_TIMEOUT_MS) {
+    if (markerAgeMs(listed.mtimeMs) >= DATA_ROOT_RECLAIM_TIMEOUT_MS && reclaimProcessIsDead(seen.text)) {
         return { state: 'stale', text: seen.text };
     }
     if (ourPayload && seen.text === ourPayload) return { state: 'ours' };
     return { state: 'foreign' };
+}
+
+/**
+ * A timeout alone cannot revoke a paused process's right to rename the owner.
+ * Legacy markers use claimedAt instead of startedAt and lack kernel identity.
+ * Unknown or foreign processes fail closed.
+ * @param {string} text
+ * @returns {boolean}
+ */
+function reclaimProcessIsDead(text) {
+    try {
+        const record = JSON.parse(text);
+        const marker = classifyOwner(JSON.stringify({ ...record, startedAt: record.startedAt || record.claimedAt }));
+        return marker.kind === 'owner' && marker.owner.hostname === os.hostname()
+            && classifyPidLiveness(marker.owner) !== 'live';
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -381,7 +401,7 @@ function ownerPayload(pid, hostname, startedAt) {
 }
 
 function reclaimPayload() {
-    return `${JSON.stringify({ pid: process.pid, hostname: os.hostname(), claimedAt: new Date().toISOString() })}\n`;
+    return ownerPayload(process.pid, os.hostname(), new Date().toISOString());
 }
 
 /**
@@ -412,7 +432,7 @@ function takeoverStaleMarker(reclaimPath, observedText, payload) {
         if (error.code === 'ENOENT') return { status: 'busy' };
         return { status: 'environment', error };
     }
-    if (seen.text !== observedText || ageMs < DATA_ROOT_RECLAIM_TIMEOUT_MS) {
+    if (seen.text !== observedText || ageMs < DATA_ROOT_RECLAIM_TIMEOUT_MS || !reclaimProcessIsDead(seen.text)) {
         restoreOrLeave(unique, reclaimPath);
         return { status: 'busy' };
     }
@@ -550,30 +570,48 @@ function releaseOwnedLock(swallow) {
     if (!ownedPath) return;
     const lockPath = ownedPath;
     const payload = ownedPayload;
-    const unique = uniqueSibling(lockPath, 'release');
+    const unique = ownedReleasePath || uniqueSibling(lockPath, 'release');
     try {
-        fs.renameSync(lockPath, unique);
+        if (!ownedReleasePath) fs.renameSync(lockPath, unique);
+        ownedReleasePath = unique;
     } catch (error) {
-        if (error.code === 'ENOENT' || swallow) return;
+        if (error.code === 'ENOENT') {
+            clearRelease();
+            return;
+        }
+        if (swallow) return;
         throw error;
-    }
-    ownedPath = null;
-    ownedPayload = null;
-    if (releaseHook) {
-        process.removeListener('exit', releaseHook);
-        releaseHook = null;
     }
     const seen = readRegularFile(unique);
     if (seen.status === 'ok' && seen.text === payload) {
         try {
             fs.unlinkSync(unique);
         } catch (error) {
+            restoreOrLeave(unique, lockPath);
+            if (readRegularFile(unique).status === 'missing') ownedReleasePath = null;
             if (!swallow) throw error;
+            return;
         }
+        clearRelease();
         return;
     }
     restoreOrLeave(unique, lockPath);
-    if (seen.status === 'environment' && !swallow) throw seen.error;
+    if (readRegularFile(unique).status === 'missing') ownedReleasePath = null;
+    if (seen.status === 'environment') {
+        if (!swallow) throw seen.error;
+        return;
+    }
+    clearRelease();
+}
+
+function clearRelease() {
+    ownedReleasePath = null;
+    ownedPath = null;
+    ownedPayload = null;
+    if (releaseHook) {
+        process.removeListener('exit', releaseHook);
+        releaseHook = null;
+    }
 }
 
 /** Remove this process's owner file when its contents are still the payload it wrote. */

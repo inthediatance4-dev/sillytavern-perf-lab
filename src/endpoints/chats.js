@@ -66,9 +66,8 @@ export function getBackupKey(name) {
 async function backupChat(directory, name, data, identity) {
     try {
         if (!isBackupEnabled) return;
-        // The scheduler starts this from the save that still holds the chat
-        // file lock. Wait until that exclusive filesystem lock is released so
-        // the backup directory is not taken in the opposite order.
+        // Wait for the originating and enclosing in-process reservations via
+        // runAfterPathLocks before reserving the backup directory.
         await runAfterPathLocks(() => withPathLock(directory, async () => {
             name = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 80) || 'chat';
             const quotaPrefix = `${CHAT_BACKUPS_PREFIX}${name}_${identity}_`;

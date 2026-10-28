@@ -20,12 +20,13 @@ import sanitize from 'sanitize-filename';
 /** @type {Map<string, LockGate>} */
 const gates = new Map();
 // Only directory creation is cached; containment/alias checks still run on every write.
-// Keys are plain resolved paths (no realpath on the hot path): a stale or aliased
-// entry only skips a mkdir, and a missing staging directory is recreated on ENOENT.
+// Keys use pathKey(), the same canonical identity as locks and markers, so Windows
+// case/8.3 aliases share one entry; a missing staging directory is recreated on ENOENT.
 const stagingDirectories = new Set();
+const stagingCacheKey = directory => pathKey(directory);
 
 function invalidateStagingDirectories(directory) {
-    const key = path.resolve(directory);
+    const key = stagingCacheKey(directory);
     for (const cached of stagingDirectories) {
         if (cached === key || cached.startsWith(key + path.sep)) stagingDirectories.delete(cached);
     }
@@ -616,7 +617,7 @@ export async function writeLifecycleAtomic(filePath, data) {
     const stagingParent = path.basename(parent) === '.chat-lifecycle' ? path.dirname(parent) : parent;
     const staging = path.join(stagingParent, '.chat-staging');
     await checkLocalPath(staging, stagingParent);
-    const key = path.resolve(stagingParent);
+    const key = stagingCacheKey(stagingParent);
     const ensureStaging = async () => {
         await fs.promises.mkdir(staging, { recursive: true });
         stagingDirectories.add(key);

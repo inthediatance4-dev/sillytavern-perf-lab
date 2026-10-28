@@ -283,10 +283,69 @@ test('deletion cancels an import paused in image processing without resurrection
             file: { destination: dirs.uploads, filename: 'race.png' },
         });
         await inside;
-        assert.equal((await invoke(characters.router, '/delete', { avatar_url: `${name}.png`, delete_chats: true })).status, 200);
-        assert.equal((await importing).status, 409);
+        const deleting = invoke(characters.router, '/delete', { avatar_url: `${name}.png`, delete_chats: true });
+        await new Promise(resolve => setImmediate(resolve));
         resume();
+        assert.equal((await importing).status, 409);
+        assert.equal((await deleting).status, 200);
         await new Promise(resolve => setImmediate(resolve));
         assert.equal(fs.existsSync(target), false);
     } finally { resume(); Jimp.read = original; }
+});
+
+test('delete waits for cancelled import publication writes and leaves no resurrected files', async () => {
+    const { withCharacterImport } = await import('../src/character-lifecycle.js');
+    const name = 'PublicationDeleteRace';
+    const avatar = `${name}.png`;
+    const target = path.join(dirs.characters, avatar);
+    const chatDirectory = path.join(dirs.chats, name);
+    fs.writeFileSync(target, pngCard(name));
+    let entered;
+    let resume;
+    const inside = new Promise(resolve => { entered = resolve; });
+    const paused = new Promise(resolve => { resume = resolve; });
+    const original = fs.promises.link;
+    fs.promises.link = async (from, to) => {
+        if (to === path.join(chatDirectory, 'published.jsonl')) {
+            entered();
+            await paused;
+        }
+        return original(from, to);
+    };
+    try {
+        const importing = withCharacterImport(dirs.characters, avatar, async check => {
+            await check.wait((async () => {
+                await fs.promises.mkdir(chatDirectory, { recursive: true });
+                await io.createChatFileExclusive(path.join(chatDirectory, 'published.jsonl'), 'publication');
+                await fs.promises.writeFile(target, pngCard(name));
+            })());
+            check();
+        }, [chatDirectory]);
+        const rejected = assert.rejects(importing, { reason: 'character_deleted' });
+        await inside;
+        let deleted = false;
+        const deleting = invoke(characters.router, '/delete', { avatar_url: avatar, delete_chats: true }).then(result => {
+            deleted = true;
+            return result;
+        });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(deleted, false, 'delete must wait for the paused publication');
+        resume();
+        await rejected;
+        assert.equal((await deleting).status, 200);
+        assert.equal(fs.existsSync(target), false);
+        assert.equal(fs.existsSync(chatDirectory), false);
+        const leftovers = [];
+        async function inspect(directory) {
+            for (const entry of await fs.promises.readdir(directory, { withFileTypes: true })) {
+                if (entry.name === '.recycle') continue;
+                const file = path.join(directory, entry.name);
+                if (entry.isDirectory()) await inspect(file);
+                else if (entry.name.includes(name) || /staging|\.tmp$/.test(entry.name)) leftovers.push(file);
+            }
+        }
+        await inspect(dirs.characters);
+        await inspect(dirs.chats);
+        assert.deepEqual(leftovers, []);
+    } finally { resume(); fs.promises.link = original; }
 });

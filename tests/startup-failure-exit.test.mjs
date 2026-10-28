@@ -201,3 +201,40 @@ process.on('exit', () => save(${JSON.stringify(auditPath)}, JSON.stringify(audit
         }
     }
 });
+
+test('a corrupt legacy hold exits real server startup with recovery instructions', async () => {
+    const fixture = fs.mkdtempSync(path.join(repository, '.fixtures', 'hold-startup-'));
+    const dataRoot = path.join(fixture, 'data');
+    const hold = path.join(dataRoot, 'default-user', 'chats', '.chat-lifecycle', 'hold-corrupt.json');
+    fs.mkdirSync(path.dirname(hold), { recursive: true });
+    fs.writeFileSync(hold, '{broken');
+    const config = yaml.parse(fs.readFileSync(path.join(repository, 'default/config.yaml'), 'utf8'));
+    config.dataRoot = dataRoot;
+    config.browserLaunch.enabled = false;
+    config.enableServerPlugins = false;
+    config.extensions.autoUpdate = false;
+    config.extensions.models.autoDownload = false;
+    config.enableDownloadableTokenizers = false;
+    const configPath = path.join(fixture, 'config.yaml');
+    fs.writeFileSync(configPath, yaml.stringify(config));
+    const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('SILLYTAVERN_')));
+    const result = await new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, [
+            path.join(repository, 'server.js'), '--configPath', configPath,
+            '--dataRoot', dataRoot, '--exclusiveDataRoot', 'true',
+            '--enableIPv4', 'true', '--enableIPv6', 'false', '--browserLaunchEnabled', 'false',
+        ], { cwd: repository, env, timeout: 45000, stdio: ['ignore', 'pipe', 'pipe'] });
+        let output = '';
+        child.stdout.on('data', chunk => { output += chunk; });
+        child.stderr.on('data', chunk => { output += chunk; });
+        child.once('error', reject);
+        child.once('close', (code, signal) => resolve({ code, signal, output }));
+    });
+    assert.equal(result.signal, null, result.output);
+    assert.notEqual(result.code, 0, result.output);
+    assert.ok(result.output.includes(hold), result.output);
+    assert.match(result.output, /JSON/);
+    assert.match(result.output, /ISOLATION.md, Legacy hold-\*\.json recovery/);
+    assert.doesNotMatch(result.output, /SillyTavern is listening on/);
+    assert.equal(fs.readFileSync(hold, 'utf8'), '{broken');
+});

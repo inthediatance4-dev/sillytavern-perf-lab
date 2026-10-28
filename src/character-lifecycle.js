@@ -41,8 +41,22 @@ export function withCharacterImport(directory, avatar, edit, lockPaths = []) {
         // Cancellation may arrive while publication is still waiting for its chat lock.
         cancelled.catch(() => {});
         activeImports.set(key, cancel);
-        check.wait = promise => Promise.race([promise, cancelled]);
+        const pending = [];
+        check.wait = promise => {
+            pending.push(promise);
+            return Promise.race([promise, cancelled]);
+        };
         try { return await edit(check); }
-        finally { if (activeImports.get(key) === cancel) activeImports.delete(key); }
+        finally {
+            // A race rejection cancels admission, not the underlying publication I/O.
+            // Keep the edit locks until every real operation has finished its cleanup.
+            let settled = 0;
+            while (settled < pending.length) {
+                const batch = pending.slice(settled);
+                settled = pending.length;
+                await Promise.allSettled(batch);
+            }
+            if (activeImports.get(key) === cancel) activeImports.delete(key);
+        }
     }, { create: true, lockPaths });
 }

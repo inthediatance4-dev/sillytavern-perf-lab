@@ -146,3 +146,16 @@ Original-source RED has 19 tests: 10 pass and 9 expected geometry/transition ass
 ## 1.19.0 同步分支（2026-10-09）
 
 The isolated `codex/sillytavern-1.19-sync` branch merges official SillyTavern 1.19.0 into this lab on top of the 1.18-based rounds. 62 upstream-changed files applied cleanly, five conflicts were resolved semantically (lab async IO/locks/recycle/backup-isolation kept; upstream resilience and hooks adopted), and two upstream application modules were imported. Safe suites pass 442/442 on Node 20.20.2 and Node 24.15.0. Browser-level re-acceptance on the new base is pending; see `docs/2026-10-09-sillytavern-1.19-sync.md`.
+
+## Legacy hold-*.json recovery
+
+启动遇到遗留 `hold-*.json` 损坏或路径校验失败会拒绝继续，错误包含文件路径和原因。
+先停止使用该数据根的所有进程和外部写入，备份整个数据根（包括隐藏目录）。
+逐个检查报错文件及其所属生命周期根：`chats/`、`characters/`、`group chats/`。
+`relative_path` 必须是该根内的非空相对路径，不含 `..`、保留目录或符号链接；
+不要根据文件名猜测目标，也不要把根外文件复制进来。
+从备份、对应退休记录和 `.recycle/` 内容确认原目标。若能确认目标且目标不存在，
+人工修正该文件的 JSON 和 `relative_path`，保留其他字段，再重启让现有迁移恢复退休标记。
+若目标或对应退休标记已存在，先核对并归档冲突证据，人工决定保留哪份数据及退休保护。
+无法确认目标时保持停机，先查备份；确认不再需要该 hold 后才将这一份文件移到数据根外的恢复存档。
+不要批量删除 `.chat-lifecycle/`、hold 文件或退休标记；没有自动恢复 API。

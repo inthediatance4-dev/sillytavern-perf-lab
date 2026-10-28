@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -79,3 +80,81 @@ test('a marker cannot be cleared before publication or authorized without a lock
     await assert.rejects(io.usingRetiredPathReuse(target, root, async () => {}), { reason: 'publication_lock_required' });
     await assert.rejects(io.assertChatWritable(target, root), { reason: 'retired_path' });
 });
+
+test('publication authorization is path-bound and revoked for inherited timers after failure', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'publication-token-'));
+    const target = path.join(root, 'target.jsonl');
+    const other = path.join(root, 'other.jsonl');
+    for (const file of [target, other]) {
+        await fs.writeFile(file, 'old');
+        await io.recycleRetiredChat(file, root);
+    }
+    let delayed;
+    let release;
+    const finished = new Promise(resolve => { release = resolve; });
+    await assert.rejects(io.withPathLocks(io.chatLockPaths([target]), () => io.usingRetiredPathReuse(target, root, async () => {
+        await io.assertChatWritable(target, root);
+        await assert.rejects(io.assertChatWritable(other, root), { reason: 'retired_path' });
+        delayed = new Promise((resolve, reject) => {
+            setTimeout(async () => {
+                await finished;
+                try {
+                    await io.assertChatWritable(target, root);
+                    await fs.writeFile(target, 'stale timer');
+                    resolve();
+                } catch (error) { reject(error); }
+            }, 0);
+        });
+        throw new Error('publication failed');
+    })), /publication failed/);
+    const rejected = assert.rejects(delayed, { reason: 'retired_path' });
+    release();
+    await rejected;
+    await assert.rejects(fs.access(target), { code: 'ENOENT' });
+});
+
+for (const [label, record, reason] of [
+    ['corrupt', '{', /JSON/],
+    ['missing', '{}', /invalid_retirement/],
+    ['invalid', '{"relative_path":42}', /invalid_retirement/],
+    ['traversal', '{"relative_path":"../escape"}', /outside_chat_root/],
+    ['absolute', JSON.stringify({ relative_path: path.resolve('/escape') }), /invalid_retirement/],
+    ['reserved', '{"relative_path":".recycle/escape"}', /reserved_path/],
+]) {
+    test(`legacy hold ${label} fails with actionable diagnostics`, async () => {
+        const root = await fs.mkdtemp(path.join(os.tmpdir(), 'legacy-invalid-'));
+        const hold = path.join(root, '.chat-lifecycle', 'hold-invalid.json');
+        await fs.mkdir(path.dirname(hold));
+        await fs.writeFile(hold, record);
+        await assert.rejects(io.restoreLegacyRetiredHolds(root), error => {
+            assert.ok(error.message.includes(hold));
+            assert.match(error.message, reason);
+            assert.match(error.message, /ISOLATION.md, Legacy hold-\*\.json recovery/);
+            return true;
+        });
+        assert.equal(await fs.readFile(hold, 'utf8'), record);
+    });
+}
+
+for (const alias of ['hold', 'target']) {
+    test(`legacy ${alias} symlink fails with actionable diagnostics`, async t => {
+        const root = await fs.mkdtemp(path.join(os.tmpdir(), 'legacy-alias-'));
+        const directory = path.join(root, '.chat-lifecycle');
+        await fs.mkdir(directory);
+        const hold = path.join(directory, 'hold-alias.json');
+        const source = path.join(root, 'source');
+        await fs.writeFile(source, JSON.stringify({ relative_path: 'target' }));
+        if (alias === 'hold') {
+            if (!await symlinkOrSkip(t, source, hold)) return;
+        } else {
+            await fs.writeFile(hold, JSON.stringify({ relative_path: 'target' }));
+            if (!await symlinkOrSkip(t, source, path.join(root, 'target'))) return;
+        }
+        await assert.rejects(io.restoreLegacyRetiredHolds(root), error => {
+            assert.ok(error.message.includes(hold));
+            assert.match(error.message, /path_alias/);
+            assert.match(error.message, /ISOLATION.md/);
+            return true;
+        });
+    });
+}

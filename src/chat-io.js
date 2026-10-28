@@ -286,7 +286,8 @@ export async function assertChatWritable(filePath, lifecycleRoot = path.dirname(
     for (const candidate of candidates) {
         try { await fs.promises.lstat(markerPath(candidate, lifecycleRoot)); }
         catch (error) { if (error.code === 'ENOENT') continue; throw error; }
-        if (reuseAuthorization.getStore()?.has(pathKey(markerPath(candidate, lifecycleRoot)))) continue;
+        const authorization = reuseAuthorization.getStore();
+        if (authorization?.valid && authorization.markers.has(pathKey(markerPath(candidate, lifecycleRoot)))) continue;
         throw new ChatLifecycleError('retired_path');
     }
 }
@@ -318,29 +319,38 @@ async function commitRetiredPathHold(held) {
 /** Only migrate old hold records whose visible path is absent. Keep ambiguous evidence. */
 export async function restoreLegacyRetiredHolds(lifecycleRoot) {
     const directory = path.join(lifecycleRoot, '.chat-lifecycle');
-    await checkLocalPath(directory, lifecycleRoot);
     let names;
-    try { names = await fs.promises.readdir(directory); }
-    catch (error) { if (error.code === 'ENOENT') return; throw error; }
+    try {
+        await checkLocalPath(directory, lifecycleRoot);
+        names = await fs.promises.readdir(directory);
+    } catch (error) {
+        if (error.code === 'ENOENT') return;
+        throw new Error(`Legacy retired-path hold directory ${directory}: ${error.message}. See ISOLATION.md, Legacy hold-*.json recovery.`, { cause: error });
+    }
     for (const name of names.filter(name => /^hold-.*\.json$/.test(name))) {
         const hold = path.join(directory, name);
-        await checkLocalPath(hold, lifecycleRoot);
-        const record = JSON.parse(await fs.promises.readFile(hold, 'utf8'));
-        if (typeof record.relative_path !== 'string' || !record.relative_path) throw new ChatLifecycleError('invalid_retirement');
-        const visible = path.resolve(lifecycleRoot, record.relative_path);
-        await assertContainedChatPath(visible, lifecycleRoot);
         try {
-            await fs.promises.lstat(visible);
-            console.error('Legacy retired-path hold requires manual handling:', hold, visible);
-            continue;
-        } catch (error) { if (error.code !== 'ENOENT') throw error; }
-        const marker = markerPath(visible, lifecycleRoot);
-        try {
-            await fs.promises.lstat(marker);
-            console.error('Legacy retired-path hold has an existing marker; requires manual handling:', hold);
+            await checkLocalPath(hold, lifecycleRoot);
+            const record = JSON.parse(await fs.promises.readFile(hold, 'utf8'));
+            if (!record || typeof record.relative_path !== 'string' || !record.relative_path || path.isAbsolute(record.relative_path)) throw new ChatLifecycleError('invalid_retirement');
+            if (record.relative_path.split(/[\\/]/).includes('..')) throw new ChatLifecycleError('outside_chat_root');
+            const visible = path.resolve(lifecycleRoot, record.relative_path);
+            await assertContainedChatPath(visible, lifecycleRoot);
+            try {
+                await fs.promises.lstat(visible);
+                console.error('Legacy retired-path hold requires manual handling:', hold, visible);
+                continue;
+            } catch (error) { if (error.code !== 'ENOENT') throw error; }
+            const marker = markerPath(visible, lifecycleRoot);
+            try {
+                await fs.promises.lstat(marker);
+                console.error('Legacy retired-path hold has an existing marker; requires manual handling:', hold);
+            } catch (error) {
+                if (error.code !== 'ENOENT') throw error;
+                await fs.promises.rename(hold, marker);
+            }
         } catch (error) {
-            if (error.code !== 'ENOENT') throw error;
-            await fs.promises.rename(hold, marker);
+            throw new Error(`Legacy retired-path hold ${hold}: ${error.message}. See ISOLATION.md, Legacy hold-*.json recovery.`, { cause: error });
         }
     }
 }
@@ -372,13 +382,13 @@ export async function usingRetiredPathReuses(entries, task) {
         if (heldModes.getStore()?.get(pathKey(entry.filePath)) !== 'exclusive') throw new ChatLifecycleError('publication_lock_required');
         held.push(await holdRetiredPathIfAbsent(entry.filePath, entry.lifecycleRoot, entry.allowVisible));
     }
-    const authorization = new Map(held.filter(Boolean).map(hold => [pathKey(hold.marker), hold.token]));
+    const authorization = { valid: true, markers: new Set(held.filter(Boolean).map(hold => pathKey(hold.marker))) };
     return reuseAuthorization.run(authorization, async () => {
         try {
             const result = await task();
             for (const hold of held) await commitRetiredPathHold(hold);
             return result;
-        } finally { authorization.clear(); }
+        } finally { authorization.valid = false; }
     });
 }
 

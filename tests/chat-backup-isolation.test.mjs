@@ -62,6 +62,13 @@ function deferred() {
     return { promise, resolve };
 }
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function waitUntil(condition) {
+    const deadline = Date.now() + 5000;
+    while (!condition()) {
+        assert.ok(Date.now() < deadline, 'Timed out waiting for scheduler writes');
+        await pause(5);
+    }
+}
 function makeScheduler(write, options) {
     assert.equal(typeof schedulerModule.createChatBackupScheduler, 'function', 'A bounded async backup scheduler must exist');
     return schedulerModule.createChatBackupScheduler(write, options);
@@ -277,7 +284,7 @@ test('keys run independently and timed trailing snapshots retain only the latest
     scheduler.schedule('B', 'B', 'B-leading');
     scheduler.schedule('B', 'B', 'B-obsolete');
     scheduler.schedule('B', 'B', 'B-latest');
-    await pause(35);
+    await waitUntil(() => writes.length >= 2);
     assert.deepEqual(writes, ['B-leading', 'B-latest'], 'B must progress while A is blocked');
     release.resolve();
     await scheduler.flush();
@@ -313,7 +320,7 @@ test('capacity eviction drains active and pending data while overflow writes rem
     let finished = false;
     const flush = scheduler.flush().then(() => { finished = true; });
     release.resolve();
-    await pause(20);
+    await waitUntil(() => writes.includes('A-final'));
     assert.equal(finished, false);
     assert.deepEqual(writes, ['A-leading', 'A-final']);
     overflowRelease.resolve();
@@ -367,10 +374,10 @@ test('access-triggered idle retirement flushes pending data and a reused key sta
     scheduler.schedule('idle', 'idle', 'latest');
     await pause(25);
     scheduler.schedule('new', 'new', 'leading');
-    await pause(25);
+    await waitUntil(() => writes.includes('idle:latest'));
     assert(writes.includes('idle:latest'), 'Idle cleanup must write pending data before retiring the key');
     scheduler.schedule('idle', 'idle', 'reused');
-    await pause(25);
+    await waitUntil(() => writes.includes('idle:reused'));
     assert(writes.includes('idle:reused'));
     await scheduler.flush();
 });

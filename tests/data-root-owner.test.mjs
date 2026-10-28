@@ -30,6 +30,15 @@ import { acquireDataRootOwnership } from ${JSON.stringify(moduleUrl)};
 const root = process.argv[2];
 const mode = process.argv[3] || 'exit';
 const marker = process.argv[4];
+if (mode === 'slow-peer-probe' && process.platform === 'linux') {
+    const read = fs.readFileSync;
+    const wait = new Int32Array(new SharedArrayBuffer(4));
+    fs.readFileSync = (file, ...args) => {
+        // Exercise the real identity comparison with Windows-like probe latency.
+        if (file === '/proc/' + process.ppid + '/stat') Atomics.wait(wait, 0, 0, 300);
+        return read(file, ...args);
+    };
+}
 if (mode === 'clock-shift') {
     const read = fs.readFileSync;
     fs.readFileSync = (file, ...args) => {
@@ -52,8 +61,8 @@ if (mode === 'hold') {
 }
 `);
 
-function runAcquire(dataRoot, mode = 'exit') {
-    return spawnSync(process.execPath, [helper, dataRoot, mode], { encoding: 'utf8', timeout: 10000 });
+function runAcquire(dataRoot, mode = 'exit', timeout = 10000) {
+    return spawnSync(process.execPath, [helper, dataRoot, mode], { encoding: 'utf8', timeout });
 }
 
 async function waitForMarker(file) {
@@ -514,11 +523,19 @@ test('an expired marker cannot revoke a paused live reclaimer', async () => {
             const expired = new Date(Date.now() - DATA_ROOT_RECLAIM_TIMEOUT_MS - 1000);
             fsSync.utimesSync(reclaimPath, expired, expired);
             const before = fsSync.readFileSync(lockPath, 'utf8');
+            const markerBefore = fsSync.readFileSync(reclaimPath, 'utf8');
             for (let contender = 0; contender < 2; contender++) {
-                const child = runAcquire(root);
-                assert.notEqual(child.status, 0, child.stderr);
+                // Fifty retries each probe the live marker owner. On Windows,
+                // PowerShell latency alone can exceed the helper's usual 10s.
+                // Slow one Linux contender too, without replacing its identity.
+                const mode = contender === 0 ? 'slow-peer-probe' : 'exit';
+                const child = runAcquire(root, mode, 55000);
+                assert.ifError(child.error);
+                assert.equal(child.signal, null);
+                assert.equal(child.status, 1, child.stderr);
                 assert.match(child.stderr, /Could not acquire/);
                 assert.equal(fsSync.readFileSync(lockPath, 'utf8'), before);
+                assert.equal(fsSync.readFileSync(reclaimPath, 'utf8'), markerBefore);
             }
         }
         return rename(from, to);

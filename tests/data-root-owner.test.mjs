@@ -157,10 +157,10 @@ test('a dead pid on this host is reclaimed', async () => {
     }
 });
 
-test('a dead pid on another host is not reclaimed', async () => {
+test('a stale identity on another host is not reclaimed', async () => {
     const dataRoot = await freshRoot('other-host');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
-    const stale = { pid: exitedPid(), hostname: `other-${os.hostname()}`, startedAt: '2000-01-01T00:00:00.000Z' };
+    const stale = { ...staleRecord(), hostname: `other-${os.hostname()}` };
     const payload = `${JSON.stringify(stale)}\n`;
     await fs.writeFile(lockPath, payload);
     assert.throws(() => acquireDataRootOwnership(dataRoot), /Another process must not share this data root/);

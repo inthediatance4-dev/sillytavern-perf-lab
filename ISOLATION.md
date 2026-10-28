@@ -330,3 +330,38 @@ It describes a live snapshot; concurrent changes can make scan results incomplet
   Otherwise 150 MiB is an explicitly unmeasured fallback. Allow extra headroom
   for concurrent work and unusually large individual JSONL rows. These hints
   do not replace browser/Windows acceptance or upgrade/rollback rehearsal.
+
+### Linux synthetic upgrade and rollback drill (round 3)
+
+Run `node scripts/drill-upgrade-rollback.mjs` from this checkout with installed
+Node dependencies. This Linux-only integration drill uses fresh synthetic data,
+free loopback ports, and bounded child processes. It clones Git locally into a
+new temporary directory (without hardlinks), then creates detached OLD
+(`origin/codex/sillytavern-1.19-sync`, verified `48a153e`) and PREV (`9293a4e`)
+worktrees there; NEW runs the current working tree, including uncommitted changes.
+Dependencies are symlinked from this checkout. The source repository's Git
+metadata is not written. Worktrees are removed with `git worktree remove --force`.
+
+OLD creates characters, multi-message chats and a group chat through HTTP. A
+whole-root copy precedes upgrade. NEW deletes a chat, renames a character and
+saves a chat under exclusive ownership, then is deliberately killed to retain
+its v2 owner record. The drill plants synthetic staging orphans and a publish
+conflict and checks the read-only integrity command's findings and snapshots.
+Each rollback target receives an independent copy of this post-crash root.
+Reports distinguish startup refusal, owner-record handling, automatic list
+resurrection, and recreation by explicit user save. Protected-directory
+snapshots cover the user chats, characters and group-chat lifecycle roots,
+including directory paths, file hashes, sizes and modification times. Webpack
+cache recycling is outside these user-data assertions. Backup comparison checks
+paths and bytes, since filesystem copies can round modification timestamps.
+A separate NEW root is used for the headless browser lifecycle script and SIGINT.
+
+JSON and Markdown reports go under
+`docs/reviews/2026-10-28-grok-quality/evidence/opus-round3/drill/`; subsequent runs
+use timestamped names and do not overwrite evidence. Hostnames and temporary
+absolute paths are redacted. Runs aborted by an error retain their synthetic
+temp root for diagnosis; completed runs remove it. Unexpected shutdown requires an explicitly
+reported emergency teardown and is never counted as graceful success. Legacy
+rollback hazards are reported as FINDINGs, not fixed. This Linux exercise does
+not replace Windows browser/Ctrl+C acceptance or authorize deployment. No real
+user data is used, and no automatic recovery or marker cleanup API is added.

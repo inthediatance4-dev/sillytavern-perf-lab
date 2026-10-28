@@ -108,3 +108,98 @@ the [final report](../docs/reviews/2026-10-28-grok-quality/evidence/longchat-bas
 for startup-harness failures, profile attribution limits, the 3000-message error,
 and skipped optional comparisons. Measurement exit codes are 0 for complete
 success, 1 for errors/shutdown/network failures, and 2 for timeouts/skips.
+
+## P0 comparison and equivalence harness
+
+The readiness predicate subscribes to sticky `APP_READY`, atomically fills/clicks
+only the onboarding dialog currently present, and waits for `#chat`, a visible
+`#send_textarea`, no open dialog, and no splash screen. There are no fixed startup
+sleeps. Unexpected dialogs remain visible and cause a deadline failure. The old
+failures retained in `supplement/` and `ready-check/` show locators waiting for
+hidden/detached dialogs and one generic readiness wait. Source inspection confirms
+that startup can await onboarding before emitting APP_READY.
+
+Run 50 consecutive fresh browser-context startups, forcing `firstRun=true` only
+in the isolated synthetic settings response so every attempt exercises onboarding:
+
+```sh
+/tmp/pw-venv/bin/python tests/browser-longchat-perf.py \
+  --startup-runs 50 --output /tmp/p0-startups \
+  --node /tmp/node-v24.22.1-linux-x64/bin/node
+```
+
+The fixed generator anchors its seed-20261028 shape **at the chat end**:
+ten swipe messages per 100, swipe multiplicities and length choices repeat every
+100, and markdown/code placement uses the same offset from the end at every size. Index, fixed date and role
+still identify each message. `--legacy-shape` retains the original generator for
+controlled diagnostics; it must not be used for future optimization acceptance.
+
+```sh
+/tmp/pw-venv/bin/python tests/browser-longchat-perf.py \
+  --base 37a4818 --head WORKTREE --sizes 2000,3000 --settings 100 \
+  --runs 7 --open-only --output /tmp/p0-ab \
+  --node /tmp/node-v24.22.1-linux-x64/bin/node
+```
+
+A/B executes base/head/base/head for each size/setting, seven pairs by default.
+`--runs 1` is allowed only with `--equivalence` for functional self-checks;
+A/B latency mode requires at least seven runs. Revisions are materialized
+with `git archive | tar -x` into read-only `/tmp/lcab-<rev>-...` directories and a
+node_modules symlink. No Git refs or working trees are modified. Each side/run
+owns a new synthetic data root and server; servers never share a data directory.
+The current harness measures both products, including revisions with older
+harnesses. `WORKTREE` means current on-disk product files. Revision IDs and ordered
+exit codes appear in `comparison.json`. Each child directory retains raw JSON,
+settings, server log and graceful shutdown checks. Any failure makes A/B fail;
+failed pairs are never silently dropped or replaced. Profiles are off in A/B.
+
+`--open-only` omits scroll/send/heap work after the open snapshot. Without it,
+A/B measures the original open/scroll/send workflow. Comparison summaries use
+`benchmark-statistics.mjs` directly: arithmetic median, nearest-rank p95, 2000
+paired bootstrap resamples, seed `opus-round1.5`, percentile 95% CI of
+`median(head) - median(base)`. This differs from the historical Python combined
+report's lower nearest-rank median for even n; planned odd n medians agree.
+
+Add `--equivalence` to capture two normalized `#chat` outerHTML snapshots (after
+open and after one real `showMoreMessages` call), then full Playwright Tab walks
+for older messages, a real `/send` append, a late `.interactable` class, ancestor
+`.disabled` on/off, and an upstream Popup opened/closed. This flag implies
+`--open-only`: the scenarios mutate chat/focus and must not contaminate send or
+scroll timing. Run equivalence separately from latency measurements.
+
+```sh
+/tmp/pw-venv/bin/python tests/browser-longchat-perf.py \
+  --base WORKTREE --head WORKTREE --sizes 2000 --settings 100 --runs 1 \
+  --equivalence --output /tmp/p0-equivalence \
+  --node /tmp/node-v24.22.1-linux-x64/bin/node
+```
+
+Each walk starts at body (or the active modal), with tabindex -1. N is at least
+the number of visible, enabled native/tabindex controls plus two, covering the
+chat and main controls through a full cycle; `--tab-count N` raises that minimum.
+The popup walk counts modal controls only because native dialogs trap focus.
+Descriptors retain structural CSS path, message ID, tag, stable ID, classes,
+role, accessible name, title, type, href and leaf text. Each Tab is an actual
+Playwright keyboard action. The ancestor scenario uses the **class** `disabled`,
+which is the keyboard module's existing public contract.
+
+Snapshot normalization lives in `longchat-normalization.mjs` and accepts a plain
+DOM tree for browser-free tests. It sorts attributes, escapes text/attributes,
+removes UUID/select2 random ID references and the explicit volatile attributes
+`timer`, `timestamp`, `data-timestamp`, `data-generation-started`, `data-generation-finished`.
+Only `.timestamp` and `.mes_timer` content/title become `<timestamp>`.
+Message index identity attributes, text, role, tabindex, classes, styles,
+order, and all other attributes remain significant. Whitespace is preserved.
+No focusability attribute is normalized away. Each normalized snapshot is stored
+next to its run JSON as `run-<label>-dom-<phase>.html.gz`, with gzip mtime 0 and
+no embedded filename. The run's `equivalence.dom` entries contain only `sha256`
+(of decompressed UTF-8 bytes), `length` (UTF-8 bytes), and `file` (relative to the
+run JSON). Tab sequences remain inline. Comparison decompresses and verifies
+both snapshots before exact comparison; `comparison.json` reports equal/different
+and readable unified diffs per mismatched phase/scenario. Older inline snapshots
+remain readable. Equality is exact, not fuzzy.
+
+The P0 evidence also includes a negative control using a temporary archived
+product copy with a deliberately added chat button, then discards that code.
+Browser acceptance is opt-in; only pure data/statistics/normalization tests are
+registered in `test:perf` and need no browser.

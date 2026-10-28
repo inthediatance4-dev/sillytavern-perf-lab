@@ -1,0 +1,42 @@
+{
+  "checks": [
+    {
+      "command": "npx eslint tests/longchat-measurement.test.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "<tmp>/pw-venv/bin/python -m py_compile tests/browser-longchat-perf.py",
+      "exitCode": 0
+    },
+    {
+      "command": "node --test tests/longchat-measurement.test.mjs",
+      "exitCode": 0,
+      "tests": 8,
+      "pass": 7,
+      "fail": 0,
+      "skip": 1,
+      "skipReason": "Native Windows CTRL_BREAK requires Windows"
+    },
+    {
+      "command": "git diff --check",
+      "exitCode": 0
+    }
+  ],
+  "initialFailure": {
+    "test": "equivalence snapshots use deterministic gzip and verified content for diffs",
+    "error": "ModuleNotFoundError: No module named 'lab_browser'",
+    "cause": "Python subprocess omitted PYTHONPATH=tests",
+    "fix": "Set PYTHONPATH=tests, matching the existing Python harness test",
+    "beforeFix": {
+      "pass": 6,
+      "fail": 1,
+      "skip": 1
+    }
+  },
+  "conversionImportFailure": {
+    "sameCause": true,
+    "snapshotOrRunWritesBeforeFailure": 0
+  },
+  "browsersStarted": 0,
+  "labServersStarted": 0
+}

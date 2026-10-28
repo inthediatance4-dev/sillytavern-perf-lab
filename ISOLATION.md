@@ -182,3 +182,31 @@ liveness or unreadable identity fails closed. Stop the current owner before
 rollback; if a stale record still refuses startup, verify the owner process
 is really gone, then manually delete the reported `.st-lab-owner.lock` path.
 Never remove that file while its owner is running.
+
+### Startup lifecycle reconciliation
+
+With exclusive data-root ownership held, startup restores legacy holds and scans
+`chats/`, `characters/`, and `group chats/` before migrations and serving requests.
+Explicit retired-path publication atomically rewrites the same marker with
+`intent: "publish"`, preserving its fields; the marker remains until publication
+commits. With a previously absent target, startup moves the marker to `.recycle/`
+if the target is now visible, or removes only the intent fields if it is absent.
+An interrupted delete already has durable intent through marker-first ordering.
+A plain marker with a visible target stays protected and logs a manual-handling
+warning: automatically completing a directory deletion could move unrelated
+contents, so reconciliation preserves this ambiguous evidence. Publication that
+started with existing visible evidence (`publish_visible_before: true`) likewise
+requires manual handling rather than treating old data as proof of completion.
+
+Chat, character-card, and retirement-marker atomic writes now stage in reserved `.chat-staging/` directories using
+UUID v4 names. Startup moves UUID entries and their write-file-atomic decimal
+suffix temps, plus legacy hash-named marker temps in `.chat-lifecycle/`, into
+the lifecycle root's `.recycle/`, logging each move; nested
+recycle directories are never scanned. Ambiguous legacy `filename.NUMBER` files
+outside staging are reported, not moved, because user files can have those names.
+Other staging filenames are untouched. No marker is permanently deleted, and no
+recovery API or bulk marker cleanup is provided. Without exclusive ownership the
+new reconciliation is skipped with an explicit warning; legacy hold migration
+retains its existing behavior. The read-only `scanLifecycle` classification is
+separate from startup's `applyReconciliation` mutations; both require a quiescent
+root, and the latter is for startup under ownership only.

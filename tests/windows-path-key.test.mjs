@@ -78,6 +78,14 @@ test('short and long lifecycle roots find root-relative markers in both directio
         export default { promises: {
             realpath: async value => realpath(value),
             mkdir: async () => {},
+            stat: async value => {
+                if (!records.has(key(value))) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+                return { mode: 0o600, uid: 0, gid: 0 };
+            },
+            rename: async (from, to) => {
+                records.set(key(to), records.get(key(from)));
+                records.delete(key(from));
+            },
             lstat: async value => {
                 if (value.includes('.chat-lifecycle') && value.endsWith('.json') && !records.has(key(value))) {
                     throw Object.assign(new Error('missing'), { code: 'ENOENT' });

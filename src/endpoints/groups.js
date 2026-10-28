@@ -87,7 +87,7 @@ export async function migrateGroupChatsMetadataFormat(userDirectories) {
                             const chatHeader = { chat_metadata: chatMetadata, user_name: 'unused', character_name: 'unused' };
                             const newChatData = [chatHeader, ...chatData];
                             const newChatDataRaw = newChatData.map(entry => JSON.stringify(entry)).join('\n');
-                            await writeFileAtomic(chatFilePath, newChatDataRaw, 'utf8');
+                            await writeChatFile(chatFilePath, newChatDataRaw);
                             console.log(`Updated group chat data format for ${chatId}`);
                             anyDataMigrated = true;
                         } catch (chatError) {

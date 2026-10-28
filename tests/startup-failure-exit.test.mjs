@@ -273,14 +273,13 @@ console.error = function(...args) {
         fs.writeSync(2, 'SHUTDOWN_REPORT_MS=' + (performance.now() - signalReceived) + '\\n');
     }
 };
-const target = ${JSON.stringify(chat)};
 const open = fs.open;
 const write = fs.write;
 const hanging = new Set();
 fs.open = function(file, ...args) {
     const callback = args.pop();
     return open.call(this, file, ...args, (error, fd) => {
-        if (!error && String(file).startsWith(target + '.')) hanging.add(fd);
+        if (!error && String(file).startsWith(${JSON.stringify(path.join(path.dirname(chat), '.chat-staging') + path.sep)})) hanging.add(fd);
         callback(error, fd);
     });
 };

@@ -30,7 +30,7 @@ import cacheBuster from '../middleware/cacheBuster.js';
 import { randomUUID } from 'node:crypto';
 import {
     withPathLocks, chatLockPaths, assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, ChatLifecycleError, retireChatPath, rollbackChatRetirement,
-    recycleChatPath, createChatFileExclusive, fingerprintChatPath, inheritChatRetirements,
+    recycleChatPath, createChatFileExclusive, fingerprintChatPath, inheritChatRetirements, writeLifecycleAtomic,
 } from '../chat-io.js';
 
 // With 100 MB limit it would take roughly 3000 characters to reach this limit
@@ -287,7 +287,7 @@ async function writeCharacterData(inputFile, data, outputFile, request, crop = u
         const outputImage = write(inputImage, data);
         const outputImagePath = path.join(request.user.directories.characters, `${outputFile}.png`);
 
-        writeFileAtomicSync(outputImagePath, outputImage);
+        await writeLifecycleAtomic(outputImagePath, outputImage);
         return true;
     } catch (err) {
         if (err instanceof ChatLifecycleError) throw err;

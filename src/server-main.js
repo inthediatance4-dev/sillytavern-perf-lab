@@ -1,6 +1,7 @@
+import { restoreLegacyRetiredHolds } from './chat-io.js';
+import { reconcileLifecycle } from './lifecycle-reconcile.js';
 import { runShutdown } from './request-drain.js';
 import { pendingChatIOPaths } from './chat-io.js';
-import { restoreLegacyRetiredHolds } from './chat-io.js';
 // native node modules
 import fs from 'node:fs';
 import path from 'node:path';
@@ -504,9 +505,13 @@ initUserStorage(globalThis.DATA_ROOT)
     .then(ensurePublicDirectoriesExist)
     .then(async () => {
         for (const directories of await getUserDirectoriesList()) {
-            await restoreLegacyRetiredHolds(directories.chats);
-            await restoreLegacyRetiredHolds(directories.characters);
-            await restoreLegacyRetiredHolds(directories.groupChats);
+            for (const root of [directories.chats, directories.characters, directories.groupChats]) {
+                if (cliArgs.exclusiveDataRoot) await reconcileLifecycle(root);
+                else {
+                    await restoreLegacyRetiredHolds(root);
+                    console.warn('Lifecycle reconciliation skipped: exclusive data-root ownership is not held:', root);
+                }
+            }
         }
     })
     .then(migrateUserData)

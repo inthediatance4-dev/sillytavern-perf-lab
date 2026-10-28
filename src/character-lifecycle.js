@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError } from './chat-io.js';
+import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, pathLockKey } from './chat-io.js';
 
 /** Hold the same locks as rename/delete from the first read through publication. */
 export function withCharacterEdit(directory, avatar, edit, { create = false, lockPaths = [] } = {}) {
@@ -24,13 +24,13 @@ const importEpochs = new Map();
 const activeImports = new Map();
 
 export function invalidateCharacterImport(directory, avatar) {
-    const key = path.resolve(directory, avatar);
+    const key = pathLockKey(path.join(directory, avatar));
     importEpochs.set(key, (importEpochs.get(key) || 0) + 1);
     activeImports.get(key)?.();
 }
 
 export function withCharacterImport(directory, avatar, edit, lockPaths = []) {
-    const key = path.resolve(directory, avatar);
+    const key = pathLockKey(path.join(directory, avatar));
     const epoch = importEpochs.get(key) || 0;
     const check = () => {
         if ((importEpochs.get(key) || 0) !== epoch) throw new ChatLifecycleError('character_deleted');

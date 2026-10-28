@@ -171,6 +171,7 @@ test('drain deadline rejects while a response stays open', async () => {
 
 test('one 200ms shutdown budget reports a hung atomic write and preserves the original', async () => {
     const { spawn } = await import('node:child_process');
+    const { pathLockKey } = await import('../src/chat-io.js');
     const fs = await import('node:fs');
     const os = await import('node:os');
     const path = await import('node:path');
@@ -212,7 +213,7 @@ test('one 200ms shutdown budget reports a hung atomic write and preserves the or
         assert.equal(result.code, 1);
         assert.ok(result.elapsed <= 300, stdout);
         assert.match(stderr, /Shutdown incomplete/);
-        assert.ok(stderr.includes(target), stderr);
+        assert.ok(stderr.includes(JSON.stringify(pathLockKey(target)).slice(1, -1)), stderr);
         assert.equal(fs.readFileSync(target, 'utf8'), 'original');
     } finally {
         fs.rmSync(root, { recursive: true, force: true });

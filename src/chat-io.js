@@ -1,3 +1,4 @@
+import { windowsPathKey } from './windows-path-key.js';
 import { waitForShutdown } from './request-drain.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
@@ -43,7 +44,7 @@ export function withPathLock(filePath, task) {
 
 function pathKey(filePath) {
     const resolved = path.resolve(filePath);
-    return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+    return process.platform === 'win32' ? windowsPathKey(resolved) : resolved;
 }
 
 /**

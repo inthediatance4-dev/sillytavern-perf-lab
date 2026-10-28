@@ -28,7 +28,7 @@ assert.ok(Number.isSafeInteger(warmup) && warmup >= 1, 'BENCH_WARMUP must be an 
 const baselineRoot = path.join(root, 'baseline');
 fs.mkdirSync(baselineRoot);
 const archive = execFileSync('git', ['archive', baselineCommit, 'src', 'package.json'], { maxBuffer: 32 * 1024 * 1024 });
-execFileSync('tar', ['-xf', '-', '-C', baselineRoot], { input: archive });
+execFileSync('tar', ['-xf', '-'], { input: archive, cwd: baselineRoot });
 const loadBaseline = file => import(pathToFileURL(path.join(baselineRoot, 'src', file)).href);
 const baselineUtil = await loadBaseline('util.js');
 baselineUtil.setConfigFilePath(config);

@@ -74,7 +74,7 @@ if (process.argv[2] === '--worker') {
         let baselineError;
         try {
             const archive = execFileSync('git', ['archive', baselineCommit, 'src', 'package.json'], { cwd: repository, maxBuffer: 32 * 1024 * 1024 });
-            execFileSync('tar', ['-xf', '-', '-C', baseline], { input: archive });
+            execFileSync('tar', ['-xf', '-'], { input: archive, cwd: baseline });
         } catch (error) { baselineError = error.message; }
         function measure(moduleRoot) {
             const stdout = execFileSync(process.execPath, ['--expose-gc', script, '--worker', moduleRoot, fixture], { cwd: repository, encoding: 'utf8', timeout: 120000, maxBuffer: 1024 * 1024 });

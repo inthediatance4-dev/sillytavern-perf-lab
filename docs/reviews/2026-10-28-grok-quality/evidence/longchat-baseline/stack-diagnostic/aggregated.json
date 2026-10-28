@@ -1,0 +1,110 @@
+[
+  {
+    "size": 3000,
+    "truncation": 0,
+    "success": 0,
+    "attempted": 1,
+    "metrics": {
+      "openMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "openLongTaskCount": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "openLongTaskTotalMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "openLongTaskMaxMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "frameMedianMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "frameP95Ms": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "framesOver16_7Percent": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "framesOver50Percent": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "sendMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "savePayloadBytes": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "saveResponseWaitMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "saveServerMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "heapOpenBytes": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "heapScrollBytes": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "domOpen": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "domScroll": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "messagesOpen": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "messagesScroll": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      }
+    },
+    "batchMs": {
+      "n": 0,
+      "median": null,
+      "p95": null
+    },
+    "batchLongTaskTotalMs": {
+      "n": 0,
+      "median": null,
+      "p95": null
+    }
+  }
+]

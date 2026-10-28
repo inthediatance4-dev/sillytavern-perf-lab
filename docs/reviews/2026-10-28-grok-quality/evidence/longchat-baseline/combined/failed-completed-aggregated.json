@@ -1,0 +1,41 @@
+{
+  "warning": "Page errors: these completed phase observations are NOT valid interactive runs.",
+  "n": 5,
+  "openMs": {
+    "n": 5,
+    "median": 10319.200000001118,
+    "p95": 10617.300000000745
+  },
+  "sendMs": {
+    "n": 5,
+    "median": 5237.293542000771,
+    "p95": 5576.01952999903
+  },
+  "frameP95Ms": {
+    "n": 5,
+    "median": 66.59999999999854,
+    "p95": 66.69999999999891
+  },
+  "serverMs": {
+    "n": 5,
+    "median": 49.537,
+    "p95": 68.912
+  },
+  "domOpen": {
+    "n": 5,
+    "median": 228047,
+    "p95": 228047
+  },
+  "heapOpenBytes": {
+    "n": 5,
+    "median": 28257932,
+    "p95": 28592312
+  },
+  "sourceRecords": [
+    "measurement/run-3000-0-0.json",
+    "measurement/run-3000-0-1.json",
+    "measurement/run-3000-0-2.json",
+    "measurement/run-3000-0-3.json",
+    "measurement/run-3000-0-4.json"
+  ]
+}

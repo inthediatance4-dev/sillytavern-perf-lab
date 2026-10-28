@@ -1,0 +1,12 @@
+{
+  "size": 2000,
+  "truncation": 100,
+  "iteration": 1,
+  "status": "timeout",
+  "profiled": false,
+  "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n",
+  "dialogs": [],
+  "pageErrorStacks": [],
+  "pageErrors": [],
+  "forbiddenRequests": []
+}

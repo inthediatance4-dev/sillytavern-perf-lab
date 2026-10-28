@@ -194,7 +194,7 @@ test('nested reservations reuse held keys and reject new keys and upgrades', asy
     });
 });
 
-test('nested new file rejects even with a queued directory writer', async () => {
+test('nested new file rejects even with a queued directory writer', { timeout: 150 }, async () => {
     const entered = deferred();
     const resume = deferred();
     const outer = withPathLocks(chatLockPaths([path.join(directory, 'a')]), async () => {

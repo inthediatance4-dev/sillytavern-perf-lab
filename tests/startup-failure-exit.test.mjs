@@ -109,9 +109,9 @@ test('exclusive ownership I/O failures exit 78 before data writes or listen', as
     const { spawnSync } = await import('node:child_process');
     const fixture = fs.mkdtempSync(path.join(repository, '.fixtures', 'owner-startup-'));
     const dead = spawnSync(process.execPath, ['-e', 'process.exit(0)']).pid;
-    for (const operation of ['open', 'read', 'rename', 'unlink', ...(process.platform === 'linux' ? ['proc'] : [])]) {
+    for (const operation of ['open', 'read', 'rename', 'unlink', 'proc']) {
         for (const code of ['EACCES', 'EIO', 'EPERM']) {
-            await t.test(`${operation}: ${code}`, async () => {
+            await t.test(`${operation}: ${code}`, { skip: operation === 'proc' && process.platform !== 'linux' && 'Requires Linux /proc identity reads' }, async () => {
                 const scenario = path.join(fixture, `${operation}-${code}`);
                 const dataRoot = path.join(scenario, 'data');
                 fs.mkdirSync(dataRoot, { recursive: true });

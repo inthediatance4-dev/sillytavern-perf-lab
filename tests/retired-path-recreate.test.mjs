@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -122,7 +123,7 @@ test('a visible path keeps its retirement marker and an occupied rename target i
     assert.equal(await fs.promises.readFile(occupied, 'utf8'), 'occupied-body');
 });
 
-test('clearing an absent child does not drop a retired parent marker or follow a marker symlink', async () => {
+test('clearing an absent child does not drop a retired parent marker or follow a marker symlink', async t => {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'retired-parent-'));
     const chats = path.join(directory, 'Card');
     await fs.promises.mkdir(chats);
@@ -137,7 +138,7 @@ test('clearing an absent child does not drop a retired parent marker or follow a
     await fs.promises.writeFile(outside, 'do-not-follow');
     const held = `${marker}.held`;
     await fs.promises.rename(marker, held);
-    await fs.promises.symlink(outside, marker);
+    if (!await symlinkOrSkip(t, outside, marker)) return;
     await assert.rejects(io.clearRetiredPathIfAbsent(chats, directory), error => error instanceof io.ChatLifecycleError && error.reason === 'path_alias');
     assert.equal(await fs.promises.readFile(outside, 'utf8'), 'do-not-follow');
     assert.equal(await fs.promises.readFile(held, 'utf8') !== '', true);

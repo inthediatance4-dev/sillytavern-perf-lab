@@ -197,7 +197,7 @@ test('one 200ms shutdown budget reports a hung atomic write and preserves the or
         ], pendingChatIOPaths, 200);
         fs.write = originalWrite;
         console.log(JSON.stringify({ code, elapsed: Date.now() - started }));
-        process.exit(code);
+        process.exitCode = code;
     `;
     try {
         const child = spawn(process.execPath, ['--input-type=module', '-e', script], { cwd: process.cwd() });

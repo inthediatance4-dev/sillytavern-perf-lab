@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import fsSync from 'node:fs';
@@ -164,12 +165,12 @@ test('process.exit and an uncaught exception remove the lock', async () => {
     }
 });
 
-test('a symlink owner file is not followed or rewritten', async () => {
+test('a symlink owner file is not followed or rewritten', async t => {
     const dataRoot = await freshRoot('symlink');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const victim = path.join(dataRoot, 'victim');
     await fs.writeFile(victim, 'keep');
-    await fs.symlink(victim, lockPath);
+    if (!await symlinkOrSkip(t, victim, lockPath)) return;
     assert.throws(() => acquireDataRootOwnership(dataRoot), /left in place/);
     assert.equal(await fs.readFile(victim, 'utf8'), 'keep');
     const stat = await fs.lstat(lockPath);
@@ -245,7 +246,7 @@ test('a stale reclaim marker is taken over once and a fresh one is not', async (
     }
 });
 
-test('acquiring a data root never spawns a compiler', async () => {
+test('acquiring a data root never spawns a compiler', async t => {
     const source = await fs.readFile(new URL('../src/data-root-owner.js', import.meta.url), 'utf8');
     assert.equal(source.includes('gcc'), false);
     assert.equal(source.includes('node_api'), false);
@@ -264,7 +265,7 @@ test('acquiring a data root never spawns a compiler', async () => {
         const owned = acquireDataRootOwnership(dataRoot);
         assert.equal(owned.pid, process.pid);
         releaseDataRootOwnership();
-        return;
+        return t.skip('Compiler executable probes require POSIX shell scripts');
     }
     const bin = path.join(temp, 'fake-bin');
     await fs.mkdir(bin, { recursive: true });
@@ -351,7 +352,7 @@ test('a new owner record stores a token and the host identity', async () => {
     }
 });
 
-test('a live pid with a different boot or start identity is reclaimed', async () => {
+test('a live pid with a different boot or start identity is reclaimed', async t => {
     const dataRoot = await freshRoot('pid-reuse');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
@@ -365,7 +366,7 @@ test('a live pid with a different boot or start identity is reclaimed', async ()
     if (!comparable) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         assert.equal(await fs.readFile(lockPath, 'utf8'), `${JSON.stringify(forged)}\n`);
-        return;
+        return t.skip('Reclamation requires reliable process start identity; conservative refusal verified');
     }
     const owned = acquireDataRootOwnership(dataRoot);
     try {
@@ -403,7 +404,7 @@ test('a live pid without identity fields is kept', async () => {
     assert.equal(await fs.readFile(lockPath, 'utf8'), payload);
 });
 
-test('EPERM with a matching identity refuses and a mismatch is reclaimed', async () => {
+test('EPERM with a matching identity refuses and a mismatch is reclaimed', async t => {
     const original = process.kill;
     process.kill = function patchedKill(pid, signal) {
         if (pid === process.pid && signal === 0) {
@@ -438,7 +439,7 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
         await fs.writeFile(reusedPath, `${JSON.stringify(reused)}\n`);
         if (!comparable) {
             assert.throws(() => acquireDataRootOwnership(reusedRoot), /must not share this data root/);
-            return;
+            return t.skip('Reclamation requires reliable process start identity; conservative refusal verified');
         }
         const owned = acquireDataRootOwnership(reusedRoot);
         try {
@@ -453,7 +454,7 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
     }
 });
 
-test('two processes cannot both reclaim one reused pid', async () => {
+test('two processes cannot both reclaim one reused pid', async t => {
     const dataRoot = await freshRoot('pid-reuse-race');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
@@ -466,7 +467,7 @@ test('two processes cannot both reclaim one reused pid', async () => {
     if (!(identity.startTicks && identity.bootId) && !Number.isSafeInteger(identity.processStartMs)) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         releaseDataRootOwnership();
-        return;
+        return t.skip('Reclaim race requires reliable process start identity; conservative refusal verified');
     }
     await assertSingleReclaimWinner(dataRoot);
 });

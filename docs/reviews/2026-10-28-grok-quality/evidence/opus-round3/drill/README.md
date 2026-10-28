@@ -1,8 +1,46 @@
 # Round 3 Linux drill evidence
 
-Latest run (opus-round3 HEAD 9fdb0e4, including streaming export, owner-first
-probing and the staging-directory cache): [Markdown](report-2026-10-28T10-14-14-090Z.md),
-[JSON](report-2026-10-28T10-14-14-090Z.json). **19/19 checks passed**, no findings.
+Latest run (current HEAD working tree, including uncommitted follow-ups):
+[near-real Markdown](report-2026-10-28T10-46-08-017Z.md),
+[near-real JSON](report-2026-10-28T10-46-08-017Z.json): **50 chats × 2000 messages**;
+[default Markdown](report-2026-10-28T10-44-22-401Z.md),
+[default JSON](report-2026-10-28T10-44-22-401Z.json): **2 chats × 6 messages**.
+Both Linux Node 24.22.1 runs recorded **29/30 PASS, 1 FAIL**, with browser lifecycle
+passing and no report error. The required safety gate is **unmet**: OLD 48a153e
+started listening while NEW held its live v2 owner record. PREV 9293a4e refused
+with exit 78. Both attempts left NEW's lock bytes unchanged and NEW still serving.
+Both rollback targets rejected explicit save with 409 retired_path, kept the
+deleted path absent from discovery APIs and the visible filesystem, and preserved
+the protected recycle/lifecycle/staging snapshots. This finding intentionally
+fails the drill; no old-version behavior was weakened or patched.
+
+Correction to historical narrative (old evidence is retained unchanged):
+`git grep` at 48a153e finds no exclusiveDataRoot/owner-lock implementation.
+Its unchanged dead v2 file means it ignored that record, not that it acquired
+ownership. The inherited observation sentence in these JSON/Markdown reports
+claiming OLD already has owner locking is inaccurate; the measured live-owner
+run logs and failed assertion are authoritative. The script's observation text
+has now been corrected. PREV has owner locking. Never rely on OLD to prevent
+concurrent startup; stop NEW first.
+
+Reproduce with `node scripts/drill-upgrade-rollback.mjs`, or
+`DRILL_CHATS=50 DRILL_MESSAGES=2000 node scripts/drill-upgrade-rollback.mjs`.
+Each run uses only a fresh synthetic root and a whole-root pre-upgrade backup;
+no real data is used. NEW is the working tree; OLD/PREV are temporary detached
+historical sources. Reports are timestamped and never overwrite previous files.
+
+Focused validation: `npx eslint src/deploy-check.js tests/deploy-check.test.mjs
+scripts/drill-upgrade-rollback.mjs` and `git diff --check` pass. Explicit Node
+20.19.2, 22.20.0 and 24.22.1 runs of deploy-check + integrity-check each have
+24 tests: 23 pass, 0 fail, 1 native-Windows-only skip with an explicit reason
+(case-insensitive filesystem required). Total: 69 pass, 3 skips. The injected
+statfs OK/WARN tests and CLI real statfs test also run on Windows CI. No new test
+files were added; the existing deploy-check file is already in test:perf.
+No full suite was run. Windows hands-on acceptance remains outstanding.
+
+Previous latest successful run (9fdb0e4):
+[Markdown](report-2026-10-28T10-14-14-090Z.md),
+[JSON](report-2026-10-28T10-14-14-090Z.json), 19/19 checks (before the live-owner assertion).
 The run described below was on 00fb353.
 
 Final completed run: [Markdown](report-2026-10-28T10-10-31-682Z.md),

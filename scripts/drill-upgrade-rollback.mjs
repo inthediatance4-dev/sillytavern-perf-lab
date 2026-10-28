@@ -15,7 +15,7 @@ const report = { platform: process.platform, node: process.version, checks: [], 
 const children = new Set();
 let temporary;
 let gitRoot = repo;
-let reportName = 'report';
+let reportName = `report-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const worktrees = [];
 const clean = value => String(value).split(temporary || '\0').join('<tmp>').split(os.hostname()).join('<host>');
 function check(condition, message) {
@@ -104,6 +104,14 @@ async function start(source, dataRoot, label) {
     };
     const deadline = Date.now() + 60000;
     while (!run.exit && Date.now() < deadline) {
+        await new Promise(resolve => {
+            const socket = net.connect(port, '127.0.0.1');
+            socket.setTimeout(500);
+            socket.once('connect', () => { run.listened = true; socket.destroy(); });
+            socket.once('error', () => {});
+            socket.once('timeout', () => socket.destroy());
+            socket.once('close', resolve);
+        });
         try {
             const response = await fetch(run.url + '/csrf-token', { signal: AbortSignal.timeout(1000) });
             if (response.ok) {
@@ -119,7 +127,12 @@ async function start(source, dataRoot, label) {
     run.started = false;
     return server;
 }
-const rows = [{ user_name: 'Synthetic', character_name: 'Drill', chat_metadata: {} }, ...Array.from({ length: 6 }, (_, i) => ({ name: 'Synthetic', is_user: i % 2 === 0, mes: `Synthetic message ${i}`, send_date: '2026-10-28', extra: {} }))];
+const chatCount = Number(process.env.DRILL_CHATS ?? 2);
+const messageCount = Number(process.env.DRILL_MESSAGES ?? 6);
+assert(Number.isSafeInteger(chatCount) && chatCount >= 2, 'DRILL_CHATS must be an integer >= 2');
+assert(Number.isSafeInteger(messageCount) && messageCount >= 1, 'DRILL_MESSAGES must be a positive integer');
+report.scale = { chats: chatCount, messagesPerChat: messageCount };
+const rows = [{ user_name: 'Synthetic', character_name: 'Drill', chat_metadata: {} }, ...Array.from({ length: messageCount }, (_, i) => ({ name: 'Synthetic', is_user: i % 2 === 0, mes: `Synthetic message ${i}`, send_date: '2026-10-28', extra: {} }))];
 async function create(server, name) {
     const form = new FormData();
     form.set('ch_name', name);
@@ -158,7 +171,7 @@ async function main() {
     assert(old.run.started, old.run.log);
     const avatar = await create(old, 'Drill');
     await create(old, 'RenameMe');
-    for (const file_name of ['deleted', 'retained']) await old.post('/api/chats/save', { avatar_url: avatar, file_name, chat: rows });
+    for (const file_name of ['deleted', 'retained', ...Array.from({ length: chatCount - 2 }, (_, i) => `scale-${i}`)]) await old.post('/api/chats/save', { avatar_url: avatar, file_name, chat: rows });
     const group = await old.post('/api/groups/create', { name: 'Synthetic Group', members: [avatar] });
     await old.post('/api/chats/group/save', { id: group.chat_id, chat: rows });
     await old.stop();
@@ -171,6 +184,18 @@ async function main() {
     await upgraded.post('/api/chats/delete', { avatar_url: avatar, chatfile: 'deleted.jsonl' });
     await upgraded.post('/api/characters/rename', { avatar_url: 'RenameMe.png', new_name: 'Renamed' });
     await upgraded.post('/api/chats/save', { avatar_url: avatar, file_name: 'new-format', chat: rows });
+    const lockPath = path.join(data, '.st-lab-owner.lock');
+    const liveLock = await fs.readFile(lockPath, 'utf8');
+    check(JSON.parse(liveLock).v === 2, 'SAFETY-PROPERTY: live NEW holds v2 ownership');
+    for (const label of ['OLD', 'PREV']) {
+        const contender = await start(sources[label], data, `live-new-vs-${label}`);
+        check(!contender.run.started && !contender.run.listened && Number.isInteger(contender.run.exit?.code) && contender.run.exit.code !== 0,
+            `SAFETY-PROPERTY ${label}: refuses live NEW with nonzero exit and no listening port`);
+        if (contender.run.started) await contender.stop();
+        check(await fs.readFile(lockPath, 'utf8') === liveLock, `SAFETY-PROPERTY ${label}: live NEW lock bytes unchanged`);
+        check(JSON.stringify(await upgraded.post('/api/chats/get', { avatar_url: avatar, file_name: 'retained' })) === JSON.stringify(rows),
+            `SAFETY-PROPERTY ${label}: NEW still serving retained data`);
+    }
     await upgraded.stop('SIGKILL');
     const owner = JSON.parse(await fs.readFile(path.join(data, '.st-lab-owner.lock'), 'utf8'));
     check(owner.v === 2, 'Crash leaves a v2 owner record');
@@ -197,8 +222,21 @@ async function main() {
     const kinds = report.integrity.report.findings.map(item => item.kind);
     check(kinds.filter(kind => kind === 'orphan').length === 3 && kinds.filter(kind => kind === 'marker-visible-conflict').length === 1 && kinds.includes('recycle-usage') && kinds.every(kind => ['orphan', 'marker-visible-conflict', 'recycle-usage'].includes(kind)), 'Integrity finds exactly three staging orphans, one publish conflict, and nonempty recycle usage only');
     check(JSON.stringify(beforeCheck) === JSON.stringify(await snapshot(data, false)), 'Integrity changes no paths, bytes or mtimes');
-    report.observations = ['OLD 48a153e already implements retirement checks and exclusive owner locking; test expectations are measured rather than assumed.'];
+    report.observations = ['OLD 48a153e has retirement checks but no data-root owner locking; live-owner refusal is still a required safety property, and its absence must fail this drill.'];
     report.rollbacks = [];
+    async function deletedVisibility(server, root) {
+        const lists = {
+            chats: await server.post('/api/characters/chats', { avatar_url: avatar }),
+            characters: await server.post('/api/characters/all', {}),
+            groups: await server.post('/api/groups/all', {}),
+            search: await server.post('/api/chats/search', { avatar_url: avatar, query: '' }),
+            recent: await server.post('/api/chats/recent', {}),
+        };
+        let visible = false;
+        try { await fs.lstat(path.join(root, 'default-user/chats/Drill/deleted.jsonl')); visible = true; }
+        catch (error) { if (error.code !== 'ENOENT') throw error; }
+        return { lists, visible, listed: /deleted(?:\.jsonl)?/.test(JSON.stringify(lists)) };
+    }
     for (const label of ['OLD', 'PREV']) {
         const copy = path.join(temporary, `rollback-${label}`);
         await fs.cp(data, copy, { recursive: true, preserveTimestamps: true });
@@ -211,24 +249,28 @@ async function main() {
             const characters = await server.post('/api/characters/all', {});
             const groups = await server.post('/api/groups/all', {});
             rollback.lists = { list, characters: characters.map(card => card.avatar), groups };
-            check(!JSON.stringify(list).includes('deleted.jsonl'), `${label}: deleted chat absent before explicit save`);
+            rollback.beforeExplicitSave = await deletedVisibility(server, copy);
+            check(!rollback.beforeExplicitSave.visible && !rollback.beforeExplicitSave.listed,
+                `SAFETY-PROPERTY ${label}: deleted chat absent from all discovery APIs and visible filesystem before save`);
             check(!JSON.stringify(rollback.lists).includes('.chat-staging') && !JSON.stringify(rollback.lists).includes('synthetic orphan'), `${label}: staging not listed as chats, characters or groups`);
             check(JSON.stringify(await server.post('/api/chats/get', { avatar_url: avatar, file_name: 'retained' })) === JSON.stringify(rows), `${label}: retained chat bytes round trip`);
             check(JSON.stringify(await server.post('/api/chats/group/get', { id: group.chat_id })) === JSON.stringify(rows), `${label}: group chat survives rollback`);
             rollback.ownerWhileRunning = await fs.readFile(path.join(copy, '.st-lab-owner.lock'), 'utf8');
             rollback.ownerBehavior = rollback.ownerWhileRunning === JSON.stringify(owner) ? 'ignored unchanged v2 record' : 'reclaimed/replaced dead v2 record';
             rollback.explicitSave = await server.post('/api/chats/save', { avatar_url: avatar, file_name: 'deleted', chat: rows }, true);
-            rollback.afterExplicitSave = await server.post('/api/characters/chats', { avatar_url: avatar });
+            rollback.afterExplicitSave = await deletedVisibility(server, copy);
             report.observations.push(`${label}: ${rollback.ownerBehavior}; explicit save status ${rollback.explicitSave.status}`);
-            rollback.explicitResurrection = JSON.stringify(rollback.afterExplicitSave).includes('deleted.jsonl');
-            if (rollback.explicitResurrection) report.findings.push(`${label}: explicit save recreates the deleted name; user-action resurrection, not automatic resurrection`);
+            check(rollback.explicitSave.status === 409 && JSON.stringify(rollback.explicitSave.value).includes('retired_path'),
+                `SAFETY-PROPERTY ${label}: explicit save refuses clearly with 409 retired_path (no silent success)`);
+            check(!rollback.afterExplicitSave.visible && !rollback.afterExplicitSave.listed,
+                `SAFETY-PROPERTY ${label}: deleted chat absent from all discovery APIs and visible filesystem after rejected save`);
             await server.stop();
         } else {
             rollback.ownerBehavior = 'startup refused; see run log for exact message';
             check(server.run.exit?.code !== 0, `${label}: refusal exits nonzero`);
         }
         rollback.after = await snapshot(copy);
-        check(JSON.stringify(before) === JSON.stringify(rollback.after), `${label}: user lifecycle protected directory paths, hashes, sizes and mtimes unchanged through startup, API operations and shutdown`);
+        check(JSON.stringify(before) === JSON.stringify(rollback.after), `SAFETY-PROPERTY ${label}: user lifecycle protected directory paths, hashes, sizes and mtimes unchanged through startup, API operations and shutdown`);
     }
     const browserData = path.join(temporary, 'browser-data');
     await fs.mkdir(browserData);
@@ -264,11 +306,11 @@ try {
     // Retain synthetic data on failure for diagnosis; successful runs remove only this owned temp root.
     report.cleanup = { worktreesRemoved: !report.findings.some(item => item.startsWith('Worktree cleanup failed')), temporaryDataRetained: Boolean(report.error) };
     if (temporary && !report.error) await fs.rm(temporary, { recursive: true, force: true });
-    if (report.checks.some(item => !item.pass)) process.exitCode = 1;
+    if (report.findings.length || report.checks.some(item => !item.pass)) process.exitCode = 1;
     const redacted = JSON.parse(clean(JSON.stringify(report)));
     await fs.mkdir(output, { recursive: true });
     await fs.writeFile(path.join(output, `${reportName}.json`), JSON.stringify(redacted, null, 2) + '\n', { flag: 'wx' });
-    const markdown = `# Linux synthetic upgrade / rollback drill\n\nNode: ${report.node}; HEAD: ${report.head}\n\n${report.checks.map(item => `- ${item.pass ? 'PASS' : 'FAIL'}: ${item.message}`).join('\n')}\n\n${report.findings.map(item => `- FINDING: ${item}`).join('\n') || 'No unsafe behavior observed.'}\n\n${report.rollbacks?.map(item => `${item.label} v2 owner: ${item.ownerBehavior}`).join('\n\n') || ''}\n\n${report.error ? `Error: ${report.error}\n\n` : ''}${report.observations?.join('\n\n') || ''}\n\nFull API observations, integrity findings, protected-directory snapshots and exact startup logs: [JSON report](${reportName}.json).\n\nBrowser command (start NEW with a fresh synthetic temp root first):\n\n\`\`\`sh\n${report.browser?.command || 'LAB_URL=http://127.0.0.1:<port> LAB_EVIDENCE_DIR=<evidence-dir> /tmp/pw-venv/bin/python tests/browser-lifecycle-lab.py'}\n\`\`\`\n\nWindows hands-on acceptance remains untested. This drill does not authorize deployment.\n`;
+    const markdown = `# Linux synthetic upgrade / rollback drill\n\nNode: ${report.node}; HEAD: ${report.head}; scale: ${chatCount} chats × ${messageCount} messages\n\n${report.checks.map(item => `- ${item.pass ? 'PASS' : 'FAIL'}: ${item.message}`).join('\n')}\n\n${report.findings.map(item => `- FINDING: ${item}`).join('\n') || 'No unsafe behavior observed.'}\n\n${report.rollbacks?.map(item => `${item.label} v2 owner: ${item.ownerBehavior}`).join('\n\n') || ''}\n\n${report.error ? `Error: ${report.error}\n\n` : ''}${report.observations?.join('\n\n') || ''}\n\nFull API observations, integrity findings, protected-directory snapshots and exact startup logs: [JSON report](${reportName}.json).\n\nBrowser command (start NEW with a fresh synthetic temp root first):\n\n\`\`\`sh\n${report.browser?.command || 'LAB_URL=http://127.0.0.1:<port> LAB_EVIDENCE_DIR=<evidence-dir> /tmp/pw-venv/bin/python tests/browser-lifecycle-lab.py'}\n\`\`\`\n\nWindows hands-on acceptance remains untested. This drill does not authorize deployment.\n`;
     await fs.writeFile(path.join(output, `${reportName}.md`), clean(markdown), { flag: 'wx' });
     console.log(clean(JSON.stringify({ output, checks: report.checks.length, failed: report.checks.filter(item => !item.pass).length, findings: report.findings, error: report.error })));
 }

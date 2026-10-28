@@ -98,7 +98,7 @@ export function registerInteractableType(interactableSelector, { disabledByDefau
         });
     }
 
-    makeKeyboardInteractable(...interactables);
+    makeKeyboardInteractableCollection(interactables);
 }
 
 /**
@@ -119,7 +119,15 @@ export function isKeyboardInteractable(control) {
  * @param {Element[]} interactables - The controls to make interactable and set their state
  */
 export function makeKeyboardInteractable(...interactables) {
-    interactables.forEach(interactable => {
+    makeKeyboardInteractableCollection(interactables);
+}
+
+/**
+ * Applies the interactable state without passing the collection as function arguments.
+ * @param {Iterable<Element>} interactables The controls to make interactable
+ */
+function makeKeyboardInteractableCollection(interactables) {
+    for (const interactable of interactables) {
         // If this control doesn't have any of the classes, lets say the caller knows this and wants this to be a custom-enabled keyboard control.
         if (!isKeyboardInteractable(interactable)) {
             interactable.classList.add(CUSTOM_INTERACTABLE_CONTROL_CLASS);
@@ -155,7 +163,7 @@ export function makeKeyboardInteractable(...interactables) {
             interactable.setAttribute('data-original-tabindex', interactable.getAttribute('tabindex'));
             interactable.removeAttribute('tabindex');
         }
-    });
+    }
 }
 
 /**
@@ -165,7 +173,7 @@ export function makeKeyboardInteractable(...interactables) {
  */
 function initializeInteractables(element = document) {
     const interactables = getAllInteractables(element);
-    makeKeyboardInteractable(...interactables);
+    makeKeyboardInteractableCollection(interactables);
 }
 
 /**

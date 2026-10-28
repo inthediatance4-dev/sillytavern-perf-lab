@@ -1,8 +1,11 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import fs from 'node:fs';
+import defaultFs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { classifyPidLiveness, readProcessIdentity } from './process-identity.js';
+
+// Acquisition is synchronous; restore the production filesystem before returning.
+let fs = defaultFs;
 
 /** Name of the exclusive data-root owner file inside the data root. */
 export const DATA_ROOT_OWNER_LOCK = '.st-lab-owner.lock';
@@ -44,9 +47,7 @@ const ACQUIRE_PAUSE_MS = 10;
  * an uncaught exception, the owner file is removed only when its bytes still
  * match. A signal that skips the exit hook can leave the file; the next
  * acquire on this host reclaims it. No compiler or native addon is required.
- * If an unexpected filesystem error means ownership cannot be determined,
- * acquire logs a warning and returns without a lock so startup can continue.
- * A live matching owner on this host still refuses.
+ * If ownership cannot be verified, acquisition throws and startup must stop.
  */
 export class DataRootOwnershipError extends Error {
     /**
@@ -57,6 +58,20 @@ export class DataRootOwnershipError extends Error {
         super(message);
         this.name = 'DataRootOwnershipError';
         this.code = code;
+    }
+}
+
+export class DataRootOwnershipUnverifiedError extends DataRootOwnershipError {
+    /**
+     * @param {NodeJS.ErrnoException & { op?: string }} cause
+     * @param {string} lockPath
+     */
+    constructor(cause, lockPath) {
+        super(`Data-root ownership could not be determined at ${lockPath}: ${cause.message}`, 'EREAD');
+        this.name = 'DataRootOwnershipUnverifiedError';
+        this.cause = cause;
+        this.op = cause.syscall || cause.op || 'acquire';
+        this.lockPath = lockPath;
     }
 }
 
@@ -72,7 +87,7 @@ const pauseBuffer = new Int32Array(new SharedArrayBuffer(4));
 
 /**
  * @param {string} text
- * @returns {{ kind: 'empty' }|{ kind: 'corrupt' }|{ kind: 'owner', owner: { pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number }, text: string }}
+ * @returns {{ kind: 'empty' }|{ kind: 'corrupt' }|{ kind: 'owner', owner: { pid: number, hostname: string, startedAt: string, v?: number, token?: string, bootId?: string, startTicks?: string, processStartMs?: number }, text: string }}
  */
 function classifyOwner(text) {
     if (text.length === 0) return { kind: 'empty' };
@@ -88,6 +103,7 @@ function classifyOwner(text) {
         if (Object.prototype.hasOwnProperty.call(owner, 'bootId')) {
             if (typeof owner.bootId !== 'string' || owner.bootId.length === 0 || owner.bootId.length > 256) return { kind: 'corrupt' };
         }
+        if (owner.startTicks !== undefined && (typeof owner.startTicks !== 'string' || !/^(0|[1-9]\d*)$/.test(owner.startTicks))) return { kind: 'corrupt' };
         if (Object.prototype.hasOwnProperty.call(owner, 'processStartMs')) {
             if (!Number.isSafeInteger(owner.processStartMs) || owner.processStartMs < 0) return { kind: 'corrupt' };
         }
@@ -317,7 +333,7 @@ function reclaimProcessIsDead(text) {
         const record = JSON.parse(text);
         const marker = classifyOwner(JSON.stringify({ ...record, startedAt: record.startedAt || record.claimedAt }));
         return marker.kind === 'owner' && marker.owner.hostname === os.hostname()
-            && classifyPidLiveness(marker.owner) !== 'live';
+            && classifyPidLiveness(marker.owner, { identity: readProcessIdentity(marker.owner.pid, { fs }) }) !== 'live';
     } catch {
         return false;
     }
@@ -349,12 +365,12 @@ function corruptLeftInPlace(lockPath) {
 
 /**
  * @param {string} resolved
- * @param {{ pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number }} owner
+ * @param {{ pid: number, hostname: string, startedAt: string, v?: number, token?: string, bootId?: string, startTicks?: string, processStartMs?: number }} owner
  * @returns {DataRootOwnershipError}
  */
 function lockedError(resolved, owner) {
     return new DataRootOwnershipError(
-        `Data root ${resolved} is owned by pid ${owner.pid} on ${owner.hostname} since ${owner.startedAt}. Another process must not share this data root.`,
+        `Data root ${resolved} is owned by pid ${owner.pid} on ${owner.hostname} since ${owner.startedAt}. Another process must not share this data root.${owner.v !== 2 ? ' Legacy owner record: live PID cannot be safely reclaimed.' : ''}`,
         'ELOCKED',
     );
 }
@@ -376,7 +392,7 @@ function inspectLock(lockPath, resolved) {
     if (classified.owner.hostname !== os.hostname()) {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }
-    const liveness = classifyPidLiveness(classified.owner);
+    const liveness = classifyPidLiveness(classified.owner, { identity: readProcessIdentity(classified.owner.pid, { fs }) });
     if (liveness === 'live') {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }
@@ -392,9 +408,10 @@ function inspectLock(lockPath, resolved) {
  * @returns {string}
  */
 function ownerPayload(pid, hostname, startedAt) {
-    const identity = readProcessIdentity(pid);
-    /** @type {{ pid: number, hostname: string, startedAt: string, token: string, bootId?: string, processStartMs?: number }} */
-    const record = { pid, hostname, startedAt, token: randomUUID() };
+    const identity = readProcessIdentity(pid, { fs, strict: true });
+    /** @type {{ pid: number, hostname: string, startedAt: string, v: number, token: string, bootId?: string, startTicks?: string, processStartMs?: number }} */
+    const record = { v: 2, pid, hostname, startedAt, token: randomUUID() };
+    if (identity.startTicks !== undefined) record.startTicks = identity.startTicks;
     if (identity.bootId) record.bootId = identity.bootId;
     if (Number.isSafeInteger(identity.processStartMs)) record.processStartMs = identity.processStartMs;
     return `${JSON.stringify(record)}\n`;
@@ -527,25 +544,6 @@ function releaseReclaimIfOurs(reclaimPath, payload) {
 }
 
 /**
- * @param {string} dataRoot
- * @param {Error|NodeJS.ErrnoException} error
- */
-function warnOwnership(dataRoot, error) {
-    const detail = error && error.message ? error.message : String(error);
-    console.warn(`Data-root ownership could not be determined for ${dataRoot}: ${detail}. Continuing without an exclusive owner lock.`);
-}
-
-function unverifiedResult() {
-    return {
-        lockPath: null,
-        pid: process.pid,
-        hostname: os.hostname(),
-        startedAt: new Date().toISOString(),
-        unverified: true,
-    };
-}
-
-/**
  * @param {string} lockPath
  * @param {string} payload
  */
@@ -622,9 +620,32 @@ export function releaseDataRootOwnership() {
 /**
  * Create `<dataRoot>/.st-lab-owner.lock` and keep this process as its owner.
  * @param {string} dataRoot
- * @returns {{ lockPath: string|null, pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number, unverified?: boolean }}
+ * @param {{ fs?: typeof defaultFs }} [options]
+ * @returns {{ lockPath: string, pid: number, hostname: string, startedAt: string, v?: number, token?: string, bootId?: string, startTicks?: string, processStartMs?: number }}
  */
-export function acquireDataRootOwnership(dataRoot) {
+export function acquireDataRootOwnership(dataRoot, { fs: injectedFs = defaultFs } = {}) {
+    const previous = fs;
+    fs = new Proxy(injectedFs, {
+        get(target, key) {
+            const value = target[key];
+            if (typeof value !== 'function') return value;
+            return (...args) => {
+                try { return value.apply(target, args); }
+                catch (error) {
+                    if (!error.op) error.op = String(key).replace(/Sync$/, '');
+                    throw error;
+                }
+            };
+        },
+    });
+    try {
+        return acquireOwnership(dataRoot);
+    } finally {
+        fs = previous;
+    }
+}
+
+function acquireOwnership(dataRoot) {
     if (typeof dataRoot !== 'string' || dataRoot.length === 0) {
         throw new TypeError('Data root must be a non-empty string');
     }
@@ -638,12 +659,11 @@ export function acquireDataRootOwnership(dataRoot) {
         fs.mkdirSync(resolved, { recursive: true });
         const real = fs.realpathSync(resolved);
         subject = real;
-        return acquireResolved(real, subject);
+        return acquireResolved(real);
     } catch (error) {
         if (error instanceof DataRootOwnershipError || error instanceof TypeError) throw error;
         if (error && typeof error.code === 'string') {
-            warnOwnership(subject, error);
-            return unverifiedResult();
+            throw new DataRootOwnershipUnverifiedError(error, path.join(subject, DATA_ROOT_OWNER_LOCK));
         }
         throw error;
     }
@@ -651,16 +671,17 @@ export function acquireDataRootOwnership(dataRoot) {
 
 /**
  * @param {string} resolved
- * @param {string} subject
- * @returns {{ lockPath: string|null, pid: number, hostname: string, startedAt: string, token?: string, bootId?: string, processStartMs?: number, unverified?: boolean }}
+ * @returns {{ lockPath: string, pid: number, hostname: string, startedAt: string, v?: number, token?: string, bootId?: string, startTicks?: string, processStartMs?: number }}
  */
-function acquireResolved(resolved, subject) {
+function acquireResolved(resolved) {
     const lockPath = path.join(resolved, DATA_ROOT_OWNER_LOCK);
     const reclaimPath = path.join(resolved, DATA_ROOT_OWNER_RECLAIM);
     const startedAt = new Date().toISOString();
     const hostname = os.hostname();
     const pid = process.pid;
-    const payload = ownerPayload(pid, hostname, startedAt);
+    let payload;
+    try { payload = ownerPayload(pid, hostname, startedAt); }
+    catch (error) { throw new DataRootOwnershipUnverifiedError(error, lockPath); }
     const record = JSON.parse(payload);
     /** @type {string|null} */
     let heldReclaim = null;
@@ -671,8 +692,7 @@ function acquireResolved(resolved, subject) {
     };
     const giveUp = (error) => {
         finishHeld();
-        warnOwnership(subject, error);
-        return unverifiedResult();
+        throw new DataRootOwnershipUnverifiedError(error, lockPath);
     };
     try {
         for (let attempt = 0; attempt < ACQUIRE_ATTEMPTS; attempt++) {
@@ -697,6 +717,8 @@ function acquireResolved(resolved, subject) {
                     pid,
                     hostname,
                     startedAt,
+                    v: 2,
+                    startTicks: record.startTicks,
                     token: record.token,
                     bootId: record.bootId,
                     processStartMs: record.processStartMs,

@@ -296,7 +296,7 @@ export class CommandLineParser {
             ? defaultConfig.dataRoot
             : (cliArguments.dataRoot ?? getConfigValue('dataRoot', defaultConfig.dataRoot));
         try {
-            if (!fs.existsSync(dataRoot)) {
+            if (!(cliArguments.exclusiveDataRoot ?? getConfigValue('exclusiveDataRoot', false, 'boolean')) && !fs.existsSync(dataRoot)) {
                 fs.mkdirSync(dataRoot, { recursive: true });
             }
         } catch (err) {

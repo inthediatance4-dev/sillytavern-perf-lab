@@ -23,6 +23,13 @@ import { acquireDataRootOwnership } from ${JSON.stringify(moduleUrl)};
 const root = process.argv[2];
 const mode = process.argv[3] || 'exit';
 const marker = process.argv[4];
+if (mode === 'clock-shift') {
+    const read = fs.readFileSync;
+    fs.readFileSync = (file, ...args) => {
+        const value = read(file, ...args);
+        return file === '/proc/stat' ? value.replace(/^btime (\\d+)$/m, (_, seconds) => 'btime ' + (Number(seconds) + 60)) : value;
+    };
+}
 try {
     acquireDataRootOwnership(root);
 } catch (error) {
@@ -298,35 +305,22 @@ test('EPERM from process.kill means the same-host owner is alive', async () => {
     }
 });
 
-test('an unexpected environment error warns and continues', async () => {
+test('an unexpected environment error refuses ownership with diagnostics', async () => {
     const dataRoot = await freshRoot('environment');
-    const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
-    const original = fsSync.openSync;
-    fsSync.openSync = function patchedOpen() {
-        const error = new Error('simulated EIO');
-        error.code = 'EIO';
-        throw error;
-    };
-    const warnings = [];
-    const originalWarn = console.warn;
-    console.warn = (message) => warnings.push(String(message));
-    try {
-        const owned = acquireDataRootOwnership(dataRoot);
-        assert.equal(owned.unverified, true);
-        assert.equal(owned.lockPath, null);
-        assert.equal(warnings.length, 1);
-        assert.match(warnings[0], /could not be determined/i);
-        assert.match(warnings[0], /Continuing without an exclusive owner lock/);
-        assert.match(warnings[0], /EIO/);
-        assert.equal(await fs.access(lockPath).then(() => true, () => false), false);
-    } finally {
-        fsSync.openSync = original;
-        console.warn = originalWarn;
-    }
+    const cause = Object.assign(new Error('simulated EIO'), { code: 'EIO' });
+    const injected = { ...fsSync, openSync() { throw cause; } };
+    assert.throws(() => acquireDataRootOwnership(dataRoot, { fs: injected }), error => {
+        assert.equal(error.name, 'DataRootOwnershipUnverifiedError');
+        assert.equal(error.cause, cause);
+        assert.equal(error.op, 'open');
+        assert.equal(error.lockPath, path.join(dataRoot, DATA_ROOT_OWNER_LOCK));
+        return true;
+    });
 });
 
 function ownerRecord(overrides = {}) {
     return {
+        v: 2,
         pid: process.pid,
         hostname: os.hostname(),
         startedAt: '2000-01-01T00:00:00.000Z',
@@ -349,9 +343,8 @@ test('a new owner record stores a token and the host identity', async () => {
         if (Number.isSafeInteger(identity.processStartMs)) assert.equal(current.processStartMs, identity.processStartMs);
         if (process.platform === 'linux') {
             assert.equal(typeof current.bootId, 'string');
-            assert.equal(Number.isSafeInteger(current.processStartMs), true);
-            const age = Date.now() - current.processStartMs;
-            assert.ok(Math.abs(age - process.uptime() * 1000) < 5000, `start age ${age} uptime ${process.uptime() * 1000}`);
+            assert.equal(current.v, 2);
+            assert.equal(current.startTicks, identity.startTicks);
         }
     } finally {
         releaseDataRootOwnership();
@@ -363,11 +356,12 @@ test('a live pid with a different boot or start identity is reclaimed', async ()
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
     const forged = ownerRecord({
+        startTicks: identity.startTicks,
         bootId: identity.bootId ? `${identity.bootId}-reused` : 'forged-boot-id',
         processStartMs: Number.isSafeInteger(identity.processStartMs) ? identity.processStartMs + 60000 : 1,
     });
     await fs.writeFile(lockPath, `${JSON.stringify(forged)}\n`);
-    const comparable = Boolean(identity.bootId) || Number.isSafeInteger(identity.processStartMs);
+    const comparable = Boolean(identity.startTicks && identity.bootId) || Number.isSafeInteger(identity.processStartMs);
     if (!comparable) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         assert.equal(await fs.readFile(lockPath, 'utf8'), `${JSON.stringify(forged)}\n`);
@@ -392,6 +386,7 @@ test('a matching boot and start identity is refused even when the token differs'
     const identity = readProcessIdentity(process.pid);
     const forged = ownerRecord();
     if (identity.bootId) forged.bootId = identity.bootId;
+    if (identity.startTicks) forged.startTicks = identity.startTicks;
     if (Number.isSafeInteger(identity.processStartMs)) forged.processStartMs = identity.processStartMs;
     const payload = `${JSON.stringify(forged)}\n`;
     await fs.writeFile(lockPath, payload);
@@ -424,6 +419,7 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
         const identity = readProcessIdentity(process.pid);
         const matched = ownerRecord({ token: 'eperm-match' });
         if (identity.bootId) matched.bootId = identity.bootId;
+        if (identity.startTicks) matched.startTicks = identity.startTicks;
         if (Number.isSafeInteger(identity.processStartMs)) matched.processStartMs = identity.processStartMs;
         const matchedPayload = `${JSON.stringify(matched)}\n`;
         await fs.writeFile(matchedPath, matchedPayload);
@@ -432,9 +428,10 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
 
         const reusedRoot = await freshRoot('eperm-reused');
         const reusedPath = path.join(reusedRoot, DATA_ROOT_OWNER_LOCK);
-        const comparable = Boolean(identity.bootId) || Number.isSafeInteger(identity.processStartMs);
+        const comparable = Boolean(identity.startTicks && identity.bootId) || Number.isSafeInteger(identity.processStartMs);
         const reused = ownerRecord({
             token: 'eperm-reused',
+            startTicks: identity.startTicks,
             bootId: identity.bootId ? `${identity.bootId}-reused` : 'forged-boot-id',
             processStartMs: Number.isSafeInteger(identity.processStartMs) ? identity.processStartMs + 60000 : 1,
         });
@@ -461,11 +458,12 @@ test('two processes cannot both reclaim one reused pid', async () => {
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
     const forged = ownerRecord({
+        startTicks: identity.startTicks,
         bootId: identity.bootId ? `${identity.bootId}-reused` : 'forged-boot-id',
         processStartMs: Number.isSafeInteger(identity.processStartMs) ? identity.processStartMs + 60000 : 1,
     });
     await fs.writeFile(lockPath, `${JSON.stringify(forged)}\n`);
-    if (!identity.bootId && !Number.isSafeInteger(identity.processStartMs)) {
+    if (!(identity.startTicks && identity.bootId) && !Number.isSafeInteger(identity.processStartMs)) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         releaseDataRootOwnership();
         return;
@@ -536,4 +534,66 @@ test('release retains bookkeeping after reading the renamed owner fails', async 
     assert.throws(() => acquireDataRootOwnership(root), /already owns/);
     releaseDataRootOwnership();
     assert.equal(fsSync.existsSync(owned.lockPath), false);
+});
+
+test('legacy Linux identity with a live pid refuses with a clear diagnostic', async t => {
+    if (process.platform !== 'linux') return t.skip('Linux legacy format');
+    const root = await freshRoot('legacy-live');
+    const record = { ...ownerRecord(), ...readProcessIdentity(process.pid), processStartMs: 1 };
+    delete record.v;
+    const text = JSON.stringify(record);
+    await fs.writeFile(path.join(root, DATA_ROOT_OWNER_LOCK), text);
+    assert.throws(() => acquireDataRootOwnership(root), /Legacy owner record/);
+    assert.equal(await fs.readFile(path.join(root, DATA_ROOT_OWNER_LOCK), 'utf8'), text);
+});
+
+test('Linux acquisition p95 is below 20ms', async t => {
+    if (process.platform !== 'linux') return t.skip('Linux timing requirement');
+    const samples = [];
+    for (let i = 0; i < 30; i++) {
+        const root = await freshRoot(`timing-${i}`);
+        const start = performance.now();
+        acquireDataRootOwnership(root);
+        samples.push(performance.now() - start);
+        releaseDataRootOwnership();
+    }
+    samples.sort((a, b) => a - b);
+    const p95 = samples[Math.ceil(samples.length * 0.95) - 1];
+    t.diagnostic(`Linux acquisition p95=${p95.toFixed(3)}ms (n=${samples.length})`);
+    assert.ok(p95 < 20, `p95 ${p95}ms`);
+});
+
+test('two real Linux processes compare ticks and boot ids independently', async t => {
+    if (process.platform !== 'linux') return t.skip('requires Linux /proc');
+    for (const field of ['startTicks', 'bootId']) {
+        const root = await freshRoot(`real-reuse-${field}`);
+        const lock = path.join(root, DATA_ROOT_OWNER_LOCK);
+        const owner = acquireDataRootOwnership(root);
+        try {
+            const record = JSON.parse(await fs.readFile(lock, 'utf8'));
+            record[field] = field === 'startTicks' ? String(BigInt(record[field]) + 1n) : `${record[field]}-old`;
+            await fs.writeFile(lock, JSON.stringify(record));
+            const child = runAcquire(root);
+            assert.equal(child.status, 0, child.stderr);
+            assert.equal(fsSync.existsSync(lock), false);
+        } finally {
+            releaseDataRootOwnership();
+        }
+        assert.equal(owner.pid, process.pid);
+    }
+});
+
+test('a second real process after a btime shift cannot reclaim the live Linux owner', async t => {
+    if (process.platform !== 'linux') return t.skip('requires Linux /proc');
+    const root = await freshRoot('clock-shift');
+    const owner = acquireDataRootOwnership(root);
+    try {
+        const before = await fs.readFile(owner.lockPath, 'utf8');
+        const child = runAcquire(root, 'clock-shift');
+        assert.notEqual(child.status, 0);
+        assert.match(child.stderr, /must not share this data root/);
+        assert.equal(await fs.readFile(owner.lockPath, 'utf8'), before);
+    } finally {
+        releaseDataRootOwnership();
+    }
 });

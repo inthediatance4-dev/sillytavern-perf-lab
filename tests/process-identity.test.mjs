@@ -18,7 +18,7 @@ test('win-boot stamps match inside the documented tolerance and not past it', ()
 });
 
 test('process start wins over a skewed win-boot stamp', () => {
-    const owner = { pid: 424242, bootId: 'win-boot:1000', processStartMs: 50_000 };
+    const owner = { v: 2, pid: 424242, bootId: 'win-boot:1000', processStartMs: 50_000 };
     assert.equal(classifyPidLiveness(owner, {
         signaled: 'alive',
         identity: { bootId: 'win-boot:9000', processStartMs: 50_000 },
@@ -32,19 +32,22 @@ test('process start wins over a skewed win-boot stamp', () => {
         identity: { bootId: 'win-boot:1000', processStartMs: 51_000 },
     }), 'reused');
     assert.equal(classifyPidLiveness(
-        { pid: 424242, bootId: 'win-boot:1000' },
+        { v: 2, pid: 424242, bootId: 'win-boot:1000' },
         { signaled: 'alive', identity: { bootId: `win-boot:${1000 + WIN_BOOT_MATCH_TOLERANCE_SEC}` } },
     ), 'live');
     assert.equal(classifyPidLiveness(
-        { pid: 424242, bootId: 'win-boot:1000' },
+        { v: 2, pid: 424242, bootId: 'win-boot:1000' },
         { signaled: 'alive', identity: { bootId: `win-boot:${1000 + WIN_BOOT_MATCH_TOLERANCE_SEC + 1}` } },
     ), 'live');
     assert.equal(classifyPidLiveness(owner, {
         signaled: 'alive',
         identity: { bootId: 'win-boot:9000' },
     }), 'live');
+    assert.equal(classifyPidLiveness({ ...owner, v: undefined }, {
+        signaled: 'alive', identity: { processStartMs: 51_000 },
+    }), 'live');
     assert.equal(classifyPidLiveness(
-        { pid: 424242, bootId: 'win-boot:1000' },
+        { v: 2, pid: 424242, bootId: 'win-boot:1000' },
         { signaled: 'dead', identity: { bootId: 'win-boot:1000', processStartMs: 50_000 } },
     ), 'dead');
     assert.equal(classifyPidLiveness(
@@ -95,7 +98,7 @@ test('Windows re-probes foreign PIDs across successive incarnations', async () =
     const first = identity.readProcessIdentity(424242);
     const second = identity.readProcessIdentity(424242);
     assert.notEqual(first.processStartMs, second.processStartMs);
-    assert.equal(identity.classifyPidLiveness({ pid: 424242, ...second }, {
+    assert.equal(identity.classifyPidLiveness({ v: 2, pid: 424242, ...second }, {
         signaled: 'alive', identity: second,
     }), 'live');
     const own = identity.readProcessIdentity(process.pid);
@@ -104,7 +107,7 @@ test('Windows re-probes foreign PIDs across successive incarnations', async () =
 
 test('a fresh observer after a clock step cannot reclaim by Windows boot estimate', () => {
     const fresh = settleWindowsBootSample(null, { id: 'win-boot:1300', at: 9000 });
-    assert.equal(classifyPidLiveness({ pid: 42, bootId: 'win-boot:1000' }, {
+    assert.equal(classifyPidLiveness({ v: 2, pid: 42, bootId: 'win-boot:1000' }, {
         signaled: 'alive', identity: { bootId: fresh.bootId },
     }), 'live');
 });
@@ -116,7 +119,33 @@ test('Windows omits identity when PowerShell is unavailable instead of mixing WM
     })`);
     assert.equal(identity.readProcessIdentity(424242).processStartMs, undefined);
     assert.deepEqual(identity.probes, ['powershell.exe']);
-    assert.equal(identity.classifyPidLiveness({ pid: 424242, processStartMs: 50000 }, {
+    assert.equal(identity.classifyPidLiveness({ v: 2, pid: 424242, processStartMs: 50000 }, {
         signaled: 'alive', identity: identity.readProcessIdentity(424242),
     }), 'live');
+});
+
+test('Linux parses raw ticks after the LAST parenthesis, independent of btime', async t => {
+    if (process.platform !== 'linux') return t.skip('requires Linux identity provider');
+    const { readProcessIdentity, parseLinuxStartTicks } = await import('../src/process-identity.js');
+    const stat = `42 (name)(with spaces)(tail) S ${Array(18).fill('0').join(' ')} 12345678901234567890 0`;
+    assert.equal(parseLinuxStartTicks(stat), '12345678901234567890');
+    const reads = [];
+    const identity = readProcessIdentity(42, { fs: { readFileSync(file) {
+        reads.push(file);
+        if (file.endsWith('/boot_id')) return 'boot-a\n';
+        if (file === '/proc/42/stat') return stat;
+        throw new Error('Unexpected read: ' + file);
+    } } });
+    assert.deepEqual(identity, { bootId: 'boot-a', startTicks: '12345678901234567890' });
+    assert.deepEqual(reads, ['/proc/sys/kernel/random/boot_id', '/proc/42/stat']);
+});
+
+test('Linux v2 compares boot and ticks; legacy and unreadable identity refuse', () => {
+    const owner = { v: 2, pid: 42, bootId: 'boot-a', startTicks: '100', processStartMs: 1000 };
+    const observed = identity => ({ signaled: 'alive', identity });
+    assert.equal(classifyPidLiveness(owner, observed({ bootId: 'boot-a', startTicks: '100', processStartMs: 61000 })), 'live');
+    assert.equal(classifyPidLiveness(owner, observed({ bootId: 'boot-a', startTicks: '101' })), 'reused');
+    assert.equal(classifyPidLiveness(owner, observed({ bootId: 'boot-b', startTicks: '100' })), 'reused');
+    assert.equal(classifyPidLiveness({ ...owner, v: undefined }, observed({ bootId: 'boot-b', startTicks: '101' })), 'live');
+    assert.equal(classifyPidLiveness(owner, observed({})), 'live');
 });

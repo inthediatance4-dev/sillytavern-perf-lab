@@ -104,3 +104,100 @@ export async function resolve(specifier, context, nextResolve) {
     assert.equal(result.signal, null, 'Shutdown must complete naturally rather than being killed by the test');
     assert.equal(result.code, 1, `A failed frontend build must not look successful to a process manager. Fixture: ${fixture}`);
 });
+
+test('exclusive ownership I/O failures exit 78 before data writes or listen', async t => {
+    const { spawnSync } = await import('node:child_process');
+    const fixture = fs.mkdtempSync(path.join(repository, '.fixtures', 'owner-startup-'));
+    const dead = spawnSync(process.execPath, ['-e', 'process.exit(0)']).pid;
+    for (const operation of ['open', 'read', 'rename', 'unlink', ...(process.platform === 'linux' ? ['proc'] : [])]) {
+        for (const code of ['EACCES', 'EIO', 'EPERM']) {
+            await t.test(`${operation}: ${code}`, async () => {
+                const scenario = path.join(fixture, `${operation}-${code}`);
+                const dataRoot = path.join(scenario, 'data');
+                fs.mkdirSync(dataRoot, { recursive: true });
+                const lock = path.join(dataRoot, '.st-lab-owner.lock');
+                fs.writeFileSync(lock, JSON.stringify({
+                    pid: ['rename', 'unlink'].includes(operation) ? dead : process.pid,
+                    hostname: (await import('node:os')).hostname(), startedAt: '2000-01-01',
+                }));
+                const config = yaml.parse(fs.readFileSync(path.join(repository, 'default/config.yaml'), 'utf8'));
+                config.dataRoot = dataRoot;
+                config.browserLaunch.enabled = false;
+                config.enableServerPlugins = false;
+                config.extensions.autoUpdate = false;
+                config.extensions.models.autoDownload = false;
+                config.enableDownloadableTokenizers = false;
+                const configPath = path.join(scenario, 'config.yaml');
+                fs.writeFileSync(configPath, yaml.stringify(config));
+                const auditPath = path.join(scenario, 'audit.json');
+                const preload = path.join(scenario, 'inject.mjs');
+                fs.writeFileSync(preload, `
+import fs from 'node:fs';
+import net from 'node:net';
+import path from 'node:path';
+import { syncBuiltinESMExports } from 'node:module';
+const root = ${JSON.stringify(dataRoot)};
+const operation = ${JSON.stringify(operation)};
+const code = ${JSON.stringify(code)};
+const save = fs.writeFileSync;
+const audit = { injected: 0, listens: 0, businessWrites: [] };
+const fds = new Map();
+function inside(file) { return typeof file === 'string' && (file === root || file.startsWith(root + path.sep)); }
+function business(file) {
+    return inside(file) && file !== root && !path.basename(file).startsWith('.st-lab-owner.lock') && !/^\\.c[0-9a-f]{12}$/.test(path.basename(file));
+}
+for (const method of ['openSync', 'readSync', 'readFileSync', 'renameSync', 'unlinkSync', 'mkdirSync', 'writeFileSync', 'appendFileSync', 'writeSync']) {
+    const original = fs[method];
+    fs[method] = function(...args) {
+        const file = typeof args[0] === 'number' ? fds.get(args[0]) : String(args[0]);
+        if ((method === 'openSync' && args[1] !== 'r' && typeof args[1] === 'number' && (args[1] & (fs.constants.O_WRONLY | fs.constants.O_RDWR | fs.constants.O_CREAT))) || /^(write|append|mkdir|rename|unlink)/.test(method)) {
+            if (business(file)) audit.businessWrites.push([method, file]);
+        }
+        const hit = (operation === 'proc' && method === 'readFileSync' && file.startsWith('/proc/'))
+            || (operation === 'open' && method === 'openSync' && file === path.join(root, '.st-lab-owner.lock'))
+            || (operation === 'read' && method === 'readSync' && inside(file))
+            || (operation === 'rename' && method === 'renameSync' && file === path.join(root, '.st-lab-owner.lock'))
+            || (operation === 'unlink' && method === 'unlinkSync' && inside(file));
+        if (hit) { audit.injected++; throw Object.assign(new Error('injected ' + operation + ' ' + code), { code }); }
+        const value = original.apply(this, args);
+        if (method === 'openSync') fds.set(value, file);
+        return value;
+    };
+}
+for (const method of ['mkdir', 'writeFile', 'appendFile', 'rename', 'unlink', 'open']) {
+    const original = fs.promises[method];
+    fs.promises[method] = function(...args) {
+        if (business(String(args[0]))) audit.businessWrites.push([method, String(args[0])]);
+        return original.apply(this, args);
+    };
+}
+const listen = net.Server.prototype.listen;
+net.Server.prototype.listen = function(...args) { audit.listens++; return listen.apply(this, args); };
+syncBuiltinESMExports();
+process.on('exit', () => save(${JSON.stringify(auditPath)}, JSON.stringify(audit)));
+`);
+                const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('SILLYTAVERN_')));
+                const result = await new Promise((resolve, reject) => {
+                    const child = spawn(process.execPath, [
+                        '--import', pathToFileURL(preload).href, path.join(repository, 'server.js'),
+                        '--configPath', configPath, '--dataRoot', dataRoot, '--exclusiveDataRoot', 'true',
+                        '--enableIPv4', 'true', '--enableIPv6', 'false', '--browserLaunchEnabled', 'false',
+                    ], { cwd: repository, env, timeout: 45000, stdio: ['ignore', 'pipe', 'pipe'] });
+                    let output = '';
+                    child.stdout.on('data', chunk => { output += chunk; });
+                    child.stderr.on('data', chunk => { output += chunk; });
+                    child.once('error', reject);
+                    child.once('close', (status, signal) => resolve({ status, signal, output }));
+                });
+                const audit = JSON.parse(fs.readFileSync(auditPath, 'utf8'));
+                assert.equal(result.signal, null, result.output);
+                assert.equal(result.status, 78, result.output);
+                assert.ok(audit.injected > 0, result.output);
+                assert.equal(audit.listens, 0);
+                assert.deepEqual(audit.businessWrites, []);
+                assert.doesNotMatch(result.output, /SillyTavern is listening on/);
+                assert.match(result.output, /ownership could not be determined/);
+            });
+        }
+    }
+});

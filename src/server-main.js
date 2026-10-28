@@ -102,10 +102,11 @@ if (!cliArgs.enableIPv6 && !cliArgs.enableIPv4) {
 // Opt-in. Ordinary startup and tests leave this unset. The lab launcher sets it.
 if (cliArgs.exclusiveDataRoot) {
     try {
-        acquireDataRootOwnership(globalThis.DATA_ROOT);
+        const owner = await acquireDataRootOwnership(globalThis.DATA_ROOT);
+        if (!owner.lockPath) throw new Error('Data-root ownership was not verified');
     } catch (error) {
         console.error(error.message);
-        process.exit(1);
+        process.exit(78);
     }
 }
 // Set keep-alive preference for all HTTP/HTTPS requests.

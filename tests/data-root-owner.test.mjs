@@ -85,6 +85,12 @@ function exitedPid() {
     return result.pid;
 }
 
+// Impossible historical identity makes PID reuse irrelevant to marker/race tests.
+function staleRecord() {
+    return { v: 2, pid: process.pid, hostname: os.hostname(), startedAt: '2000-01-01',
+        bootId: 'win-boot:1', startTicks: '0', processStartMs: 0 };
+}
+
 async function freshRoot(name) {
     const dataRoot = path.join(temp, name);
     await fs.mkdir(dataRoot);
@@ -135,6 +141,11 @@ test('a dead pid on this host is reclaimed', async () => {
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const stale = { pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' };
     await fs.writeFile(lockPath, `${JSON.stringify(stale)}\n`);
+    // Legacy dead-PID coverage: pre-check immediately before acquisition.
+    // Windows can still reuse a PID between this check and the acquisition.
+    try { process.kill(stale.pid, 0); stale.pid = exitedPid(); }
+    catch (error) { assert.equal(error.code, 'ESRCH'); }
+    fsSync.writeFileSync(lockPath, `${JSON.stringify(stale)}\n`);
     const owned = acquireDataRootOwnership(dataRoot);
     try {
         const current = JSON.parse(await fs.readFile(lockPath, 'utf8'));
@@ -231,7 +242,7 @@ async function assertSingleReclaimWinner(dataRoot) {
 test('two processes cannot both reclaim one stale owner', async () => {
     const dataRoot = await freshRoot('race');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
-    const stale = { pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' };
+    const stale = staleRecord();
     await fs.writeFile(lockPath, `${JSON.stringify(stale)}\n`);
     await assertSingleReclaimWinner(dataRoot);
 });
@@ -242,8 +253,8 @@ test('a stale reclaim marker is taken over once and a fresh one is not', async (
     const dataRoot = await freshRoot('reclaim-timeout');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const reclaimPath = path.join(dataRoot, DATA_ROOT_OWNER_RECLAIM);
-    const staleOwner = `${JSON.stringify({ pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01T00:00:00.000Z' })}\n`;
-    const freshMarker = `${JSON.stringify({ pid: exitedPid(), hostname: os.hostname(), claimedAt: new Date().toISOString() })}\n`;
+    const staleOwner = `${JSON.stringify(staleRecord())}\n`;
+    const freshMarker = `${JSON.stringify({ ...staleRecord(), claimedAt: new Date().toISOString() })}\n`;
     await fs.writeFile(lockPath, staleOwner);
     await fs.writeFile(reclaimPath, freshMarker);
     assert.throws(() => acquireDataRootOwnership(dataRoot), /Could not acquire/);
@@ -513,7 +524,7 @@ test('an expired marker cannot revoke a paused live reclaimer', async () => {
     const root = await freshRoot('paused-reclaim');
     const lockPath = path.join(root, DATA_ROOT_OWNER_LOCK);
     const reclaimPath = path.join(root, DATA_ROOT_OWNER_RECLAIM);
-    fsSync.writeFileSync(lockPath, JSON.stringify({ pid: exitedPid(), hostname: os.hostname(), startedAt: '2000-01-01' }));
+    fsSync.writeFileSync(lockPath, JSON.stringify(staleRecord()));
     const rename = fsSync.renameSync;
     let paused = false;
     fsSync.renameSync = (from, to) => {
@@ -624,5 +635,30 @@ test('a second real process after a btime shift cannot reclaim the live Linux ow
         assert.equal(await fs.readFile(owner.lockPath, 'utf8'), before);
     } finally {
         releaseDataRootOwnership();
+    }
+});
+
+test('Windows warm live-child owner refusal takes less than one second', async t => {
+    if (process.platform !== 'win32') return t.skip('requires real Windows PowerShell and process CreationTime');
+    const root = await freshRoot('windows-warm-refusal');
+    const marker = path.join(root, 'ready');
+    const child = spawn(process.execPath, [helper, root, 'hold', marker], { stdio: 'ignore' });
+    try {
+        assert.equal(await waitForMarker(marker), 'ok');
+        const lockPath = path.join(root, DATA_ROOT_OWNER_LOCK);
+        const before = await fs.readFile(lockPath, 'utf8');
+        // Exclude the cold first PowerShell launch; this is the warm-probe target.
+        const warm = readProcessIdentity(child.pid);
+        assert.ok(Number.isSafeInteger(warm.processStartMs), 'Windows timing test requires a successful warmup probe');
+        const start = performance.now();
+        assert.throws(() => acquireDataRootOwnership(root), { code: 'ELOCKED' });
+        const elapsed = performance.now() - start;
+        t.diagnostic(`Windows warm live-owner refusal: ${elapsed.toFixed(1)}ms`);
+        assert.ok(elapsed < 1000, `warm refusal took ${elapsed.toFixed(1)}ms`);
+        assert.equal(await fs.readFile(lockPath, 'utf8'), before);
+    } finally {
+        const exited = new Promise(resolve => child.once('exit', resolve));
+        child.kill('SIGKILL');
+        await exited;
     }
 });

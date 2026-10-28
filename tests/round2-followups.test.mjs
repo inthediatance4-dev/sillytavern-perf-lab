@@ -33,12 +33,10 @@ test('PowerShell pid is a separate argument', () => {
 });
 test('consistent live peer refuses after exactly one identity probe', async t => {
     const root = await fixture(t);
-    const pid = process.pid + 100000;
     await fs.writeFile(path.join(root, DATA_ROOT_OWNER_LOCK), JSON.stringify({ v: 2, pid: process.pid, hostname: os.hostname(), startedAt: 'test', bootId: 'boot', startTicks: '1' }));
     let calls = 0;
     assert.throws(() => acquireDataRootOwnership(root, { identityProvider: () => { calls++; return { bootId: 'boot', startTicks: '1' }; } }), { code: 'ELOCKED' });
-    assert.equal(calls, 2); // One self probe and exactly one peer probe.
-    assert.ok(pid > 0);
+    assert.equal(calls, 1); // Only the peer; self identity is never requested.
 });
 test('default scan reports counts and hint without writes', async t => {
     const root = await fixture(t);
@@ -99,12 +97,12 @@ test('slow failing peer is probed twice within the acquisition deadline', async 
     try {
         assert.throws(() => acquireDataRootOwnership(root, { identityProvider: (_pid, { timeout }) => {
             assert.ok(timeout > 0 && timeout <= 3000);
-            if (++calls === 1) return { bootId: 'boot', startTicks: '1' };
+            calls++;
             Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 550);
             throw Object.assign(new Error('failed peer probe'), { code: 'ETIMEDOUT' });
         } }), DataRootOwnershipUnverifiedError);
     } finally { console.error = original; }
-    assert.equal(calls, 3);
+    assert.equal(calls, 2);
     assert.ok(Date.now() - start < 6000);
     assert.equal(logs.filter(text => /Verifying data-root/.test(text)).length, 1);
 });

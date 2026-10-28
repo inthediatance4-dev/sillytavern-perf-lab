@@ -280,3 +280,21 @@ Disconnecting aborts reads and releases the locks. A second-pass I/O error destr
 the response: clients must treat a disconnected/incomplete JSON response as a failed
 export, even if they already received HTTP 200 headers. These remain in-process
 locks; external writers and multiple processes sharing a data directory are unsupported.
+
+### Windows owner refusal budgets (round 3)
+
+Acquisition inspects an existing owner before probing self. A consistent live
+owner needs one peer probe and no self probe. The Windows CI timing test uses
+a live child owner and warms one peer probe before measuring the <1s target;
+the cold first PowerShell launch is excluded from that timing assertion.
+Peer probes share a 6s acquisition budget (at most 3s per attempt, one retry),
+with `Verifying data-root owner identity…` progress output. Only when preparing
+to write a record does self get its own 6s budget (3s plus one retry); its elapsed
+time does not consume the peer budget. Worst-case probe time is therefore about
+12s when stale-owner verification and self probing both need retries, plus
+filesystem operations, bounded acquisition pauses and process teardown overhead.
+A failed peer or self probe refuses startup; unverified ownership still exits 78.
+Successful Windows self start time is already cached per process; failures are
+retryable and peer identities are never cached. No asynchronous startup warmup
+was added: the provider uses synchronous PowerShell, so scheduling it later would
+still block the event loop; a separate asynchronous provider would broaden this fix.

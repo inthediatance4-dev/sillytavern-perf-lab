@@ -116,7 +116,8 @@ test('exclusive ownership I/O failures exit 78 before data writes or listen', as
                 const dataRoot = path.join(scenario, 'data');
                 fs.mkdirSync(dataRoot, { recursive: true });
                 const lock = path.join(dataRoot, '.st-lab-owner.lock');
-                fs.writeFileSync(lock, JSON.stringify({
+                // No peer for proc failures: reach the strict self probe before writing.
+                if (operation !== 'proc') fs.writeFileSync(lock, JSON.stringify({
                     pid: ['rename', 'unlink'].includes(operation) ? dead : process.pid,
                     hostname: (await import('node:os')).hostname(), startedAt: '2000-01-01',
                 }));

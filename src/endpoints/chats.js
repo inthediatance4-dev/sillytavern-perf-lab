@@ -695,31 +695,45 @@ router.post('/export', validateAvatarUrlMiddleware, async function (request, res
             }
         }
 
-        const readStream = fs.createReadStream(filename);
-        const rl = readline.createInterface({
-            input: readStream,
-        });
+        let lineNumber = 0;
         let buffer = '';
-        rl.on('line', (line) => {
-            const data = JSON.parse(line);
-            // Skip non-printable/prompt-hidden messages
-            if (data.is_system) {
-                return;
+        let readStream;
+        let rl;
+        let parsingLine = false;
+        try {
+            readStream = fs.createReadStream(filename);
+            rl = readline.createInterface({ input: readStream, crlfDelay: Infinity });
+            // Fail the whole export on malformed rows (400) or read errors (500).
+            // Line numbers are physical, including blanks; read errors name the next unread line.
+            // Await iteration so parsing and stream errors settle through one response path.
+            for await (let line of rl) {
+                lineNumber++;
+                if (lineNumber === 1) line = line.replace(/^\uFEFF/, '');
+                if (!line.trim()) continue;
+                parsingLine = true;
+                const data = JSON.parse(line);
+                if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                    throw new Error('Invalid chat JSONL object');
+                }
+                // Skip non-printable/prompt-hidden messages.
+                if (!data.is_system && data.mes) {
+                    const message = (data?.extra?.display_text || data.mes).replace(/\r?\n/g, '\n');
+                    buffer += `${data.name}: ${message}\n\n`;
+                }
+                parsingLine = false;
             }
-            if (data.mes) {
-                const name = data.name;
-                const message = (data?.extra?.display_text || data?.mes || '').replace(/\r?\n/g, '\n');
-                buffer += (`${name}: ${message}\n\n`);
-            }
-        });
-        rl.on('close', () => {
-            const successMessage = {
-                message: `Chat saved to ${exportfilename}`,
-                result: buffer,
-            };
-            console.info(`Chat exported as ${exportfilename}`);
-            return response.status(200).json(successMessage);
-        });
+        } catch (error) {
+            console.error('Chat text export failed.', error);
+            return response.status(parsingLine ? 400 : 500).json({
+                message: parsingLine ? 'Invalid chat JSONL row.' : 'Could not read chat JSONL file.',
+                line: parsingLine ? lineNumber : lineNumber + 1,
+            });
+        } finally {
+            rl?.close();
+            readStream?.destroy();
+        }
+        console.info(`Chat exported as ${exportfilename}`);
+        return response.status(200).json({ message: `Chat saved to ${exportfilename}`, result: buffer });
     } catch (err) {
         console.error('chat export failed.', err);
         return response.sendStatus(400);

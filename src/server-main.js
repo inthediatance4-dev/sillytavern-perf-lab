@@ -340,10 +340,11 @@ async function preSetupTasks() {
         const code = await runShutdown([
             ['requests', signal => requestDrain.stop(signal)],
             ['chat I/O and backups', signal => flushChatBackups(signal)],
+        ], () => [...pendingChatIOPaths(), ...pendingChatBackupPaths()], undefined, [
             ['statistics', () => statsOnExit()],
             ['plugins', () => typeof cleanupPlugins === 'function' ? cleanupPlugins() : undefined],
             ['cache', () => diskCache.dispose()],
-        ], () => [...pendingChatIOPaths(), ...pendingChatBackupPaths()]);
+        ]);
         setWindowTitle(consoleTitle);
         process.exit(code || process.exitCode || 0);
     };

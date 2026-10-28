@@ -180,7 +180,7 @@ matching boot IDs refuse. Approximate `win-boot:` differences never suffice.
 Windows v2 records retain the old CreationTime comparison behavior. Unknown
 liveness or unreadable identity fails closed. Stop the current owner before
 rollback; if a stale record still refuses startup, verify the owner process
-is really gone, then manually delete the reported `.st-lab-owner.lock` path.
+is really gone, then manually archive the reported `.st-lab-owner.lock` by renaming it or moving it to `.recycle/`.
 Never remove that file while its owner is running.
 
 ### Startup lifecycle reconciliation
@@ -365,3 +365,21 @@ reported emergency teardown and is never counted as graceful success. Legacy
 rollback hazards are reported as FINDINGs, not fixed. This Linux exercise does
 not replace Windows browser/Ctrl+C acceptance or authorize deployment. No real
 user data is used, and no automatic recovery or marker cleanup API is added.
+
+
+### Round-3 deployment follow-ups
+
+See the [Chinese rollback runbook](docs/ROLLBACK.zh-CN.md) for exact stop,
+whole-root restore, stale-lock archival and first-week observation steps.
+Node 20/22/24 are tested; `.nvmrc` selects 24. Pin the accepted patch version.
+`check:deploy` now uses `fs.statfs(dataRoot)` available blocks (bavail × bsize)
+and warns below max(1 GiB, twice logical chats + group chats + backups + recycle
+bytes). Nested recycle files count once, symlinks are excluded. INFO reports
+available/recycle bytes; scan/statfs errors warn. Retention stays off by default.
+
+Drill scale is configurable: default `DRILL_CHATS=2 DRILL_MESSAGES=6`;
+`DRILL_CHATS=50 DRILL_MESSAGES=2000 node scripts/drill-upgrade-rollback.mjs`
+seeds 50 character chats of 2000 messages each, plus a group chat. Each run
+backs up its entire synthetic root before upgrade. Safety failures and findings
+exit nonzero, including either old build accepting a live NEW owner, deleted
+chat visibility or a silent explicit-save success, and protected-directory changes.

@@ -42,22 +42,26 @@ test('Windows console break forwards to graceful SIGINT handlers (Linux simulati
 
 test('native Windows CTRL_BREAK reaches graceful SIGINT handler', { skip: process.platform !== 'win32' ? 'Requires a native Windows console process group; forwarding is simulated above on other systems' : false }, () => {
     const code = `
-import subprocess, signal
-source = "import { forwardConsoleBreak } from './scripts/longchat-lab-server.mjs'; forwardConsoleBreak(); const timer = setTimeout(() => { process.exitCode = 1; }, 8000); process.on('SIGINT', () => { clearTimeout(timer); console.log('graceful'); }); console.log('ready');"
-p = subprocess.Popen(['node', '--input-type=module', '-e', source], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+import ctypes, subprocess, signal, sys
+# Give this test a private console; never broadcast into the CI runner's console.
+kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+kernel.FreeConsole()
+assert kernel.AllocConsole(), ctypes.get_last_error()
+source = "import { forwardConsoleBreak } from './scripts/longchat-lab-server.mjs'; forwardConsoleBreak(); const timer = setTimeout(() => { process.exitCode = 1; }, 5000); process.on('SIGINT', () => { clearTimeout(timer); console.log('graceful'); }); console.log('ready');"
+p = subprocess.Popen([sys.argv[1], '--input-type=module', '-e', source], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
 assert p.stdout.readline().strip() == 'ready'
 p.send_signal(signal.CTRL_BREAK_EVENT)
-out, err = p.communicate(timeout=12)
+out, err = p.communicate(timeout=8)
 assert p.returncode == 0 and 'graceful' in out, (p.returncode, out, err)
 `;
-    const result = spawnSync('python', ['-c', code], { encoding: 'utf8', timeout: 20000 });
+    const result = spawnSync(process.env.LONGCHAT_TEST_PYTHON || 'python', ['-c', code, process.execPath], { encoding: 'utf8', timeout: 15000 });
     assert.equal(result.status, 0, result.stderr || result.error?.message);
 });
 
 test('deterministic data, percentiles and CPU ancestor attribution', () => {
     const python = process.env.LONGCHAT_TEST_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
     const script = `
-import importlib.util
+import hashlib, importlib.util, json, pathlib, tempfile
 spec = importlib.util.spec_from_file_location('longchat', 'tests/browser-longchat-perf.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
@@ -80,7 +84,32 @@ p['samples'] = [3]
 p['timeDeltas'] = [100]
 s = m.profile_summary(p)
 assert next(r for r in s['total'] if r['function'] == 'child')['percent'] == 100
+fixture = pathlib.Path(tempfile.mkdtemp(prefix='longchat-report-'))
+source = fixture / 'input'
+source.mkdir()
+ok = {'size':2000, 'truncation':100, 'iteration':0, 'profiled':False, 'status':'ok',
+      'open':{'ms':10, 'longTasks':{'count':0, 'totalMs':0, 'maxMs':0}},
+      'scroll':{'frameMs':{'median':16, 'p95':17}, 'over16_7Percent':1, 'over50Percent':0,
+                'longTasks':{'count':0, 'totalMs':0, 'maxMs':0}, 'batches':[{'added':100, 'ms':600, 'tasks':[]}]},
+      'send':{'ms':20, 'payloadBytes':300, 'serverMs':2, 'responseWaitMs':3},
+      'afterOpen':{'usedSize':10, 'nodes':20, 'messages':100}, 'afterScroll':{'usedSize':11, 'nodes':21, 'messages':200}}
+records = [ok, dict(ok, status='error', iteration=1), dict(ok, profiled=True, iteration=2),
+           {'size':2000, 'truncation':100, 'iteration':3, 'profiled':False, 'status':'timeout'}]
+for i, record in enumerate(records):
+    m.write_json(source / f'run-{i}.json', record)
+before = [path.read_bytes() for path in sorted(source.glob('*.json'))]
+output = fixture / 'combined'
+m.combine_results([source], output)
+m.combine_results([source], output)
+assert before == [path.read_bytes() for path in sorted(source.glob('*.json'))]
+row = json.loads((output / 'aggregated.json').read_text())[0]
+assert row['success'] == 1 and row['attempted'] == 3
+assert row['metrics']['openMs'] == {'n':1,'median':10,'p95':10}
+assert row['failedCompleted']['n'] == 1 and row['statusCounts']['timeout'] == 1
+assert row['batchesByIndex'][0]['ms']['n'] == 1
+index = json.loads((output / 'raw-index.json').read_text())
+assert index[0]['sha256'] == hashlib.sha256(before[0]).hexdigest()
 `;
-    const result = spawnSync(python, ['-c', script], { encoding: 'utf8', env: { ...process.env, PYTHONPATH: 'tests', PYTHONDONTWRITEBYTECODE: '1' } });
+    const result = spawnSync(python, ['-c', script], { encoding: 'utf8', timeout: 5000, env: { ...process.env, PYTHONPATH: 'tests', PYTHONDONTWRITEBYTECODE: '1' } });
     assert.equal(result.status, 0, result.stderr || result.error?.message);
 });

@@ -5,7 +5,7 @@ Run from the checkout with installed Node dependencies and Python Playwright + C
 ```sh
 /tmp/pw-venv/bin/python tests/browser-longchat-perf.py \
   --node /tmp/node-v24.22.1-linux-x64/bin/node \
-  --output docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/measurement
+  --output docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/new-measurement
 ```
 
 Output must not exist. Subsequent runs need a new output name. The previous
@@ -79,8 +79,32 @@ group and sends CTRL_BREAK_EVENT, which the measurement entry point forwards to
 the server's normal SIGINT handlers. A stuck process is left for inspection and
 marked unsuccessful, never killed or counted as graceful. Unit tests simulate
 SIGBREAK forwarding on Linux; a native Windows CTRL_BREAK process-group test runs in the
-Node 20/24 Windows CI `test:perf` jobs and explicitly skips elsewhere. Browser
+Node 20/22/24 Windows CI `test:perf` jobs and explicitly skips elsewhere. Browser
 measurements themselves require Playwright and are opt-in, not CI timings.
 
 Validation: `npx eslint scripts/longchat-lab-server.mjs tests/longchat-*.mjs`
 and `node --test tests/longchat-measurement.test.mjs` (registered in `test:perf`).
+
+
+## Rebuild the final combined report
+
+This command needs only standard-library Python, with no browser or server. It
+regenerates the three derived files in `combined/`, retaining raw input bytes and
+recording their SHA-256 hashes. It distinguishes successful runs, startup
+failures, and completed phases with page errors. Profiled runs are excluded from
+latency distributions. Per-batch long-task distributions are included.
+
+```sh
+python3 tests/browser-longchat-perf.py \
+  --output docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/combined \
+  --combine \
+  docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/measurement \
+  docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/supplement \
+  docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/ready-check
+```
+
+The separate stack diagnostic is deliberately outside the planned matrix. See
+the [final report](../docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/README.md)
+for startup-harness failures, profile attribution limits, the 3000-message error,
+and skipped optional comparisons. Measurement exit codes are 0 for complete
+success, 1 for errors/shutdown/network failures, and 2 for timeouts/skips.

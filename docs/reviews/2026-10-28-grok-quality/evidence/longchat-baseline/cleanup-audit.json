@@ -1,0 +1,49 @@
+{
+  "atUtc": "2026-10-28T12:19:13.505162+00:00",
+  "checks": [
+    {
+      "directory": "<tmp>/lab-1",
+      "listenerActive": false,
+      "ownerRecordRetained": false
+    },
+    {
+      "directory": "<tmp>/lab-2",
+      "listenerActive": false,
+      "ownerRecordRetained": false
+    },
+    {
+      "directory": "<tmp>/lab-3",
+      "listenerActive": false,
+      "ownerRecordRetained": false
+    },
+    {
+      "directory": "<tmp>/lab-4",
+      "listenerActive": false,
+      "ownerRecordRetained": true
+    },
+    {
+      "directory": "<tmp>/lab-5",
+      "listenerActive": false,
+      "ownerRecordRetained": false
+    },
+    {
+      "directory": "<tmp>/lab-6",
+      "listenerActive": false,
+      "ownerRecordRetained": false
+    },
+    {
+      "directory": "<tmp>/lab-7",
+      "listenerActive": false,
+      "ownerRecordRetained": false
+    },
+    {
+      "directory": "<tmp>/lab-8",
+      "listenerActive": false,
+      "ownerRecordRetained": false
+    }
+  ],
+  "activeListeners": 0,
+  "action": "No server termination needed; all retained lab ports are closed.",
+  "retainedOwnerRecords": 1,
+  "note": "One interrupted smoke root retains its owner record; no data/markers were removed. Four evidence-server metadata records independently confirm normal shutdown."
+}

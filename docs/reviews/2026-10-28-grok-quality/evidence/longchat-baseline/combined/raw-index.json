@@ -1,522 +1,587 @@
 [
   {
+    "size": 1000,
+    "truncation": 0,
+    "iteration": 0,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-0-0.json",
-    "size": 1000,
-    "truncation": 0,
-    "iteration": 0,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "2e0065ac16521f55ae4403c3ea6de43d6d007948e4001278204488539bc7ce0b"
   },
   {
+    "size": 1000,
+    "truncation": 0,
+    "iteration": 1,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-0-1.json",
-    "size": 1000,
-    "truncation": 0,
-    "iteration": 1,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "b26bf4860a878cda1626c8418d72ac17d0321ecf6aad920271f67e6e25a9a123"
   },
   {
+    "size": 1000,
+    "truncation": 0,
+    "iteration": 2,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-0-2.json",
-    "size": 1000,
-    "truncation": 0,
-    "iteration": 2,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "777f30f28a7575eaa38fa46e8fd945570bdad2afe8266a754d0bab53b9f4be95"
   },
   {
+    "size": 1000,
+    "truncation": 0,
+    "iteration": 3,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-0-3.json",
-    "size": 1000,
-    "truncation": 0,
-    "iteration": 3,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "23eeb5512ca874639f03606135f917c07fb396688330144f4aeac7d3b9038cce"
   },
   {
+    "size": 1000,
+    "truncation": 0,
+    "iteration": 4,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-0-4.json",
-    "size": 1000,
-    "truncation": 0,
-    "iteration": 4,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "7992220671f05f3e88797337f68b081c197239176f969cec688d7caa8df43ad8"
   },
   {
+    "size": 1000,
+    "truncation": 100,
+    "iteration": 0,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-100-0.json",
-    "size": 1000,
-    "truncation": 100,
-    "iteration": 0,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "37aa04ac280535b6e20e9de5f9e22e0aff8ee091f09e4a77d8ac121f496b9819"
   },
   {
+    "size": 1000,
+    "truncation": 100,
+    "iteration": 1,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-100-1.json",
-    "size": 1000,
-    "truncation": 100,
-    "iteration": 1,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "76a3a1b826c4917e9bdef4cd28451f2374879ce856e5e83486b06bb4f1aad675"
   },
   {
+    "size": 1000,
+    "truncation": 100,
+    "iteration": 2,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-100-2.json",
-    "size": 1000,
-    "truncation": 100,
-    "iteration": 2,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "e292abe009587116a4eb6573ed8fccf0dd8c49081b83533152fecfcf7a1471d7"
   },
   {
+    "size": 1000,
+    "truncation": 100,
+    "iteration": 3,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-100-3.json",
-    "size": 1000,
-    "truncation": 100,
-    "iteration": 3,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "d19f6a59ab7387f819e1e24eae6372844cb42f2a06279091c4e8be31037b09d8"
   },
   {
+    "size": 1000,
+    "truncation": 100,
+    "iteration": 4,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-100-4.json",
-    "size": 1000,
-    "truncation": 100,
-    "iteration": 4,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "716c1a7801d4600c801b1b03ce396e2a50a18aa6e7dde295be7081029e464980"
   },
   {
+    "size": 1000,
+    "truncation": 500,
+    "iteration": 0,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-500-0.json",
-    "size": 1000,
-    "truncation": 500,
-    "iteration": 0,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "98f4c8b03bd6a450e39c9a75e9183de02ab7539cf34c3adf95dee114b1b41c38"
   },
   {
+    "size": 1000,
+    "truncation": 500,
+    "iteration": 1,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-500-1.json",
-    "size": 1000,
-    "truncation": 500,
-    "iteration": 1,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "77fd259389673a0fad4256cac9f0f417c94aa52d5f264d85ce724fb4d29e180c"
   },
   {
+    "size": 1000,
+    "truncation": 500,
+    "iteration": 2,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-500-2.json",
-    "size": 1000,
-    "truncation": 500,
-    "iteration": 2,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "539637cf30365c72b129e873cfea49f0129d573fa28c3b7847286715a8eb96b8"
   },
   {
+    "size": 1000,
+    "truncation": 500,
+    "iteration": 3,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-500-3.json",
-    "size": 1000,
-    "truncation": 500,
-    "iteration": 3,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "27c1fcd7b01b9615b6fdf7038bfa13e43b2fe789cf4789ad6d1d05bc4be090c4"
   },
   {
+    "size": 1000,
+    "truncation": 500,
+    "iteration": 4,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-1000-500-4.json",
-    "size": 1000,
-    "truncation": 500,
-    "iteration": 4,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "085dc68af7394f69fdb786b30ca4b1a3f8570d0a9522f0487d52aaa17bc0e735"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 0,
+    "profiled": false,
+    "status": "timeout",
     "sourceRecord": "measurement/run-2000-0-0.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 0,
-    "profiled": false,
-    "status": "timeout"
+    "sha256": "340cd884b697ad66514161a7aefa39f327d6cdc0c70884761d4e350139957761"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 1,
+    "profiled": false,
+    "status": "timeout",
     "sourceRecord": "measurement/run-2000-0-1.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 1,
-    "profiled": false,
-    "status": "timeout"
+    "sha256": "a058fce49cb637b0f177d3a99fbf00885324452f396530a6334ae9f972754626"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 2,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-2000-0-2.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 2,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "26815acd489fd96f95ac60725c0f5a0e647919e3a6916b6c66e7d5782eaecfd9"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 3,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-2000-0-3.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 3,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "5373437f0ded80e2a7e20381814526142b4f2859b3c5103d9090549d168e9525"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 4,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-2000-0-4.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 4,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "8e87297319b0c56987504263f7e0d57e11f1c22dc2e513f6caac257fac8a9128"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 5,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-2000-0-5.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 5,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "0a6fe83d5c5c72e7b1102e65256609eb4779c98a507ae422df2f256ce612baa8"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 6,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-2000-0-6.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 6,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "fbd32f1f133db3808153578ee2ad9ed9f8836e1ba643ca6f1943fe6f1e77eae5"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 7,
+    "profiled": true,
+    "status": "ok",
     "sourceRecord": "measurement/run-2000-0-7.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 7,
-    "profiled": true,
-    "status": "ok"
+    "sha256": "d0d7a5b35714fadcd5938e2a18e24cf5aac80f0eda95bf4fe9737e972cffd61c"
   },
   {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 0,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-2000-100-0.json",
-    "size": 2000,
-    "truncation": 100,
-    "iteration": 0,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "82c8c3b039a8a329855260ce053ed5c83e7e02e49121e22b53e975bf35362b35"
   },
   {
-    "sourceRecord": "measurement/run-2000-100-1.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 1,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-100-1.json",
+    "sha256": "3bf1aa5ee653057ceae40ceb7c6df702fcb3e981cb56783ee387072f83691e99"
   },
   {
-    "sourceRecord": "measurement/run-2000-100-2.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 2,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-100-2.json",
+    "sha256": "ae4c1c426da76420ffc63b3f8d0a1a3be714a7169d046a3fde3dc92993532fe3"
   },
   {
-    "sourceRecord": "measurement/run-2000-100-3.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 3,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-100-3.json",
+    "sha256": "162a1e91f255ee5b4d1fc224eb86e0a3144f8648a5fdc76cb617419e4b8111ab"
   },
   {
-    "sourceRecord": "measurement/run-2000-100-4.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 4,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-100-4.json",
+    "sha256": "5ab7f67604e0e747969a3da3f4d2ccd557cfc4b64ec66fbd9d9b783f9beea752"
   },
   {
-    "sourceRecord": "measurement/run-2000-100-5.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 5,
     "profiled": false,
-    "status": "timeout"
+    "status": "timeout",
+    "sourceRecord": "measurement/run-2000-100-5.json",
+    "sha256": "cadbc8d919cac566012f813e5ab30c147a301b81ad092107e7e2296caffce8ad"
   },
   {
-    "sourceRecord": "measurement/run-2000-100-6.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 6,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-100-6.json",
+    "sha256": "dd789248288ab0ede3f603fa0462e816f684057423b2a010cc8cb5e08ba9ae89"
   },
   {
-    "sourceRecord": "measurement/run-2000-100-7.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 7,
     "profiled": true,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-100-7.json",
+    "sha256": "76afd20d0014a1f5dbefba0516c69cdcc475f77cb0c7150e1a97d8a05ab32306"
   },
   {
-    "sourceRecord": "measurement/run-2000-500-0.json",
     "size": 2000,
     "truncation": 500,
     "iteration": 0,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-500-0.json",
+    "sha256": "ca97e1cf9897e60015bda567e772b6690d62a78202841639d83318920e59482e"
   },
   {
-    "sourceRecord": "measurement/run-2000-500-1.json",
     "size": 2000,
     "truncation": 500,
     "iteration": 1,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-500-1.json",
+    "sha256": "46ba31c0d8bc56034fc390145b616b61f66153a985cf9f448f702c507129ea9c"
   },
   {
-    "sourceRecord": "measurement/run-2000-500-2.json",
     "size": 2000,
     "truncation": 500,
     "iteration": 2,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-500-2.json",
+    "sha256": "1d80540135507bde6929a5678bc2dcb934cc7d51656117ec86729461d8333071"
   },
   {
-    "sourceRecord": "measurement/run-2000-500-3.json",
     "size": 2000,
     "truncation": 500,
     "iteration": 3,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-500-3.json",
+    "sha256": "fc96a4de8f076abd4adb1a8b1b3fa3f030571971f2af37156001d68078ccb94b"
   },
   {
-    "sourceRecord": "measurement/run-2000-500-4.json",
     "size": 2000,
     "truncation": 500,
     "iteration": 4,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-500-4.json",
+    "sha256": "c590a436dfd535e407061b6f5e24d09231e8bf4a6fe93851062f1cda9835b57a"
   },
   {
-    "sourceRecord": "measurement/run-2000-500-5.json",
     "size": 2000,
     "truncation": 500,
     "iteration": 5,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-500-5.json",
+    "sha256": "ef83c7a3cf1d2b579f86fa1bf9e82feb49ac94c015519a9fbfe8c4a9d08a374d"
   },
   {
-    "sourceRecord": "measurement/run-2000-500-6.json",
     "size": 2000,
     "truncation": 500,
     "iteration": 6,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-2000-500-6.json",
+    "sha256": "35571939dbb8429bfcbd1c6181298bc068a36219ef1518d945e00f576a209ea4"
   },
   {
+    "size": 3000,
+    "truncation": 0,
+    "iteration": 0,
+    "profiled": false,
+    "status": "error",
     "sourceRecord": "measurement/run-3000-0-0.json",
-    "size": 3000,
-    "truncation": 0,
-    "iteration": 0,
-    "profiled": false,
-    "status": "error"
+    "sha256": "6beb815e8d8e8d718dae614a0bf1642ff354e9b006f67de05c2ccb9a434f735c"
   },
   {
+    "size": 3000,
+    "truncation": 0,
+    "iteration": 1,
+    "profiled": false,
+    "status": "error",
     "sourceRecord": "measurement/run-3000-0-1.json",
-    "size": 3000,
-    "truncation": 0,
-    "iteration": 1,
-    "profiled": false,
-    "status": "error"
+    "sha256": "51ea47b0d78d0352e7ef6ae889bae5d139e7040b691e14e3bd24541a9d2e8e5c"
   },
   {
+    "size": 3000,
+    "truncation": 0,
+    "iteration": 2,
+    "profiled": false,
+    "status": "error",
     "sourceRecord": "measurement/run-3000-0-2.json",
-    "size": 3000,
-    "truncation": 0,
-    "iteration": 2,
-    "profiled": false,
-    "status": "error"
+    "sha256": "561cabce3c4b8fd98015c38d43cf12c53bf692b64a04164f6182df314f3a452b"
   },
   {
+    "size": 3000,
+    "truncation": 0,
+    "iteration": 3,
+    "profiled": false,
+    "status": "error",
     "sourceRecord": "measurement/run-3000-0-3.json",
-    "size": 3000,
-    "truncation": 0,
-    "iteration": 3,
-    "profiled": false,
-    "status": "error"
+    "sha256": "c95f05a9a026fb21910c43d1f621fb4dfd9cd5161b21b4221520e45a759bf8f0"
   },
   {
+    "size": 3000,
+    "truncation": 0,
+    "iteration": 4,
+    "profiled": false,
+    "status": "error",
     "sourceRecord": "measurement/run-3000-0-4.json",
-    "size": 3000,
-    "truncation": 0,
-    "iteration": 4,
-    "profiled": false,
-    "status": "error"
+    "sha256": "a879cd66c676e371016f1ac32359a536611197d40f35b66b8db68e94a241c0ac"
   },
   {
+    "size": 3000,
+    "truncation": 100,
+    "iteration": 0,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-3000-100-0.json",
-    "size": 3000,
-    "truncation": 100,
-    "iteration": 0,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "23deb7e895d9cc702ff54452fb23f41935b35cfdc4cb003b143e77060cffb7ad"
   },
   {
+    "size": 3000,
+    "truncation": 100,
+    "iteration": 1,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-3000-100-1.json",
-    "size": 3000,
-    "truncation": 100,
-    "iteration": 1,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "558c9891a39a68d7c4f7e0b13d3aa5d291c74c8b057e8f5bb0f38eb852778496"
   },
   {
+    "size": 3000,
+    "truncation": 100,
+    "iteration": 2,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-3000-100-2.json",
-    "size": 3000,
-    "truncation": 100,
-    "iteration": 2,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "dea06b050b6dd751ed74ed390ca12453a8dacb5402bedfba3b7ae0331a03fc24"
   },
   {
+    "size": 3000,
+    "truncation": 100,
+    "iteration": 3,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-3000-100-3.json",
-    "size": 3000,
-    "truncation": 100,
-    "iteration": 3,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "d84efc3b4ed732ee627e8bcdb5d4464297a4b6c8ba2d200f72182feb4b140a47"
   },
   {
+    "size": 3000,
+    "truncation": 100,
+    "iteration": 4,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "measurement/run-3000-100-4.json",
-    "size": 3000,
-    "truncation": 100,
-    "iteration": 4,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "4b86f07cb829c2890499212b20f0b0e57420b72b4154ce5ebd15e11779493555"
   },
   {
-    "sourceRecord": "measurement/run-3000-500-0.json",
     "size": 3000,
     "truncation": 500,
     "iteration": 0,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-3000-500-0.json",
+    "sha256": "b57ba34231766266d7ed7412ef6327af13d299ed3812ab970cd3b97409e08555"
   },
   {
-    "sourceRecord": "measurement/run-3000-500-1.json",
     "size": 3000,
     "truncation": 500,
     "iteration": 1,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-3000-500-1.json",
+    "sha256": "fd83e7170521834a326404b4c306bef8e06338df3b33aba1ea29892ef490628b"
   },
   {
-    "sourceRecord": "measurement/run-3000-500-2.json",
     "size": 3000,
     "truncation": 500,
     "iteration": 2,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-3000-500-2.json",
+    "sha256": "2a874a1bff754bcd3b6c85eaa4bd7477adc929a7413c0553ba7af5532e9d7101"
   },
   {
-    "sourceRecord": "measurement/run-3000-500-3.json",
     "size": 3000,
     "truncation": 500,
     "iteration": 3,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-3000-500-3.json",
+    "sha256": "5473b8dc975d15dd1dd37485ed6ead0e5f0fcc57a73a69154c6fe5148c181bea"
   },
   {
-    "sourceRecord": "measurement/run-3000-500-4.json",
     "size": 3000,
     "truncation": 500,
     "iteration": 4,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "measurement/run-3000-500-4.json",
+    "sha256": "980826f5612639a2318179cd287ebd6a6f60ea9f8b972228e7cd10164da07c10"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 0,
+    "profiled": false,
+    "status": "timeout",
     "sourceRecord": "supplement/run-2000-0-0.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 0,
-    "profiled": false,
-    "status": "timeout"
+    "sha256": "e53c959e45b08e0d49437582e8afaf284257a608c651f12463fcacc59a954436"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 1,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "supplement/run-2000-0-1.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 1,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "8259ef677fcf670a643d33e876c33f21efd2861527f3d1d725977608b62a63ce"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 2,
+    "profiled": true,
+    "status": "timeout",
     "sourceRecord": "supplement/run-2000-0-2.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 2,
-    "profiled": true,
-    "status": "timeout"
+    "sha256": "77fd6a7726f4227b13483a0a5d6e2fe15397a16a903f74d9be2dfedceeac9c2f"
   },
   {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 0,
+    "profiled": false,
+    "status": "timeout",
     "sourceRecord": "supplement/run-2000-100-0.json",
-    "size": 2000,
-    "truncation": 100,
-    "iteration": 0,
-    "profiled": false,
-    "status": "timeout"
+    "sha256": "53784d6c44b2c46e454bd00d0e81137378a51b6158302a5090d814673f8ad651"
   },
   {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 1,
+    "profiled": false,
+    "status": "timeout",
     "sourceRecord": "supplement/run-2000-100-1.json",
-    "size": 2000,
-    "truncation": 100,
-    "iteration": 1,
-    "profiled": false,
-    "status": "timeout"
+    "sha256": "2525785d866098aa31f2b722415447d592139fd570b3ddae6f5615369b2ba931"
   },
   {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 2,
+    "profiled": true,
+    "status": "timeout",
     "sourceRecord": "supplement/run-2000-100-2.json",
-    "size": 2000,
-    "truncation": 100,
-    "iteration": 2,
-    "profiled": true,
-    "status": "timeout"
+    "sha256": "edf767d1e6b40c98ab157a473c7439491a41b6ddf805eca5b26fb741d2228cae"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 0,
+    "profiled": false,
+    "status": "ok",
     "sourceRecord": "ready-check/run-2000-0-0.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 0,
-    "profiled": false,
-    "status": "ok"
+    "sha256": "173a2bc1c5f8f89e1a83ee4c8d502162bf75fea8860179df8044f083db3237be"
   },
   {
+    "size": 2000,
+    "truncation": 0,
+    "iteration": 1,
+    "profiled": false,
+    "status": "timeout",
     "sourceRecord": "ready-check/run-2000-0-1.json",
-    "size": 2000,
-    "truncation": 0,
-    "iteration": 1,
-    "profiled": false,
-    "status": "timeout"
+    "sha256": "95a89c9068814c847fa8200aa409012e38eb1e9f16d8f6f72f89422089e70988"
   },
   {
-    "sourceRecord": "ready-check/run-2000-0-2.json",
     "size": 2000,
     "truncation": 0,
     "iteration": 2,
     "profiled": true,
-    "status": "timeout"
+    "status": "timeout",
+    "sourceRecord": "ready-check/run-2000-0-2.json",
+    "sha256": "e419801fd8cd1625659562b69f85f4a2814a5a66632ec570832752cf2e1f8510"
   },
   {
-    "sourceRecord": "ready-check/run-2000-100-0.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 0,
     "profiled": false,
-    "status": "ok"
+    "status": "ok",
+    "sourceRecord": "ready-check/run-2000-100-0.json",
+    "sha256": "0a904eada95e019ffeab8dd9a40e8c4532e395012f78b632e884a228a084784c"
   },
   {
-    "sourceRecord": "ready-check/run-2000-100-1.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 1,
     "profiled": false,
-    "status": "timeout"
+    "status": "timeout",
+    "sourceRecord": "ready-check/run-2000-100-1.json",
+    "sha256": "3abe95bd6b7e713ecb8c7d926d0b19f38ebb2b9ab3cd51ced3dcb6acec27c004"
   },
   {
-    "sourceRecord": "ready-check/run-2000-100-2.json",
     "size": 2000,
     "truncation": 100,
     "iteration": 2,
     "profiled": true,
-    "status": "timeout"
+    "status": "timeout",
+    "sourceRecord": "ready-check/run-2000-100-2.json",
+    "sha256": "edf767d1e6b40c98ab157a473c7439491a41b6ddf805eca5b26fb741d2228cae"
   }
 ]

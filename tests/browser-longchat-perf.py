@@ -1,6 +1,7 @@
 """Bounded synthetic long-chat measurements; see tests/LONGCHAT-PERF.md."""
 import argparse
 import gzip
+import hashlib
 import json
 import math
 import os
@@ -60,16 +61,26 @@ def profile_summary(profile):
     parents = {child: n['id'] for n in profile['nodes'] for child in n.get('children', [])}
     own, total, files, inclusive_files = defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int)
     duration = sum(profile.get('timeDeltas', []))
+    focus_names = ['messageFormatting', 'addOneMessage', 'updateMessageElement', 'redisplayChat', 'showMoreMessages',
+                   'saveChat', 'saveChatConditional', 'stringify', 'getTokenCount', 'getTokenCountAsync']
+    focus_self, focus_total, focus_seen = defaultdict(int), defaultdict(int), set()
     def key(node_id):
         frame = nodes[node_id]['callFrame']
         return (frame['functionName'] or '(anonymous)', frame['url'] or '(native)', frame['lineNumber'] + 1, frame.get('columnNumber', -1) + 1)
     for sample, delta in zip(profile.get('samples', []), profile.get('timeDeltas', [])):
         own[key(sample)] += delta
         files[key(sample)[1]] += delta
+        if key(sample)[0] in focus_names:
+            focus_self[key(sample)[0]] += delta
         seen_nodes, seen_frames, seen_files = set(), set(), set()
+        seen_focus = set()
         while sample is not None and sample not in seen_nodes:
             seen_nodes.add(sample)
             frame = key(sample)
+            if frame[0] in focus_names and frame[0] not in seen_focus:
+                focus_total[frame[0]] += delta
+                seen_focus.add(frame[0])
+                focus_seen.add(frame[0])
             if frame not in seen_frames:
                 total[frame] += delta
                 seen_frames.add(frame)
@@ -95,6 +106,10 @@ def profile_summary(profile):
     return {'sampledMs': duration / 1000, 'self': top(own), 'total': top(total),
             'files': [{'file': k, 'percent': v / duration * 100} for k, v in sorted(files.items(), key=lambda x: -x[1])],
             'filesInclusive': [{'file': k, 'percent': v / duration * 100} for k, v in sorted(inclusive_files.items(), key=lambda x: -x[1])],
+            'focusFunctions': {name: {'observed': name in focus_seen,
+                                      'selfPercent': focus_self[name] / duration * 100 if duration and name in focus_seen else None,
+                                      'inclusivePercent': focus_total[name] / duration * 100 if duration and name in focus_seen else None}
+                               for name in focus_names},
             'librariesSelfPercent': {k: v / duration * 100 for k, v in libraries.items()}}
 
 
@@ -116,9 +131,9 @@ def redact(value, origin='', temporary=''):
     return value
 
 
-def write_json(path, data, origin='', temporary=''):
+def write_json(path, data, origin='', temporary='', overwrite=False):
     text = json.dumps(redact(data, origin, temporary), indent=2, ensure_ascii=False)
-    with path.open('x', encoding='utf-8') as handle:
+    with path.open('w' if overwrite else 'x', encoding='utf-8') as handle:
         handle.write(text + '\n')
 
 
@@ -204,7 +219,7 @@ def render_profiles(output):
         handle.write('\n'.join(lines) + '\n')
 
 
-def aggregate_results(raw, sizes, settings, output):
+def aggregate_results(raw, sizes, settings, output, overwrite=False):
     aggregate = []
     for size in sizes:
         for truncation in settings:
@@ -215,16 +230,33 @@ def aggregate_results(raw, sizes, settings, output):
                 'openLongTaskTotalMs': lambda r: r['open']['longTasks']['totalMs'], 'openLongTaskMaxMs': lambda r: r['open']['longTasks']['maxMs'],
                 'frameMedianMs': lambda r: r['scroll']['frameMs']['median'], 'frameP95Ms': lambda r: r['scroll']['frameMs']['p95'],
                 'framesOver16_7Percent': lambda r: r['scroll']['over16_7Percent'], 'framesOver50Percent': lambda r: r['scroll']['over50Percent'],
+                'scrollLongTaskCount': lambda r: r['scroll']['longTasks']['count'],
+                'scrollLongTaskTotalMs': lambda r: r['scroll']['longTasks']['totalMs'],
+                'scrollLongTaskMaxMs': lambda r: r['scroll']['longTasks']['maxMs'],
                 'sendMs': lambda r: r['send']['ms'], 'savePayloadBytes': lambda r: r['send']['payloadBytes'],
                 'saveResponseWaitMs': lambda r: r['send']['responseWaitMs'], 'saveServerMs': lambda r: r['send']['serverMs'],
                 'heapOpenBytes': lambda r: r['afterOpen']['usedSize'], 'heapScrollBytes': lambda r: r['afterScroll']['usedSize'],
                 'domOpen': lambda r: r['afterOpen']['nodes'], 'domScroll': lambda r: r['afterScroll']['nodes'],
                 'messagesOpen': lambda r: r['afterOpen']['messages'], 'messagesScroll': lambda r: r['afterScroll']['messages']}
+            failed_completed = [r for r in subset if r['status'] != 'ok' and all(k in r for k in ['open', 'scroll', 'send', 'afterOpen', 'afterScroll'])]
+            batches = []
+            for index in range(max((len(r['scroll']['batches']) for r in ok), default=0)):
+                samples = [r['scroll']['batches'][index] for r in ok if len(r['scroll']['batches']) > index]
+                batches.append({'batch': index + 1, 'addedMessages': distribution([b['added'] for b in samples]),
+                                'ms': distribution([b['ms'] for b in samples]),
+                                'longTaskCount': distribution([len(b['tasks']) for b in samples]),
+                                'longTaskTotalMs': distribution([tasks_summary(b['tasks'])['totalMs'] for b in samples]),
+                                'longTaskMaxMs': distribution([tasks_summary(b['tasks'])['maxMs'] for b in samples])})
             aggregate.append({'size': size, 'truncation': truncation, 'success': len(ok), 'attempted': len(subset),
+                              'statusCounts': {status: sum(r['status'] == status for r in subset) for status in ['ok', 'error', 'timeout', 'skipped']},
                               'metrics': {key: distribution([fn(r) for r in ok]) for key, fn in metrics.items()},
+                              'failedCompleted': {'n': len(failed_completed),
+                                                  'warning': 'Phase timings exist, but page errors invalidate successful interactivity.',
+                                                  'metrics': {key: distribution([fn(r) for r in failed_completed]) for key, fn in metrics.items()}},
+                              'batchesByIndex': batches,
                               'batchMs': distribution([b['ms'] for r in ok for b in r['scroll']['batches']]),
                               'batchLongTaskTotalMs': distribution([sum(t['duration'] for t in b['tasks']) for r in ok for b in r['scroll']['batches']])})
-    write_json(output / 'aggregated.json', aggregate)
+    write_json(output / 'aggregated.json', aggregate, overwrite=overwrite)
     lines = ['# Long-chat baseline', '', 'Values: median / nearest-rank p95; milliseconds unless labeled. Failed runs excluded; see raw records.', '',
              '| Messages | Truncation | Completed | Open | Send incl save | Save response wait | Batch | Heap open MiB |',
              '|---:|---:|---:|---:|---:|---:|---:|---:|']
@@ -242,14 +274,53 @@ def aggregate_results(raw, sizes, settings, output):
                   '|---:|---:|' + '---:|' * len(columns)]
         for r in aggregate:
             lines.append(f"| {r['size']} | {r['truncation']} | " + ' | '.join(fmt(r['metrics'][key], scale) for _, key, scale in columns) + ' |')
-    (output / 'tables.md').write_text('\n'.join(lines) + '\n')
+    lines += ['', '## Older-message batches', '',
+              'Batch number is relative to the initial rendered window. Values include the fixed 500 ms quiet wait.', '',
+              '| Messages | Truncation | Batch | n | Added | Batch ms | Long tasks | Long-task total ms | Long-task max ms |',
+              '|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
+    for r in aggregate:
+        for batch in r['batchesByIndex']:
+            values = [fmt(batch[k]) for k in ['addedMessages', 'ms', 'longTaskCount', 'longTaskTotalMs', 'longTaskMaxMs']]
+            lines.append(f"| {r['size']} | {r['truncation']} | {batch['batch']} | {batch['ms']['n']} | " + ' | '.join(values) + ' |')
+    lines += ['', '## Completed phase observations with page errors', '',
+              'These are failed interactive runs, excluded from every successful-run table above.', '',
+              '| Messages | Truncation | n | Open ms | Send ms | Frame p95 ms | Server ms | DOM open |',
+              '|---:|---:|---:|---:|---:|---:|---:|---:|']
+    for r in aggregate:
+        if r['failedCompleted']['n']:
+            metrics = r['failedCompleted']['metrics']
+            values = [fmt(metrics[k]) for k in ['openMs', 'sendMs', 'frameP95Ms', 'saveServerMs', 'domOpen']]
+            lines.append(f"| {r['size']} | {r['truncation']} | {r['failedCompleted']['n']} | " + ' | '.join(values) + ' |')
+    with (output / 'tables.md').open('w' if overwrite else 'x', encoding='utf-8') as handle:
+        handle.write('\n'.join(lines) + '\n')
     return aggregate
 
 
+def combine_results(directories, output):
+    """Regenerate derived tables only; raw observations remain immutable."""
+    output.mkdir(parents=True, exist_ok=True)
+    raw, index = [], []
+    for directory in directories:
+        for path in sorted(directory.glob('run-*.json')):
+            data = path.read_bytes()
+            record = json.loads(data)
+            source = os.path.relpath(path, output.parent)
+            if any(row['sourceRecord'] == source for row in index):
+                raise ValueError('Duplicate input run: ' + source)
+            raw.append(record)
+            index.append({**{k: record[k] for k in ['size', 'truncation', 'iteration', 'profiled', 'status']},
+                          'sourceRecord': source, 'sha256': hashlib.sha256(data).hexdigest()})
+    if not raw:
+        raise ValueError('No input runs')
+    aggregate_results(raw, sorted({r['size'] for r in raw}, key=lambda size: (size != 2000, size)),
+                      sorted({r['truncation'] for r in raw}, key=lambda value: (value != 100, value)), output, overwrite=True)
+    write_json(output / 'raw-index.json', index, overwrite=True)
+
+
 def main():
-    from playwright.sync_api import sync_playwright
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=pathlib.Path, required=True)
+    parser.add_argument('--combine', type=pathlib.Path, nargs='+', help='Regenerate derived tables from these saved run directories; no browser/server')
     parser.add_argument('--sizes', default='2000,1000,3000')
     parser.add_argument('--settings', default='100,0,500')
     parser.add_argument('--runs', type=int, help='Override repetitions for smoke checks only')
@@ -258,6 +329,10 @@ def main():
     parser.add_argument('--combo-timeout', type=int, default=1200)
     parser.add_argument('--node', default='node')
     args = parser.parse_args()
+    if args.combine:
+        combine_results(args.combine, args.output)
+        return
+    from playwright.sync_api import sync_playwright
     args.output.mkdir(parents=True, exist_ok=False)
     temporary = tempfile.mkdtemp(prefix='longchat-perf-')
     with socket.socket() as sock:
@@ -411,7 +486,8 @@ def main():
             browser.close()
             metadata['forbiddenRequests'] = forbidden
     finally:
-        server.send_signal(signal.CTRL_BREAK_EVENT if os.name == 'nt' else signal.SIGINT)
+        if server.poll() is None:
+            server.send_signal(signal.CTRL_BREAK_EVENT if os.name == 'nt' else signal.SIGINT)
         try:
             metadata['serverExitCode'] = server.wait(timeout=45)
             log.seek(0)
@@ -427,7 +503,7 @@ def main():
         log.close()
     aggregate_results(raw, list(map(int, args.sizes.split(','))), list(map(int, args.settings.split(','))), args.output)
     render_profiles(args.output)
-    if any(r['status'] == 'error' for r in raw) or metadata.get('forbiddenRequests') or metadata.get('shutdownIncomplete') or metadata.get('serverExitCode') != 0:
+    if any(r['status'] == 'error' for r in raw) or metadata.get('forbiddenRequests') or metadata.get('shutdownIncomplete') or metadata.get('serverExitCode') != 0 or not metadata.get('ownerLockRemoved'):
         raise SystemExit(1)
     if any(r['status'] != 'ok' for r in raw):
         raise SystemExit(2)

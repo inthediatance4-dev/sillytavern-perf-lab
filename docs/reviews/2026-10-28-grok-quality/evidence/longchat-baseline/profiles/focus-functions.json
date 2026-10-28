@@ -1,0 +1,369 @@
+{
+  "note": "Null means no named frame observed, not zero cost. JSON.stringify may be attributed to its caller; bundled library shares remain unresolved.",
+  "profiles": {
+    "2000-0-7-open.cpuprofile.gz": {
+      "functions": {
+        "messageFormatting": {
+          "observed": true,
+          "selfPercent": 0.25554240270309775,
+          "inclusivePercent": 14.943545263421854
+        },
+        "addOneMessage": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "updateMessageElement": {
+          "observed": true,
+          "selfPercent": 0.1470340353246311,
+          "inclusivePercent": 28.418973115832564
+        },
+        "redisplayChat": {
+          "observed": true,
+          "selfPercent": 0.031457031486137634,
+          "inclusivePercent": 40.72478151996154
+        },
+        "showMoreMessages": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChatConditional": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "stringify": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCount": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCountAsync": {
+          "observed": true,
+          "selfPercent": 0.002462828087882662,
+          "inclusivePercent": 0.007548408165458549
+        }
+      },
+      "librariesSelfPercent": {
+        "other/idle/native": 77.68842473997172,
+        "webpack bundle (unresolved)": 13.464744935769762,
+        "jQuery": 8.36090154860711,
+        "markdown/formatting": 0.2974584573676462,
+        "message rendering": 0.17849106681076876,
+        "tokenization": 0.009979251472979097
+      }
+    },
+    "2000-0-7-scroll.cpuprofile.gz": {
+      "functions": {
+        "messageFormatting": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "addOneMessage": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "updateMessageElement": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "redisplayChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "showMoreMessages": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChatConditional": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "stringify": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCount": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCountAsync": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        }
+      },
+      "librariesSelfPercent": {
+        "other/idle/native": 99.99021436690954,
+        "jQuery": 0.009785633090456793
+      }
+    },
+    "2000-0-7-send.cpuprofile.gz": {
+      "functions": {
+        "messageFormatting": {
+          "observed": true,
+          "selfPercent": 0.0,
+          "inclusivePercent": 0.029255138995464513
+        },
+        "addOneMessage": {
+          "observed": true,
+          "selfPercent": 0.0,
+          "inclusivePercent": 0.6015024348873929
+        },
+        "updateMessageElement": {
+          "observed": true,
+          "selfPercent": 0.0033554281285120588,
+          "inclusivePercent": 0.05991536351974344
+        },
+        "redisplayChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "showMoreMessages": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChat": {
+          "observed": true,
+          "selfPercent": 0.2472740816455355,
+          "inclusivePercent": 0.9847971842924859
+        },
+        "saveChatConditional": {
+          "observed": true,
+          "selfPercent": 0.013274912533425831,
+          "inclusivePercent": 0.413430688284292
+        },
+        "stringify": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCount": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCountAsync": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        }
+      },
+      "librariesSelfPercent": {
+        "other/idle/native": 98.29061908278113,
+        "webpack bundle (unresolved)": 0.05133805036623449,
+        "jQuery": 1.3908878735456578,
+        "tokenization": 0.0032505709994960566,
+        "save/JSON": 0.2605489941789613,
+        "message rendering": 0.0033554281285120588
+      }
+    },
+    "2000-100-7-open.cpuprofile.gz": {
+      "functions": {
+        "messageFormatting": {
+          "observed": true,
+          "selfPercent": 0.0673105340646886,
+          "inclusivePercent": 6.743593636883732
+        },
+        "addOneMessage": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "updateMessageElement": {
+          "observed": true,
+          "selfPercent": 0.36176870121172516,
+          "inclusivePercent": 13.084611984935455
+        },
+        "redisplayChat": {
+          "observed": true,
+          "selfPercent": 0.05368574318150391,
+          "inclusivePercent": 14.817061763007269
+        },
+        "showMoreMessages": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChatConditional": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "stringify": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCount": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCountAsync": {
+          "observed": true,
+          "selfPercent": 0.0,
+          "inclusivePercent": 0.1104895977094083
+        }
+      },
+      "librariesSelfPercent": {
+        "other/idle/native": 84.64282712377276,
+        "webpack bundle (unresolved)": 8.161588664173985,
+        "jQuery": 6.669911310067704,
+        "markdown/formatting": 0.11021845759233,
+        "message rendering": 0.4154544443932291
+      }
+    },
+    "2000-100-7-scroll.cpuprofile.gz": {
+      "functions": {
+        "messageFormatting": {
+          "observed": true,
+          "selfPercent": 0.119512286368086,
+          "inclusivePercent": 5.805425829742925
+        },
+        "addOneMessage": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "updateMessageElement": {
+          "observed": true,
+          "selfPercent": 0.04804185034386866,
+          "inclusivePercent": 11.363440806579334
+        },
+        "redisplayChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "showMoreMessages": {
+          "observed": true,
+          "selfPercent": 0.009867128899308521,
+          "inclusivePercent": 17.98757334098179
+        },
+        "saveChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChatConditional": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "stringify": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCount": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCountAsync": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        }
+      },
+      "librariesSelfPercent": {
+        "other/idle/native": 92.78924872647009,
+        "jQuery": 2.293709978114615,
+        "webpack bundle (unresolved)": 4.736938914210536,
+        "message rendering": 0.04804185034386866,
+        "markdown/formatting": 0.1320605308608875
+      }
+    },
+    "2000-100-7-send.cpuprofile.gz": {
+      "functions": {
+        "messageFormatting": {
+          "observed": true,
+          "selfPercent": 0.0,
+          "inclusivePercent": 0.11222276026405999
+        },
+        "addOneMessage": {
+          "observed": true,
+          "selfPercent": 0.0,
+          "inclusivePercent": 0.7416769943341459
+        },
+        "updateMessageElement": {
+          "observed": true,
+          "selfPercent": 0.0,
+          "inclusivePercent": 0.20671749794130603
+        },
+        "redisplayChat": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "showMoreMessages": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "saveChat": {
+          "observed": true,
+          "selfPercent": 0.6569217258558284,
+          "inclusivePercent": 3.594739592310196
+        },
+        "saveChatConditional": {
+          "observed": true,
+          "selfPercent": 0.017290293634053124,
+          "inclusivePercent": 0.9848901437118868
+        },
+        "stringify": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCount": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        },
+        "getTokenCountAsync": {
+          "observed": false,
+          "selfPercent": null,
+          "inclusivePercent": null
+        }
+      },
+      "librariesSelfPercent": {
+        "other/idle/native": 97.40060133014885,
+        "webpack bundle (unresolved)": 0.1202660297710404,
+        "jQuery": 1.8049206205902228,
+        "save/JSON": 0.6742120194898816
+      }
+    }
+  }
+}

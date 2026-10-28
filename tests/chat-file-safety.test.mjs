@@ -265,3 +265,98 @@ test('HTTP text export settles once on a mid-stream read error and remains avail
     fixture('export-after-read-error', jsonl([message('hello')]));
     assert.equal((await exportText('export-after-read-error')).data.result, 'Synthetic: hello\n\n');
 });
+
+// Exercise the actual route with an explicit response-write gate (no timing sleeps).
+const wrappedExportHandler = chats.router.stack.find(layer => layer.route?.path === '/export').route.stack.at(-1).handle;
+const { Writable } = await import('node:stream');
+const { execFileSync } = await import('node:child_process');
+const readline = await import('node:readline');
+const { withPathLocks, chatLockPaths } = await import('../src/chat-io.js');
+async function exportHandler(request, response) {
+    const closed = new Promise(resolve => response.once('close', resolve));
+    wrappedExportHandler(request, response, error => { throw error; });
+    await closed;
+    await withPathLocks(chatLockPaths([path.join(dirs.groupChats, request.body.file)]), async () => {});
+}
+function gatedResponse(gateWrite = 2) {
+    let writes = 0;
+    let entered;
+    const ready = new Promise(resolve => { entered = resolve; });
+    let release;
+    const chunks = [];
+    const response = new Writable({
+        write(chunk, _encoding, callback) {
+            chunks.push(chunk);
+            if (++writes === gateWrite) { release = callback; entered(); }
+            else callback();
+        },
+    });
+    response.status = () => response;
+    response.set = () => response;
+    return { response, ready, release: () => release(), body: () => Buffer.concat(chunks).toString() };
+}
+const exportRequest = (file, format = 'txt') => ({ body: { is_group: true, file: path.basename(file), format, exportfilename: 'synthetic.txt' }, user: { directories: dirs } });
+
+for (const abort of [false, true]) {
+    test(`gated streaming export ${abort ? 'client abort releases' : 'holds'} shared lock against save`, async () => {
+        const file = fixture(`gated-${abort}`, jsonl([message('before')]), true);
+        const gate = gatedResponse();
+        const exporting = exportHandler(exportRequest(file), gate.response);
+        await gate.ready;
+        let saved = false;
+        const saving = chats.trySaveChat([message('after')], file, true).then(() => { saved = true; });
+        assert.equal(saved, false);
+        if (abort) gate.response.destroy();
+        else gate.release();
+        await exporting;
+        await saving;
+        assert.equal(saved, true);
+        if (!abort) assert.equal(JSON.parse(gate.body()).result, 'Synthetic: before\n\n');
+        assert.equal(await fs.promises.readFile(file, 'utf8'), jsonl([message('after')]));
+    });
+}
+
+for (const revision of ['617a04f', '48a153e']) {
+    for (const format of ['txt', 'jsonl']) {
+        test(`${format} streamed response bytes match actual ${revision} route`, async () => {
+            const source = execFileSync('git', ['show', `${revision}:src/endpoints/chats.js`], { encoding: 'utf8' });
+            const start = source.indexOf("router.post('/export', validateAvatarUrlMiddleware, ") + "router.post('/export', validateAvatarUrlMiddleware, ".length;
+            const end = source.indexOf('\n});', start);
+            const baseline = new Function('fs', 'readline', 'path', 'sanitize', 'isPathUnderParent', `return (${source.slice(start, end + 2)});`)(fs, readline, path, value => value, () => true);
+            const contents = jsonl([header(), message('quotes " slash \\ emoji 😀\r\nnext'), { name: 'Hidden', is_system: true, mes: 'hidden' }, { name: 'Display', mes: 'raw', extra: { display_text: 'shown\ntext' } }]) + (format === 'jsonl' ? '\n\n' : '\n');
+            const file = fixture(`baseline-${revision}-${format}`, contents, true);
+            let expected;
+            await new Promise((resolve, reject) => {
+                Promise.resolve(baseline(exportRequest(file, format), { status() { return this; }, json(body) { expected = JSON.stringify(body); resolve(); } })).catch(reject);
+            });
+            const gate = gatedResponse();
+            const exporting = exportHandler(exportRequest(file, format), gate.response);
+            await gate.ready;
+            gate.release();
+            await exporting;
+            assert.equal(gate.body(), expected);
+        });
+    }
+}
+
+test('pass-two I/O error destroys response instead of completing JSON', async () => {
+    const file = fixture('pass-two-error', jsonl([message('hello')]), true);
+    const original = fs.createReadStream;
+    let reads = 0;
+    fs.createReadStream = (target, ...args) => {
+        if (String(target) === file && ++reads === 2) {
+            return new Readable({ read() { this.destroy(new Error('Synthetic pass-two I/O failure')); } });
+        }
+        return original(target, ...args);
+    };
+    const gate = gatedResponse(1);
+    gate.response.on('error', () => {});
+    try {
+        const exporting = exportHandler(exportRequest(file), gate.response);
+        await gate.ready;
+        gate.release();
+        await exporting;
+        assert.equal(gate.response.destroyed, true);
+        assert.equal(gate.response.writableFinished, false);
+    } finally { fs.createReadStream = original; }
+});

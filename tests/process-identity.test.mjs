@@ -104,7 +104,9 @@ test('Windows re-probes foreign PIDs across successive incarnations', async () =
         signaled: 'alive', identity: second,
     }), 'live');
     const own = identity.readProcessIdentity(process.pid);
+    const probesAfterSelf = identity.probes.length;
     assert.deepEqual(identity.readProcessIdentity(process.pid), own);
+    assert.equal(identity.probes.length, probesAfterSelf, 'successful self identity is cached');
 });
 
 test('a fresh observer after a clock step cannot reclaim by Windows boot estimate', () => {

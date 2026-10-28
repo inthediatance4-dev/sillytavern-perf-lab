@@ -1,5 +1,16 @@
 # SillyTavern performance lab
 
+
+## Deployment prerequisites and rollback
+
+Supported/tested Node majors are **20, 22, 24** on Ubuntu and Windows CI. `.nvmrc` selects 24 to track the newer tested line; use `nvm use` and pin an accepted patch version in deployment. Upstream `engines.node >=20` remains unchanged and does not imply every later major is tested.
+
+Enable `exclusiveDataRoot: true`, one server per data root, and require `npm run check:deploy -- --config ./config.yaml --data-root <root>` to exit 0 (all checks OK, informational lines allowed; no WARN/FAIL). Disk availability must be at least max(1 GiB, twice the logical bytes in chats, group chats, backups and any `.recycle/`), counting each file once without following symlinks. INFO shows available and recycled bytes; recycle retention defaults to unbounded (-1). Scan/statfs failure warns; the check is read-only.
+
+Check listen addresses, whitelist and authentication separately: `perf:lab` forces localhost. Streaming exports currently hold locks throughout downloads; stalled clients can block saves, including other chats of the character when a directory writer queues. Exposure beyond localhost requires the round-4 timeout and lock-scope fix first. Back up the whole root and complete real-machine acceptance before deployment.
+
+Follow the [Chinese rollback runbook](docs/ROLLBACK.zh-CN.md): stop NEW and verify its process has exited before restoring a whole-root backup including hidden directories or archiving an individually verified stale owner lock.
+
 This research fork combines SillyTavern 1.19.0 with chat reliability, lifecycle,
 startup and frontend experiments. Use **`codex-improvements`** for the current
 reviewed work. `codex/sillytavern-1.19-sync` is the earlier integration base;

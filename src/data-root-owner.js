@@ -9,8 +9,9 @@ let fs = defaultFs;
 let identityProvider = readProcessIdentity;
 let probeDeadline = 0;
 let progressPrinted = false;
+let selfIdentity;
 
-function probeIdentity(pid, options) {
+function probeIdentity(pid, options, deadline = probeDeadline) {
     if (!Number.isSafeInteger(pid) || pid <= 0) throw Object.assign(new Error('Invalid process pid'), { code: 'EINVAL' });
     if (process.platform === 'win32' && !progressPrinted) {
         console.error('Verifying data-root owner identity…');
@@ -19,7 +20,7 @@ function probeIdentity(pid, options) {
     let identity;
     for (let attempt = 0; attempt < 2; attempt++) {
         const start = Date.now();
-        const timeout = Math.min(3000, probeDeadline - start);
+        const timeout = Math.min(3000, deadline - start);
         if (timeout <= 0) throw Object.assign(new Error('Process identity probe budget exhausted'), { code: 'ETIMEDOUT' });
         try { identity = identityProvider(pid, { ...options, timeout }); } catch (error) { if (attempt) throw error; }
         if ((attempt || Date.now() - start > 500) && !progressPrinted) {
@@ -435,7 +436,12 @@ function inspectLock(lockPath, resolved) {
  * @returns {string}
  */
 function ownerPayload(pid, hostname, startedAt) {
-    const identity = probeIdentity(pid, { fs, strict: true });
+    if (!selfIdentity) {
+        const start = Date.now();
+        try { selfIdentity = probeIdentity(pid, { fs, strict: true }, start + 6000); }
+        finally { probeDeadline += Date.now() - start; }
+    }
+    const identity = selfIdentity;
     /** @type {{ pid: number, hostname: string, startedAt: string, v: number, token: string, bootId?: string, startTicks?: string, processStartMs?: number }} */
     const record = { v: 2, pid, hostname, startedAt, token: randomUUID() };
     if (identity.startTicks !== undefined) record.startTicks = identity.startTicks;
@@ -655,6 +661,7 @@ export function acquireDataRootOwnership(dataRoot, { fs: injectedFs = defaultFs,
     identityProvider = provider;
     probeDeadline = Date.now() + 6000;
     progressPrinted = false;
+    selfIdentity = undefined;
     fs = new Proxy(injectedFs, {
         get(target, key) {
             const value = target[key];
@@ -674,6 +681,7 @@ export function acquireDataRootOwnership(dataRoot, { fs: injectedFs = defaultFs,
         fs = previous;
         identityProvider = readProcessIdentity;
         probeDeadline = 0;
+        selfIdentity = undefined;
     }
 }
 
@@ -711,14 +719,12 @@ function acquireResolved(resolved) {
     const startedAt = new Date().toISOString();
     const hostname = os.hostname();
     const pid = process.pid;
-    const initial = readRegularFile(lockPath);
-    if (initial.status === 'ok' && classifyOwner(initial.text).kind === 'corrupt') {
-        throw new DataRootOwnershipUnverifiedError(Object.assign(new Error('Invalid or unreadable owner record'), { code: 'EINVAL' }), lockPath);
-    }
+    // Refuse a live peer before spending any time probing ourselves.
+    const initial = inspectLock(lockPath, resolved);
+    if (initial.action === 'refuse') throw initial.error;
+    if (initial.action === 'environment') throw initial.error;
     let payload;
-    try { payload = ownerPayload(pid, hostname, startedAt); }
-    catch (error) { throw new DataRootOwnershipUnverifiedError(error, lockPath); }
-    const record = JSON.parse(payload);
+    let record;
     /** @type {string|null} */
     let heldReclaim = null;
     const finishHeld = () => {
@@ -744,6 +750,10 @@ function acquireResolved(resolved) {
                 continue;
             }
 
+            if (!payload) {
+                payload = ownerPayload(pid, hostname, startedAt);
+                record = JSON.parse(payload);
+            }
             const created = createExclusiveFile(lockPath, payload);
             if (created.status === 'created') {
                 finishHeld();

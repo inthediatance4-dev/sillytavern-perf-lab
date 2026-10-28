@@ -1,5 +1,18 @@
 # SillyTavern 性能实验室
 
+
+## 部署前置条件
+
+支持并测试 Node.js 主版本 **20、22、24**（Ubuntu/Windows CI）。`.nvmrc` 选择 24，以与较新的测试线一致；使用 `nvm use`，生产部署进一步固定经过验收的补丁版本。上游 `package.json` 的 `engines.node >=20` 保持不变，它不表示所有后续主版本都经过测试。
+
+启用 `exclusiveDataRoot: true`，每个数据根只运行一个服务器。对真实配置运行 `npm run check:deploy -- --config ./config.yaml --data-root <数据根>`，要求退出 0、所有检查项通过（OK；INFO 是说明），无 WARN/FAIL。磁盘规则：可用空间不得低于 `max(1 GiB, 2 × 聊天+备份+回收区逻辑字节数)`；每个文件仅计一次，包括嵌套 `.recycle/`，不跟随符号链接。输出包含可用字节和回收区用量；`maxRecycleBytes` 默认 -1，回收区可持续增长。扫描或 statfs 失败会 WARN，检查不写文件。
+
+`perf:lab` 强制 localhost，实际部署须单独核对 listen、白名单及认证。当前流式导出在整个下载期间持锁：卡住的下载可阻塞保存，若目录独占操作排队还可能阻塞同角色其他聊天。超出 localhost 暴露前，必须完成第四轮空闲超时及缩小锁范围修复。真实机器验收和整根备份仍是前置条件。
+
+## 回滚
+
+见[中文回滚手册](docs/ROLLBACK.zh-CN.md)：先停止新版并确认进程退出，再完整恢复包含隐藏目录的数据根备份；锁文件只能在确认所有者退出后逐个归档。
+
 这是基于 SillyTavern 1.19.0 的研究分支，包含聊天可靠性、生命周期、启动和前端实验。
 当前入口是 **`codex-improvements`**；`codex/sillytavern-1.19-sync` 是较早的集成基线。
 其他候选分支和带日期的验收记录属于历史实验，本分支不是生产发行版。

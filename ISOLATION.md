@@ -180,7 +180,7 @@ matching boot IDs refuse. Approximate `win-boot:` differences never suffice.
 Windows v2 records retain the old CreationTime comparison behavior. Unknown
 liveness or unreadable identity fails closed. Stop the current owner before
 rollback; if a stale record still refuses startup, verify the owner process
-is really gone, then manually delete the reported `.st-lab-owner.lock` path.
+is really gone, then manually archive the reported `.st-lab-owner.lock` by renaming it or moving it to `.recycle/`.
 Never remove that file while its owner is running.
 
 ### Startup lifecycle reconciliation
@@ -261,3 +261,125 @@ before this upgrade; new deletes write `intent: "delete"` and new publications
 floating point to BigInt. An owner process started by the older build that is
 still running can differ by 1 ms, which causes a refusal (the safe direction).
 Stop the old process before starting the new build, in either direction.
+
+### Streaming chat export
+
+Export holds the existing shared parent-directory and file path locks through
+both passes and response completion. Text export validates each physical row and
+its display-text conversion before sending headers; malformed rows return the
+existing 400 JSON error and 1-based line number without any export bytes. JSONL
+retains its historical raw UTF-8 behavior (including BOM, blank lines and malformed
+rows), and the first pass checks readability without parsing it. Both formats
+stream the existing JSON response envelope with backpressure on the second pass.
+Memory is bounded by stream buffers and, for text, the longest individual row and
+its converted/escaped message, rather than the entire chat. A single exceptionally
+large row can therefore still require substantial memory.
+
+A save waits for export's shared file lock; export sees one complete version.
+Disconnecting aborts reads and releases the locks. A second-pass I/O error destroys
+the response: clients must treat a disconnected/incomplete JSON response as a failed
+export, even if they already received HTTP 200 headers. These remain in-process
+locks; external writers and multiple processes sharing a data directory are unsupported.
+
+### Windows owner refusal budgets (round 3)
+
+Acquisition inspects an existing owner before probing self. A consistent live
+owner needs one peer probe and no self probe. The Windows CI timing test uses
+a live child owner and warms one peer probe before measuring the <1s target;
+the cold first PowerShell launch is excluded from that timing assertion.
+Peer probes share a 6s acquisition budget (at most 3s per attempt, one retry),
+with `Verifying data-root owner identity…` progress output. Only when preparing
+to write a record does self get its own 6s budget (3s plus one retry); its elapsed
+time does not consume the peer budget. Worst-case probe time is therefore about
+12s when stale-owner verification and self probing both need retries, plus
+filesystem operations, bounded acquisition pauses and process teardown overhead.
+A failed peer or self probe refuses startup; unverified ownership still exits 78.
+Successful Windows self start time is already cached per process; failures are
+retryable and peer identities are never cached. No asynchronous startup warmup
+was added: the provider uses synchronous PowerShell, so scheduling it later would
+still block the event loop; a separate asynchronous provider would broaden this fix.
+
+## Deployment checklist
+
+Run `npm run check:deploy -- --config ./config.yaml --json` before deployment.
+The check reads files only: it takes no ownership/path lock, creates no probe files,
+and does not initialize or migrate config. Exit codes: 0 passes, 1 WARN or FAIL,
+2 invalid arguments/config. Text output distinguishes FAIL prerequisites from WARN hints.
+It describes a live snapshot; concurrent changes can make scan results incomplete.
+
+- Enable `exclusiveDataRoot: true` (FAIL otherwise). The standalone server's
+  `--configPath`, `--dataRoot`, and `--exclusiveDataRoot [true|false]` options are
+  accepted; `--config` and `--data-root` are convenient aliases. Config defaults
+  to `./config.yaml`; relative data paths resolve from the working directory,
+  as on the server. CLI overrides `SILLYTAVERN_EXCLUSIVEDATAROOT` /
+  `SILLYTAVERN_DATAROOT`, which override YAML. This command checks standalone
+  configuration; pass explicit paths when checking a global-mode installation.
+- Review `backups.chat.maxRecycleBytes` (also
+  `SILLYTAVERN_BACKUPS_CHAT_MAXRECYCLEBYTES`). Default `-1` remains off and is OK:
+  retained backups need disk space; a nonnegative budget sacrifices retention.
+- Ensure the data root exists and permits writes/traversal. The read-only access
+  check cannot guarantee future writes or available disk space.
+- Review the smallest detected host/cgroup memory limit and largest visible
+  `.jsonl` file (excluding backups, recycle, staging and lifecycle storage;
+  symlinks are not followed). The check reads standard cgroup v2/v1 limit files,
+  falling back to `os.totalmem()`. WARN means below 512 MiB or estimated export
+  need. Unusual cgroup mounts/nested limits may require manual verification.
+  Streaming export uses bounded buffering, so the estimate does not multiply
+  chat size. When round-3 `export-memory.json` exists, output includes its measured
+  input size and peak RSS; allowance is max(150 MiB, measured peak × 1.25).
+  Otherwise 150 MiB is an explicitly unmeasured fallback. Allow extra headroom
+  for concurrent work and unusually large individual JSONL rows. These hints
+  do not replace browser/Windows acceptance or upgrade/rollback rehearsal.
+
+### Linux synthetic upgrade and rollback drill (round 3)
+
+Run `node scripts/drill-upgrade-rollback.mjs` from this checkout with installed
+Node dependencies. This Linux-only integration drill uses fresh synthetic data,
+free loopback ports, and bounded child processes. It clones Git locally into a
+new temporary directory (without hardlinks), then creates detached OLD
+(`origin/codex/sillytavern-1.19-sync`, verified `48a153e`) and PREV (`9293a4e`)
+worktrees there; NEW runs the current working tree, including uncommitted changes.
+Dependencies are symlinked from this checkout. The source repository's Git
+metadata is not written. Worktrees are removed with `git worktree remove --force`.
+
+OLD creates characters, multi-message chats and a group chat through HTTP. A
+whole-root copy precedes upgrade. NEW deletes a chat, renames a character and
+saves a chat under exclusive ownership, then is deliberately killed to retain
+its v2 owner record. The drill plants synthetic staging orphans and a publish
+conflict and checks the read-only integrity command's findings and snapshots.
+Each rollback target receives an independent copy of this post-crash root.
+Reports distinguish startup refusal, owner-record handling, automatic list
+resurrection, and recreation by explicit user save. Protected-directory
+snapshots cover the user chats, characters and group-chat lifecycle roots,
+including directory paths, file hashes, sizes and modification times. Webpack
+cache recycling is outside these user-data assertions. Backup comparison checks
+paths and bytes, since filesystem copies can round modification timestamps.
+A separate NEW root is used for the headless browser lifecycle script and SIGINT.
+
+JSON and Markdown reports go under
+`docs/reviews/2026-10-28-grok-quality/evidence/opus-round3/drill/`; subsequent runs
+use timestamped names and do not overwrite evidence. Hostnames and temporary
+absolute paths are redacted. Runs aborted by an error retain their synthetic
+temp root for diagnosis; completed runs remove it. Unexpected shutdown requires an explicitly
+reported emergency teardown and is never counted as graceful success. Legacy
+rollback hazards are reported as FINDINGs, not fixed. This Linux exercise does
+not replace Windows browser/Ctrl+C acceptance or authorize deployment. No real
+user data is used, and no automatic recovery or marker cleanup API is added.
+
+
+### Round-3 deployment follow-ups
+
+See the [Chinese rollback runbook](docs/ROLLBACK.zh-CN.md) for exact stop,
+whole-root restore, stale-lock archival and first-week observation steps.
+Node 20/22/24 are tested; `.nvmrc` selects 24. Pin the accepted patch version.
+`check:deploy` now uses `fs.statfs(dataRoot)` available blocks (bavail × bsize)
+and warns below max(1 GiB, twice logical chats + group chats + backups + recycle
+bytes). Nested recycle files count once, symlinks are excluded. INFO reports
+available/recycle bytes; scan/statfs errors warn. Retention stays off by default.
+
+Drill scale is configurable: default `DRILL_CHATS=2 DRILL_MESSAGES=6`;
+`DRILL_CHATS=50 DRILL_MESSAGES=2000 node scripts/drill-upgrade-rollback.mjs`
+seeds 50 character chats of 2000 messages each, plus a group chat. Each run
+backs up its entire synthetic root before upgrade. Safety failures and findings
+exit nonzero, including either old build accepting a live NEW owner, deleted
+chat visibility or a silent explicit-save success, and protected-directory changes.

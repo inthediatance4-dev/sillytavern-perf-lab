@@ -19,6 +19,18 @@ import sanitize from 'sanitize-filename';
 
 /** @type {Map<string, LockGate>} */
 const gates = new Map();
+// Only directory creation is cached; containment/alias checks still run on every write.
+// Keys use pathKey(), the same canonical identity as locks and markers, so Windows
+// case/8.3 aliases share one entry; a missing staging directory is recreated on ENOENT.
+const stagingDirectories = new Set();
+const stagingCacheKey = directory => pathKey(directory);
+
+function invalidateStagingDirectories(directory) {
+    const key = stagingCacheKey(directory);
+    for (const cached of stagingDirectories) {
+        if (cached === key || cached.startsWith(key + path.sep)) stagingDirectories.delete(cached);
+    }
+}
 /** Completion of every reservation already accepted, including ones still waiting. */
 const pendingIO = new Map();
 /**
@@ -430,6 +442,7 @@ export async function clearRetiredPathIfAbsent(filePath, lifecycleRoot = path.di
 export async function recycleChatPath(source, recycleRoot = path.dirname(source)) {
     try { await fs.promises.lstat(source); }
     catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+    invalidateStagingDirectories(source);
     const directory = path.join(recycleRoot, '.recycle');
     await checkLocalPath(directory, recycleRoot);
     await fs.promises.mkdir(directory, { recursive: true });
@@ -442,6 +455,7 @@ export async function recycleChatPath(source, recycleRoot = path.dirname(source)
 /** Caller holds all affected directory/file locks. Marker stays outside recycled folders. */
 export async function retireChatPath(filePath, lifecycleRoot, reason) {
     await assertChatWritable(filePath, lifecycleRoot);
+    invalidateStagingDirectories(filePath);
     const token = randomUUID();
     const marker = markerPath(filePath, lifecycleRoot);
     await fs.promises.mkdir(path.dirname(marker), { recursive: true });
@@ -603,16 +617,29 @@ export async function writeLifecycleAtomic(filePath, data) {
     const stagingParent = path.basename(parent) === '.chat-lifecycle' ? path.dirname(parent) : parent;
     const staging = path.join(stagingParent, '.chat-staging');
     await checkLocalPath(staging, stagingParent);
-    await fs.promises.mkdir(staging, { recursive: true });
+    const key = stagingCacheKey(stagingParent);
+    const ensureStaging = async () => {
+        await fs.promises.mkdir(staging, { recursive: true });
+        stagingDirectories.add(key);
+    };
+    if (!stagingDirectories.has(key)) await ensureStaging();
     const temporary = path.join(staging, randomUUID());
     let stat;
     try { stat = await fs.promises.stat(filePath); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     try {
-        await writeFileAtomic(temporary, data, {
+        const options = {
             encoding: 'utf8',
             ...(stat ? { mode: stat.mode, ...(process.getuid ? { chown: { uid: stat.uid, gid: stat.gid } } : {}) } : {}),
-        });
+        };
+        try { await writeFileAtomic(temporary, data, options); }
+        catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+            stagingDirectories.delete(key);
+            await checkLocalPath(staging, stagingParent);
+            await ensureStaging();
+            await writeFileAtomic(temporary, data, options);
+        }
         await fs.promises.rename(temporary, filePath);
     } catch (error) {
         await recycleChatPath(temporary, stagingParent).catch(recoveryError => console.error('Atomic staging retained:', temporary, recoveryError));
@@ -627,7 +654,7 @@ export async function writeLifecycleAtomic(filePath, data) {
  * @param {string} data Serialized JSONL
  */
 export async function writeChatFile(filePath, data) {
-    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    // Creating staging recursively also creates the parent; cached parents recover on ENOENT.
     await writeLifecycleAtomic(filePath, data);
 }
 

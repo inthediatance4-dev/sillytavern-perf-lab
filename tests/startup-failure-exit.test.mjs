@@ -106,9 +106,7 @@ export async function resolve(specifier, context, nextResolve) {
 });
 
 test('exclusive ownership I/O failures exit 78 before data writes or listen', async t => {
-    const { spawnSync } = await import('node:child_process');
     const fixture = fs.mkdtempSync(path.join(repository, '.fixtures', 'owner-startup-'));
-    const dead = spawnSync(process.execPath, ['-e', 'process.exit(0)']).pid;
     for (const operation of ['open', 'read', 'rename', 'unlink', 'proc']) {
         for (const code of ['EACCES', 'EIO', 'EPERM']) {
             await t.test(`${operation}: ${code}`, { skip: operation === 'proc' && process.platform !== 'linux' && 'Requires Linux /proc identity reads' }, async () => {
@@ -116,9 +114,12 @@ test('exclusive ownership I/O failures exit 78 before data writes or listen', as
                 const dataRoot = path.join(scenario, 'data');
                 fs.mkdirSync(dataRoot, { recursive: true });
                 const lock = path.join(dataRoot, '.st-lab-owner.lock');
-                fs.writeFileSync(lock, JSON.stringify({
-                    pid: ['rename', 'unlink'].includes(operation) ? dead : process.pid,
+                // No peer for proc failures: reach the strict self probe before writing.
+                // Impossible v2 identity reaches reclamation without depending on PID reuse.
+                if (operation !== 'proc') fs.writeFileSync(lock, JSON.stringify({
+                    v: 2, pid: process.pid,
                     hostname: (await import('node:os')).hostname(), startedAt: '2000-01-01',
+                    bootId: 'win-boot:1', startTicks: '0', processStartMs: 0,
                 }));
                 const config = yaml.parse(fs.readFileSync(path.join(repository, 'default/config.yaml'), 'utf8'));
                 config.dataRoot = dataRoot;

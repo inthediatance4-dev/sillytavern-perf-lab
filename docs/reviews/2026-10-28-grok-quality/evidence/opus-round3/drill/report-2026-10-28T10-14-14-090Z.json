@@ -1,0 +1,763 @@
+{
+  "platform": "linux",
+  "node": "v22.20.0",
+  "checks": [
+    {
+      "message": "OLD seed stops gracefully",
+      "pass": true
+    },
+    {
+      "message": "Whole-root pre-upgrade backup paths and bytes match (copy timestamp precision excluded)",
+      "pass": true
+    },
+    {
+      "message": "Crash leaves a v2 owner record",
+      "pass": true
+    },
+    {
+      "message": "Deleted chat has an intent:delete retirement marker",
+      "pass": true
+    },
+    {
+      "message": "Integrity exits 1 for expected findings",
+      "pass": true
+    },
+    {
+      "message": "Integrity finds exactly three staging orphans, one publish conflict, and nonempty recycle usage only",
+      "pass": true
+    },
+    {
+      "message": "Integrity changes no paths, bytes or mtimes",
+      "pass": true
+    },
+    {
+      "message": "OLD: deleted chat absent before explicit save",
+      "pass": true
+    },
+    {
+      "message": "OLD: staging not listed as chats, characters or groups",
+      "pass": true
+    },
+    {
+      "message": "OLD: retained chat bytes round trip",
+      "pass": true
+    },
+    {
+      "message": "OLD: group chat survives rollback",
+      "pass": true
+    },
+    {
+      "message": "OLD: user lifecycle protected directory paths, hashes, sizes and mtimes unchanged through startup, API operations and shutdown",
+      "pass": true
+    },
+    {
+      "message": "PREV: deleted chat absent before explicit save",
+      "pass": true
+    },
+    {
+      "message": "PREV: staging not listed as chats, characters or groups",
+      "pass": true
+    },
+    {
+      "message": "PREV: retained chat bytes round trip",
+      "pass": true
+    },
+    {
+      "message": "PREV: group chat survives rollback",
+      "pass": true
+    },
+    {
+      "message": "PREV: user lifecycle protected directory paths, hashes, sizes and mtimes unchanged through startup, API operations and shutdown",
+      "pass": true
+    },
+    {
+      "message": "Headless NEW browser lifecycle passes",
+      "pass": true
+    },
+    {
+      "message": "NEW browser server handles SIGINT gracefully",
+      "pass": true
+    }
+  ],
+  "findings": [],
+  "runs": [
+    {
+      "label": "old-seed",
+      "log": "Node version: v22.20.0. Running in undefined environment. Server directory: <tmp>/OLD\nUsing config path: <tmp>/old-seed.yaml\nCookie secret is missing from data root. Generating a new one...\nUsing data root: <tmp>/data\nPreferring IPv4 for DNS resolution\n\nSillyTavern 1.19.0\nRunning 'HEAD' (48a153e) - 10/9/2026, 2:30:19 PM GMT+8\n\nContent file user.css copied to <tmp>/data/_css\nContent file errors/forbidden-by-whitelist.html copied to <tmp>/data/_errors\nContent file errors/host-not-allowed.html copied to <tmp>/data/_errors\nContent file errors/unauthorized.html copied to <tmp>/data/_errors\nContent file errors/url-not-found.html copied to <tmp>/data/_errors\nContent file settings.json copied to <tmp>/data/default-user\nContent file themes/Dark Lite.json copied to <tmp>/data/default-user/themes\nContent file themes/After Hours.json copied to <tmp>/data/default-user/themes\nContent file themes/Cappuccino.json copied to <tmp>/data/default-user/themes\nContent file themes/Celestial Macaron.json copied to <tmp>/data/default-user/themes\nContent file themes/Dark V 1.0.json copied to <tmp>/data/default-user/themes\nContent file themes/Azure.json copied to <tmp>/data/default-user/themes\nContent file backgrounds/__transparent.png copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/_black.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/_white.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/bedroom clean.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/bedroom cyberpunk.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/bedroom red.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/bedroom tatami.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/cityscape medieval market.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/cityscape medieval night.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/cityscape postapoc.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/forest treehouse fireworks air baloons (by kallmeflocc).jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/japan classroom side.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/japan classroom.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/japan path cherry blossom.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/japan university.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/landscape autumn great tree.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/landscape beach day.png copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/landscape beach night.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/landscape mountain lake.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/landscape postapoc.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/landscape winter lake house.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/royal.jpg copied to <tmp>/data/default-user/backgrounds\nContent file backgrounds/tavern day.jpg copied to <tmp>/data/default-user/backgrounds\nContent file default_Seraphina.png copied to <tmp>/data/default-user/characters\nContent file Seraphina copied to <tmp>/data/default-user/characters\nContent file Eldoria.json copied to <tmp>/data/default-user/worlds\nContent file user-default.png copied to <tmp>/data/default-user/User Avatars\nContent file Default_Comfy_Workflow.json copied to <tmp>/data/default-user/user/workflows\nContent file Char_Avatar_Comfy_Workflow.json copied to <tmp>/data/default-user/user/workflows\nContent file presets/kobold/Deterministic.json copied to <tmp>/data/default-user/KoboldAI Settings\nContent file presets/kobold/Neutral.json copied to <tmp>/data/default-user/KoboldAI Settings\nContent file presets/kobold/RecoveredRuins.json copied to <tmp>/data/default-user/KoboldAI Settings\nContent file presets/kobold/Universal-Creative.json copied to <tmp>/data/default-user/KoboldAI Settings\nContent file presets/kobold/Universal-Light.json copied to <tmp>/data/default-user/KoboldAI Settings\nContent file presets/kobold/Universal-Super-Creative.json copied to <tmp>/data/default-user/KoboldAI Settings\nContent file presets/novel/Asper-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Blended-Coffee-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Blook-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Carefree-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/CosmicCube-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Edgewise-Clio.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Fresh-Coffee-Clio.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Fresh-Coffee-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Green-Active-Writer-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Keelback-Clio.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Long-Press-Clio.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Pilotfish-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Pro_Writer-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Stelenes-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Talker-Chat-Clio.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Tea_Time-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Tesseract-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Vingt-Un-Clio.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Writers-Daemon-Kayra.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Dragonfruit.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Golden Arrow.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Shosetsu.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Wilder.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Zany Scribe.json copied to <tmp>/data/default-user/NovelAI Settings\nContent file presets/textgen/Default.json copied to <tmp>/data/default-user/TextGen Settings\nContent file presets/textgen/Deterministic.json copied to <tmp>/data/default-user/TextGen Settings\nContent file presets/textgen/Neutral.json copied to <tmp>/data/default-user/TextGen Settings\nContent file presets/textgen/Universal-Creative.json copied to <tmp>/data/default-user/TextGen Settings\nContent file presets/textgen/Universal-Light.json copied to <tmp>/data/default-user/TextGen Settings\nContent file presets/textgen/Universal-Super-Creative.json copied to <tmp>/data/default-user/TextGen Settings\nContent file presets/openai/Default.json copied to <tmp>/data/default-user/OpenAI Settings\nContent file presets/context/Adventure.json copied to <tmp>/data/default-user/context\nContent file presets/context/Alpaca-Single-Turn.json copied to <tmp>/data/default-user/context\nContent file presets/context/Alpaca.json copied to <tmp>/data/default-user/context\nContent file presets/context/ChatML.json copied to <tmp>/data/default-user/context\nContent file presets/context/Default.json copied to <tmp>/data/default-user/context\nContent file presets/context/Libra-32B.json copied to <tmp>/data/default-user/context\nContent file presets/context/Lightning 1.1.json copied to <tmp>/data/default-user/context\nContent file presets/context/Llama 2 Chat.json copied to <tmp>/data/default-user/context\nContent file presets/context/Minimalist.json copied to <tmp>/data/default-user/context\nContent file presets/context/NovelAI.json copied to <tmp>/data/default-user/context\nContent file presets/context/OldDefault.json copied to <tmp>/data/default-user/context\nContent file presets/context/Metharme.json copied to <tmp>/data/default-user/context\nContent file presets/context/Story.json copied to <tmp>/data/default-user/context\nContent file presets/context/Synthia.json copied to <tmp>/data/default-user/context\nContent file presets/context/simple-proxy-for-tavern.json copied to <tmp>/data/default-user/context\nContent file presets/context/Command R.json copied to <tmp>/data/default-user/context\nContent file presets/context/Llama 3 Instruct.json copied to <tmp>/data/default-user/context\nContent file presets/context/Llama 4 Instruct.json copied to <tmp>/data/default-user/context\nContent file presets/context/Phi.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/Adventure.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Alpaca-Single-Turn.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Alpaca.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/ChatML.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Koala.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Libra-32B.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Lightning 1.1.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Llama 2 Chat.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Metharme.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/OpenOrca-OpenChat.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Story.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Synthia.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Tulu.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Tulu.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/Vicuna 1.0.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Vicuna 1.1.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/WizardLM-13B.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/WizardLM.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/simple-proxy-for-tavern.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Command R.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Llama 3 Instruct.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Llama 4 Instruct.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Phi.json copied to <tmp>/data/default-user/instruct\nContent file presets/moving-ui/Default.json copied to <tmp>/data/default-user/movingUI\nContent file presets/quick-replies/Default.json copied to <tmp>/data/default-user/QuickReplies\nContent file presets/instruct/Llama-3-Instruct-Names.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/ChatML-Names.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/KoboldAI.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Llama-3-Instruct-Names.json copied to <tmp>/data/default-user/context\nContent file presets/context/ChatML-Names.json copied to <tmp>/data/default-user/context\nContent file presets/context/Gemma 2.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/Gemma 2.json copied to <tmp>/data/default-user/instruct\nContent file presets/sysprompt/Actor.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Assistant - Expert.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Assistant - Simple.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Chain of Thought.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Roleplay - Detailed.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Roleplay - Immersive.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Roleplay - Simple.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Text Adventure.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Writer - Creative.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Writer - Realistic.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Blank.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Neutral - Chat.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/sysprompt/Lightning 1.1.json copied to <tmp>/data/default-user/sysprompt\nContent file presets/instruct/Mistral V1.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Mistral V1.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/Mistral V2 & V3.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Mistral V2 & V3.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/Mistral V3-Tekken.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Mistral V3-Tekken.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/Mistral V7.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Mistral V7.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/DeepSeek-V2.5.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/DeepSeek-V2.5.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/GLM-4.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/GLM-4.json copied to <tmp>/data/default-user/context\nContent file presets/reasoning/DeepSeek.json copied to <tmp>/data/default-user/reasoning\nContent file presets/reasoning/Blank.json copied to <tmp>/data/default-user/reasoning\nContent file presets/instruct/Dots1.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Dots1.json copied to <tmp>/data/default-user/context\nContent file presets/context/Mistral V7-Tekken.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/Mistral V7-Tekken.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/Moonshot AI.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Moonshot AI.json copied to <tmp>/data/default-user/context\nContent file presets/context/OpenAI Harmony.json copied to <tmp>/data/default-user/context\nContent file presets/instruct/OpenAI Harmony.json copied to <tmp>/data/default-user/instruct\nContent file presets/instruct/OpenAI Harmony (Thinking).json copied to <tmp>/data/default-user/instruct\nContent file presets/reasoning/OpenAI Harmony.json copied to <tmp>/data/default-user/reasoning\nContent file presets/reasoning/Think XML.json copied to <tmp>/data/default-user/reasoning\nContent file presets/reasoning/Gemma 4.json copied to <tmp>/data/default-user/reasoning\nContent file presets/instruct/Gemma 4.json copied to <tmp>/data/default-user/instruct\nContent file presets/context/Gemma 4.json copied to <tmp>/data/default-user/context\n\nIf you don't want to receive content updates in the future, set skipContentCheck to true in the config.yaml file.\n\nCollecting and creating stats for user: default-user\n\nCompiling frontend libraries...\nwebpack 5.105.4 compiled \u001b[1m\u001b[32msuccessfully\u001b[39m\u001b[22m in 17899 ms\n\n\u001b]2;SillyTavern WebServer\u001b\\SillyTavern is listening on IPv4: 127.0.0.1:43329\n\n==================================================\n\nGo to: http://127.0.0.1:43329/ to open SillyTavern\n\n==================================================\n\nFailed to read image: ./public/img/ai4.png Error: Requested file path is outside of the server directory.\n    at globalThis.fetch (file://<tmp>/OLD/src/fetch-patch.js:23:15)\n    at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)\n    at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)\n    at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)\n    at Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:55)\n    at async tryReadImage (file://<tmp>/OLD/src/endpoints/characters.js:332:24)\n    at async getInputImage (file://<tmp>/OLD/src/endpoints/characters.js:250:24)\n    at async writeCharacterData (file://<tmp>/OLD/src/endpoints/characters.js:258:28)\n    at async file://<tmp>/OLD/src/endpoints/characters.js:1047:28\nFailed to read image: ./public/img/ai4.png Error: Requested file path is outside of the server directory.\n    at globalThis.fetch (file://<tmp>/OLD/src/fetch-patch.js:23:15)\n    at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)\n    at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)\n    at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)\n    at Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:55)\n    at async tryReadImage (file://<tmp>/OLD/src/endpoints/characters.js:332:24)\n    at async getInputImage (file://<tmp>/OLD/src/endpoints/characters.js:250:24)\n    at async writeCharacterData (file://<tmp>/OLD/src/endpoints/characters.js:258:28)\n    at async file://<tmp>/OLD/src/endpoints/characters.js:1047:28\n\u001b]2;/home/box/.local/node/node-v22.20.0-linux-x64/bin/node\u001b\\",
+      "url": "http://127.0.0.1:43329",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "started": true,
+      "shutdown": {
+        "signal": "SIGTERM",
+        "elapsedMs": 42
+      }
+    },
+    {
+      "label": "new-upgrade",
+      "log": "Node version: v22.20.0. Running in undefined environment. Server directory: /workspace/sillytavern-perf-lab\nUsing config path: <tmp>/new-upgrade.yaml\nUsing data root: <tmp>/data\nPreferring IPv4 for DNS resolution\n\nSillyTavern 1.19.0\nRunning 'opus-round3' (9fdb0e4) - 10/28/2026, 6:09:12 PM GMT+8\n\n\nCompiling frontend libraries...\nRecycled outdated cache directory: 6c5e8388ca2fb66f\nwebpack 5.105.4 compiled \u001b[1m\u001b[32msuccessfully\u001b[39m\u001b[22m in 18468 ms\n\n\u001b]2;SillyTavern WebServer\u001b\\SillyTavern is listening on IPv4: 127.0.0.1:33751\n\n==================================================\n\nGo to: http://127.0.0.1:33751/ to open SillyTavern\n\n==================================================\n\n",
+      "url": "http://127.0.0.1:33751",
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "started": true,
+      "shutdown": {
+        "signal": "SIGKILL",
+        "elapsedMs": 103
+      }
+    },
+    {
+      "label": "rollback-OLD",
+      "log": "Node version: v22.20.0. Running in undefined environment. Server directory: <tmp>/OLD\nUsing config path: <tmp>/rollback-OLD.yaml\nUsing data root: <tmp>/rollback-OLD\nPreferring IPv4 for DNS resolution\n\nSillyTavern 1.19.0\nRunning 'HEAD' (48a153e) - 10/9/2026, 2:30:19 PM GMT+8\n\n\nCompiling frontend libraries...\nRecycled outdated cache directory: e6e859ebb56bbf88\nwebpack 5.105.4 compiled \u001b[1m\u001b[32msuccessfully\u001b[39m\u001b[22m in 19444 ms\n\n\u001b]2;SillyTavern WebServer\u001b\\SillyTavern is listening on IPv4: 127.0.0.1:33243\n\n==================================================\n\nGo to: http://127.0.0.1:33243/ to open SillyTavern\n\n==================================================\n\n\u001b]2;/home/box/.local/node/node-v22.20.0-linux-x64/bin/node\u001b\\",
+      "url": "http://127.0.0.1:33243",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "started": true,
+      "shutdown": {
+        "signal": "SIGTERM",
+        "elapsedMs": 85
+      }
+    },
+    {
+      "label": "rollback-PREV",
+      "log": "Node version: v22.20.0. Running in undefined environment. Server directory: <tmp>/PREV\nUsing config path: <tmp>/rollback-PREV.yaml\nUsing data root: <tmp>/rollback-PREV\nPreferring IPv4 for DNS resolution\n\nSillyTavern 1.19.0\nRunning 'HEAD' (9293a4e) - 10/28/2026, 4:42:11 PM GMT+8\n\n\nCompiling frontend libraries...\nRecycled outdated cache directory: e6e859ebb56bbf88\nwebpack 5.105.4 compiled \u001b[1m\u001b[32msuccessfully\u001b[39m\u001b[22m in 19535 ms\n\n\u001b]2;SillyTavern WebServer\u001b\\SillyTavern is listening on IPv4: 127.0.0.1:37847\n\n==================================================\n\nGo to: http://127.0.0.1:37847/ to open SillyTavern\n\n==================================================\n\nStopping admission and draining in-flight requests.\n\u001b]2;/home/box/.local/node/node-v22.20.0-linux-x64/bin/node\u001b\\",
+      "url": "http://127.0.0.1:37847",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "started": true,
+      "shutdown": {
+        "signal": "SIGTERM",
+        "elapsedMs": 68
+      }
+    },
+    {
+      "label": "new-browser",
+      "log": "Node version: v22.20.0. Running in undefined environment. Server directory: /workspace/sillytavern-perf-lab\nUsing config path: <tmp>/new-browser.yaml\nCookie secret is missing from data root. Generating a new one...\nUsing data root: <tmp>/browser-data\nPreferring IPv4 for DNS resolution\n\nSillyTavern 1.19.0\nRunning 'opus-round3' (9fdb0e4) - 10/28/2026, 6:09:12 PM GMT+8\n\nContent file user.css copied to <tmp>/browser-data/_css\nContent file errors/forbidden-by-whitelist.html copied to <tmp>/browser-data/_errors\nContent file errors/host-not-allowed.html copied to <tmp>/browser-data/_errors\nContent file errors/unauthorized.html copied to <tmp>/browser-data/_errors\nContent file errors/url-not-found.html copied to <tmp>/browser-data/_errors\nContent file settings.json copied to <tmp>/browser-data/default-user\nContent file themes/Dark Lite.json copied to <tmp>/browser-data/default-user/themes\nContent file themes/After Hours.json copied to <tmp>/browser-data/default-user/themes\nContent file themes/Cappuccino.json copied to <tmp>/browser-data/default-user/themes\nContent file themes/Celestial Macaron.json copied to <tmp>/browser-data/default-user/themes\nContent file themes/Dark V 1.0.json copied to <tmp>/browser-data/default-user/themes\nContent file themes/Azure.json copied to <tmp>/browser-data/default-user/themes\nContent file backgrounds/__transparent.png copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/_black.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/_white.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/bedroom clean.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/bedroom cyberpunk.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/bedroom red.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/bedroom tatami.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/cityscape medieval market.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/cityscape medieval night.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/cityscape postapoc.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/forest treehouse fireworks air baloons (by kallmeflocc).jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/japan classroom side.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/japan classroom.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/japan path cherry blossom.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/japan university.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/landscape autumn great tree.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/landscape beach day.png copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/landscape beach night.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/landscape mountain lake.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/landscape postapoc.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/landscape winter lake house.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/royal.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file backgrounds/tavern day.jpg copied to <tmp>/browser-data/default-user/backgrounds\nContent file default_Seraphina.png copied to <tmp>/browser-data/default-user/characters\nContent file Seraphina copied to <tmp>/browser-data/default-user/characters\nContent file Eldoria.json copied to <tmp>/browser-data/default-user/worlds\nContent file user-default.png copied to <tmp>/browser-data/default-user/User Avatars\nContent file Default_Comfy_Workflow.json copied to <tmp>/browser-data/default-user/user/workflows\nContent file Char_Avatar_Comfy_Workflow.json copied to <tmp>/browser-data/default-user/user/workflows\nContent file presets/kobold/Deterministic.json copied to <tmp>/browser-data/default-user/KoboldAI Settings\nContent file presets/kobold/Neutral.json copied to <tmp>/browser-data/default-user/KoboldAI Settings\nContent file presets/kobold/RecoveredRuins.json copied to <tmp>/browser-data/default-user/KoboldAI Settings\nContent file presets/kobold/Universal-Creative.json copied to <tmp>/browser-data/default-user/KoboldAI Settings\nContent file presets/kobold/Universal-Light.json copied to <tmp>/browser-data/default-user/KoboldAI Settings\nContent file presets/kobold/Universal-Super-Creative.json copied to <tmp>/browser-data/default-user/KoboldAI Settings\nContent file presets/novel/Asper-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Blended-Coffee-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Blook-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Carefree-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/CosmicCube-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Edgewise-Clio.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Fresh-Coffee-Clio.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Fresh-Coffee-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Green-Active-Writer-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Keelback-Clio.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Long-Press-Clio.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Pilotfish-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Pro_Writer-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Stelenes-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Talker-Chat-Clio.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Tea_Time-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Tesseract-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Vingt-Un-Clio.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Writers-Daemon-Kayra.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Dragonfruit.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Golden Arrow.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Shosetsu.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Wilder.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/novel/Erato-Zany Scribe.json copied to <tmp>/browser-data/default-user/NovelAI Settings\nContent file presets/textgen/Default.json copied to <tmp>/browser-data/default-user/TextGen Settings\nContent file presets/textgen/Deterministic.json copied to <tmp>/browser-data/default-user/TextGen Settings\nContent file presets/textgen/Neutral.json copied to <tmp>/browser-data/default-user/TextGen Settings\nContent file presets/textgen/Universal-Creative.json copied to <tmp>/browser-data/default-user/TextGen Settings\nContent file presets/textgen/Universal-Light.json copied to <tmp>/browser-data/default-user/TextGen Settings\nContent file presets/textgen/Universal-Super-Creative.json copied to <tmp>/browser-data/default-user/TextGen Settings\nContent file presets/openai/Default.json copied to <tmp>/browser-data/default-user/OpenAI Settings\nContent file presets/context/Adventure.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Alpaca-Single-Turn.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Alpaca.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/ChatML.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Default.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Libra-32B.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Lightning 1.1.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Llama 2 Chat.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Minimalist.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/NovelAI.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/OldDefault.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Metharme.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Story.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Synthia.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/simple-proxy-for-tavern.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Command R.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Llama 3 Instruct.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Llama 4 Instruct.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Phi.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/Adventure.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Alpaca-Single-Turn.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Alpaca.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/ChatML.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Koala.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Libra-32B.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Lightning 1.1.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Llama 2 Chat.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Metharme.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/OpenOrca-OpenChat.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Story.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Synthia.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Tulu.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Tulu.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/Vicuna 1.0.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Vicuna 1.1.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/WizardLM-13B.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/WizardLM.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/simple-proxy-for-tavern.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Command R.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Llama 3 Instruct.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Llama 4 Instruct.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Phi.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/moving-ui/Default.json copied to <tmp>/browser-data/default-user/movingUI\nContent file presets/quick-replies/Default.json copied to <tmp>/browser-data/default-user/QuickReplies\nContent file presets/instruct/Llama-3-Instruct-Names.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/ChatML-Names.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/KoboldAI.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Llama-3-Instruct-Names.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/ChatML-Names.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Gemma 2.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/Gemma 2.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/sysprompt/Actor.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Assistant - Expert.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Assistant - Simple.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Chain of Thought.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Roleplay - Detailed.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Roleplay - Immersive.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Roleplay - Simple.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Text Adventure.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Writer - Creative.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Writer - Realistic.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Blank.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Neutral - Chat.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/sysprompt/Lightning 1.1.json copied to <tmp>/browser-data/default-user/sysprompt\nContent file presets/instruct/Mistral V1.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Mistral V1.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/Mistral V2 & V3.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Mistral V2 & V3.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/Mistral V3-Tekken.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Mistral V3-Tekken.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/Mistral V7.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Mistral V7.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/DeepSeek-V2.5.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/DeepSeek-V2.5.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/GLM-4.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/GLM-4.json copied to <tmp>/browser-data/default-user/context\nContent file presets/reasoning/DeepSeek.json copied to <tmp>/browser-data/default-user/reasoning\nContent file presets/reasoning/Blank.json copied to <tmp>/browser-data/default-user/reasoning\nContent file presets/instruct/Dots1.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Dots1.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/Mistral V7-Tekken.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/Mistral V7-Tekken.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/Moonshot AI.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Moonshot AI.json copied to <tmp>/browser-data/default-user/context\nContent file presets/context/OpenAI Harmony.json copied to <tmp>/browser-data/default-user/context\nContent file presets/instruct/OpenAI Harmony.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/instruct/OpenAI Harmony (Thinking).json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/reasoning/OpenAI Harmony.json copied to <tmp>/browser-data/default-user/reasoning\nContent file presets/reasoning/Think XML.json copied to <tmp>/browser-data/default-user/reasoning\nContent file presets/reasoning/Gemma 4.json copied to <tmp>/browser-data/default-user/reasoning\nContent file presets/instruct/Gemma 4.json copied to <tmp>/browser-data/default-user/instruct\nContent file presets/context/Gemma 4.json copied to <tmp>/browser-data/default-user/context\n\nIf you don't want to receive content updates in the future, set skipContentCheck to true in the config.yaml file.\n\nCollecting and creating stats for user: default-user\n\nCompiling frontend libraries...\nwebpack 5.105.4 compiled \u001b[1m\u001b[32msuccessfully\u001b[39m\u001b[22m in 17242 ms\n\n\u001b]2;SillyTavern WebServer\u001b\\SillyTavern is listening on IPv4: 127.0.0.1:42691\n\n==================================================\n\nGo to: http://127.0.0.1:42691/ to open SillyTavern\n\n==================================================\n\nExtensions available for default-user [\n  { type: 'system', name: 'assets' },\n  { type: 'system', name: 'attachments' },\n  { type: 'system', name: 'caption' },\n  { type: 'system', name: 'connection-manager' },\n  { type: 'system', name: 'expressions' },\n  { type: 'system', name: 'gallery' },\n  { type: 'system', name: 'memory' },\n  { type: 'system', name: 'quick-reply' },\n  { type: 'system', name: 'regex' },\n  { type: 'system', name: 'stable-diffusion' },\n  { type: 'system', name: 'token-counter' },\n  { type: 'system', name: 'translate' },\n  { type: 'system', name: 'tts' },\n  { type: 'system', name: 'vectors' },\n  { type: 'global', name: 'third-party/JS-Slash-Runner' },\n  { type: 'global', name: 'third-party/st-memory-enhancement' }\n]\nInstantiated the tokenizer for llama\nOld chat name <tmp>/browser-data/default-user/chats/SyntheticLab-6bfb7016c0/Synthetic Performance Sample - 2026-10-28@18h16m19s395ms.jsonl\nNew chat name <tmp>/browser-data/default-user/chats/SyntheticLab-6bfb7016c0/Lifecycle-Renamed-6bfb7016c0.jsonl\nSuccessfully renamed chat file.\nStopping admission and draining in-flight requests.\n\u001b]2;/home/box/.local/node/node-v22.20.0-linux-x64/bin/node\u001b\\",
+      "url": "http://127.0.0.1:42691",
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "started": true,
+      "shutdown": {
+        "signal": "SIGINT",
+        "elapsedMs": 96
+      }
+    }
+  ],
+  "head": "9fdb0e4dcdee5257cf18955956a21dcc8523d37b",
+  "newSource": "Current working tree (including uncommitted changes)",
+  "OLD": "48a153eef7411c8c6e9fa5b33bbbea74f7db892e",
+  "PREV": "9293a4e221293fceaeff1360cd5ebef77a34ad54",
+  "crashedOwner": {
+    "v": 2,
+    "pid": 81397,
+    "hostname": "<host>",
+    "startedAt": "2026-10-28T10:14:38.897Z",
+    "token": "3a5cc64f-c6ff-4911-a10d-5e00d68288fa",
+    "startTicks": "493839",
+    "bootId": "ec918907-edce-4101-beca-dfe580f02ac3"
+  },
+  "integrity": {
+    "code": 1,
+    "signal": null,
+    "stdout": "{\n  \"dataRoot\": \"<tmp>/data\",\n  \"roots\": [\n    \"<tmp>/data/default-user/chats\",\n    \"<tmp>/data/default-user/characters\",\n    \"<tmp>/data/default-user/group chats\"\n  ],\n  \"findings\": [\n    {\n      \"kind\": \"marker-visible-conflict\",\n      \"root\": \"<tmp>/data/default-user/chats\",\n      \"source\": \"<tmp>/data/default-user/chats/.chat-lifecycle/56f20c040d08430a7adcbb8c1d326c7af3c7a0bfbc9b5e64d9894a9222d84aaa.json\",\n      \"visible\": \"<tmp>/data/default-user/chats/Drill/published.jsonl\",\n      \"intent\": \"publish\",\n      \"state\": \"published\"\n    },\n    {\n      \"kind\": \"orphan\",\n      \"root\": \"<tmp>/data/default-user/chats\",\n      \"source\": \"<tmp>/data/default-user/chats/Drill/.chat-staging/a382a01f-29d3-4edf-b30e-f048b0f93d33\"\n    },\n    {\n      \"kind\": \"recycle-usage\",\n      \"root\": \"<tmp>/data/default-user/chats\",\n      \"bytes\": 672,\n      \"count\": 1\n    },\n    {\n      \"kind\": \"orphan\",\n      \"root\": \"<tmp>/data/default-user/characters\",\n      \"source\": \"<tmp>/data/default-user/characters/.chat-staging/2a5cc56f-94ca-4420-9c4c-cab8f3b95e1d\"\n    },\n    {\n      \"kind\": \"recycle-usage\",\n      \"root\": \"<tmp>/data/default-user/characters\",\n      \"bytes\": 110090,\n      \"count\": 2\n    },\n    {\n      \"kind\": \"orphan\",\n      \"root\": \"<tmp>/data/default-user/group chats\",\n      \"source\": \"<tmp>/data/default-user/group chats/.chat-staging/38d61060-98d6-417b-9826-7c2ea71ce0b1\"\n    }\n  ],\n  \"recycle\": [\n    {\n      \"root\": \"<tmp>/data/default-user/chats\",\n      \"bytes\": 672,\n      \"count\": 1\n    },\n    {\n      \"root\": \"<tmp>/data/default-user/characters\",\n      \"bytes\": 110090,\n      \"count\": 2\n    },\n    {\n      \"root\": \"<tmp>/data/default-user/group chats\",\n      \"bytes\": 0,\n      \"count\": 0\n    }\n  ],\n  \"warnings\": []\n}\n",
+    "stderr": "",
+    "report": {
+      "dataRoot": "<tmp>/data",
+      "roots": [
+        "<tmp>/data/default-user/chats",
+        "<tmp>/data/default-user/characters",
+        "<tmp>/data/default-user/group chats"
+      ],
+      "findings": [
+        {
+          "kind": "marker-visible-conflict",
+          "root": "<tmp>/data/default-user/chats",
+          "source": "<tmp>/data/default-user/chats/.chat-lifecycle/56f20c040d08430a7adcbb8c1d326c7af3c7a0bfbc9b5e64d9894a9222d84aaa.json",
+          "visible": "<tmp>/data/default-user/chats/Drill/published.jsonl",
+          "intent": "publish",
+          "state": "published"
+        },
+        {
+          "kind": "orphan",
+          "root": "<tmp>/data/default-user/chats",
+          "source": "<tmp>/data/default-user/chats/Drill/.chat-staging/a382a01f-29d3-4edf-b30e-f048b0f93d33"
+        },
+        {
+          "kind": "recycle-usage",
+          "root": "<tmp>/data/default-user/chats",
+          "bytes": 672,
+          "count": 1
+        },
+        {
+          "kind": "orphan",
+          "root": "<tmp>/data/default-user/characters",
+          "source": "<tmp>/data/default-user/characters/.chat-staging/2a5cc56f-94ca-4420-9c4c-cab8f3b95e1d"
+        },
+        {
+          "kind": "recycle-usage",
+          "root": "<tmp>/data/default-user/characters",
+          "bytes": 110090,
+          "count": 2
+        },
+        {
+          "kind": "orphan",
+          "root": "<tmp>/data/default-user/group chats",
+          "source": "<tmp>/data/default-user/group chats/.chat-staging/38d61060-98d6-417b-9826-7c2ea71ce0b1"
+        }
+      ],
+      "recycle": [
+        {
+          "root": "<tmp>/data/default-user/chats",
+          "bytes": 672,
+          "count": 1
+        },
+        {
+          "root": "<tmp>/data/default-user/characters",
+          "bytes": 110090,
+          "count": 2
+        },
+        {
+          "root": "<tmp>/data/default-user/group chats",
+          "bytes": 0,
+          "count": 0
+        }
+      ],
+      "warnings": []
+    }
+  },
+  "observations": [
+    "OLD 48a153e already implements retirement checks and exclusive owner locking; test expectations are measured rather than assumed.",
+    "OLD: reclaimed/replaced dead v2 record; explicit save status 409",
+    "PREV: reclaimed/replaced dead v2 record; explicit save status 409"
+  ],
+  "rollbacks": [
+    {
+      "label": "OLD",
+      "started": true,
+      "before": {
+        "default-user/chats/.chat-lifecycle/": "directory",
+        "default-user/chats/.chat-lifecycle/09696e8954c5c667ef530a1d7797898ffccfbe5f1e8bd8d924afe4fe3e7778ed.json": {
+          "sha256": "b366760063bac5bf0fc9d08b1b4124c0362e5b9c8522b39e5ef3113a1308bc30",
+          "size": 156,
+          "mtimeMs": 1793182500622.999
+        },
+        "default-user/chats/.chat-lifecycle/56f20c040d08430a7adcbb8c1d326c7af3c7a0bfbc9b5e64d9894a9222d84aaa.json": {
+          "sha256": "e19723e6969c90d7b0323ae010d119b67eaa7aa40f7c9293c4e0f95b3c9b2833",
+          "size": 219,
+          "mtimeMs": 1793182500775
+        },
+        "default-user/chats/.chat-lifecycle/b6177beb47a5622a0925d4fecae5f77187dcca4e96dbbccfd23c4e6582dba429.json": {
+          "sha256": "d24f94f9d1de7779bd3dad61203e22f35951fc5fd6e4a124b6f9807131f5eec1",
+          "size": 175,
+          "mtimeMs": 1793182500578.999
+        },
+        "default-user/chats/.chat-staging/": "directory",
+        "default-user/chats/.recycle/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/deleted.jsonl": {
+          "sha256": "1dd62b15ce22e5ebd2cede585a44795a6dd79c20e91bb727e5b21f4d394f148d",
+          "size": 672,
+          "mtimeMs": 1793182477563.999
+        },
+        "default-user/chats/Drill/.chat-staging/": "directory",
+        "default-user/chats/Drill/.chat-staging/a382a01f-29d3-4edf-b30e-f048b0f93d33": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.chat-staging/": "directory",
+        "default-user/characters/.chat-staging/2a5cc56f-94ca-4420-9c4c-cab8f3b95e1d": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.recycle/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/RenameMe.png": {
+          "sha256": "ec8a5b54ab8b3757e708bb1b34a6440fb1f87293044362f49a41a20ffb3a3d90",
+          "size": 55049,
+          "mtimeMs": 1793182477548
+        },
+        "default-user/characters/.recycle/chat-Ws7uxX/": "directory",
+        "default-user/characters/.recycle/chat-Ws7uxX/1c52ed25-49e9-41a1-af04-e8b460c11563": {
+          "sha256": "a08452b569024672c2bbb262fb0bf2d97519eb26df0b6cf9e77abc1af016f520",
+          "size": 55041,
+          "mtimeMs": 1793182500618.999
+        },
+        "default-user/group chats/.chat-staging/": "directory",
+        "default-user/group chats/.chat-staging/38d61060-98d6-417b-9826-7c2ea71ce0b1": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        }
+      },
+      "lists": {
+        "list": [
+          {
+            "match": true,
+            "file_id": "new-format",
+            "file_name": "new-format.jsonl",
+            "file_size": "672B",
+            "chat_items": 6,
+            "mes": "Synthetic message 5",
+            "last_mes": "2026-10-28"
+          },
+          {
+            "match": true,
+            "file_id": "published",
+            "file_name": "published.jsonl",
+            "file_size": "672B",
+            "chat_items": 6,
+            "mes": "Synthetic message 5",
+            "last_mes": "2026-10-28"
+          },
+          {
+            "match": true,
+            "file_id": "retained",
+            "file_name": "retained.jsonl",
+            "file_size": "672B",
+            "chat_items": 6,
+            "mes": "Synthetic message 5",
+            "last_mes": "2026-10-28"
+          }
+        ],
+        "characters": [
+          "Drill.png",
+          "Renamed.png",
+          "default_Seraphina.png"
+        ],
+        "groups": [
+          {
+            "id": "1793182477578",
+            "name": "Synthetic Group",
+            "members": [
+              "Drill.png"
+            ],
+            "allow_self_responses": false,
+            "activation_strategy": 0,
+            "generation_mode": 0,
+            "disabled_members": [],
+            "chat_id": "1793182477578",
+            "chats": [
+              "1793182477578"
+            ],
+            "auto_mode_delay": 5,
+            "generation_mode_join_prefix": "",
+            "generation_mode_join_suffix": "",
+            "date_added": 1793182501447.3528,
+            "create_date": "2026-10-28T10:15:01.447Z",
+            "date_last_chat": 1793182477588,
+            "chat_size": 672
+          }
+        ]
+      },
+      "ownerWhileRunning": "{\"v\":2,\"pid\":81397,\"hostname\":\"<host>\",\"startedAt\":\"2026-10-28T10:14:38.897Z\",\"token\":\"3a5cc64f-c6ff-4911-a10d-5e00d68288fa\",\"startTicks\":\"493839\",\"bootId\":\"ec918907-edce-4101-beca-dfe580f02ac3\"}\n",
+      "ownerBehavior": "reclaimed/replaced dead v2 record",
+      "explicitSave": {
+        "status": 409,
+        "value": {
+          "error": "chat_lifecycle",
+          "reason": "retired_path",
+          "action": "reload_or_save_as"
+        }
+      },
+      "afterExplicitSave": [
+        {
+          "match": true,
+          "file_id": "new-format",
+          "file_name": "new-format.jsonl",
+          "file_size": "672B",
+          "chat_items": 6,
+          "mes": "Synthetic message 5",
+          "last_mes": "2026-10-28"
+        },
+        {
+          "match": true,
+          "file_id": "published",
+          "file_name": "published.jsonl",
+          "file_size": "672B",
+          "chat_items": 6,
+          "mes": "Synthetic message 5",
+          "last_mes": "2026-10-28"
+        },
+        {
+          "match": true,
+          "file_id": "retained",
+          "file_name": "retained.jsonl",
+          "file_size": "672B",
+          "chat_items": 6,
+          "mes": "Synthetic message 5",
+          "last_mes": "2026-10-28"
+        }
+      ],
+      "explicitResurrection": false,
+      "after": {
+        "default-user/chats/.chat-lifecycle/": "directory",
+        "default-user/chats/.chat-lifecycle/09696e8954c5c667ef530a1d7797898ffccfbe5f1e8bd8d924afe4fe3e7778ed.json": {
+          "sha256": "b366760063bac5bf0fc9d08b1b4124c0362e5b9c8522b39e5ef3113a1308bc30",
+          "size": 156,
+          "mtimeMs": 1793182500622.999
+        },
+        "default-user/chats/.chat-lifecycle/56f20c040d08430a7adcbb8c1d326c7af3c7a0bfbc9b5e64d9894a9222d84aaa.json": {
+          "sha256": "e19723e6969c90d7b0323ae010d119b67eaa7aa40f7c9293c4e0f95b3c9b2833",
+          "size": 219,
+          "mtimeMs": 1793182500775
+        },
+        "default-user/chats/.chat-lifecycle/b6177beb47a5622a0925d4fecae5f77187dcca4e96dbbccfd23c4e6582dba429.json": {
+          "sha256": "d24f94f9d1de7779bd3dad61203e22f35951fc5fd6e4a124b6f9807131f5eec1",
+          "size": 175,
+          "mtimeMs": 1793182500578.999
+        },
+        "default-user/chats/.chat-staging/": "directory",
+        "default-user/chats/.recycle/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/deleted.jsonl": {
+          "sha256": "1dd62b15ce22e5ebd2cede585a44795a6dd79c20e91bb727e5b21f4d394f148d",
+          "size": 672,
+          "mtimeMs": 1793182477563.999
+        },
+        "default-user/chats/Drill/.chat-staging/": "directory",
+        "default-user/chats/Drill/.chat-staging/a382a01f-29d3-4edf-b30e-f048b0f93d33": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.chat-staging/": "directory",
+        "default-user/characters/.chat-staging/2a5cc56f-94ca-4420-9c4c-cab8f3b95e1d": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.recycle/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/RenameMe.png": {
+          "sha256": "ec8a5b54ab8b3757e708bb1b34a6440fb1f87293044362f49a41a20ffb3a3d90",
+          "size": 55049,
+          "mtimeMs": 1793182477548
+        },
+        "default-user/characters/.recycle/chat-Ws7uxX/": "directory",
+        "default-user/characters/.recycle/chat-Ws7uxX/1c52ed25-49e9-41a1-af04-e8b460c11563": {
+          "sha256": "a08452b569024672c2bbb262fb0bf2d97519eb26df0b6cf9e77abc1af016f520",
+          "size": 55041,
+          "mtimeMs": 1793182500618.999
+        },
+        "default-user/group chats/.chat-staging/": "directory",
+        "default-user/group chats/.chat-staging/38d61060-98d6-417b-9826-7c2ea71ce0b1": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        }
+      }
+    },
+    {
+      "label": "PREV",
+      "started": true,
+      "before": {
+        "default-user/chats/.chat-lifecycle/": "directory",
+        "default-user/chats/.chat-lifecycle/09696e8954c5c667ef530a1d7797898ffccfbe5f1e8bd8d924afe4fe3e7778ed.json": {
+          "sha256": "b366760063bac5bf0fc9d08b1b4124c0362e5b9c8522b39e5ef3113a1308bc30",
+          "size": 156,
+          "mtimeMs": 1793182500622.999
+        },
+        "default-user/chats/.chat-lifecycle/56f20c040d08430a7adcbb8c1d326c7af3c7a0bfbc9b5e64d9894a9222d84aaa.json": {
+          "sha256": "e19723e6969c90d7b0323ae010d119b67eaa7aa40f7c9293c4e0f95b3c9b2833",
+          "size": 219,
+          "mtimeMs": 1793182500775
+        },
+        "default-user/chats/.chat-lifecycle/b6177beb47a5622a0925d4fecae5f77187dcca4e96dbbccfd23c4e6582dba429.json": {
+          "sha256": "d24f94f9d1de7779bd3dad61203e22f35951fc5fd6e4a124b6f9807131f5eec1",
+          "size": 175,
+          "mtimeMs": 1793182500578.999
+        },
+        "default-user/chats/.chat-staging/": "directory",
+        "default-user/chats/.recycle/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/deleted.jsonl": {
+          "sha256": "1dd62b15ce22e5ebd2cede585a44795a6dd79c20e91bb727e5b21f4d394f148d",
+          "size": 672,
+          "mtimeMs": 1793182477563.999
+        },
+        "default-user/chats/Drill/.chat-staging/": "directory",
+        "default-user/chats/Drill/.chat-staging/a382a01f-29d3-4edf-b30e-f048b0f93d33": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.chat-staging/": "directory",
+        "default-user/characters/.chat-staging/2a5cc56f-94ca-4420-9c4c-cab8f3b95e1d": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.recycle/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/RenameMe.png": {
+          "sha256": "ec8a5b54ab8b3757e708bb1b34a6440fb1f87293044362f49a41a20ffb3a3d90",
+          "size": 55049,
+          "mtimeMs": 1793182477548
+        },
+        "default-user/characters/.recycle/chat-Ws7uxX/": "directory",
+        "default-user/characters/.recycle/chat-Ws7uxX/1c52ed25-49e9-41a1-af04-e8b460c11563": {
+          "sha256": "a08452b569024672c2bbb262fb0bf2d97519eb26df0b6cf9e77abc1af016f520",
+          "size": 55041,
+          "mtimeMs": 1793182500618.999
+        },
+        "default-user/group chats/.chat-staging/": "directory",
+        "default-user/group chats/.chat-staging/38d61060-98d6-417b-9826-7c2ea71ce0b1": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        }
+      },
+      "lists": {
+        "list": [
+          {
+            "match": true,
+            "file_id": "new-format",
+            "file_name": "new-format.jsonl",
+            "file_size": "672B",
+            "chat_items": 6,
+            "mes": "Synthetic message 5",
+            "last_mes": "2026-10-28"
+          },
+          {
+            "match": true,
+            "file_id": "published",
+            "file_name": "published.jsonl",
+            "file_size": "672B",
+            "chat_items": 6,
+            "mes": "Synthetic message 5",
+            "last_mes": "2026-10-28"
+          },
+          {
+            "match": true,
+            "file_id": "retained",
+            "file_name": "retained.jsonl",
+            "file_size": "672B",
+            "chat_items": 6,
+            "mes": "Synthetic message 5",
+            "last_mes": "2026-10-28"
+          }
+        ],
+        "characters": [
+          "Drill.png",
+          "Renamed.png",
+          "default_Seraphina.png"
+        ],
+        "groups": [
+          {
+            "id": "1793182477578",
+            "name": "Synthetic Group",
+            "members": [
+              "Drill.png"
+            ],
+            "allow_self_responses": false,
+            "activation_strategy": 0,
+            "generation_mode": 0,
+            "disabled_members": [],
+            "chat_id": "1793182477578",
+            "chats": [
+              "1793182477578"
+            ],
+            "auto_mode_delay": 5,
+            "generation_mode_join_prefix": "",
+            "generation_mode_join_suffix": "",
+            "date_added": 1793182526579.0315,
+            "create_date": "2026-10-28T10:15:26.579Z",
+            "date_last_chat": 1793182477588,
+            "chat_size": 672
+          }
+        ]
+      },
+      "ownerWhileRunning": "{\"v\":2,\"pid\":81814,\"hostname\":\"<host>\",\"startedAt\":\"2026-10-28T10:15:28.020Z\",\"token\":\"02fd3210-703b-4d23-934c-bd087cd0fa0b\",\"startTicks\":\"498707\",\"bootId\":\"ec918907-edce-4101-beca-dfe580f02ac3\"}\n",
+      "ownerBehavior": "reclaimed/replaced dead v2 record",
+      "explicitSave": {
+        "status": 409,
+        "value": {
+          "error": "chat_lifecycle",
+          "reason": "retired_path",
+          "action": "reload_or_save_as"
+        }
+      },
+      "afterExplicitSave": [
+        {
+          "match": true,
+          "file_id": "new-format",
+          "file_name": "new-format.jsonl",
+          "file_size": "672B",
+          "chat_items": 6,
+          "mes": "Synthetic message 5",
+          "last_mes": "2026-10-28"
+        },
+        {
+          "match": true,
+          "file_id": "published",
+          "file_name": "published.jsonl",
+          "file_size": "672B",
+          "chat_items": 6,
+          "mes": "Synthetic message 5",
+          "last_mes": "2026-10-28"
+        },
+        {
+          "match": true,
+          "file_id": "retained",
+          "file_name": "retained.jsonl",
+          "file_size": "672B",
+          "chat_items": 6,
+          "mes": "Synthetic message 5",
+          "last_mes": "2026-10-28"
+        }
+      ],
+      "explicitResurrection": false,
+      "after": {
+        "default-user/chats/.chat-lifecycle/": "directory",
+        "default-user/chats/.chat-lifecycle/09696e8954c5c667ef530a1d7797898ffccfbe5f1e8bd8d924afe4fe3e7778ed.json": {
+          "sha256": "b366760063bac5bf0fc9d08b1b4124c0362e5b9c8522b39e5ef3113a1308bc30",
+          "size": 156,
+          "mtimeMs": 1793182500622.999
+        },
+        "default-user/chats/.chat-lifecycle/56f20c040d08430a7adcbb8c1d326c7af3c7a0bfbc9b5e64d9894a9222d84aaa.json": {
+          "sha256": "e19723e6969c90d7b0323ae010d119b67eaa7aa40f7c9293c4e0f95b3c9b2833",
+          "size": 219,
+          "mtimeMs": 1793182500775
+        },
+        "default-user/chats/.chat-lifecycle/b6177beb47a5622a0925d4fecae5f77187dcca4e96dbbccfd23c4e6582dba429.json": {
+          "sha256": "d24f94f9d1de7779bd3dad61203e22f35951fc5fd6e4a124b6f9807131f5eec1",
+          "size": 175,
+          "mtimeMs": 1793182500578.999
+        },
+        "default-user/chats/.chat-staging/": "directory",
+        "default-user/chats/.recycle/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/": "directory",
+        "default-user/chats/.recycle/chat-X4ntVf/deleted.jsonl": {
+          "sha256": "1dd62b15ce22e5ebd2cede585a44795a6dd79c20e91bb727e5b21f4d394f148d",
+          "size": 672,
+          "mtimeMs": 1793182477563.999
+        },
+        "default-user/chats/Drill/.chat-staging/": "directory",
+        "default-user/chats/Drill/.chat-staging/a382a01f-29d3-4edf-b30e-f048b0f93d33": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.chat-staging/": "directory",
+        "default-user/characters/.chat-staging/2a5cc56f-94ca-4420-9c4c-cab8f3b95e1d": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        },
+        "default-user/characters/.recycle/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/": "directory",
+        "default-user/characters/.recycle/chat-D0iB6q/RenameMe.png": {
+          "sha256": "ec8a5b54ab8b3757e708bb1b34a6440fb1f87293044362f49a41a20ffb3a3d90",
+          "size": 55049,
+          "mtimeMs": 1793182477548
+        },
+        "default-user/characters/.recycle/chat-Ws7uxX/": "directory",
+        "default-user/characters/.recycle/chat-Ws7uxX/1c52ed25-49e9-41a1-af04-e8b460c11563": {
+          "sha256": "a08452b569024672c2bbb262fb0bf2d97519eb26df0b6cf9e77abc1af016f520",
+          "size": 55041,
+          "mtimeMs": 1793182500618.999
+        },
+        "default-user/group chats/.chat-staging/": "directory",
+        "default-user/group chats/.chat-staging/38d61060-98d6-417b-9826-7c2ea71ce0b1": {
+          "sha256": "9ebc9f88c1ab748458816968ee799def2413e08560559344226c5bcf49464ea7",
+          "size": 16,
+          "mtimeMs": 1793182500750.999
+        }
+      }
+    }
+  ],
+  "browser": {
+    "code": 0,
+    "signal": null,
+    "stdout": "Browser application ready\nSynthetic save/read/search/backup passed\nUnsaved JSONL download matched the submitted snapshot\nInsert-at conflict kept all 25 messages without reload\n{\"avatar\": \"SyntheticLab-6bfb7016c0.png\", \"chatName\": \"Synthetic Performance Sample - 2026-10-28@18h16m19s395ms\", \"saved\": {\"ok\": true}, \"messages\": 24, \"searchHits\": 1, \"absentHits\": 0, \"backupDownloadExact\": true, \"lifecycle\": {\"blockedSaves\": [{\"url\": \"/api/chats/save\", \"status\": 409}, {\"url\": \"/api/chats/save\", \"status\": 409}, {\"url\": \"/api/chats/group/save\", \"status\": 409}], \"saveRequests\": [{\"url\": \"/api/chats/save\", \"status\": 409}, {\"url\": \"/api/chats/save\", \"status\": 409}, {\"url\": \"/api/chats/save\", \"status\": 200}, {\"url\": \"/api/chats/group/save\", \"status\": 409}], \"forceRetryCount\": 0, \"freshNameMessages\": 25, \"retiredOriginal\": \"Synthetic Performance Sample - 2026-10-28@18h16m19s395ms\", \"movedName\": \"Lifecycle-Renamed-6bfb7016c0\", \"freshName\": \"Lifecycle-Fresh-6bfb7016c0\", \"messagesStillInTab\": 25, \"normalDialog\": \"This chat changed on disk\\n\\nThe chat was renamed or deleted, or this name is already occupied. Your unsaved messages are still in this tab.\\n\\nDownload a copy before reloading the chat list. Import the downloaded file to save a separate chat under a new name.\\n\\nDownload unsaved chat\\nKeep this tab\\nPersona Changed\\nYour messages will now be sent as User\", \"groupDialog\": \"This chat changed on disk\\n\\nThe chat was renamed or deleted, or this name is already occupied. Your unsaved messages are still in this tab.\\n\\nDownload a copy before reloading the chat list. Import the downloaded file to save a separate chat under a new name.\\n\\nDownload unsaved chat\\nKeep this tab\", \"downloadMatchesUnsavedRequest\": true, \"insertAtPreserved\": {\"messageCount\": 25, \"firstMessage\": \"Synthetic unsaved insert after retired path\", \"getRequests\": 0}, \"chatId\": \"Lifecycle-Group-6bfb7016c0\", \"groupId\": \"1793182584318\"}, \"pageErrors\": [], \"generationRequests\": [], \"browser\": \"156.0.8078.4\", \"origin\": \"http://127.0.0.1:42691/\"}\n",
+    "stderr": "",
+    "command": "LAB_URL=http://127.0.0.1:<port> LAB_EVIDENCE_DIR=<evidence-dir> /tmp/pw-venv/bin/python tests/browser-lifecycle-lab.py",
+    "results": {
+      "avatar": "SyntheticLab-6bfb7016c0.png",
+      "chatName": "Synthetic Performance Sample - 2026-10-28@18h16m19s395ms",
+      "saved": {
+        "ok": true
+      },
+      "messages": 24,
+      "searchHits": 1,
+      "absentHits": 0,
+      "backupDownloadExact": true,
+      "lifecycle": {
+        "blockedSaves": [
+          {
+            "url": "/api/chats/save",
+            "status": 409
+          },
+          {
+            "url": "/api/chats/save",
+            "status": 409
+          },
+          {
+            "url": "/api/chats/group/save",
+            "status": 409
+          }
+        ],
+        "saveRequests": [
+          {
+            "url": "/api/chats/save",
+            "status": 409
+          },
+          {
+            "url": "/api/chats/save",
+            "status": 409
+          },
+          {
+            "url": "/api/chats/save",
+            "status": 200
+          },
+          {
+            "url": "/api/chats/group/save",
+            "status": 409
+          }
+        ],
+        "forceRetryCount": 0,
+        "freshNameMessages": 25,
+        "retiredOriginal": "Synthetic Performance Sample - 2026-10-28@18h16m19s395ms",
+        "movedName": "Lifecycle-Renamed-6bfb7016c0",
+        "freshName": "Lifecycle-Fresh-6bfb7016c0",
+        "messagesStillInTab": 25,
+        "normalDialog": "This chat changed on disk\n\nThe chat was renamed or deleted, or this name is already occupied. Your unsaved messages are still in this tab.\n\nDownload a copy before reloading the chat list. Import the downloaded file to save a separate chat under a new name.\n\nDownload unsaved chat\nKeep this tab\nPersona Changed\nYour messages will now be sent as User",
+        "groupDialog": "This chat changed on disk\n\nThe chat was renamed or deleted, or this name is already occupied. Your unsaved messages are still in this tab.\n\nDownload a copy before reloading the chat list. Import the downloaded file to save a separate chat under a new name.\n\nDownload unsaved chat\nKeep this tab",
+        "downloadMatchesUnsavedRequest": true,
+        "insertAtPreserved": {
+          "messageCount": 25,
+          "firstMessage": "Synthetic unsaved insert after retired path",
+          "getRequests": 0
+        },
+        "chatId": "Lifecycle-Group-6bfb7016c0",
+        "groupId": "1793182584318"
+      },
+      "pageErrors": [],
+      "generationRequests": [],
+      "browser": "156.0.8078.4",
+      "origin": "http://127.0.0.1:42691/"
+    }
+  },
+  "summary": {
+    "checks": 19,
+    "passed": 19,
+    "failed": 0,
+    "browserPassed": true,
+    "windowsAcceptance": "Not performed: Linux-only drill"
+  },
+  "cleanup": {
+    "worktreesRemoved": true,
+    "temporaryDataRetained": false
+  }
+}

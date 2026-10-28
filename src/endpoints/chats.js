@@ -4,6 +4,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { randomUUID, createHash } from 'node:crypto';
 
 import express from 'express';
@@ -668,78 +670,81 @@ router.post('/export', validateAvatarUrlMiddleware, async function (request, res
     if (!request.body.is_group && !isPathUnderParent(request.user.directories.chats, filename)) {
         return response.sendStatus(400);
     }
-    let exportfilename = request.body.exportfilename;
-    if (!fs.existsSync(filename)) {
-        const errorMessage = {
-            message: `Could not find JSONL file to export. Source chat file: ${filename}.`,
-        };
-        console.error(errorMessage.message);
-        return response.status(404).json(errorMessage);
-    }
+    const exportfilename = request.body.exportfilename;
+    const controller = new AbortController();
+    const onClose = () => { if (!response.writableFinished) controller.abort(); };
+    response.on('close', onClose);
     try {
-        // Short path for JSONL files
-        if (request.body.format === 'jsonl') {
+        await withPathLocks([
+            { path: path.dirname(filename), mode: 'shared' },
+            { path: filename, mode: 'shared' },
+        ], async () => {
+            if (controller.signal.aborted) return;
+            if (!fs.existsSync(filename)) {
+                return response.status(404).json({ message: `Could not find JSONL file to export. Source chat file: ${filename}.` });
+            }
+            const raw = request.body.format === 'jsonl';
+            let lineNumber = 0;
+            let parsingLine = false;
+            async function* converted() {
+                const input = fs.createReadStream(filename, { encoding: 'utf8', signal: controller.signal });
+                let lines;
+                try {
+                    if (raw) {
+                        // JSONL has always been a byte-preserving UTF-8 export, without row parsing.
+                        yield* input;
+                        return;
+                    }
+                    lines = readline.createInterface({ input, crlfDelay: Infinity });
+                    for await (let line of lines) {
+                        lineNumber++;
+                        if (lineNumber === 1) line = line.replace(/^\uFEFF/, '');
+                        if (!line.trim()) continue;
+                        parsingLine = true;
+                        const data = JSON.parse(line);
+                        if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid chat JSONL object');
+                        if (!data.is_system && data.mes) {
+                            const message = (data?.extra?.display_text || data.mes).replace(/\r?\n/g, '\n');
+                            yield `${data.name}: ${message}\n\n`;
+                        }
+                        parsingLine = false;
+                    }
+                } finally {
+                    lines?.close();
+                    input.destroy();
+                }
+            }
             try {
-                const rawFile = fs.readFileSync(filename, 'utf8');
-                const successMessage = {
-                    message: `Chat saved to ${exportfilename}`,
-                    result: rawFile,
-                };
-
-                console.info(`Chat exported as ${exportfilename}`);
-                return response.status(200).json(successMessage);
-            } catch (err) {
-                console.error(err);
-                const errorMessage = {
-                    message: `Could not read JSONL file to export. Source chat file: ${filename}.`,
-                };
-                console.error(errorMessage.message);
-                return response.status(500).json(errorMessage);
+                // Validate conversion before sending any headers or export bytes.
+                for await (const chunk of converted()) { void chunk; }
+            } catch (error) {
+                if (controller.signal.aborted) return;
+                console.error('Chat export validation failed.', error);
+                if (raw) return response.status(500).json({ message: `Could not read JSONL file to export. Source chat file: ${filename}.` });
+                return response.status(parsingLine ? 400 : 500).json({
+                    message: parsingLine ? 'Invalid chat JSONL row.' : 'Could not read chat JSONL file.',
+                    line: parsingLine ? lineNumber : lineNumber + 1,
+                });
             }
-        }
-
-        let lineNumber = 0;
-        let buffer = '';
-        let readStream;
-        let rl;
-        let parsingLine = false;
-        try {
-            readStream = fs.createReadStream(filename);
-            rl = readline.createInterface({ input: readStream, crlfDelay: Infinity });
-            // Fail the whole export on malformed rows (400) or read errors (500).
-            // Line numbers are physical, including blanks; read errors name the next unread line.
-            // Await iteration so parsing and stream errors settle through one response path.
-            for await (let line of rl) {
-                lineNumber++;
-                if (lineNumber === 1) line = line.replace(/^\uFEFF/, '');
-                if (!line.trim()) continue;
-                parsingLine = true;
-                const data = JSON.parse(line);
-                if (!data || typeof data !== 'object' || Array.isArray(data)) {
-                    throw new Error('Invalid chat JSONL object');
-                }
-                // Skip non-printable/prompt-hidden messages.
-                if (!data.is_system && data.mes) {
-                    const message = (data?.extra?.display_text || data.mes).replace(/\r?\n/g, '\n');
-                    buffer += `${data.name}: ${message}\n\n`;
-                }
-                parsingLine = false;
+            lineNumber = 0;
+            parsingLine = false;
+            async function* envelope() {
+                yield `{"message":${JSON.stringify(`Chat saved to ${exportfilename}`)},"result":"`;
+                for await (const chunk of converted()) yield JSON.stringify(chunk).slice(1, -1);
+                yield '"}';
             }
-        } catch (error) {
-            console.error('Chat text export failed.', error);
-            return response.status(parsingLine ? 400 : 500).json({
-                message: parsingLine ? 'Invalid chat JSONL row.' : 'Could not read chat JSONL file.',
-                line: parsingLine ? lineNumber : lineNumber + 1,
-            });
-        } finally {
-            rl?.close();
-            readStream?.destroy();
-        }
-        console.info(`Chat exported as ${exportfilename}`);
-        return response.status(200).json({ message: `Chat saved to ${exportfilename}`, result: buffer });
-    } catch (err) {
-        console.error('chat export failed.', err);
-        return response.sendStatus(400);
+            response.status(200).set('Content-Type', 'application/json; charset=utf-8');
+            // A pass-two I/O failure must destroy the response, never complete a truncated 200.
+            await pipeline(Readable.from(envelope()), response, { signal: controller.signal });
+            console.info(`Chat exported as ${exportfilename}`);
+        });
+    } catch (error) {
+        if (controller.signal.aborted) return;
+        console.error('Chat export failed.', error);
+        if (response.headersSent) response.destroy(error);
+        else response.sendStatus(500);
+    } finally {
+        response.off('close', onClose);
     }
 });
 

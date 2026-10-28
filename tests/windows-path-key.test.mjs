@@ -117,15 +117,19 @@ test('DOS short-name lifecycle roots preserve retirement in both directions (nat
     skip: process.platform !== 'win32' ? 'Requires native Windows DOS 8.3 short-name filesystem aliases' : false,
 }, async t => {
     const fs = await import('node:fs/promises');
+    const { realpathSync } = await import('node:fs');
     const os = await import('node:os');
     const path = await import('node:path');
     const { execFileSync } = await import('node:child_process');
     const io = await import('../src/chat-io.js');
     const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'retired long name '));
     try {
-        const longRoot = await fs.realpath(temporary);
-        const shortRoot = execFileSync('cmd.exe', ['/d', '/c', `for %I in ("${longRoot}") do @echo %~sI`], { encoding: 'utf8' }).trim();
-        if (!shortRoot.includes('~') || shortRoot.toLowerCase() === longRoot.toLowerCase()) {
+        const longRoot = realpathSync.native(temporary);
+        // os.tmpdir() may already contain a short ancestor such as RUNNER~1.
+        const shortRoot = temporary.toLowerCase() !== longRoot.toLowerCase()
+            ? temporary
+            : execFileSync('cmd.exe', ['/d', '/c', `for %I in ("${longRoot}") do @echo %~sI`], { encoding: 'utf8' }).trim();
+        if (shortRoot.toLowerCase() === longRoot.toLowerCase()) {
             t.skip('The temporary directory has no distinct DOS 8.3 short name (short-name creation may be disabled)');
             return;
         }

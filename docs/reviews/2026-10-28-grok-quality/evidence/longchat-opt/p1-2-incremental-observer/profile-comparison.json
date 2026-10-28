@@ -1,0 +1,54 @@
+{
+  "method": "Union of samples with keyboard.js anywhere on stack, timeDelta weighted; idle/native/harness included; no summing overlapping inclusive functions.",
+  "historicalCaveat": "Historical baseline has legacy data shape and older product; alternating f6c0053 A/B timings are reported separately.",
+  "rows": [
+    {
+      "messages": 2000,
+      "truncation": 100,
+      "baselineRevision": "0bf27455cbab93d09821190a5deff8e4112324e1",
+      "nPerSide": 1,
+      "historicalBaseline": {
+        "file": "docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/measurement/2000-100-7-send.cpuprofile.gz",
+        "sha256": "5bb117ddcb84719294ae7c766b127ccd99cd76e9f637e36b5df7ffaaa38e69fc",
+        "sampledMs": 1827.615,
+        "samples": 5979,
+        "keyboardObserved": true,
+        "keyboardInclusivePercent": 27.97886863480547,
+        "initializeInteractablesInclusivePercent": 25.909614442866797
+      },
+      "head": {
+        "file": "docs/reviews/2026-10-28-grok-quality/evidence/longchat-opt/p1-2-incremental-observer/profiles/2000-100-1-send.cpuprofile.gz",
+        "sha256": "e2157f2221d3e1eaec79f02a951bdf28b7f426530f9cb62a4a4ea19cb299021e",
+        "sampledMs": 1551.814,
+        "samples": 5268,
+        "keyboardObserved": true,
+        "keyboardInclusivePercent": 10.222745767211793,
+        "initializeInteractablesInclusivePercent": 9.651092205638047
+      }
+    },
+    {
+      "messages": 2000,
+      "truncation": 0,
+      "baselineRevision": "0bf27455cbab93d09821190a5deff8e4112324e1",
+      "nPerSide": 1,
+      "historicalBaseline": {
+        "file": "docs/reviews/2026-10-28-grok-quality/evidence/longchat-baseline/measurement/2000-0-7-send.cpuprofile.gz",
+        "sha256": "111637d7b234cb993dbfdfd943383cd1dd3b2c9b86047f470d0e2dca64c680da",
+        "sampledMs": 4768.393,
+        "samples": 29346,
+        "keyboardObserved": true,
+        "keyboardInclusivePercent": 60.08437224029144,
+        "initializeInteractablesInclusivePercent": 56.50882802654898
+      },
+      "head": {
+        "file": "docs/reviews/2026-10-28-grok-quality/evidence/longchat-opt/p1-2-incremental-observer/profiles/2000-0-1-send.cpuprofile.gz",
+        "sha256": "a8d90ca7c3acc0db14a9f70cdc9b5c35648e9a653b3af9caf9eb6d9716d7cd91",
+        "sampledMs": 2582.393,
+        "samples": 14773,
+        "keyboardObserved": true,
+        "keyboardInclusivePercent": 13.513086505423457,
+        "initializeInteractablesInclusivePercent": 12.347888179684501
+      }
+    }
+  ]
+}

@@ -39,6 +39,10 @@ export const CUSTOM_INTERACTABLE_CONTROL_CLASS = 'custom_interactable';
 export const NOT_FOCUSABLE_CONTROL_CLASS = 'not_focusable';
 export const DISABLED_CONTROL_CLASS = 'disabled';
 
+const addedRoots = new Set();
+const changedTargets = new Set();
+let pendingFrame = null;
+
 /**
  * An observer that will check if any new interactables or scroll reset containers are added to the body
  * @type {MutationObserver}
@@ -46,16 +50,36 @@ export const DISABLED_CONTROL_CLASS = 'disabled';
 const observer = new MutationObserver(mutations => {
     mutations.forEach(mutation => {
         if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach(handleNodeChange);
-        }
-        if (mutation.type === 'attributes') {
-            const target = mutation.target;
-            if (mutation.attributeName === 'class' && target instanceof Element) {
-                handleNodeChange(target);
+            for (const node of mutation.addedNodes) {
+                if (node instanceof Element) addedRoots.add(node);
             }
         }
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class' && mutation.target instanceof Element) {
+            changedTargets.add(mutation.target);
+        }
     });
+    if (pendingFrame === null && (addedRoots.size || changedTargets.size)) {
+        pendingFrame = requestAnimationFrame(processNodeChanges);
+    }
 });
+
+/** Processes each connected subtree at most once per frame. */
+function processNodeChanges() {
+    pendingFrame = null;
+    // Class changes can affect descendants through disabled/not_focusable or a
+    // registered selector's ancestor clauses. Preserve the existing subtree scope.
+    const roots = new Set(addedRoots);
+    for (const target of changedTargets) roots.add(target);
+    addedRoots.clear();
+    changedTargets.clear();
+
+    for (const root of roots) {
+        if (!root.isConnected) continue;
+        let ancestor = root.parentElement;
+        while (ancestor && !roots.has(ancestor)) ancestor = ancestor.parentElement;
+        if (!ancestor) handleNodeChange(root);
+    }
+}
 
 /**
  * Function to handle node changes (added or modified nodes)
@@ -138,21 +162,6 @@ function makeKeyboardInteractableCollection(interactables) {
             interactable.classList.add(INTERACTABLE_CONTROL_CLASS);
         }
 
-        /**
-         * Check if the element or any parent element has 'disabled' or 'not_focusable' class
-         * @param {Element} el
-         * @returns {boolean}
-         */
-        const hasDisabledOrNotFocusableAncestor = (el) => {
-            while (el) {
-                if (el.classList.contains(NOT_FOCUSABLE_CONTROL_CLASS) || el.classList.contains(DISABLED_CONTROL_CLASS)) {
-                    return true;
-                }
-                el = el.parentElement;
-            }
-            return false;
-        };
-
         // Set/remove the tabindex accordingly to the classes. Remembering if it had a custom value.
         if (!hasDisabledOrNotFocusableAncestor(interactable)) {
             if (!interactable.hasAttribute('tabindex')) {
@@ -160,10 +169,24 @@ function makeKeyboardInteractableCollection(interactables) {
                 interactable.setAttribute('tabindex', tabIndex);
             }
         } else {
-            interactable.setAttribute('data-original-tabindex', interactable.getAttribute('tabindex'));
-            interactable.removeAttribute('tabindex');
+            const tabIndex = String(interactable.getAttribute('tabindex'));
+            if (interactable.getAttribute('data-original-tabindex') !== tabIndex) {
+                interactable.setAttribute('data-original-tabindex', tabIndex);
+            }
+            if (interactable.hasAttribute('tabindex')) {
+                interactable.removeAttribute('tabindex');
+            }
         }
     }
+}
+
+/**
+ * Checks the control and its ancestors using classes only (no style/layout reads).
+ * @param {Element} element The control to check
+ * @returns {boolean} Whether keyboard focus is disabled
+ */
+function hasDisabledOrNotFocusableAncestor(element) {
+    return element.closest(`.${NOT_FOCUSABLE_CONTROL_CLASS}, .${DISABLED_CONTROL_CLASS}`) !== null;
 }
 
 /**

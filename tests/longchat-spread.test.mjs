@@ -19,6 +19,12 @@ function element(classes = [], attributes = {}, parentElement = null) {
         parentElement,
         classList: { contains: value => values.has(value), add: value => values.add(value) },
         matches: selector => selector.startsWith('.') && values.has(selector.slice(1)),
+        closest(selector) {
+            for (let node = this; node; node = node.parentElement) {
+                if (selector.split(',').some(part => node.matches(part.trim()))) return node;
+            }
+            return null;
+        },
         hasAttribute: name => attrs.has(name),
         getAttribute: name => attrs.get(name) ?? null,
         setAttribute: (name, value) => attrs.set(name, String(value)),
@@ -68,7 +74,7 @@ test('variadic keyboard wrapper preserves order, custom classes and tabindex sta
 test('keyboard initialization and extension registration iterate 300k controls without argument spread', () => {
     let visits = 0;
     const control = element(['interactable']);
-    control.hasAttribute = () => { visits++; return false; };
+    control.hasAttribute = name => { visits++; return control.getAttribute(name) !== null; };
     const controls = Array(300000).fill(control);
     const context = keyboard(controls);
     context.initKeyboard();

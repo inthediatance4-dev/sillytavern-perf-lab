@@ -74,6 +74,10 @@ percentages overlap; idle/native samples remain in the denominator. V8 may
 attribute JSON.stringify/native work to its caller; zero/absent category samples
 do not prove no cost. Profiling overhead is excluded from ordinary-run tables.
 
+Use `--profile-phases send` to capture only send CPU profiles in the additional
+profiled runs. The workflow and exclusion of profiled runs from latency statistics
+stay the same; the default still captures all three phases.
+
 Linux shutdown sends SIGINT and waits 45 s; Windows starts a new console process
 group and sends CTRL_BREAK_EVENT, which the measurement entry point forwards to
 the server's normal SIGINT handlers. A stuck process is left for inspection and

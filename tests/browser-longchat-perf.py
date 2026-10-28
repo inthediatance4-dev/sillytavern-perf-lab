@@ -488,6 +488,7 @@ def main():
     parser.add_argument('--startup-runs', type=int, default=0, help='Fresh-context startups only; forces first-run onboarding in the synthetic settings response')
     parser.add_argument('--open-only', action='store_true')
     parser.add_argument('--no-profiles', action='store_true')
+    parser.add_argument('--profile-phases', nargs='+', choices=['open', 'scroll', 'send'], default=['open', 'scroll', 'send'], help='Limit CPU capture in additional profiled runs')
     parser.add_argument('--equivalence', action='store_true')
     parser.add_argument('--tab-count', type=int, default=0, help='Minimum Tab presses; default also traverses all focusable controls')
     parser.add_argument('--legacy-shape', action='store_true', help='Diagnostic only: original generator')
@@ -527,6 +528,7 @@ def main():
                 'platform': os.name, 'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                 'productRevision': args.product_revision, 'dataShape': 'legacy' if args.legacy_shape else 'end-relative-100',
                 'startupWait': 'sticky APP_READY + visible main UI + no onboarding/dialog/splash', 'olderBatchLimit': args.older_batches, 'cpuCount': os.cpu_count(), 'extensionsEnabled': False,
+                'profilePhases': args.profile_phases,
                 'optionalSkipped': ['10000 scaling run: bounded core matrix prioritized', '48a153e comparison: optional separate historical experiment'],
                 'runTimeoutSeconds': args.run_timeout, 'comboTimeoutSeconds': args.combo_timeout}
     try:
@@ -636,12 +638,13 @@ def main():
                             cdp = context.new_cdp_session(page)
                             profiling = result['profiled']
                             def phase(name, operation):
-                                if profiling:
+                                capture_profile = profiling and name in args.profile_phases
+                                if capture_profile:
                                     cdp.send('Profiler.enable')
                                     cdp.send('Profiler.setSamplingInterval', {'interval': 100})
                                     cdp.send('Profiler.start')
                                 value = operation()
-                                if profiling:
+                                if capture_profile:
                                     profile = cdp.send('Profiler.stop')['profile']
                                     text = json.dumps(profile).replace(origin.rstrip('/'), 'http://<host>').replace(temporary, '<tmp>')
                                     with gzip.open(args.output / f'{label}-{name}.cpuprofile.gz', 'xt') as handle:

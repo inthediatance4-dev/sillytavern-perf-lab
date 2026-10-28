@@ -220,7 +220,7 @@ async function withImportPublication(outputFile, request, publish) {
     const avatar = `${outputFile}.png`;
     const chatsPath = path.join(request.user.directories.chats, outputFile);
     return withCharacterImport(request.user.directories.characters, avatar, check => {
-        return withPathLocks([chatsPath], () => usingRetiredPathReuses([
+        return usingRetiredPathReuses([
             { filePath: chatsPath, lifecycleRoot: request.user.directories.chats, allowVisible: true },
             { filePath: path.join(request.user.directories.characters, avatar), lifecycleRoot: request.user.directories.characters, allowVisible: true },
         ], async () => {
@@ -229,8 +229,8 @@ async function withImportPublication(outputFile, request, publish) {
             check();
             if (!result) throw new Error('Character import did not complete');
             return result;
-        }));
-    });
+        });
+    }, [chatsPath]);
 }
 
 /**

@@ -1,3 +1,5 @@
+import { waitForShutdown } from './request-drain.js';
+
 /**
  * Leading/latest-trailing scheduling with one asynchronous writer per key.
  * Only maxKeys idle/throttled states are retained. Overflow states have no
@@ -82,7 +84,7 @@ export function createChatBackupScheduler(write, options = {}) {
         run(state, state.retiring || !state.retained);
     }
 
-    async function flush() {
+    async function flush(signal) {
         // Completion callbacks and concurrent saves can add a latest write after
         // an awaited batch. Repeat until every registered/overflow key is drained.
         while (true) {
@@ -90,9 +92,9 @@ export function createChatBackupScheduler(write, options = {}) {
             for (const state of states) run(state, true);
             const active = states.map(state => state.active).filter(Boolean);
             if (!active.length) return;
-            await Promise.all(active);
+            await waitForShutdown(Promise.all(active), signal);
         }
     }
 
-    return { schedule, flush };
+    return { schedule, flush, pendingPaths: () => [...retained.values(), ...overflow.values()].filter(state => state.active || state.pending).map(state => state.key) };
 }

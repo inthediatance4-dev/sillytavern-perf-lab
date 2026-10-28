@@ -109,12 +109,14 @@ function getPreviewMessage(lastMessage) {
         : lastMessage;
 }
 
+export const pendingChatBackupPaths = backupScheduler.pendingPaths;
+
 /** Flush throttled backups and await writes before a normal shutdown. */
-export async function flushChatBackups() {
+export async function flushChatBackups(signal) {
     // Queued chat saves can admit snapshots while their file writes finish.
-    await waitForChatIO();
-    await backupScheduler.flush();
-    await waitForChatIO();
+    await waitForChatIO(signal);
+    await backupScheduler.flush(signal);
+    await waitForChatIO(signal);
 }
 
 /**

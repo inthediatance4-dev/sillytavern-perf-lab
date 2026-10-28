@@ -3,10 +3,10 @@ import path from 'node:path';
 import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError } from './chat-io.js';
 
 /** Hold the same locks as rename/delete from the first read through publication. */
-export function withCharacterEdit(directory, avatar, edit, { create = false } = {}) {
+export function withCharacterEdit(directory, avatar, edit, { create = false, lockPaths = [] } = {}) {
     if (typeof avatar !== 'string' || !avatar.endsWith('.png') || path.basename(avatar) !== avatar) return Promise.reject(new ChatLifecycleError('invalid_avatar'));
     const target = path.join(directory, avatar);
-    return withPathLocks(chatLockPaths([target]), async () => {
+    return withPathLocks([...chatLockPaths([target]), ...lockPaths], async () => {
         if (create) return edit();
         await assertChatWritable(target, directory);
         // Delete may leave no retirement marker for the card itself.
@@ -29,7 +29,7 @@ export function invalidateCharacterImport(directory, avatar) {
     activeImports.get(key)?.();
 }
 
-export function withCharacterImport(directory, avatar, edit) {
+export function withCharacterImport(directory, avatar, edit, lockPaths = []) {
     const key = path.resolve(directory, avatar);
     const epoch = importEpochs.get(key) || 0;
     const check = () => {
@@ -44,5 +44,5 @@ export function withCharacterImport(directory, avatar, edit) {
         check.wait = promise => Promise.race([promise, cancelled]);
         try { return await edit(check); }
         finally { if (activeImports.get(key) === cancel) activeImports.delete(key); }
-    }, { create: true });
+    }, { create: true, lockPaths });
 }

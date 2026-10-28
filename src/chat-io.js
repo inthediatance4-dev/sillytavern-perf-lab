@@ -1,3 +1,4 @@
+import { waitForShutdown } from './request-drain.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,11 +19,10 @@ import sanitize from 'sanitize-filename';
 /** @type {Map<string, LockGate>} */
 const gates = new Map();
 /** Completion of every reservation already accepted, including ones still waiting. */
-const pendingIO = new Set();
+const pendingIO = new Map();
 /**
  * Keys held by the withPathLocks calls on this async stack.
- * Nested calls must not wait on a key already held exclusively or upgrade a
- * shared key to exclusive: the outer call would be waiting for itself.
+ * Nested calls reuse held keys only and cannot upgrade shared keys.
  * @type {AsyncLocalStorage<Map<string, LockMode>>}
  */
 const heldModes = new AsyncLocalStorage();
@@ -160,9 +160,8 @@ export function runAfterPathLocks(task) {
 /**
  * Reserve every requested path synchronously, then wait until all of them are granted.
  * The task does not start while any requested lock is still queued, and this call
- * never awaits one lock before reserving the others. Nested calls fail with
- * `lock_reentered` when they need a key already held exclusively or would
- * upgrade a shared key to exclusive. Queue follow-up work after release with
+ * never awaits one lock before reserving the others. Nested calls may only
+ * re-enter held keys without upgrading their mode; otherwise LockOrderError is thrown. Queue follow-up work after release with
  * {@link runAfterPathLocks}.
  * A string entry is exclusive. `{ path, mode: 'shared' | 'exclusive' }` selects the mode.
  * Shared holders of one path run together. An exclusive request waits for shared
@@ -175,13 +174,14 @@ export function runAfterPathLocks(task) {
 export function withPathLocks(entries, task) {
     const requests = normalizeLockRequests(entries);
     const outer = heldModes.getStore();
-    if (outer) {
+    if (outer?.size) {
         for (const request of requests) {
             const held = outer.get(request.key);
-            if (held === 'exclusive' || (held && request.mode === 'exclusive')) {
-                return Promise.reject(new ChatLifecycleError('lock_reentered'));
+            if (!held || (held === 'shared' && request.mode === 'exclusive')) {
+                return Promise.reject(new LockOrderError(request.key));
             }
         }
+        return Promise.resolve().then(task);
     }
     let notifyReleased;
     const released = new Promise(resolve => { notifyReleased = resolve; });
@@ -198,7 +198,7 @@ export function withPathLocks(entries, task) {
         notifyReleased();
     });
     const done = settled.then(() => undefined, () => undefined);
-    pendingIO.add(done);
+    pendingIO.set(done, requests.map(request => request.key));
     done.then(() => {
         pendingIO.delete(done);
     });
@@ -217,6 +217,13 @@ export function chatLockPaths(filePaths) {
         { path: path.dirname(file), mode: 'shared' },
         { path: file, mode: 'exclusive' },
     ]);
+}
+
+export class LockOrderError extends Error {
+    constructor(key) {
+        super(`Nested path lock requires a new key or upgrade: ${key}`);
+        this.name = 'LockOrderError';
+    }
 }
 
 export class ChatLifecycleError extends Error {
@@ -544,8 +551,12 @@ export async function renameChatFile(source, destination, lifecycleRoot) {
 }
 
 /** Wait for every reservation that has already been accepted, including those still queued. */
-export async function waitForChatIO() {
-    while (pendingIO.size) await Promise.all([...pendingIO]);
+export function pendingChatIOPaths() {
+    return [...new Set([...pendingIO.values()].flat())];
+}
+
+export async function waitForChatIO(signal) {
+    while (pendingIO.size) await waitForShutdown(Promise.all([...pendingIO.keys()]), signal);
 }
 
 /**

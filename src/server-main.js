@@ -1,3 +1,5 @@
+import { runShutdown } from './request-drain.js';
+import { pendingChatIOPaths } from './chat-io.js';
 import { restoreLegacyRetiredHolds } from './chat-io.js';
 // native node modules
 import fs from 'node:fs';
@@ -73,7 +75,7 @@ import { checkForNewContent } from './endpoints/content-manager.js';
 import { init as settingsInit } from './endpoints/settings.js';
 import { createRequestDrain } from './request-drain.js';
 import { acquireDataRootOwnership } from './data-root-owner.js';
-import { flushChatBackups } from './endpoints/chats.js';
+import { flushChatBackups, pendingChatBackupPaths } from './endpoints/chats.js';
 import { redirectDeprecatedEndpoints, ServerStartup, setupPrivateEndpoints } from './server-startup.js';
 import { diskCache } from './endpoints/characters.js';
 import { migrateFlatSecrets } from './endpoints/secrets.js';
@@ -333,18 +335,16 @@ async function preSetupTasks() {
     const exitProcess = async () => {
         if (isExiting) return;
         isExiting = true;
-        // stop() rejects new work immediately. Its wait is bounded by
-        // SILLYTAVERN_DRAIN_TIMEOUT_MS (default 30s) and then shutdown continues.
         console.log('Stopping admission and draining in-flight requests.');
-        await requestDrain.stop();
-        await flushChatBackups();
-        await statsOnExit();
-        if (typeof cleanupPlugins === 'function') {
-            await cleanupPlugins();
-        }
-        diskCache.dispose();
+        const code = await runShutdown([
+            ['requests', signal => requestDrain.stop(signal)],
+            ['chat I/O and backups', signal => flushChatBackups(signal)],
+            ['statistics', () => statsOnExit()],
+            ['plugins', () => typeof cleanupPlugins === 'function' ? cleanupPlugins() : undefined],
+            ['cache', () => diskCache.dispose()],
+        ], () => [...pendingChatIOPaths(), ...pendingChatBackupPaths()]);
         setWindowTitle(consoleTitle);
-        process.exit();
+        process.exit(code || process.exitCode || 0);
     };
 
     // Set up event listeners for a graceful shutdown

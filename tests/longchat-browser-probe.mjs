@@ -114,3 +114,29 @@ export async function prepareTabScenario(name) {
     start.focus();
     return focusables.length + 2;
 }
+
+// Test-extension listeners use the public eventSource, without replacing emit().
+export function installRenderingRecorder() {
+    const ctx = SillyTavern.getContext();
+    window.labRenderingEvents = [];
+    window.labRenderingEventNames = Object.keys(ctx.eventTypes).filter(name => name.endsWith('_RENDERED')
+        || ['MORE_MESSAGES_LOADED', 'CHAT_CHANGED', 'CHAT_LOADED'].includes(name));
+    for (const name of window.labRenderingEventNames) {
+        ctx.eventSource.on(ctx.eventTypes[name], (...args) => {
+            // CHAT_LOADED carries the full mutable card; compare its identity projection.
+            const recordedArgs = name === 'CHAT_LOADED'
+                ? args.map(value => ({ detail: { id: value.detail.id,
+                    character: { avatar: value.detail.character.avatar, name: value.detail.character.name } } }))
+                : args.map(value => value === undefined ? '<undefined>'
+                    : name === 'CHAT_CHANGED' && value === ctx.getCurrentChatId() ? '<chat-id>' : value);
+            const messageId = name.endsWith('_RENDERED') && typeof args[0] === 'number' ? args[0] : null;
+            const connected = messageId === null ? null : !!document.querySelector(`#chat .mes[mesid="${messageId}"]`);
+            window.labRenderingEvents.push({ name, args: structuredClone(recordedArgs), connected });
+            if (connected === false) throw new Error(`Rendered message ${messageId} is not in the document`);
+        });
+    }
+}
+
+export function takeRenderingEvents() {
+    return { registered: window.labRenderingEventNames, records: window.labRenderingEvents.splice(0) };
+}

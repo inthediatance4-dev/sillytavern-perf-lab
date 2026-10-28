@@ -207,3 +207,21 @@ The P0 evidence also includes a negative control using a temporary archived
 product copy with a deliberately added chat button, then discards that code.
 Browser acceptance is opt-in; only pure data/statistics/normalization tests are
 registered in `test:perf` and need no browser.
+
+P2 adds test-extension listeners through the public `eventSource` during
+`--equivalence`. All available `*_RENDERED`, `MORE_MESSAGES_LOADED`, `CHAT_CHANGED`
+and `CHAT_LOADED` event types are registered before opening. Per-phase records
+retain names, order, count, arguments and whether a rendered message ID resolves
+to an element in the document. Generated current-chat IDs become `<chat-id>`;
+`CHAT_LOADED`'s mutable character object is projected to its index, avatar and
+name, rather than comparing generated card timestamps. Undefined arguments are
+explicitly marked. These event records are compared exactly alongside DOM/Tab
+results, including the real send. No per-message render events are invented for
+chat opens or older loads where upstream emits none.
+
+Ordinary send records also retain `fillMs`, long-task entries and their summary.
+The original timer (fill/input through save response body) stays intact. The
+post-save DOM assertion and retrieval of observed tasks remain outside that
+timer; a final still-running task is not guaranteed to have been delivered to
+the observer. Subtracting HTTP request-to-response-end from elapsed time only
+bounds time outside that HTTP interval; it does not attribute a named JS task.

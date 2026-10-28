@@ -1,0 +1,569 @@
+{
+  "historical": {
+    "sourceStep": "p1-2-incremental-observer",
+    "modeThresholdMs": 1000,
+    "records": [
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-0-base/run-2000-100-0.json",
+        "side": "base",
+        "sendMs": 1283.4956619990407,
+        "httpMs": 297.537,
+        "serverMs": 88.548,
+        "outsideHttpMs": 985.9586619990407,
+        "mode": "slow"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-1-base/run-2000-100-0.json",
+        "side": "base",
+        "sendMs": 1486.75432500022,
+        "httpMs": 269.427,
+        "serverMs": 77.846,
+        "outsideHttpMs": 1217.3273250002198,
+        "mode": "slow"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-2-base/run-2000-100-0.json",
+        "side": "base",
+        "sendMs": 753.2266660018649,
+        "httpMs": 222.367,
+        "serverMs": 70.972,
+        "outsideHttpMs": 530.859666001865,
+        "mode": "fast"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-3-base/run-2000-100-0.json",
+        "side": "base",
+        "sendMs": 752.1555439998338,
+        "httpMs": 193.45100000000002,
+        "serverMs": 25.606,
+        "outsideHttpMs": 558.7045439998337,
+        "mode": "fast"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-4-base/run-2000-100-0.json",
+        "side": "base",
+        "sendMs": 699.8307870017015,
+        "httpMs": 200.55499999999998,
+        "serverMs": 41.387,
+        "outsideHttpMs": 499.2757870017016,
+        "mode": "fast"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-5-base/run-2000-100-0.json",
+        "side": "base",
+        "sendMs": 1462.3213359991496,
+        "httpMs": 403.059,
+        "serverMs": 100.949,
+        "outsideHttpMs": 1059.2623359991496,
+        "mode": "slow"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-6-base/run-2000-100-0.json",
+        "side": "base",
+        "sendMs": 690.450748999865,
+        "httpMs": 180.233,
+        "serverMs": 21.767,
+        "outsideHttpMs": 510.217748999865,
+        "mode": "fast"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-0-head/run-2000-100-0.json",
+        "side": "head",
+        "sendMs": 1210.883367999486,
+        "httpMs": 420.115,
+        "serverMs": 82.349,
+        "outsideHttpMs": 790.7683679994859,
+        "mode": "slow"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-1-head/run-2000-100-0.json",
+        "side": "head",
+        "sendMs": 1208.7339659992722,
+        "httpMs": 311.797,
+        "serverMs": 42.316,
+        "outsideHttpMs": 896.9369659992722,
+        "mode": "slow"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-2-head/run-2000-100-0.json",
+        "side": "head",
+        "sendMs": 552.4606899998616,
+        "httpMs": 187.165,
+        "serverMs": 27.37,
+        "outsideHttpMs": 365.2956899998617,
+        "mode": "fast"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-3-head/run-2000-100-0.json",
+        "side": "head",
+        "sendMs": 1127.7646210000967,
+        "httpMs": 420.433,
+        "serverMs": 84.126,
+        "outsideHttpMs": 707.3316210000967,
+        "mode": "slow"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-4-head/run-2000-100-0.json",
+        "side": "head",
+        "sendMs": 527.0112649996008,
+        "httpMs": 178.877,
+        "serverMs": 23.708,
+        "outsideHttpMs": 348.1342649996008,
+        "mode": "fast"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-5-head/run-2000-100-0.json",
+        "side": "head",
+        "sendMs": 511.2619570027164,
+        "httpMs": 168.73499999999999,
+        "serverMs": 27.286,
+        "outsideHttpMs": 342.52695700271636,
+        "mode": "fast"
+      },
+      {
+        "source": "p1-2-incremental-observer/ab/2000-100-6-head/run-2000-100-0.json",
+        "side": "head",
+        "sendMs": 1231.734236000193,
+        "httpMs": 369.952,
+        "serverMs": 49.838,
+        "outsideHttpMs": 861.782236000193,
+        "mode": "slow"
+      }
+    ],
+    "summary": [
+      {
+        "side": "base",
+        "mode": "fast",
+        "n": 4,
+        "sendMs": 725.9931655007676,
+        "httpMs": 197.003,
+        "serverMs": 33.4965,
+        "outsideHttpMs": 520.538707500865
+      },
+      {
+        "side": "base",
+        "mode": "slow",
+        "n": 3,
+        "sendMs": 1462.3213359991496,
+        "httpMs": 297.537,
+        "serverMs": 88.548,
+        "outsideHttpMs": 1059.2623359991496
+      },
+      {
+        "side": "head",
+        "mode": "fast",
+        "n": 3,
+        "sendMs": 527.0112649996008,
+        "httpMs": 178.877,
+        "serverMs": 27.286,
+        "outsideHttpMs": 348.1342649996008
+      },
+      {
+        "side": "head",
+        "mode": "slow",
+        "n": 4,
+        "sendMs": 1209.808666999379,
+        "httpMs": 395.0335,
+        "serverMs": 66.0935,
+        "outsideHttpMs": 826.2753019998395
+      }
+    ],
+    "limit": "Historical ordinary records have no send long-task entries, input timing or event timestamps. Most slow-mode excess is outside HTTP; named long-task attribution is unavailable and is not inferred from separate profile runs."
+  },
+  "p2": {
+    "modeThresholdMs": 1000,
+    "records": [
+      {
+        "source": "ab/2000-100-0-base/run-2000-100-0.json",
+        "side": "base",
+        "mode": "fast",
+        "sendMs": 513.4689949991298,
+        "fillMs": 53.98368699752609,
+        "httpMs": 178.895,
+        "serverMs": 23.807,
+        "outsideHttpMs": 334.5739949991298,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 114,
+          "maxMs": 61
+        },
+        "tasks": [
+          {
+            "start": 7906.39999999851,
+            "duration": 61
+          },
+          {
+            "start": 8234.800000000745,
+            "duration": 53
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-1-base/run-2000-100-0.json",
+        "side": "base",
+        "mode": "slow",
+        "sendMs": 1061.6507310005545,
+        "fillMs": 111.69587200129172,
+        "httpMs": 287.17600000000004,
+        "serverMs": 111.964,
+        "outsideHttpMs": 774.4747310005545,
+        "longTasks": {
+          "count": 3,
+          "totalMs": 245,
+          "maxMs": 132
+        },
+        "tasks": [
+          {
+            "start": 10425.5,
+            "duration": 132
+          },
+          {
+            "start": 10692.79999999702,
+            "duration": 53
+          },
+          {
+            "start": 11061.5,
+            "duration": 60
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-2-base/run-2000-100-0.json",
+        "side": "base",
+        "mode": "fast",
+        "sendMs": 546.2527290001162,
+        "fillMs": 51.460553000652,
+        "httpMs": 213.35199999999998,
+        "serverMs": 27.527,
+        "outsideHttpMs": 332.90072900011626,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 109,
+          "maxMs": 55
+        },
+        "tasks": [
+          {
+            "start": 7925.199999999255,
+            "duration": 55
+          },
+          {
+            "start": 8284.89999999851,
+            "duration": 54
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-3-base/run-2000-100-0.json",
+        "side": "base",
+        "mode": "fast",
+        "sendMs": 478.21244700026,
+        "fillMs": 49.561178999283584,
+        "httpMs": 165.19199999999998,
+        "serverMs": 23.741,
+        "outsideHttpMs": 313.02044700026,
+        "longTasks": {
+          "count": 1,
+          "totalMs": 51,
+          "maxMs": 51
+        },
+        "tasks": [
+          {
+            "start": 7866.5,
+            "duration": 51
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-4-base/run-2000-100-0.json",
+        "side": "base",
+        "mode": "fast",
+        "sendMs": 489.3470319984772,
+        "fillMs": 55.69117399863899,
+        "httpMs": 151.034,
+        "serverMs": 24.363,
+        "outsideHttpMs": 338.3130319984772,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 110,
+          "maxMs": 57
+        },
+        "tasks": [
+          {
+            "start": 7925.300000000745,
+            "duration": 57
+          },
+          {
+            "start": 8225.70000000298,
+            "duration": 53
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-5-base/run-2000-100-0.json",
+        "side": "base",
+        "mode": "fast",
+        "sendMs": 477.11422800057335,
+        "fillMs": 55.9487890022865,
+        "httpMs": 154.68,
+        "serverMs": 24.874,
+        "outsideHttpMs": 322.43422800057334,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 104,
+          "maxMs": 54
+        },
+        "tasks": [
+          {
+            "start": 7857.300000000745,
+            "duration": 54
+          },
+          {
+            "start": 8154.199999999255,
+            "duration": 50
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-6-base/run-2000-100-0.json",
+        "side": "base",
+        "mode": "fast",
+        "sendMs": 489.7823739993328,
+        "fillMs": 58.017252002173336,
+        "httpMs": 154.81400000000002,
+        "serverMs": 24.886,
+        "outsideHttpMs": 334.96837399933275,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 114,
+          "maxMs": 63
+        },
+        "tasks": [
+          {
+            "start": 7927.5,
+            "duration": 63
+          },
+          {
+            "start": 8228.10000000149,
+            "duration": 51
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-0-head/run-2000-100-0.json",
+        "side": "head",
+        "mode": "fast",
+        "sendMs": 521.1508450011024,
+        "fillMs": 55.333379001240246,
+        "httpMs": 198.298,
+        "serverMs": 23.908,
+        "outsideHttpMs": 322.8528450011024,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 103,
+          "maxMs": 53
+        },
+        "tasks": [
+          {
+            "start": 7957,
+            "duration": 53
+          },
+          {
+            "start": 8300.5,
+            "duration": 50
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-1-head/run-2000-100-0.json",
+        "side": "head",
+        "mode": "fast",
+        "sendMs": 682.0474960004503,
+        "fillMs": 56.49604599966551,
+        "httpMs": 251.822,
+        "serverMs": 33.391,
+        "outsideHttpMs": 430.22549600045033,
+        "longTasks": {
+          "count": 3,
+          "totalMs": 226,
+          "maxMs": 99
+        },
+        "tasks": [
+          {
+            "start": 8334.400000002235,
+            "duration": 72
+          },
+          {
+            "start": 8433.5,
+            "duration": 99
+          },
+          {
+            "start": 8798.699999999255,
+            "duration": 55
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-2-head/run-2000-100-0.json",
+        "side": "head",
+        "mode": "fast",
+        "sendMs": 476.8724240020674,
+        "fillMs": 52.82269800227368,
+        "httpMs": 158.388,
+        "serverMs": 24.099,
+        "outsideHttpMs": 318.4844240020674,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 110,
+          "maxMs": 60
+        },
+        "tasks": [
+          {
+            "start": 8067.39999999851,
+            "duration": 60
+          },
+          {
+            "start": 8368.599999997765,
+            "duration": 50
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-3-head/run-2000-100-0.json",
+        "side": "head",
+        "mode": "fast",
+        "sendMs": 501.2019230016449,
+        "fillMs": 55.613616001210175,
+        "httpMs": 167.685,
+        "serverMs": 23.331,
+        "outsideHttpMs": 333.5169230016449,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 112,
+          "maxMs": 57
+        },
+        "tasks": [
+          {
+            "start": 7950.39999999851,
+            "duration": 57
+          },
+          {
+            "start": 8262.800000000745,
+            "duration": 55
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-4-head/run-2000-100-0.json",
+        "side": "head",
+        "mode": "fast",
+        "sendMs": 475.2163519988244,
+        "fillMs": 53.16040499747032,
+        "httpMs": 145.67000000000002,
+        "serverMs": 19.621,
+        "outsideHttpMs": 329.5463519988244,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 107,
+          "maxMs": 56
+        },
+        "tasks": [
+          {
+            "start": 7912.800000000745,
+            "duration": 56
+          },
+          {
+            "start": 8204.699999999255,
+            "duration": 51
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-5-head/run-2000-100-0.json",
+        "side": "head",
+        "mode": "fast",
+        "sendMs": 526.9861679989845,
+        "fillMs": 56.76717399910558,
+        "httpMs": 190.362,
+        "serverMs": 22.683,
+        "outsideHttpMs": 336.6241679989845,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 117,
+          "maxMs": 59
+        },
+        "tasks": [
+          {
+            "start": 8200.70000000298,
+            "duration": 59
+          },
+          {
+            "start": 8537.5,
+            "duration": 58
+          }
+        ]
+      },
+      {
+        "source": "ab/2000-100-6-head/run-2000-100-0.json",
+        "side": "head",
+        "mode": "fast",
+        "sendMs": 507.5659850008378,
+        "fillMs": 49.460954000096535,
+        "httpMs": 177.21300000000002,
+        "serverMs": 22.536,
+        "outsideHttpMs": 330.3529850008378,
+        "longTasks": {
+          "count": 2,
+          "totalMs": 110,
+          "maxMs": 59
+        },
+        "tasks": [
+          {
+            "start": 7925.599999997765,
+            "duration": 59
+          },
+          {
+            "start": 8249.099999997765,
+            "duration": 51
+          }
+        ]
+      }
+    ],
+    "summary": [
+      {
+        "side": "base",
+        "mode": "fast",
+        "n": 6,
+        "sendMs": 489.564702998905,
+        "fillMs": 54.83743049808254,
+        "httpMs": 160.003,
+        "serverMs": 24.618499999999997,
+        "outsideHttpMs": 333.73736199962303
+      },
+      {
+        "side": "base",
+        "mode": "slow",
+        "n": 1,
+        "sendMs": 1061.6507310005545,
+        "fillMs": 111.69587200129172,
+        "httpMs": 287.17600000000004,
+        "serverMs": 111.964,
+        "outsideHttpMs": 774.4747310005545
+      },
+      {
+        "side": "head",
+        "mode": "fast",
+        "n": 7,
+        "sendMs": 507.5659850008378,
+        "fillMs": 55.333379001240246,
+        "httpMs": 177.21300000000002,
+        "serverMs": 23.331,
+        "outsideHttpMs": 330.3529850008378
+      },
+      {
+        "side": "head",
+        "mode": "slow",
+        "n": 0
+      }
+    ]
+  }
+}

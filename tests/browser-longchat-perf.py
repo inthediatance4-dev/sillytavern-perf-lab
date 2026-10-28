@@ -325,9 +325,11 @@ def node_statistics(base, head):
 
 
 def equivalence(page, args, deadline):
-    result = {'dom': {'open': page.evaluate('labProbe.chatSnapshot()')}, 'tabs': {}}
+    result = {'dom': {'open': page.evaluate('labProbe.chatSnapshot()')}, 'tabs': {},
+              'events': {'open': page.evaluate('labProbe.takeRenderingEvents()')}}
     run_async(page, 'async () => { await labScript.showMoreMessages(); await labIdle(); return true; }', None, deadline)
     result['dom']['older'] = page.evaluate('labProbe.chatSnapshot()')
+    result['events']['older'] = page.evaluate('labProbe.takeRenderingEvents()')
     for scenario in ['older', 'appended', 'class-added', 'ancestor-disabled', 'ancestor-enabled', 'popup-open', 'popup-closed']:
         if scenario == 'appended':
             before = page.evaluate('SillyTavern.getContext().chat.length')
@@ -350,6 +352,8 @@ def equivalence(page, args, deadline):
             page.keyboard.press('Tab')
             sequence.append(page.evaluate('labProbe.focusDescriptor()'))
         result['tabs'][scenario] = sequence
+        if scenario == 'appended':
+            result['events']['send'] = page.evaluate('labProbe.takeRenderingEvents()')
     return result
 
 
@@ -407,9 +411,9 @@ def read_snapshot(snapshot, directory):
 
 def compare_equivalence(base, head, base_directory=None, head_directory=None):
     differences = {}
-    for kind in ['dom', 'tabs']:
-        for scenario in sorted(set(base[kind]) | set(head[kind])):
-            a, b = base[kind].get(scenario), head[kind].get(scenario)
+    for kind in ['dom', 'tabs', 'events']:
+        for scenario in sorted(set(base.get(kind, {})) | set(head.get(kind, {}))):
+            a, b = base.get(kind, {}).get(scenario), head.get(kind, {}).get(scenario)
             if kind == 'dom':
                 a, b = read_snapshot(a, base_directory), read_snapshot(b, head_directory)
             if a != b:
@@ -635,6 +639,8 @@ def main():
                             result['onboarding'] = wait_application(page, origin, deadline)
                             page.evaluate('async source => { window.labProbe = await import(URL.createObjectURL(new Blob([source], {type:"text/javascript"}))); }', probe)
                             page.evaluate('(t) => window.labProbe.installProbe(t)', truncation)
+                            if args.equivalence:
+                                page.evaluate('labProbe.installRenderingRecorder()')
                             cdp = context.new_cdp_session(page)
                             profiling = result['profiled']
                             def phase(name, operation):
@@ -677,8 +683,10 @@ def main():
                             result['afterScroll'] = snapshot()
                             print(label, 'scrolled', flush=True)
                             def send():
+                                page.evaluate('window.labTasks = []')
                                 start = time.monotonic()
                                 page.locator('#send_textarea').fill('/send Synthetic measurement message **hello**')
+                                filled = time.monotonic()
                                 with page.expect_response(lambda r: r.url.endswith('/api/chats/save') and r.request.method == 'POST', timeout=max(1, (deadline - time.monotonic()) * 1000)) as pending:
                                     page.locator('#send_textarea').press('Enter')
                                 response = pending.value
@@ -692,7 +700,9 @@ def main():
                                 assert payload['chat'][-1]['mes'] == 'Synthetic measurement message **hello**'
                                 timing = request.timing
                                 page.wait_for_function('(size) => !!document.querySelector(`#chat .mes[mesid="${size}"]`)', arg=size, timeout=max(1, (deadline - time.monotonic()) * 1000))
-                                return {'ms': elapsed, 'payloadBytes': len(request.post_data.encode()),
+                                send_tasks = page.evaluate('window.labTasks')
+                                return {'ms': elapsed, 'fillMs': (filled - start) * 1000, 'tasks': send_tasks,
+                                        'longTasks': tasks_summary(send_tasks), 'payloadBytes': len(request.post_data.encode()),
                                         'responseWaitMs': timing['responseStart'] - timing['requestStart'],
                                         'requestToResponseEndMs': timing['responseEnd'] - timing['requestStart'],
                                         'serverTiming': response.headers.get('server-timing'),

@@ -88,13 +88,15 @@ for size in [1000, 2000, 3000, 2051]:
 legacy = [m.synthetic_rows(size, legacy=True)[-100:] for size in [2000,3000]]
 assert [len(r.get('swipes', [])) for r in legacy[0]] != [len(r.get('swipes', [])) for r in legacy[1]]
 assert m.node_statistics([1,2,3,4,5,6,7], [4,5,6,7,8,9,10])['difference'] == {'current_minus_baseline':3, 'ci95':[3,3]}
-check = {'dom':{'open':'<div></div>', 'older':'<div>text</div>'}, 'tabs':{'older':[{'id':'send'}]}}
+check = {'dom':{'open':'<div></div>', 'older':'<div>text</div>'}, 'tabs':{'older':[{'id':'send'}]},
+         'events':{'send':{'registered':['USER_MESSAGE_RENDERED'], 'records':[{'name':'USER_MESSAGE_RENDERED','args':[2000],'connected':True}]}}}
 assert m.compare_equivalence(check, check)['equal']
 perturbed = json.loads(json.dumps(check))
 perturbed['dom']['open'] = '<div>changed</div>'
 perturbed['tabs']['older'][0]['id'] = 'different'
+perturbed['events']['send']['records'][0]['args'] = [1999]
 diff = m.compare_equivalence(check, perturbed)
-assert not diff['equal'] and set(diff['differences']) == {'dom/open','tabs/older'}
+assert not diff['equal'] and set(diff['differences']) == {'dom/open','tabs/older','events/send'}
 assert sum('swipes' in r for r in a) == 200
 assert all(not r['is_user'] for r in a if 'swipes' in r)
 assert all(a[i+1]['is_user'] == (i % 2 == 0) for i in range(2000))

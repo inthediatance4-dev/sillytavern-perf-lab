@@ -1519,11 +1519,11 @@ export async function showMoreMessages(messagesToLoad = null) {
     const isButtonInView = isElementInViewport(showMoreButton[0]);
 
     const firstId = clamp(messageId - count, 0, Infinity);
-    const messageElements = [];
+    const renderContext = createMessageRenderContext();
+    const messageElements = document.createDocumentFragment();
     chat.slice(firstId, messageId).forEach((message, id) => {
-        messageElements.push(updateMessageElement(message, { messageId: firstId + id }));
+        messageElements.append(updateMessageElement(message, { messageId: firstId + id, renderContext })[0]);
     });
-    // This could be faster: https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentElement
     // Fallback to chatElement if the button isn't where it's expected to be.
     if (showMoreButton[0]) {
         showMoreButton.after(messageElements);
@@ -1580,15 +1580,17 @@ export async function redisplayChat({ targetChat = chat, startIndex = 0, fade = 
     const messages = targetChat.slice(startIndex);
 
     if (messages.length > 0) {
-        const newMessageElements = messages.map((message, offset) => {
+        const renderContext = createMessageRenderContext();
+        const newMessageElements = document.createDocumentFragment();
+        messages.forEach((message, offset) => {
             const i = startIndex + offset;
-            const messageElement = updateMessageElement(message, { messageId: i });
+            const messageElement = updateMessageElement(message, { messageId: i, renderContext });
 
-            return messageElement[0];
+            newMessageElements.append(messageElement[0]);
         });
 
         //The last_mes has been removed, add it to the new last message.
-        newMessageElements.at(-1).classList.add('last_mes');
+        newMessageElements.lastElementChild.classList.add('last_mes');
 
         //Append to chat in one DOM update.
         chatElement.append(newMessageElements);
@@ -2675,36 +2677,31 @@ export function addOneMessage(mes, { type = undefined, insertAfter = null, scrol
 }
 
 /**
+ * Captures values shared by a synchronous message-rendering batch.
+ * @returns {{userAvatar: string, characterAvatar: string, timestampModelIcon: boolean}} Batch values
+ */
+function createMessageRenderContext() {
+    const character = characters[this_chid];
+    return {
+        userAvatar: getThumbnailUrl('persona', user_avatar),
+        characterAvatar: this_chid === undefined ? system_avatar
+            : character && character.avatar !== 'none' ? getThumbnailUrl('avatar', character.avatar) : default_avatar,
+        timestampModelIcon: power_user.timestamp_model_icon,
+    };
+}
+
+/**
  * Creates the element of a single message as if it were the last message or at forceMesId
  * @param {ChatMessage} mes Message object
  * @param {object} [options] Options
  * @param {number} [options.messageId=chat.length - 1] Force the message ID
  * @param {JQuery<HTMLElement>} [options.messageElement=messageTemplate.clone()] This message element will be updated with the ChatMessage object.
  * @param {SCROLL_BEHAVIOR} [options.adjustMediaScroll=SCROLL_BEHAVIOR.NONE] Scroll behavior option passed to appendMediaToMessage.
+ * @param {ReturnType<typeof createMessageRenderContext>} [options.renderContext] Values shared by an internal synchronous batch.
  * @returns {JQuery<HTMLElement>} Rendered HTMLElement.
  */
-export function updateMessageElement(mes, { messageId = chat.length - 1, messageElement = messageTemplate.clone(), adjustMediaScroll = SCROLL_BEHAVIOR.NONE } = {}) {
-    let avatarImg = getThumbnailUrl('persona', user_avatar);
-
-    //for non-user messages
-    if (!mes.is_user) {
-        if (mes.force_avatar) {
-            avatarImg = mes.force_avatar;
-        } else if (this_chid === undefined) {
-            avatarImg = system_avatar;
-        } else if (characters[this_chid] && characters[this_chid].avatar !== 'none') {
-            avatarImg = getThumbnailUrl('avatar', characters[this_chid].avatar);
-        } else {
-            avatarImg = default_avatar;
-        }
-        //old processing:
-        //if message is from system, use the name provided in the message JSONL to proceed,
-        //if not system message, use name2 (char's name) to proceed
-        //characterName = mes.is_system || mes.force_avatar ? mes.name : name2;
-    } else if (mes.is_user && mes.force_avatar) {
-        // Special case for persona images.
-        avatarImg = mes.force_avatar;
-    }
+export function updateMessageElement(mes, { messageId = chat.length - 1, messageElement = messageTemplate.clone(), adjustMediaScroll = SCROLL_BEHAVIOR.NONE, renderContext = createMessageRenderContext() } = {}) {
+    const avatarImg = mes.force_avatar || (mes.is_user ? renderContext.userAvatar : renderContext.characterAvatar);
     const momentDate = timestampToMoment(mes.send_date);
     const timestamp = momentDate.isValid() ? momentDate.format('LL LT') : '';
     const messageHTML = getMessageTextHTML(mes, { messageId });
@@ -2741,7 +2738,7 @@ export function updateMessageElement(mes, { messageId = chat.length - 1, message
 
     updateReasoningUI(messageElement);
 
-    if (power_user.timestamp_model_icon && mes.extra?.api) {
+    if (renderContext.timestampModelIcon && mes.extra?.api) {
         insertSVGIcon(messageElement, mes.extra);
     }
 
@@ -9514,7 +9511,10 @@ export function refreshSwipeButtons(updateCounters = false, fade = true) {
 
     const firstDisplayedMesId = Number(messageElements.first().attr('mesid'));
 
-    //Group each message.
+    const visiblePickers = [];
+    const hiddenPickers = [];
+
+    // Apply classes before reading picker styles: jQuery show() reads computed display.
     messageElements.each((index, div) => {
         //This assumes the messages are in order and their Id's are accurate.
         const messageId = firstDisplayedMesId + index;
@@ -9545,16 +9545,25 @@ export function refreshSwipeButtons(updateCounters = false, fade = true) {
 
             //If there's only one swipe, the left arrow should not be shown.
             div.classList.toggle('swipes_visible', hasSwipes || pristineGreeting);
-            swipePickerButton.toggle(canOpenSwipePicker);
+            for (const picker of swipePickerButton) {
+                (canOpenSwipePicker ? visiblePickers : hiddenPickers).push(picker);
+            }
 
             //updateSwipeCounter does not need to be awaited, It can run a bit later.
             if (updateCounters) updateSwipeCounter(messageId, { message, messageElement: $(div) });
         } else {
             //Hide all messages that are not swipeable.
             div.classList.remove('swipes_visible', 'last_swipe');
-            $(div).find('.mes_swipe_picker').toggle(canOpenSwipePickerForMessage(messageId));
+            const swipePickerButton = $(div).find('.mes_swipe_picker');
+            const pickers = canOpenSwipePickerForMessage(messageId) ? visiblePickers : hiddenPickers;
+            for (const picker of swipePickerButton) {
+                pickers.push(picker);
+            }
         }
     });
+    // Hide first, then perform the style reads for all visible pickers together.
+    $(hiddenPickers).toggle(false);
+    $(visiblePickers).toggle(true);
 }
 /**
  * This function is misleadingly named. It allows generation then refreshes the swipe buttons and counters.

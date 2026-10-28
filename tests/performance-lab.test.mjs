@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -235,7 +236,7 @@ test('invalid backup retention refuses to move any files', async () => {
     assert.deepEqual(await fs.promises.readdir(dir), ['chat_keep.jsonl']);
 });
 
-test('launcher prepares fixed loopback and rejects external/link data paths', async () => {
+test('launcher prepares fixed loopback and rejects external/link data paths', async t => {
     const module = await import('../scripts/start-performance-lab.mjs').catch(() => ({}));
     assert.equal(typeof module.prepareLab, 'function', 'An isolated launcher must exist');
     const result = await module.prepareLab();
@@ -244,6 +245,6 @@ test('launcher prepares fixed loopback and rejects external/link data paths', as
     assert.ok(result.dataRoot.startsWith(path.resolve('.lab-data')));
     await assert.rejects(module.assertLocalPath(path.resolve('..', 'external-data')), /outside/);
     const junction = path.join(root, 'data-link');
-    await fs.promises.symlink(root, junction, 'junction');
+    if (!await symlinkOrSkip(t, root, junction, 'junction')) return;
     await assert.rejects(module.assertLocalPath(junction), /link/);
 });

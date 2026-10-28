@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
-import { ChatLifecycleError, chatLockPaths, runAfterPathLocks, waitForChatIO, withPathLocks } from '../src/chat-io.js';
+import { LockOrderError, pathLockKey, chatLockPaths, runAfterPathLocks, waitForChatIO, withPathLocks } from '../src/chat-io.js';
 
 function deferred() {
     /** @type {(value?: unknown) => void} */
@@ -90,7 +90,7 @@ test('directory exclusive waits for shared holders and blocks later file ops', a
     const later = withPathLocks(chatLockPaths([gamma]), async () => {
         order.push('later');
     });
-    const draining = waitForChatIO().then(() => {
+    const draining = waitForChatIO(AbortSignal.timeout(5_000)).then(() => {
         drained = true;
     });
     await flush();
@@ -103,7 +103,7 @@ test('directory exclusive waits for shared holders and blocks later file ops', a
     await Promise.all([alphaOp, betaOp, exclusive, later, draining]);
     assert.deepEqual(order, ['a', 'b', 'exclusive', 'later']);
     assert.equal(drained, true);
-    await waitForChatIO();
+    await waitForChatIO(AbortSignal.timeout(5_000));
 });
 
 test('explicit directory exclusive wins over a shared parent in the same reservation', async () => {
@@ -153,7 +153,7 @@ test('a failed reservation releases every path it held', async () => {
         throw new Error('synthetic failure');
     }), /synthetic failure/);
     assert.equal(await withPathLocks(chatLockPaths([file]), async () => 'recovered'), 'recovered');
-    await waitForChatIO();
+    await waitForChatIO(AbortSignal.timeout(5_000));
 });
 
 test('a completed save starts deferred backup while an unrelated lock stays held', async () => {
@@ -182,18 +182,30 @@ test('a completed save starts deferred backup while an unrelated lock stays held
     }
 });
 
-test('nested reservations reject self-waits and shared upgrades, but allow other paths', async () => {
+test('nested reservations reuse held keys and reject new keys and upgrades', async () => {
     const outer = path.join(directory, 'nested-outer');
     const inner = path.join(directory, 'nested-inner');
-    const reentered = error => error instanceof ChatLifecycleError && error.reason === 'lock_reentered';
     await withPathLocks([outer], async () => {
-        await assert.rejects(withPathLocks([outer], async () => {}), reentered);
-        assert.equal(await withPathLocks([inner], async () => 'inner'), 'inner');
+        assert.equal(await withPathLocks([outer], async () => 'reentered'), 'reentered');
+        await assert.rejects(withPathLocks([inner], async () => {}), LockOrderError);
     });
     await withPathLocks([{ path: outer, mode: 'shared' }], async () => {
-        await assert.rejects(withPathLocks([outer], async () => {}), reentered);
+        await assert.rejects(withPathLocks([outer], async () => {}), LockOrderError);
     });
-    assert.equal(await withPathLocks([outer], async () => 'released'), 'released');
+});
+
+test('nested new file rejects even with a queued directory writer', { timeout: 150 }, async () => {
+    const entered = deferred();
+    const resume = deferred();
+    const outer = withPathLocks(chatLockPaths([path.join(directory, 'a')]), async () => {
+        entered.resolve();
+        await resume.promise;
+        await assert.rejects(withPathLocks(chatLockPaths([path.join(directory, 'b')]), async () => {}), LockOrderError);
+    });
+    await entered.promise;
+    const writer = withPathLocks([directory], async () => {});
+    resume.resolve();
+    await Promise.all([outer, writer]);
 });
 
 test('deferred work waits for originating and enclosing reservations to release', async () => {
@@ -201,7 +213,7 @@ test('deferred work waits for originating and enclosing reservations to release'
     const inner = path.join(directory, 'deferred-inner');
     const order = [];
     let follow;
-    await withPathLocks([outer], async () => {
+    await withPathLocks([outer, inner], async () => {
         await withPathLocks([inner], async () => {
             follow = runAfterPathLocks(() => withPathLocks([outer, inner], async () => {
                 order.push('follow');
@@ -214,4 +226,24 @@ test('deferred work waits for originating and enclosing reservations to release'
     });
     await follow;
     assert.deepEqual(order, ['inner', 'outer', 'follow']);
+});
+
+
+test('lock order rejection logs the error stack and all held and requested keys once', async t => {
+    const calls = [];
+    t.mock.method(console, 'error', (...args) => calls.push(args));
+    const held = path.join(directory, 'logged-held');
+    const requested = path.join(directory, 'logged-requested');
+    await withPathLocks([held], async () => {
+        await assert.rejects(withPathLocks([held, requested], async () => {}), error => {
+            assert.equal(calls.length, 1);
+            assert.equal(calls[0][0], error);
+            assert.match(error.stack, /LockOrderError.*\n/);
+            assert.deepEqual(calls[0][1], {
+                heldKeys: [pathLockKey(held)],
+                requestedKeys: [pathLockKey(held), pathLockKey(requested)].sort(),
+            });
+            return error instanceof LockOrderError;
+        });
+    });
 });

@@ -39,12 +39,12 @@ browser path uses Playwright's bundled Chromium. Evidence defaults to
 SillyTavern title and origin, then create synthetic data only. Install Playwright
 and its Chromium (`playwright install chromium`) before running them.
 
-Current verification (2026-10-25, Node 20.19.2): the socket-free `node --test`
-selection reports **20 tests passed**, one runner entry per selected file in this
-sandbox. This is not the full suite's individual-case count or browser acceptance.
-The full run reports 28 file entries: 20 passed and 8 failed in suites requiring
-localhost listeners denied by this sandbox. The old 442/442 result belongs to
-the dated 1.19 sync evidence.
+Current verification: [round-1.5 CI run 40656640441](https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/40656640441)
+at commit `7a0b029`: Node 20/24 × Ubuntu/Windows all green. Ubuntu: 591 tests,
+590 pass, 1 skip; Windows: 591 tests, 578 pass, 13 skips, all with explicit reasons.
+Windows CreationTime reclaim has only conservative refusal coverage; Windows has
+no real-server SIGTERM e2e coverage. Deployment remains pending browser acceptance,
+Windows hands-on acceptance and crash reconciliation.
 
 ## CHANGES
 

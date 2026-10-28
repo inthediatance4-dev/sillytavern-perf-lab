@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -46,13 +47,13 @@ test('recycle byte budget removes only the oldest recycled artifacts', async () 
     assert.equal(await fs.access(path.join(recycle, 'old')).then(() => true, () => false), false);
 });
 
-test('a zero recycle budget purges recycle storage and leaves visible backups', async () => {
+test('a zero recycle budget purges recycle storage and leaves visible backups', async t => {
     const dir = await makeDir();
     const recycle = path.join(dir, '.recycle');
     await fs.mkdir(recycle);
     const outside = path.join(dir, 'primary.jsonl');
     await fs.writeFile(outside, 'keep-primary');
-    await fs.symlink(outside, path.join(recycle, 'link.jsonl'));
+    if (!await symlinkOrSkip(t, outside, path.join(recycle, 'link.jsonl'))) return;
     await fs.writeFile(path.join(recycle, 'old.jsonl'), 'recycled');
     await fs.writeFile(path.join(dir, 'chat_keep.jsonl'), 'x'.repeat(40));
     await recycleOldChatBackups(dir, 'chat_', 5, { maxRecycleBytes: 0 });
@@ -142,7 +143,7 @@ test('configured maxRecycleBytes prunes throttled backups without removing the c
         const rows = [{ chat_metadata: { integrity: 'synthetic' } }, { name: 'Synthetic', mes: `version-${i}` }];
         snapshots.push(rows.map(row => JSON.stringify(row)).join('\n'));
         await trySaveChat(rows, file, false, 'synthetic-backup-user', 'Synthetic', backups);
-        await flushChatBackups();
+        await flushChatBackups(AbortSignal.timeout(5_000));
     }
     const names = (await fs.readdir(backups)).filter(name => name.endsWith('.jsonl'));
     assert.equal(names.length, 1);

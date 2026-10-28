@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -218,7 +219,7 @@ test('deleting an entire group retires its chats and metadata against late write
     assert.ok((await retained(path.join(dirs.groups, '.recycle'), id)).length > 0);
 });
 
-test('Windows case aliases refer to the same retired path', { skip: process.platform !== 'win32' }, async () => {
+test('Windows case aliases refer to the same retired path', { skip: process.platform !== 'win32' && 'Requires Windows case-insensitive path semantics' }, async () => {
     file('CASE-source');
     assert.equal((await rename('CASE-source', 'CASE-target')).status, 200);
     assert.equal((await save('case-SOURCE', 'case-late')).status, 409);
@@ -438,21 +439,21 @@ test('relative retirement identities survive copying an entirely artificial data
     await assert.rejects(io.assertChatWritable(path.join(relocated, 'Synthetic', path.basename(source)), relocated), error => error instanceof io.ChatLifecycleError && error.reason === 'retired_path');
 });
 
-test('internal staging junctions are rejected instead of writing through a directory alias', async () => {
+test('internal staging junctions are rejected instead of writing through a directory alias', async t => {
     const card = 'AliasStaging'; const directory = path.join(dirs.chats, card);
     const destination = path.join(root, 'alias-staging-artificial-target');
     await fs.promises.mkdir(directory); await fs.promises.mkdir(destination);
-    await fs.promises.symlink(destination, path.join(directory, '.chat-staging'), process.platform === 'win32' ? 'junction' : 'dir');
+    if (!await symlinkOrSkip(t, destination, path.join(directory, '.chat-staging'), process.platform === 'win32' ? 'junction' : 'dir')) return;
     const name = `alias-${crypto.randomUUID()}.jsonl`; const upload = path.join(dirs.uploads, name); fs.writeFileSync(upload, jsonl('alias artificial'));
     assert.equal((await post('/api/chats/import', { _upload: name, avatar_url: `${card}.png`, file_type: 'jsonl' })).status, 409);
     assert.deepEqual(await fs.promises.readdir(destination), []); assert.equal(fs.existsSync(upload), true);
 });
 
-test('internal recovery junctions are rejected while the original file remains intact', async () => {
+test('internal recovery junctions are rejected while the original file remains intact', async t => {
     const directory = path.join(root, 'alias-recycle-source'); const destination = path.join(root, 'alias-recycle-artificial-target');
     await fs.promises.mkdir(directory); await fs.promises.mkdir(destination);
     const source = path.join(directory, 'artificial.txt'); await fs.promises.writeFile(source, 'unchanged alias original');
-    await fs.promises.symlink(destination, path.join(directory, '.recycle'), process.platform === 'win32' ? 'junction' : 'dir');
+    if (!await symlinkOrSkip(t, destination, path.join(directory, '.recycle'), process.platform === 'win32' ? 'junction' : 'dir')) return;
     await assert.rejects(io.recycleChatPath(source), error => error instanceof io.ChatLifecycleError && error.reason === 'path_alias');
     assert.equal(await fs.promises.readFile(source, 'utf8'), 'unchanged alias original'); assert.deepEqual(await fs.promises.readdir(destination), []);
 });
@@ -524,7 +525,7 @@ test('character rename inherits retired chat names while retaining writable acti
 });
 
 
-test('group metadata rejects invalid IDs and readers ignore legacy traversal and aliases', async () => {
+test('group metadata rejects invalid IDs and readers ignore legacy traversal and aliases', async t => {
     for (const id of ['../other-user/secret', '..\\secret', '', 42, null]) {
         assert.equal((await post('/api/groups/create', { chats: [id] })).status, 400);
         assert.equal((await post('/api/groups/edit', { id: 'invalid-metadata', chats: [id] })).status, 400);
@@ -533,7 +534,7 @@ test('group metadata rejects invalid IDs and readers ignore legacy traversal and
     const outside = path.join(root, 'other-user');
     fs.mkdirSync(outside);
     fs.writeFileSync(path.join(outside, 'secret.jsonl'), jsonl('private-cross-user-preview'));
-    fs.symlinkSync(path.join(outside, 'secret.jsonl'), path.join(dirs.groupChats, 'alias.jsonl'));
+    if (!await symlinkOrSkip(t, path.join(outside, 'secret.jsonl'), path.join(dirs.groupChats, 'alias.jsonl'))) return;
     fs.writeFileSync(path.join(dirs.groupChats, 'valid-reader.jsonl'), jsonl('allowed-preview'));
     fs.writeFileSync(path.join(dirs.groups, 'legacy-reader.json'), JSON.stringify({
         id: 'legacy-reader', chats: ['../other-user/secret', 'alias', 'valid-reader'],

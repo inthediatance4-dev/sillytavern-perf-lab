@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-28",
+  "commit": "f28a54c6e47cd1915e5838caf8d1ecae3d6ae751",
+  "baseline": "48a153eef7411c8c6e9fa5b33bbbea74f7db892e",
+  "ahead": 47,
+  "changed_files": 67,
+  "recommendation": "do_not_merge_or_deploy_yet",
+  "new_p1": 3,
+  "new_p2": 1,
+  "inherited_p1": 3,
+  "findings": [
+    {
+      "id": "N1",
+      "priority": "P1",
+      "origin": "new",
+      "title": "Linux 校时会使存活所有者被误判为 PID 复用",
+      "file": "src/process-identity.js",
+      "line": 167
+    },
+    {
+      "id": "N2",
+      "priority": "P1",
+      "origin": "new",
+      "title": "独占锁遇到文件系统错误后允许无锁启动",
+      "file": "src/data-root-owner.js",
+      "line": 705
+    },
+    {
+      "id": "N3",
+      "priority": "P1",
+      "origin": "new",
+      "title": "复用退役名称在发布前崩溃会解除持久保护",
+      "file": "src/chat-io.js",
+      "line": 309
+    },
+    {
+      "id": "N4",
+      "priority": "P2",
+      "origin": "new",
+      "title": "排空超时没有约束后续聊天 I/O 和备份等待",
+      "file": "src/server-main.js",
+      "line": 338
+    },
+    {
+      "id": "E1",
+      "priority": "P1",
+      "origin": "baseline",
+      "title": "损坏的 JSONL 在文本导出中触发未捕获异常",
+      "file": "src/endpoints/chats.js",
+      "line": 704
+    },
+    {
+      "id": "E2",
+      "priority": "P1",
+      "origin": "baseline",
+      "title": "删除角色并重新导入后，角色可见但聊天仍被退役标记阻止",
+      "file": "src/endpoints/characters.js",
+      "line": 1647
+    },
+    {
+      "id": "E3",
+      "priority": "P1",
+      "origin": "baseline",
+      "title": "角色重新导入未参与生命周期锁，能在删除后复活角色",
+      "file": "src/endpoints/characters.js",
+      "line": 1670
+    },
+    {
+      "id": "Q1",
+      "priority": "P2",
+      "origin": "baseline-and-current-contract",
+      "title": "嵌套共享锁与排队目录写锁形成死锁；未证明现有 HTTP 路径可达",
+      "file": "src/chat-io.js",
+      "line": 180
+    },
+    {
+      "id": "Q2",
+      "priority": "P2",
+      "origin": "test-quality",
+      "title": "Windows 测试预期与缺失可靠身份时的策略不一致，身份测试未加入默认套件",
+      "file": "tests/data-root-owner.test.mjs",
+      "line": 370
+    }
+  ],
+  "windows": {
+    "tests": 523,
+    "pass": 514,
+    "fail": 9,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "baseline_windows": {
+    "tests": 442,
+    "pass": 442,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "linux_wsl": {
+    "tests": 522,
+    "pass": 471,
+    "fail": 3,
+    "cancelled": 0,
+    "skipped": 48
+  },
+  "linux_followup": {
+    "tests": 157,
+    "pass": 109,
+    "fail": 2,
+    "cancelled": 0,
+    "skipped": 46
+  },
+  "additional_identity_tests": 6,
+  "independent_abnormal_scenarios": 8,
+  "application_smoke_passes": 8,
+  "tracked_sources_unchanged": true,
+  "production_touched": false,
+  "report": "REPORT.zh-CN.md",
+  "publication": {
+    "branch": "codex/review-grok-quality-20261028",
+    "application_changes": false,
+    "machine_paths_sanitized": true
+  }
+}

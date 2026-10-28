@@ -1,0 +1,9 @@
+{
+  "scenario": "owner-fail-open",
+  "reproduced": false,
+  "code": "EREAD",
+  "op": "open",
+  "cause": "EACCES",
+  "name": "DataRootOwnershipUnverifiedError",
+  "message": "Data-root ownership could not be determined at <review-output>/temp/<case>/.st-lab-owner.lock: synthetic lock ACL denies access while data files remain writable. Verify the owner process is really gone, then delete <review-output>/temp/<case>/.st-lab-owner.lock."
+}

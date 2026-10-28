@@ -79,33 +79,48 @@ export function createRequestDrain(tracker = persistence) {
             response.once('close', done);
             next();
         },
-        async stop(timeoutMs = resolveDrainTimeoutMs()) {
+        async stop(signal) {
+            if (!(signal instanceof AbortSignal)) throw new TypeError('Request drain requires an AbortSignal');
             stopping = true;
-            const pendingHandlers = Promise.resolve(tracker.stop()).catch(error => {
-                console.error('Persistence drain failed:', error);
-            });
-            const activeDrain = Promise.all([...active]).catch(error => {
-                console.error('Request drain failed:', error);
-            });
-            let timer;
-            // Keep the timer referenced so a stuck drain cannot exit the event
-            // loop before the bound fires. It is cleared as soon as the race ends.
-            const timeout = new Promise(resolve => {
-                timer = setTimeout(() => resolve('timeout'), timeoutMs);
-            });
-            let outcome;
-            try {
-                outcome = await Promise.race([
-                    Promise.all([activeDrain, pendingHandlers]).then(() => 'drained'),
-                    timeout,
-                ]);
-            } finally {
-                clearTimeout(timer);
-            }
-            if (outcome === 'timeout') {
-                const handlersLeft = typeof tracker.pendingCount === 'function' ? tracker.pendingCount() : 'unknown';
-                console.error(`Request drain timed out after ${timeoutMs}ms with ${active.size} open response(s) and ${handlersLeft} persistence handler(s); continuing shutdown.`);
-            }
+            return waitForShutdown(Promise.all([tracker.stop(), ...active]), signal);
         },
     };
+}
+
+/** One abortable budget shared by every shutdown stage. */
+export function createShutdownDeadline(timeoutMs = resolveDrainTimeoutMs()) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new Error('Shutdown deadline expired')), timeoutMs);
+    return { signal: controller.signal, dispose: () => clearTimeout(timer) };
+}
+
+/** Bound a wait without cancelling or releasing an in-progress file operation. */
+export async function waitForShutdown(work, signal) {
+    if (!signal) return work;
+    if (signal.aborted) throw signal.reason;
+    let abort;
+    const expired = new Promise((_, reject) => {
+        abort = () => reject(signal.reason);
+        signal.addEventListener('abort', abort, { once: true });
+    });
+    try { return await Promise.race([work, expired]); }
+    finally { signal.removeEventListener('abort', abort); }
+}
+
+/** Run all cleanup stages against the same deadline and report before exiting. */
+export async function runShutdown(stages, pendingPaths, timeoutMs = resolveDrainTimeoutMs()) {
+    const deadline = createShutdownDeadline(timeoutMs);
+    let stage;
+    try {
+        for (const [name, cleanup] of stages) {
+            stage = name;
+            await waitForShutdown(Promise.resolve().then(() => cleanup(deadline.signal)), deadline.signal);
+        }
+        return 0;
+    } catch (error) {
+        console.error('Shutdown incomplete:', { stage, pendingPaths: pendingPaths(), error: String(error) });
+        return 1;
+    } finally {
+        deadline.dispose();
+    }
 }

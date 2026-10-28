@@ -1,3 +1,5 @@
+import { windowsPathKey } from './windows-path-key.js';
+import { waitForShutdown } from './request-drain.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,11 +20,10 @@ import sanitize from 'sanitize-filename';
 /** @type {Map<string, LockGate>} */
 const gates = new Map();
 /** Completion of every reservation already accepted, including ones still waiting. */
-const pendingIO = new Set();
+const pendingIO = new Map();
 /**
  * Keys held by the withPathLocks calls on this async stack.
- * Nested calls must not wait on a key already held exclusively or upgrade a
- * shared key to exclusive: the outer call would be waiting for itself.
+ * Nested calls reuse held keys only and cannot upgrade shared keys.
  * @type {AsyncLocalStorage<Map<string, LockMode>>}
  */
 const heldModes = new AsyncLocalStorage();
@@ -43,7 +44,7 @@ export function withPathLock(filePath, task) {
 
 function pathKey(filePath) {
     const resolved = path.resolve(filePath);
-    return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+    return process.platform === 'win32' ? windowsPathKey(resolved) : resolved;
 }
 
 /**
@@ -160,9 +161,8 @@ export function runAfterPathLocks(task) {
 /**
  * Reserve every requested path synchronously, then wait until all of them are granted.
  * The task does not start while any requested lock is still queued, and this call
- * never awaits one lock before reserving the others. Nested calls fail with
- * `lock_reentered` when they need a key already held exclusively or would
- * upgrade a shared key to exclusive. Queue follow-up work after release with
+ * never awaits one lock before reserving the others. Nested calls may only
+ * re-enter held keys without upgrading their mode; otherwise LockOrderError is thrown. Queue follow-up work after release with
  * {@link runAfterPathLocks}.
  * A string entry is exclusive. `{ path, mode: 'shared' | 'exclusive' }` selects the mode.
  * Shared holders of one path run together. An exclusive request waits for shared
@@ -175,13 +175,16 @@ export function runAfterPathLocks(task) {
 export function withPathLocks(entries, task) {
     const requests = normalizeLockRequests(entries);
     const outer = heldModes.getStore();
-    if (outer) {
+    if (outer?.size) {
         for (const request of requests) {
             const held = outer.get(request.key);
-            if (held === 'exclusive' || (held && request.mode === 'exclusive')) {
-                return Promise.reject(new ChatLifecycleError('lock_reentered'));
+            if (!held || (held === 'shared' && request.mode === 'exclusive')) {
+                const error = new LockOrderError(request.key);
+                console.error(error, { heldKeys: [...outer.keys()], requestedKeys: requests.map(entry => entry.key) });
+                return Promise.reject(error);
             }
         }
+        return Promise.resolve().then(task);
     }
     let notifyReleased;
     const released = new Promise(resolve => { notifyReleased = resolve; });
@@ -198,7 +201,7 @@ export function withPathLocks(entries, task) {
         notifyReleased();
     });
     const done = settled.then(() => undefined, () => undefined);
-    pendingIO.add(done);
+    pendingIO.set(done, requests.map(request => request.key));
     done.then(() => {
         pendingIO.delete(done);
     });
@@ -217,6 +220,13 @@ export function chatLockPaths(filePaths) {
         { path: path.dirname(file), mode: 'shared' },
         { path: file, mode: 'exclusive' },
     ]);
+}
+
+export class LockOrderError extends Error {
+    constructor(key) {
+        super(`Nested path lock requires a new key or upgrade: ${key}`);
+        this.name = 'LockOrderError';
+    }
 }
 
 export class ChatLifecycleError extends Error {
@@ -279,80 +289,78 @@ export async function assertChatWritable(filePath, lifecycleRoot = path.dirname(
     for (const candidate of candidates) {
         try { await fs.promises.lstat(markerPath(candidate, lifecycleRoot)); }
         catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+        const authorization = reuseAuthorization.getStore();
+        if (authorization?.valid && authorization.markers.has(pathKey(markerPath(candidate, lifecycleRoot)))) continue;
         throw new ChatLifecycleError('retired_path');
     }
 }
 
-/**
- * Move an absent path's own marker aside. Names are `hold-<uuid>.json` so inherit scans skip them.
- * A visible path is left unchanged, including its marker. Parent markers are not touched.
- * @param {string} filePath
- * @param {string} lifecycleRoot
- * @returns {Promise<{filePath: string, lifecycleRoot: string, hold: string, marker: string}|null>}
- */
-async function holdRetiredPathIfAbsent(filePath, lifecycleRoot) {
+const reuseAuthorization = new AsyncLocalStorage();
+
+/** Keep the persistent marker in place until publication commits. */
+async function holdRetiredPathIfAbsent(filePath, lifecycleRoot, allowVisible = false) {
     await assertContainedChatPath(filePath, lifecycleRoot);
     try {
         await fs.promises.lstat(filePath);
-        return null;
+        if (!allowVisible) return null;
     } catch (error) {
         if (error.code !== 'ENOENT') throw error;
     }
     const marker = markerPath(filePath, lifecycleRoot);
-    let markerStat;
-    try { markerStat = await fs.promises.lstat(marker); }
+    let stat;
+    try { stat = await fs.promises.lstat(marker); }
     catch (error) { if (error.code === 'ENOENT') return null; throw error; }
-    if (markerStat.isSymbolicLink()) throw new ChatLifecycleError('path_alias');
-    const hold = path.join(path.dirname(marker), `hold-${randomUUID()}.json`);
-    await fs.promises.rename(marker, hold);
-    return { filePath, lifecycleRoot, hold, marker };
+    if (stat.isSymbolicLink()) throw new ChatLifecycleError('path_alias');
+    return { filePath, lifecycleRoot, marker, token: Symbol('publication') };
 }
 
-/** Recycle a held marker. The active marker path stays empty so the name can be reused. */
 async function commitRetiredPathHold(held) {
     if (!held) return null;
-    return recycleChatPath(held.hold, held.lifecycleRoot);
+    return recycleChatPath(held.marker, held.lifecycleRoot);
 }
 
-/**
- * Put the marker back when the visible path is still absent.
- * A path that this attempt published is not re-blocked: the hold is recycled instead.
- * @param {{filePath: string, lifecycleRoot: string, hold: string, marker: string}|null} held
- */
-async function restoreRetiredPathHold(held) {
-    if (!held) return;
+/** Only migrate old hold records whose visible path is absent. Keep ambiguous evidence. */
+export async function restoreLegacyRetiredHolds(lifecycleRoot) {
+    const directory = path.join(lifecycleRoot, '.chat-lifecycle');
+    let names;
     try {
-        await fs.promises.lstat(held.filePath);
-        await commitRetiredPathHold(held);
-        return;
+        await checkLocalPath(directory, lifecycleRoot);
+        names = await fs.promises.readdir(directory);
     } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
+        if (error.code === 'ENOENT') return;
+        throw new Error(`Legacy retired-path hold directory ${directory}: ${error.message}. See ISOLATION.md, Legacy hold-*.json recovery.`, { cause: error });
     }
-    try {
-        await fs.promises.lstat(held.marker);
-        // Another marker now occupies the active name. Keep this hold as recovery evidence.
-        await commitRetiredPathHold(held);
-        return;
-    } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
-    }
-    await fs.promises.rename(held.hold, held.marker);
-}
-
-async function settleRetiredHolds(held, commit) {
-    for (let index = held.length - 1; index >= 0; index--) {
+    for (const name of names.filter(name => /^hold-.*\.json$/.test(name))) {
+        const hold = path.join(directory, name);
         try {
-            if (commit) await commitRetiredPathHold(held[index]);
-            else await restoreRetiredPathHold(held[index]);
+            await checkLocalPath(hold, lifecycleRoot);
+            const record = JSON.parse(await fs.promises.readFile(hold, 'utf8'));
+            if (!record || typeof record.relative_path !== 'string' || !record.relative_path || path.isAbsolute(record.relative_path)) throw new ChatLifecycleError('invalid_retirement');
+            if (record.relative_path.split(/[\\/]/).includes('..')) throw new ChatLifecycleError('outside_chat_root');
+            const visible = path.resolve(lifecycleRoot, record.relative_path);
+            await assertContainedChatPath(visible, lifecycleRoot);
+            try {
+                await fs.promises.lstat(visible);
+                console.error('Legacy retired-path hold requires manual handling:', hold, visible);
+                continue;
+            } catch (error) { if (error.code !== 'ENOENT') throw error; }
+            const marker = markerPath(visible, lifecycleRoot);
+            try {
+                await fs.promises.lstat(marker);
+                console.error('Legacy retired-path hold has an existing marker; requires manual handling:', hold);
+            } catch (error) {
+                if (error.code !== 'ENOENT') throw error;
+                await fs.promises.rename(hold, marker);
+            }
         } catch (error) {
-            console.error('Retired-path admission could not settle a held marker', error);
+            throw new Error(`Legacy retired-path hold ${hold}: ${error.message}. See ISOLATION.md, Legacy hold-*.json recovery.`, { cause: error });
         }
     }
 }
 
 /**
  * Deliberate create or rename-target admission. The caller holds the path locks.
- * The marker is recycled only after `task` resolves. If `task` rejects and the visible path is still absent, the marker is restored.
+ * The marker stays in place on failure and is recycled only after `task` resolves.
  * Ordinary saves must keep using assertChatWritable. Parent markers stay, so a child cannot revive a retired directory.
  * @template T
  * @param {string} filePath
@@ -365,37 +373,33 @@ export async function usingRetiredPathReuse(filePath, lifecycleRoot, task) {
 }
 
 /**
- * Same as usingRetiredPathReuse for several paths. Holds are taken before `task` and settled afterwards.
+ * Same as usingRetiredPathReuse for several paths. Tokens are issued before `task` and revoked afterwards.
  * @template T
- * @param {Array<{filePath: string, lifecycleRoot: string}>} entries
+ * @param {Array<{filePath: string, lifecycleRoot: string, allowVisible?: boolean}>} entries
  * @param {() => Promise<T>} task
  * @returns {Promise<T>}
  */
 export async function usingRetiredPathReuses(entries, task) {
-    /** @type {Array<{filePath: string, lifecycleRoot: string, hold: string, marker: string}|null>} */
     const held = [];
-    try {
-        for (const entry of entries) held.push(await holdRetiredPathIfAbsent(entry.filePath, entry.lifecycleRoot));
-        const result = await task();
-        await settleRetiredHolds(held, true);
-        return result;
-    } catch (error) {
-        await settleRetiredHolds(held, false);
-        throw error;
+    for (const entry of entries) {
+        if (heldModes.getStore()?.get(pathKey(entry.filePath)) !== 'exclusive') throw new ChatLifecycleError('publication_lock_required');
+        held.push(await holdRetiredPathIfAbsent(entry.filePath, entry.lifecycleRoot, entry.allowVisible));
     }
+    const authorization = { valid: true, markers: new Set(held.filter(Boolean).map(hold => pathKey(hold.marker))) };
+    return reuseAuthorization.run(authorization, async () => {
+        try {
+            const result = await task();
+            for (const hold of held) await commitRetiredPathHold(hold);
+            return result;
+        } finally { authorization.valid = false; }
+    });
 }
 
-/**
- * Immediately recycle an absent path's own marker. Prefer usingRetiredPathReuse when a later step can fail.
- * A path that still exists keeps its marker for the existing writable and target_exists checks.
- * @param {string} filePath Path being created or used as a rename target
- * @param {string} [lifecycleRoot] Directory that owns the retirement markers
- * @returns {Promise<string|null>} Recycled marker path, or null when nothing was cleared
- */
+/** Legacy admission probe: marker removal requires a successful publication transaction. */
 export async function clearRetiredPathIfAbsent(filePath, lifecycleRoot = path.dirname(filePath)) {
     const held = await holdRetiredPathIfAbsent(filePath, lifecycleRoot);
-    if (!held) return null;
-    return commitRetiredPathHold(held);
+    if (held) throw new ChatLifecycleError('publication_required');
+    return null;
 }
 
 /** Move a file or directory to recoverable storage; never unlink it. */
@@ -532,6 +536,7 @@ export async function recycleRetiredChat(filePath, lifecycleRoot, reason = 'dele
 
 /** No overwrite; source changes are protected by the same locks used by saves. */
 export async function renameChatFile(source, destination, lifecycleRoot) {
+    if (!heldModes.getStore()?.has(pathKey(destination))) return withPathLocks(chatLockPaths([source, destination]), () => renameChatFile(source, destination, lifecycleRoot));
     await assertChatWritable(source, lifecycleRoot);
     // Destination admission only. The source stays retired for ordinary saves until this rename commits.
     return usingRetiredPathReuse(destination, lifecycleRoot, async () => {
@@ -559,8 +564,13 @@ export async function renameChatFile(source, destination, lifecycleRoot) {
 }
 
 /** Wait for every reservation that has already been accepted, including those still queued. */
-export async function waitForChatIO() {
-    while (pendingIO.size) await Promise.all([...pendingIO]);
+export function pendingChatIOPaths() {
+    return [...new Set([...pendingIO.values()].flat())];
+}
+
+export async function waitForChatIO(signal) {
+    if (!(signal instanceof AbortSignal)) throw new TypeError('Chat I/O drain requires an AbortSignal');
+    while (pendingIO.size) await waitForShutdown(Promise.all([...pendingIO.keys()]), signal);
 }
 
 /**

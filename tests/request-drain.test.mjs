@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
-import { createRequestDrain } from '../src/request-drain.js';
+import { createRequestDrain, createShutdownDeadline } from '../src/request-drain.js';
 import { withPathLock, waitForChatIO } from '../src/chat-io.js';
 import { createChatBackupScheduler } from '../src/chat-backup-scheduler.js';
 
@@ -22,8 +22,8 @@ test('shutdown rejects new requests and drains admitted writes and trailing back
     });
     let stopped = false;
     const shutdown = (async () => {
-        await drain.stop();
-        await waitForChatIO();
+        await drain.stop(AbortSignal.timeout(5_000));
+        await waitForChatIO(AbortSignal.timeout(5_000));
         await backups.flush();
         stopped = true;
     })();
@@ -42,7 +42,7 @@ test('closed responses release the drain and completion is idempotent', async ()
     const drain = createRequestDrain();
     const response = new EventEmitter();
     drain.middleware({}, response, () => {});
-    const stopping = drain.stop();
+    const stopping = drain.stop(AbortSignal.timeout(5_000));
     response.emit('close');
     response.emit('finish');
     await stopping;
@@ -62,7 +62,7 @@ test('disconnect does not release an async persistence handler before it complet
     drain.middleware({}, response, () => entry.handle({}, response, assert.ifError));
     response.emit('close');
     let stopped = false;
-    const stopping = drain.stop().then(() => { stopped = true; });
+    const stopping = drain.stop(AbortSignal.timeout(5_000)).then(() => { stopped = true; });
     await Promise.resolve();
     assert.equal(stopped, false);
     release();
@@ -109,7 +109,7 @@ test('sync handlers that return a promise are tracked and rejected after stop', 
     drain.middleware({}, response, () => entry.handle({}, response, assert.ifError));
     response.emit('close');
     let stopped = false;
-    const stopping = drain.stop(5_000).then(() => { stopped = true; });
+    const stopping = drain.stop(AbortSignal.timeout(5_000)).then(() => { stopped = true; });
     await Promise.resolve();
     assert.equal(stopped, false);
     assert.equal(completed, false);
@@ -138,7 +138,7 @@ test('sync thenable rejections are forwarded and do not block a later drain', as
     await tracker.stop();
 });
 
-test('drain timeout continues shutdown while a response stays open', async () => {
+test('drain deadline rejects while a response stays open', async () => {
     const { createRequestDrain, resolveDrainTimeoutMs, DEFAULT_DRAIN_TIMEOUT_MS } = await import('../src/request-drain.js');
     assert.equal(resolveDrainTimeoutMs(undefined), DEFAULT_DRAIN_TIMEOUT_MS);
     assert.equal(resolveDrainTimeoutMs(''), DEFAULT_DRAIN_TIMEOUT_MS);
@@ -154,15 +154,98 @@ test('drain timeout continues shutdown while a response stays open', async () =>
     let nextCalls = 0;
     drain.middleware({}, response, () => { nextCalls += 1; });
     const started = Date.now();
+    const deadline = createShutdownDeadline(30);
     try {
-        await drain.stop(30);
+        await assert.rejects(drain.stop(deadline.signal), /Shutdown deadline expired/);
     } finally {
+        deadline.dispose();
         console.error = original;
     }
     assert.equal(nextCalls, 1);
     assert.ok(Date.now() - started < 2_000, 'drain timeout must not wait for the open response');
-    assert.match(logs.join('\n'), /timed out after 30ms/);
+    assert.deepEqual(logs, []);
     let rejected;
     drain.middleware({}, { sendStatus(status) { rejected = status; } }, () => assert.fail('late request admitted'));
     assert.equal(rejected, 503);
+});
+
+test('one 200ms shutdown budget reports a hung atomic write and preserves the original', async () => {
+    const { spawn } = await import('node:child_process');
+    const { pathLockKey } = await import('../src/chat-io.js');
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'shutdown-deadline-'));
+    const target = path.join(root, 'hanging.jsonl');
+    fs.writeFileSync(target, 'original');
+    const script = `
+        import fs from 'node:fs';
+        import { withPathLock, writeChatFile, pendingChatIOPaths, waitForChatIO } from './src/chat-io.js';
+        import { createRequestDrain, createPersistenceTracker, runShutdown } from './src/request-drain.js';
+        const target = ${JSON.stringify(target)};
+        const originalWrite = fs.write;
+        let entered;
+        const ready = new Promise(resolve => { entered = resolve; });
+        fs.write = (...args) => { entered(); };
+        const tracker = createPersistenceTracker();
+        const drain = createRequestDrain(tracker);
+        const entry = { handle: () => withPathLock(target, () => writeChatFile(target, 'replacement')) };
+        tracker.trackRouter({ stack: [{ route: { stack: [entry] } }] });
+        entry.handle({}, {}, console.error);
+        await ready;
+        const started = Date.now();
+        const code = await runShutdown([
+            ['requests', signal => drain.stop(signal)],
+            ['chat', signal => waitForChatIO(signal)],
+        ], pendingChatIOPaths, 200);
+        fs.write = originalWrite;
+        console.log(JSON.stringify({ code, elapsed: Date.now() - started }));
+        process.exitCode = code;
+    `;
+    try {
+        const child = spawn(process.execPath, ['--input-type=module', '-e', script], { cwd: process.cwd() });
+        let stdout = '', stderr = '';
+        child.stdout.on('data', data => { stdout += data; });
+        child.stderr.on('data', data => { stderr += data; });
+        const code = await new Promise(resolve => child.on('exit', resolve));
+        const result = JSON.parse(stdout.trim());
+        assert.equal(code, 1);
+        assert.equal(result.code, 1);
+        assert.ok(result.elapsed <= 300, stdout);
+        assert.match(stderr, /Shutdown incomplete/);
+        assert.ok(stderr.includes(JSON.stringify(pathLockKey(target)).slice(1, -1)), stderr);
+        assert.equal(fs.readFileSync(target, 'utf8'), 'original');
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('chat and backup waits consume the same shutdown signal and report pending keys', async () => {
+    const { runShutdown } = await import('../src/request-drain.js');
+    const { pendingChatIOPaths } = await import('../src/chat-io.js');
+    let release;
+    const blocked = new Promise(resolve => { release = resolve; });
+    const backups = createChatBackupScheduler(() => blocked);
+    backups.schedule('/backup/hanging.jsonl');
+    const logs = [];
+    const original = console.error;
+    console.error = (...args) => logs.push(args);
+    try {
+        const code = await runShutdown([
+            ['chat', signal => waitForChatIO(signal)],
+            ['backups', signal => backups.flush(signal)],
+        ], () => [...pendingChatIOPaths(), ...backups.pendingPaths()], 20);
+        assert.equal(code, 1);
+        assert.ok(JSON.stringify(logs).includes('/backup/hanging.jsonl'));
+    } finally {
+        console.error = original;
+        release();
+        await backups.flush();
+    }
+});
+
+test('shutdown drain APIs reject missing signals and legacy numeric timeouts', async () => {
+    await assert.rejects(waitForChatIO(), TypeError);
+    await assert.rejects(createRequestDrain().stop(), TypeError);
+    await assert.rejects(createRequestDrain().stop(20), TypeError);
 });

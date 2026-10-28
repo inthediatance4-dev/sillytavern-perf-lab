@@ -5,19 +5,13 @@ import os from 'node:os';
 /**
  * Identity used to tell a live owner from a recycled pid.
  *
- * Linux records `/proc/sys/kernel/random/boot_id` and the process start time.
- * `starttime` in `/proc/<pid>/stat` is clock ticks since boot (USER_HZ is 100
- * on Linux). It is converted with `btime` from `/proc/stat`. `btime` is whole
- * seconds, so the result is stable for one process but only roughly aligned
- * with `Date.now()`.
+ * Linux identity uses the boot id and raw start ticks, independent of wall time.
+ * processStartMs is diagnostic only on Linux.
  *
  * Windows boot estimates are diagnostic only: clock changes cannot authorize
  * reclaiming an existing PID. Reliable process start identities decide reuse;
  * unavailable identity fails closed. Only this process's start time is cached.
  */
-
-/** USER_HZ for `/proc/<pid>/stat` starttime. It is the Linux ABI value, not the timer Hz. */
-const LINUX_USER_HZ = 100;
 
 /**
  * `win-boot:` stamps within this many seconds are the same boot.
@@ -44,8 +38,6 @@ let cachedBootId;
 let windowsBootSample = null;
 /** @type {boolean} */
 let windowsBootUnstable = false;
-/** @type {number|null|undefined} */
-let cachedBtimeSeconds;
 /** @type {boolean} */
 let windowsProbeDisabled = false;
 /** @type {Map<number, number|undefined>} */
@@ -125,46 +117,15 @@ export function readBootId() {
     return cachedBootId ?? undefined;
 }
 
-/**
- * @returns {number|null}
+/** Parse field 22 after the last closing parenthesis of comm.
+ * @param {string} text
+ * @returns {string|undefined}
  */
-function readBtimeSeconds() {
-    if (cachedBtimeSeconds !== undefined) return cachedBtimeSeconds;
-    cachedBtimeSeconds = null;
-    if (process.platform !== 'linux') return cachedBtimeSeconds;
-    try {
-        const text = fs.readFileSync('/proc/stat', 'utf8');
-        const line = text.split('\n').find(entry => entry.startsWith('btime '));
-        const value = line ? Number(line.slice('btime '.length).trim()) : Number.NaN;
-        if (Number.isInteger(value) && value > 0) cachedBtimeSeconds = value;
-    } catch {
-        cachedBtimeSeconds = null;
-    }
-    return cachedBtimeSeconds;
-}
-
-/**
- * @param {number} pid
- * @returns {number|undefined}
- */
-function readLinuxProcessStartMs(pid) {
-    if (process.platform !== 'linux') return undefined;
-    if (!Number.isInteger(pid) || pid <= 0) return undefined;
-    let text;
-    try {
-        text = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
-    } catch {
-        return undefined;
-    }
+export function parseLinuxStartTicks(text) {
     const end = text.lastIndexOf(')');
     if (end < 0) return undefined;
-    const fields = text.slice(end + 2).trim().split(/\s+/);
-    // Field 22 (starttime) is the 20th token after the comm field.
-    const ticks = Number(fields[19]);
-    if (!Number.isFinite(ticks) || ticks < 0) return undefined;
-    const btime = readBtimeSeconds();
-    if (btime == null) return undefined;
-    return Math.round(btime * 1000 + (ticks * 1000) / LINUX_USER_HZ);
+    const ticks = text.slice(end + 1).trim().split(/\s+/)[19];
+    return /^(0|[1-9]\d*)$/.test(ticks) ? ticks : undefined;
 }
 
 /**
@@ -224,11 +185,23 @@ function readWindowsProcessStartMs(pid) {
 
 /**
  * @param {number} pid
- * @returns {{ bootId?: string, processStartMs?: number }}
+ * @param {{ fs?: typeof fs, strict?: boolean }} [options]
+ * @returns {{ bootId?: string, startTicks?: string, processStartMs?: number }}
  */
-export function readProcessIdentity(pid) {
+export function readProcessIdentity(pid, { fs: procFs = fs, strict = false } = {}) {
+    if (process.platform === 'linux') {
+        const identity = {};
+        try {
+            identity.bootId = procFs.readFileSync('/proc/sys/kernel/random/boot_id', 'utf8').trim();
+            identity.startTicks = parseLinuxStartTicks(procFs.readFileSync(`/proc/${pid}/stat`, 'utf8'));
+            if (!identity.bootId || identity.startTicks === undefined) throw Object.assign(new Error('Invalid Linux process identity'), { code: 'EIO', op: 'read' });
+        } catch (error) {
+            if (strict) throw error;
+        }
+        return identity;
+    }
     const bootId = readBootId();
-    const processStartMs = readLinuxProcessStartMs(pid) ?? readWindowsProcessStartMs(pid);
+    const processStartMs = readWindowsProcessStartMs(pid);
     /** @type {{ bootId?: string, processStartMs?: number }} */
     const identity = {};
     if (bootId) identity.bootId = bootId;
@@ -272,24 +245,23 @@ function signalPid(pid) {
  * Whether `owner` still names the process that created it.
  * `dead` and `reused` may be reclaimed. `live` must be kept.
  * A lock with no boot id and no process start is live while the pid is alive.
- * When both sides have `processStartMs`, that match decides and `bootId` does
- * not override it. Exact boot id is checked only when process start is absent
- * on both sides. Approximate Windows boot stamps never authorize reclaim. A start time on only one side fails closed (`live`).
- * Identity that cannot be re-read is live as well.
+ * Linux v2 records compare only boot id and raw ticks. Legacy Linux records
+ * are kept while the PID exists. Windows uses CreationTime; approximate boot
+ * stamps cannot authorize reclaim. Unavailable identity fails closed.
  * `observed` supplies a forged signal and identity for tests. Production
  * callers omit it and the live process table is probed.
- * @param {{ pid: number, bootId?: string, processStartMs?: number }} owner
- * @param {{ signaled?: 'alive'|'dead'|'eperm'|'unknown', identity?: { bootId?: string, processStartMs?: number } }} [observed]
+ * @param {{ v?: number, pid: number, bootId?: string, startTicks?: string, processStartMs?: number }} owner
+ * @param {{ signaled?: 'alive'|'dead'|'eperm'|'unknown', identity?: { bootId?: string, startTicks?: string, processStartMs?: number } }} [observed]
  * @returns {'live'|'dead'|'reused'}
  */
 export function classifyPidLiveness(owner, observed) {
     const signaled = observed && observed.signaled ? observed.signaled : signalPid(owner.pid);
     if (signaled === 'dead') return 'dead';
-    if (signaled === 'unknown') return 'live';
+    if (signaled === 'unknown' || owner.v !== 2) return 'live';
     const recordedBoot = typeof owner.bootId === 'string' && owner.bootId.length > 0 ? owner.bootId : null;
     const recordedStart = Number.isSafeInteger(owner.processStartMs) ? owner.processStartMs : null;
     if (!recordedBoot && recordedStart === null) return 'live';
-    /** @type {{ bootId?: string, processStartMs?: number }} */
+    /** @type {{ bootId?: string, startTicks?: string, processStartMs?: number }} */
     let current;
     if (observed && Object.prototype.hasOwnProperty.call(observed, 'identity')) {
         current = observed.identity || {};
@@ -299,6 +271,12 @@ export function classifyPidLiveness(owner, observed) {
         } catch {
             return 'live';
         }
+    }
+    if ((recordedBoot && !recordedBoot.startsWith('win-boot:')) || current.startTicks !== undefined) {
+        if (!recordedBoot || !current.bootId) return 'live';
+        if (recordedBoot !== current.bootId) return 'reused';
+        if (typeof owner.startTicks !== 'string' || typeof current.startTicks !== 'string') return 'live';
+        return owner.startTicks === current.startTicks ? 'live' : 'reused';
     }
     const currentBoot = typeof current.bootId === 'string' && current.bootId.length > 0 ? current.bootId : null;
     const currentStart = Number.isSafeInteger(current.processStartMs) ? current.processStartMs : null;

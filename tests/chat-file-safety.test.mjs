@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
+import { Readable } from 'node:stream';
 import test, { after } from 'node:test';
 import express from 'express';
 
@@ -207,4 +208,60 @@ test('real recent caches degraded metadata previews and invalidates changed bad-
         assert.equal(third.data[0].chat_items, 3, 'Current nonblank counting still excludes only the metadata and final unreadable row');
         assert.equal(streams, 4);
     } finally { fs.createReadStream = original; }
+});
+
+const exportText = name => post('/export', {
+    avatar_url: 'Synthetic.png', is_group: false, file: `${name}.jsonl`,
+    format: 'txt', exportfilename: 'synthetic.txt',
+});
+
+for (const [label, contents, status, line] of [
+    ['malformed-middle', jsonl([header(), message('before')]) + '\n{bad json\n' + JSON.stringify(message('after')), 400, 3],
+    ['truncated-last', jsonl([header(), message('before')]) + '\n{"mes":', 400, 3],
+    ['empty-lines', '\n \t\n' + JSON.stringify(message('hello')) + '\n\n', 200],
+    ['BOM', '\uFEFF' + jsonl([header(), message('hello')]), 200],
+]) {
+    test(`HTTP text export handles ${label} and serves subsequent requests`, async () => {
+        fixture(`export-${label}`, contents);
+        const result = await exportText(`export-${label}`);
+        assert.equal(result.status, status);
+        if (line) {
+            assert.equal(result.data.line, line);
+            assert.ok(!('result' in result.data), 'No partial export is sent');
+        } else {
+            assert.equal(result.data.result, 'Synthetic: hello\n\n');
+        }
+        fixture('export-healthy', jsonl([header(), message('hello')]));
+        assert.equal((await exportText('export-healthy')).data.result, 'Synthetic: hello\n\n');
+    });
+}
+
+test('HTTP text export settles once on a mid-stream read error and remains available', async () => {
+    const file = fixture('export-read-error', jsonl([header(), message('hello')]));
+    const original = fs.createReadStream;
+    let injected;
+    fs.createReadStream = (target, ...args) => {
+        if (path.resolve(String(target)) !== file) return original(target, ...args);
+        let started = false;
+        injected = new Readable({
+            read() {
+                if (started) return;
+                started = true;
+                this.push(JSON.stringify(header()) + '\n');
+                setImmediate(() => this.destroy(Object.assign(new Error('Synthetic read error'), { code: 'EIO' })));
+            },
+        });
+        return injected;
+    };
+    try {
+        const result = await exportText('export-read-error');
+        assert.equal(result.status, 500);
+        assert.equal(result.data.line, 2);
+        assert.ok(!('result' in result.data));
+        assert.equal(injected.destroyed, true);
+    } finally {
+        fs.createReadStream = original;
+    }
+    fixture('export-after-read-error', jsonl([message('hello')]));
+    assert.equal((await exportText('export-after-read-error')).data.result, 'Synthetic: hello\n\n');
 });

@@ -1,0 +1,54 @@
+
+> sillytavern@1.19.0 bench:perf
+> node scripts/benchmark-performance.mjs
+
+{
+  "node": "v24.15.0",
+  "platform": "win32",
+  "baselineCommit": "db53872d3e2256e0214fbf0576f9e125eb50592d",
+  "syntheticOnly": true,
+  "search": [
+    {
+      "messages": 1000,
+      "bytes": 585910,
+      "baseline_ms": 115.35,
+      "improved_ms": 3.5,
+      "baseline_text_checks": 500501,
+      "improved_text_checks": 1001
+    },
+    {
+      "messages": 2000,
+      "bytes": 1172910,
+      "baseline_ms": 419.78,
+      "improved_ms": 4.59,
+      "baseline_text_checks": 2001001,
+      "improved_text_checks": 2001
+    },
+    {
+      "messages": 4000,
+      "bytes": 2346910,
+      "baseline_ms": 1551.1,
+      "improved_ms": 7.58,
+      "baseline_text_checks": 8002001,
+      "improved_text_checks": 4001
+    }
+  ],
+  "backup": {
+    "candidates": 5000,
+    "baseline_stat_calls": 108106,
+    "improved_stat_calls": 5000,
+    "filesystem": "mocked; nothing deleted or moved"
+  },
+  "io": {
+    "baseline": {
+      "bytes": 10485776,
+      "operation_ms": 19.29,
+      "timer_response_ms": 19.44
+    },
+    "improved": {
+      "bytes": 10485776,
+      "operation_ms": 20.8,
+      "timer_response_ms": 0.57
+    }
+  }
+}

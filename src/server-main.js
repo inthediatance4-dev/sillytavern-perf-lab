@@ -1,3 +1,6 @@
+import { runShutdown } from './request-drain.js';
+import { pendingChatIOPaths } from './chat-io.js';
+import { restoreLegacyRetiredHolds } from './chat-io.js';
 // native node modules
 import fs from 'node:fs';
 import path from 'node:path';
@@ -72,7 +75,7 @@ import { checkForNewContent } from './endpoints/content-manager.js';
 import { init as settingsInit } from './endpoints/settings.js';
 import { createRequestDrain } from './request-drain.js';
 import { acquireDataRootOwnership } from './data-root-owner.js';
-import { flushChatBackups } from './endpoints/chats.js';
+import { flushChatBackups, pendingChatBackupPaths } from './endpoints/chats.js';
 import { redirectDeprecatedEndpoints, ServerStartup, setupPrivateEndpoints } from './server-startup.js';
 import { diskCache } from './endpoints/characters.js';
 import { migrateFlatSecrets } from './endpoints/secrets.js';
@@ -102,10 +105,11 @@ if (!cliArgs.enableIPv6 && !cliArgs.enableIPv4) {
 // Opt-in. Ordinary startup and tests leave this unset. The lab launcher sets it.
 if (cliArgs.exclusiveDataRoot) {
     try {
-        acquireDataRootOwnership(globalThis.DATA_ROOT);
+        const owner = await acquireDataRootOwnership(globalThis.DATA_ROOT);
+        if (!owner.lockPath) throw new Error('Data-root ownership was not verified');
     } catch (error) {
         console.error(error.message);
-        process.exit(1);
+        process.exit(78);
     }
 }
 // Set keep-alive preference for all HTTP/HTTPS requests.
@@ -331,18 +335,16 @@ async function preSetupTasks() {
     const exitProcess = async () => {
         if (isExiting) return;
         isExiting = true;
-        // stop() rejects new work immediately. Its wait is bounded by
-        // SILLYTAVERN_DRAIN_TIMEOUT_MS (default 30s) and then shutdown continues.
         console.log('Stopping admission and draining in-flight requests.');
-        await requestDrain.stop();
-        await flushChatBackups();
-        await statsOnExit();
-        if (typeof cleanupPlugins === 'function') {
-            await cleanupPlugins();
-        }
-        diskCache.dispose();
+        const code = await runShutdown([
+            ['requests', signal => requestDrain.stop(signal)],
+            ['chat I/O and backups', signal => flushChatBackups(signal)],
+            ['statistics', () => statsOnExit()],
+            ['plugins', () => typeof cleanupPlugins === 'function' ? cleanupPlugins() : undefined],
+            ['cache', () => diskCache.dispose()],
+        ], () => [...pendingChatIOPaths(), ...pendingChatBackupPaths()]);
         setWindowTitle(consoleTitle);
-        process.exit();
+        process.exit(code || process.exitCode || 0);
     };
 
     // Set up event listeners for a graceful shutdown
@@ -500,6 +502,13 @@ function setDnsResolutionOrder() {
 initUserStorage(globalThis.DATA_ROOT)
     .then(setDnsResolutionOrder)
     .then(ensurePublicDirectoriesExist)
+    .then(async () => {
+        for (const directories of await getUserDirectoriesList()) {
+            await restoreLegacyRetiredHolds(directories.chats);
+            await restoreLegacyRetiredHolds(directories.characters);
+            await restoreLegacyRetiredHolds(directories.groupChats);
+        }
+    })
     .then(migrateUserData)
     .then(migrateSystemPrompts)
     .then(migratePublicOverrides)

@@ -1,38 +1,50 @@
 import assert from 'node:assert/strict';
+import { summarize, medianDifference, referenceCriteria, bootstrapSeed, resamples } from './benchmark-statistics.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import readline from 'node:readline';
 import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { performance } from 'node:perf_hooks';
-import { sync as writeFileAtomicSync } from 'write-file-atomic';
+import { performance, monitorEventLoopDelay } from 'node:perf_hooks';
+import { pathToFileURL } from 'node:url';
 
 const root = path.resolve('.fixtures', `benchmark-${randomUUID()}`);
 fs.mkdirSync(root, { recursive: true });
+process.on('exit', () => fs.rmSync(root, { recursive: true, force: true }));
 globalThis.DATA_ROOT = root;
 const config = path.join(root, 'config.yaml');
 fs.writeFileSync(config, 'backups:\n  chat:\n    enabled: false\n');
 const util = await import('../src/util.js');
 util.setConfigFilePath(config);
-const { getChatInfo } = await import('../src/endpoints/chats.js');
+const { getChatInfo, trySaveChat } = await import('../src/endpoints/chats.js');
 const { createTextMatcher } = await import('../src/chat-search.js');
 const { writeChatFile, recycleOldChatBackups } = await import('../src/chat-io.js');
-const baselineCommit = 'db53872d3e2256e0214fbf0576f9e125eb50592d';
-const original = execFileSync('git', ['show', `${baselineCommit}:src/endpoints/chats.js`], { encoding: 'utf8' });
-const originalUtil = execFileSync('git', ['show', `${baselineCommit}:src/util.js`], { encoding: 'utf8' });
-const infoSource = original.slice(original.indexOf('export async function getChatInfo('), original.indexOf('export const router = express.Router();')).replace('export async', 'async');
-const baselineInfo = new Function('fs', 'path', 'readline', '_', 'formatBytes', 'tryParse', infoSource + '\nreturn getChatInfo;')(fs, path, readline, { isObjectLike: value => value !== null && typeof value === 'object' }, util.formatBytes, util.tryParse);
-const matcherSource = original.slice(original.indexOf('const hasTextMatch = (textArray) => {'), original.indexOf('for (const chatFile of chatFiles) {'));
-const baselineMatcher = new Function('fragments', matcherSource + '\nreturn hasTextMatch;');
-const output = { node: process.version, platform: process.platform, baselineCommit, syntheticOnly: true, search: [], backup: {}, io: {} };
-const median = values => values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
+const baselineCommit = execFileSync('git', ['rev-parse', '--verify', `${process.env.BENCH_BASELINE || '48a153e'}^{commit}`], { encoding: 'utf8' }).trim();
+const runs = Number(process.env.BENCH_RUNS || 30);
+assert.ok(Number.isSafeInteger(runs) && runs >= 30, 'BENCH_RUNS must be an integer >= 30');
+const warmup = Number(process.env.BENCH_WARMUP || 5);
+assert.ok(Number.isSafeInteger(warmup) && warmup >= 1, 'BENCH_WARMUP must be an integer >= 1');
+// Archive the actual modules under the fixture so both variants resolve the same
+// installed dependencies. No worktree, branch, tag or baseline source is modified.
+const baselineRoot = path.join(root, 'baseline');
+fs.mkdirSync(baselineRoot);
+const archive = execFileSync('git', ['archive', baselineCommit, 'src', 'package.json'], { maxBuffer: 32 * 1024 * 1024 });
+execFileSync('tar', ['-xf', '-', '-C', baselineRoot], { input: archive });
+const loadBaseline = file => import(pathToFileURL(path.join(baselineRoot, 'src', file)).href);
+const baselineUtil = await loadBaseline('util.js');
+baselineUtil.setConfigFilePath(config);
+const baselineChats = await loadBaseline('endpoints/chats.js');
+const baselineIO = await loadBaseline('chat-io.js');
+const baselineSearch = await loadBaseline('chat-search.js');
+const baselineInfo = baselineChats.getChatInfo;
+const baselineMatcher = baselineSearch.createTextMatcher;
+const output = { node: process.version, platform: process.platform, baselineCommit, currentCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), runs, warmup, bootstrap: { resamples, seed: bootstrapSeed, method: 'percentile; paired iterations for median differences', confidence: 0.95 }, variantLabels: { baseline: 'baseline', improved: 'current' }, syntheticOnly: true, backupsEnabled: false, search: [], backup: {}, io: {}, saveChat: {} };
 
 for (const count of [1000, 2000, 4000]) {
     const file = path.join(root, `chat-${count}.jsonl`);
     const content = [{ chat_metadata: {} }, ...Array.from({ length: count }, (_, i) => ({ name: 'Synthetic', mes: 'ordinary synthetic text '.repeat(22) + i, send_date: '2026-01-01' }))].map(row => JSON.stringify(row)).join('\n');
     fs.writeFileSync(file, content);
     const timings = { baseline: [], improved: [] };
-    for (let run = 0; run < 3; run++) {
+    for (let run = 0; run < runs; run++) {
         const names = run % 2 ? ['improved', 'baseline'] : ['baseline', 'improved'];
         for (const name of names) {
             const start = performance.now();
@@ -56,16 +68,17 @@ for (const count of [1000, 2000, 4000]) {
     for (const fragments of [['text', String(count - 1)], ['absent'], []]) {
         assert.deepEqual(await getChatInfo(file, {}, true, createTextMatcher(fragments)), await baselineInfo(file, {}, true, baselineMatcher(fragments)));
     }
-    output.search.push({ messages: count, bytes: Buffer.byteLength(content), baseline_ms: Number(median(timings.baseline).toFixed(2)), improved_ms: Number(median(timings.improved).toFixed(2)), baseline_text_checks: checks.baseline, improved_text_checks: checks.improved });
+    output.search.push({ messages: count, bytes: Buffer.byteLength(content), baseline_ms: summarize(timings.baseline), improved_ms: summarize(timings.improved), baseline_text_checks: checks.baseline, improved_text_checks: checks.improved });
 }
 
-const cleanupStart = originalUtil.indexOf('export function removeOldBackups(');
-const cleanupSource = originalUtil.slice(cleanupStart, originalUtil.indexOf('\n/**', cleanupStart)).replace('export function', 'function');
 let baselineStats = 0;
 const count = 5000;
 const names = Array.from({ length: count }, (_, i) => `chat_synthetic_${i}.jsonl`);
 const fakeFs = { readdirSync: () => names.slice(), statSync: file => { baselineStats++; return { mtimeMs: (Number(path.parse(file).name.split('_').at(-1)) * 7919) % 104729 }; }, unlinkSync: () => {} };
-new Function('fs', 'path', 'getConfigValue', cleanupSource + '\nreturn removeOldBackups;')(fakeFs, path, () => 50)('synthetic', 'chat_', 50);
+const originalSync = { readdirSync: fs.readdirSync, statSync: fs.statSync, unlinkSync: fs.unlinkSync };
+Object.assign(fs, fakeFs);
+try { baselineUtil.removeOldBackups('synthetic', 'chat_', 50); }
+finally { Object.assign(fs, originalSync); }
 let improvedStats = 0;
 const real = { readdir: fs.promises.readdir, stat: fs.promises.stat, mkdir: fs.promises.mkdir, rename: fs.promises.rename };
 fs.promises.readdir = async () => names.map(name => ({ name, isFile: () => true }));
@@ -76,18 +89,53 @@ try { await recycleOldChatBackups('synthetic', 'chat_', 50); }
 finally { Object.assign(fs.promises, real); }
 output.backup = { candidates: count, baseline_stat_calls: baselineStats, improved_stat_calls: improvedStats, filesystem: 'mocked; nothing deleted or moved' };
 
-const payload = JSON.stringify({ synthetic: 'x'.repeat(10 * 1024 * 1024) });
-for (const variant of ['baseline', 'improved']) {
-    const file = path.join(root, `write-${variant}.jsonl`);
-    const start = performance.now();
-    const timer = new Promise(resolve => setTimeout(() => resolve(performance.now() - start), 0));
-    if (variant === 'baseline') writeFileAtomicSync(file, payload, 'utf8');
-    else await writeChatFile(file, payload);
-    const total = performance.now() - start;
-    const timerDelay = await timer;
-    assert.equal(await fs.promises.readFile(file, 'utf8'), payload);
-    output.io[variant] = { bytes: Buffer.byteLength(payload), operation_ms: Number(total.toFixed(2)), timer_response_ms: Number(timerDelay.toFixed(2)) };
+const payload = 'x'.repeat(10 * 1024 * 1024);
+const chat = [{ chat_metadata: {} }, ...Array.from({ length: 1000 }, (_, i) => ({ name: 'Synthetic', mes: 'synthetic text '.repeat(22) + i }))];
+const serializedChat = chat.map(row => JSON.stringify(row)).join('\n');
+const variants = {
+    baseline: { save: baselineChats.trySaveChat, write: baselineIO.writeChatFile },
+    improved: { save: trySaveChat, write: writeChatFile },
+};
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+for (const [measurement, data, expected] of [['saveChat', chat, serializedChat], ['io', payload, payload]]) {
+    const samples = Object.fromEntries(Object.keys(variants).map(name => [name, { operation: [], eventLoop: [] }]));
+    for (let run = 0; run < warmup; run++) {
+        for (const name of run % 2 ? ['improved', 'baseline'] : ['baseline', 'improved']) {
+            const file = path.join(root, `${measurement}-${name}.jsonl`);
+            if (measurement === 'saveChat') await variants[name].save(data, file, false, 'synthetic', 'Synthetic', root, root);
+            else await variants[name].write(file, data);
+        }
+    }
+    for (let run = 0; run < runs; run++) {
+        for (const name of run % 2 ? ['improved', 'baseline'] : ['baseline', 'improved']) {
+            const file = path.join(root, `${measurement}-${name}.jsonl`);
+            const histogram = monitorEventLoopDelay({ resolution: 1 });
+            histogram.enable();
+            await sleep(10); // Arm the monitor before any synchronous work starts.
+            histogram.reset();
+            const start = performance.now();
+            if (measurement === 'saveChat') await variants[name].save(data, file, false, 'synthetic', 'Synthetic', root, root);
+            else await variants[name].write(file, data);
+            samples[name].operation.push(performance.now() - start);
+            await sleep(10); // Allow the delayed monitor callback to run.
+            histogram.disable();
+            samples[name].eventLoop.push(histogram.percentile(95) / 1e6);
+            assert.equal(await fs.promises.readFile(file, 'utf8'), expected);
+        }
+    }
+    output[measurement].median_difference_ms = medianDifference(samples.baseline.operation, samples.improved.operation);
+    output[measurement].event_loop_median_difference_ms = medianDifference(samples.baseline.eventLoop, samples.improved.eventLoop);
+    for (const name of Object.keys(variants)) {
+        output[measurement][name] = {
+            bytes: Buffer.byteLength(expected),
+            operation_ms: summarize(samples[name].operation),
+            event_loop_delay_p95_ms: summarize(samples[name].eventLoop),
+        };
+    }
 }
-fs.mkdirSync('.evidence', { recursive: true });
-fs.writeFileSync('.evidence/performance-results.json', JSON.stringify(output, null, 2));
+output.reference_criteria = {};
+for (const measurement of ['saveChat', 'io']) {
+    const { baseline, improved } = output[measurement];
+    output.reference_criteria[measurement] = referenceCriteria(baseline.operation_ms, improved.operation_ms);
+}
 console.log(JSON.stringify(output, null, 2));

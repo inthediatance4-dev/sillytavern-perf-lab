@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -122,7 +123,7 @@ test('a visible path keeps its retirement marker and an occupied rename target i
     assert.equal(await fs.promises.readFile(occupied, 'utf8'), 'occupied-body');
 });
 
-test('clearing an absent child does not drop a retired parent marker or follow a marker symlink', async () => {
+test('clearing an absent child does not drop a retired parent marker or follow a marker symlink', async t => {
     const directory = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'retired-parent-'));
     const chats = path.join(directory, 'Card');
     await fs.promises.mkdir(chats);
@@ -137,7 +138,7 @@ test('clearing an absent child does not drop a retired parent marker or follow a
     await fs.promises.writeFile(outside, 'do-not-follow');
     const held = `${marker}.held`;
     await fs.promises.rename(marker, held);
-    await fs.promises.symlink(outside, marker);
+    if (!await symlinkOrSkip(t, outside, marker)) return;
     await assert.rejects(io.clearRetiredPathIfAbsent(chats, directory), error => error instanceof io.ChatLifecycleError && error.reason === 'path_alias');
     assert.equal(await fs.promises.readFile(outside, 'utf8'), 'do-not-follow');
     assert.equal(await fs.promises.readFile(held, 'utf8') !== '', true);
@@ -237,4 +238,114 @@ test('a failed chat rename restores the destination retirement marker', async ()
         error => error instanceof io.ChatLifecycleError && error.reason === 'retired_path',
     );
     await io.assertChatWritable(source, directory);
+});
+
+test('delete then re-import publishes a character with writable chats', async () => {
+    const name = 'ReimportWritable';
+    const bytes = pngCard(name);
+    fs.writeFileSync(path.join(dirs.characters, `${name}.png`), bytes);
+    fs.mkdirSync(path.join(dirs.chats, name));
+    fs.writeFileSync(path.join(dirs.chats, name, 'old.jsonl'), 'old');
+    assert.equal((await invoke(characters.router, '/delete', { avatar_url: `${name}.png`, delete_chats: true })).status, 200);
+    fs.writeFileSync(path.join(dirs.uploads, 'reimport.png'), bytes);
+    const imported = await invoke(characters.router, '/import', { file_type: 'png' }, {
+        file: { destination: dirs.uploads, filename: 'reimport.png' },
+    });
+    assert.equal(imported.status, 200);
+    assert.equal(imported.data.file_name, name);
+    assert.equal((await invoke(chats.router, '/save', {
+        avatar_url: `${name}.png`, file_name: 'new', chat: [{ mes: 'fresh' }],
+    })).status, 200);
+});
+
+test('deletion cancels an import paused in image processing without resurrection', async () => {
+    const { Jimp } = await import('../src/jimp.js');
+    const name = 'ImportDeleteRace';
+    const bytes = pngCard(name);
+    const target = path.join(dirs.characters, `${name}.png`);
+    fs.writeFileSync(target, bytes);
+    fs.mkdirSync(path.join(dirs.chats, name));
+    fs.writeFileSync(path.join(dirs.uploads, 'race.png'), bytes);
+    let entered;
+    let resume;
+    const inside = new Promise(resolve => { entered = resolve; });
+    const paused = new Promise(resolve => { resume = resolve; });
+    const original = Jimp.read;
+    Jimp.read = async () => {
+        entered();
+        await paused;
+        const image = new Jimp({ width: 1, height: 1 });
+        image.getBuffer = async () => bytes;
+        return image;
+    };
+    try {
+        const importing = invoke(characters.router, '/import', { file_type: 'png', preserved_name: `${name}.png` }, {
+            file: { destination: dirs.uploads, filename: 'race.png' },
+        });
+        await inside;
+        const deleting = invoke(characters.router, '/delete', { avatar_url: `${name}.png`, delete_chats: true });
+        await new Promise(resolve => setImmediate(resolve));
+        resume();
+        assert.equal((await importing).status, 409);
+        assert.equal((await deleting).status, 200);
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(fs.existsSync(target), false);
+    } finally { resume(); Jimp.read = original; }
+});
+
+test('delete waits for cancelled import publication writes and leaves no resurrected files', async () => {
+    const { withCharacterImport } = await import('../src/character-lifecycle.js');
+    const name = 'PublicationDeleteRace';
+    const avatar = `${name}.png`;
+    const target = path.join(dirs.characters, avatar);
+    const chatDirectory = path.join(dirs.chats, name);
+    fs.writeFileSync(target, pngCard(name));
+    let entered;
+    let resume;
+    const inside = new Promise(resolve => { entered = resolve; });
+    const paused = new Promise(resolve => { resume = resolve; });
+    const original = fs.promises.link;
+    fs.promises.link = async (from, to) => {
+        if (to === path.join(chatDirectory, 'published.jsonl')) {
+            entered();
+            await paused;
+        }
+        return original(from, to);
+    };
+    try {
+        const importing = withCharacterImport(dirs.characters, avatar, async check => {
+            await check.wait((async () => {
+                await fs.promises.mkdir(chatDirectory, { recursive: true });
+                await io.createChatFileExclusive(path.join(chatDirectory, 'published.jsonl'), 'publication');
+                await fs.promises.writeFile(target, pngCard(name));
+            })());
+            check();
+        }, [chatDirectory]);
+        const rejected = assert.rejects(importing, { reason: 'character_deleted' });
+        await inside;
+        let deleted = false;
+        const deleting = invoke(characters.router, '/delete', { avatar_url: avatar, delete_chats: true }).then(result => {
+            deleted = true;
+            return result;
+        });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(deleted, false, 'delete must wait for the paused publication');
+        resume();
+        await rejected;
+        assert.equal((await deleting).status, 200);
+        assert.equal(fs.existsSync(target), false);
+        assert.equal(fs.existsSync(chatDirectory), false);
+        const leftovers = [];
+        async function inspect(directory) {
+            for (const entry of await fs.promises.readdir(directory, { withFileTypes: true })) {
+                if (entry.name === '.recycle') continue;
+                const file = path.join(directory, entry.name);
+                if (entry.isDirectory()) await inspect(file);
+                else if (entry.name.includes(name) || /staging|\.tmp$/.test(entry.name)) leftovers.push(file);
+            }
+        }
+        await inspect(dirs.characters);
+        await inspect(dirs.chats);
+        assert.deepEqual(leftovers, []);
+    } finally { resume(); fs.promises.link = original; }
 });

@@ -1,3 +1,4 @@
+import { symlinkOrSkip } from './helpers/symlink-capability.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -5,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { isValidGroupChatId, resolveGroupChatPath } from '../src/chat-io.js';
 
-test('group IDs cannot traverse to another user or silently alias sanitized names', async () => {
+test('group IDs cannot traverse to another user or silently alias sanitized names', async t => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'group-history-path-'));
     const directory = path.join(root, 'alice', 'group-chats');
     const other = path.join(root, 'bob', 'group-chats');
@@ -16,13 +17,13 @@ test('group IDs cannot traverse to another user or silently alias sanitized name
         assert.equal(isValidGroupChatId(id), false);
         await assert.rejects(resolveGroupChatPath(directory, id), { reason: 'invalid_chat_id' });
     }
-    await fs.symlink(path.join(other, 'private.jsonl'), path.join(directory, 'alias.jsonl'));
+    if (!await symlinkOrSkip(t, path.join(other, 'private.jsonl'), path.join(directory, 'alias.jsonl'))) return;
     await assert.rejects(resolveGroupChatPath(directory, 'alias'), { reason: 'path_alias' });
     await fs.writeFile(path.join(directory, '安全 history.jsonl'), 'allowed');
     assert.equal(await resolveGroupChatPath(directory, '安全 history'), path.join(directory, '安全 history.jsonl'));
 });
 
-test('direct group endpoints reject malformed IDs and info refuses aliases and retirement', async () => {
+test('direct group endpoints reject malformed IDs and info refuses aliases and retirement', async t => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'group-reader-routes-'));
     globalThis.DATA_ROOT = root;
     const config = path.join(root, 'config.yaml');
@@ -35,7 +36,7 @@ test('direct group endpoints reject malformed IDs and info refuses aliases and r
     await fs.mkdir(directory);
     const outside = path.join(root, 'secret.jsonl');
     await fs.writeFile(outside, '{"mes":"private"}');
-    await fs.symlink(outside, path.join(directory, 'alias.jsonl'));
+    if (!await symlinkOrSkip(t, outside, path.join(directory, 'alias.jsonl'))) return;
     await fs.writeFile(path.join(directory, 'retired.jsonl'), '{"mes":"retired"}');
     await retireChatPath(path.join(directory, 'retired.jsonl'), directory, 'test');
     function invoke(route, id) {

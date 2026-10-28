@@ -24,11 +24,11 @@ npm run perf:lab
 页面没有单独的实验室标记，脚本只在标题为 SillyTavern 且地址属于配置源时才写入人工数据。
 需要已安装的 Python Playwright 与 Chromium。本文件不记录新的浏览器或真实生成验收结论。
 
-`test:perf` 当前列出 33 个测试文件；历史 Git 对象缺失时，三个历史源码比较套件会明确跳过。
-基准脚本 `bench:perf` 仍要求历史 Git 对象。部分测试需要本地监听权限。
-2026-10-25 的无套接字选择在 Node 20.19.2 下由 `node --test` 报告 20 项通过
-（此环境每个文件计一项）；不能据此宣称完整套件通过或更新完整用例总数。
-完整运行报告 28 个文件项：20 通过，8 个需要本地监听权限的套件因沙箱限制失败。
+Current verification：[round-1.5 CI run 40656640441](https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/40656640441)，
+提交 `7a0b029`，Node 20/24 × Ubuntu/Windows 全绿。Ubuntu：591 tests / 590 pass / 1 skip；
+Windows：591 tests / 578 pass / 13 skip，均有明确跳过原因。
+Windows CreationTime 回收尚未实际走通，仅验证保守拒绝；Windows 无真实服务器 SIGTERM e2e。
+部署仍待浏览器验收、Windows 实机验收和崩溃对账。
 `npm run lint` 使用根 ESLint 配置：全项目语法检查，实验模块、脚本和测试启用部分规则。
 下文“没有完整 ESLint 配置”和 442/442 等陈述仅描述当时状态。
 
@@ -146,3 +146,39 @@ Original-source RED has 19 tests: 10 pass and 9 expected geometry/transition ass
 ## 1.19.0 同步分支（2026-10-09）
 
 The isolated `codex/sillytavern-1.19-sync` branch merges official SillyTavern 1.19.0 into this lab on top of the 1.18-based rounds. 62 upstream-changed files applied cleanly, five conflicts were resolved semantically (lab async IO/locks/recycle/backup-isolation kept; upstream resilience and hooks adopted), and two upstream application modules were imported. Safe suites pass 442/442 on Node 20.20.2 and Node 24.15.0. Browser-level re-acceptance on the new base is pending; see `docs/2026-10-09-sillytavern-1.19-sync.md`.
+
+## Legacy hold-*.json recovery
+
+启动遇到遗留 `hold-*.json` 损坏或路径校验失败会拒绝继续，错误包含文件路径和原因。
+先停止使用该数据根的所有进程和外部写入，备份整个数据根（包括隐藏目录）。
+逐个检查报错文件及其所属生命周期根：`chats/`、`characters/`、`group chats/`。
+`relative_path` 必须是该根内的非空相对路径，不含 `..`、保留目录或符号链接；
+不要根据文件名猜测目标，也不要把根外文件复制进来。
+从备份、对应退休记录和 `.recycle/` 内容确认原目标。若能确认目标且目标不存在，
+人工修正该文件的 JSON 和 `relative_path`，保留其他字段，再重启让现有迁移恢复退休标记。
+若目标或对应退休标记已存在，先核对并归档冲突证据，人工决定保留哪份数据及退休保护。
+无法确认目标时保持停机，先查备份；确认不再需要该 hold 后才将这一份文件移到数据根外的恢复存档。
+不要批量删除 `.chat-lifecycle/`、hold 文件或退休标记；没有自动恢复 API。
+
+### Owner record v2 and rollback
+
+V2 owner records contain `v: 2`, `pid`, `hostname`, `startedAt`, a random
+`token`, and available identity fields. Linux writes `bootId` and raw
+`startTicks`; it no longer writes `processStartMs`. Windows still writes
+`processStartMs` when CreationTime probing succeeds, and may write `bootId`.
+Other platforms omit unavailable fields.
+
+At rollback target `6f6c825`, the owner parser accepts unknown fields: it
+ignores `v` and `startTicks`, rather than rejecting v2. A different hostname
+is refused; a dead PID (ESRCH) is reclaimable. For a live or EPERM PID, old
+code compares `processStartMs` when both sides have it (equal refuses,
+different reclaims); a start time on only one side refuses. Thus a Linux v2
+record without `processStartMs` is refused when the old Linux probe obtains
+one, including if that PID has been reused. If neither side has a start
+time, differing exact non-Windows boot IDs permit reclaim; missing or
+matching boot IDs refuse. Approximate `win-boot:` differences never suffice.
+Windows v2 records retain the old CreationTime comparison behavior. Unknown
+liveness or unreadable identity fails closed. Stop the current owner before
+rollback; if a stale record still refuses startup, verify the owner process
+is really gone, then manually delete the reported `.st-lab-owner.lock` path.
+Never remove that file while its owner is running.

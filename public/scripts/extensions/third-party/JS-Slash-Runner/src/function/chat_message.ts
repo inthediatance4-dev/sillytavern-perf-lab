@@ -376,7 +376,9 @@ export async function createChatMessages(
   const converted = await Promise.all(chat_messages.map(convert));
   console.info(converted);
 
-  chat.splice(insert_before, 0, ...converted);
+  const tail = chat.splice(insert_before);
+  for (const message of converted) chat.push(message);
+  for (const message of tail) chat.push(message);
 
   if (usesManagedChatSurface) {
     await refreshMessages(refresh, async () => {});
@@ -477,7 +479,9 @@ export async function rotateChatMessages(
   assertManagedStructureMutationAllowed(refresh);
 
   const right_part = chat.splice(middle, end - middle);
-  chat.splice(begin, 0, ...right_part);
+  const tail = chat.splice(begin);
+  for (const message of right_part) chat.push(message);
+  for (const message of tail) chat.push(message);
   await refreshMessages(refresh, async () => {
     await Promise.all(
       _.range(Math.max(Number($(`#chat > .mes`).first().attr('mesid')), _.min([begin, middle, end])!), chat.length).map(

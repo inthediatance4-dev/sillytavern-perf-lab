@@ -1,0 +1,92 @@
+{
+  "node": "v24.22.1",
+  "method": "TypeScript transpileModule of actual function declarations, executed in VM with real lodash; managed refresh and event boundaries stubbed; extensions are disabled in browser acceptance",
+  "checks": [
+    {
+      "check": "insertion order, identity and event arguments vs base",
+      "index": -3,
+      "status": "pass"
+    },
+    {
+      "check": "insertion order, identity and event arguments vs base",
+      "index": -1,
+      "status": "pass"
+    },
+    {
+      "check": "insertion order, identity and event arguments vs base",
+      "index": 0,
+      "status": "pass"
+    },
+    {
+      "check": "insertion order, identity and event arguments vs base",
+      "index": 1,
+      "status": "pass"
+    },
+    {
+      "check": "insertion order, identity and event arguments vs base",
+      "index": 3,
+      "status": "pass"
+    },
+    {
+      "check": "insertion order, identity and event arguments vs base",
+      "index": "end",
+      "status": "pass"
+    },
+    {
+      "check": "rotation order and identity vs base",
+      "begin": 0,
+      "middle": 2,
+      "end": 5,
+      "status": "pass"
+    },
+    {
+      "check": "rotation order and identity vs base",
+      "begin": 1,
+      "middle": 3,
+      "end": 5,
+      "status": "pass"
+    },
+    {
+      "check": "rotation order and identity vs base",
+      "begin": 0,
+      "middle": 0,
+      "end": 5,
+      "status": "pass"
+    },
+    {
+      "check": "rotation order and identity vs base",
+      "begin": 0,
+      "middle": 5,
+      "end": 5,
+      "status": "pass"
+    },
+    {
+      "check": "rotation order and identity vs base",
+      "begin": 0,
+      "middle": 2,
+      "end": 3,
+      "status": "pass"
+    },
+    {
+      "check": "variable precedence vs base",
+      "count": 5,
+      "status": "pass"
+    },
+    {
+      "check": "large chat insertion",
+      "count": 300000,
+      "status": "pass",
+      "events": 300000
+    },
+    {
+      "check": "large chat rotation",
+      "count": 300000,
+      "status": "pass"
+    },
+    {
+      "check": "large message-variable merge",
+      "count": 300000,
+      "status": "pass"
+    }
+  ]
+}

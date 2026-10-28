@@ -3841,8 +3841,8 @@ class StreamingProcessor {
             };
             const swipeInfoArray = Array(this.swipes.length).fill().map(() => structuredClone(swipeInfo));
             parseReasoningInSwipes(this.swipes, swipeInfoArray, message.extra?.reasoning_duration);
-            message.swipes.push(...this.swipes);
-            message.swipe_info.push(...swipeInfoArray);
+            for (const swipe of [...this.swipes]) message.swipes.push(swipe);
+            for (const swipeInfo of swipeInfoArray) message.swipe_info.push(swipeInfo);
         }
 
         syncMesToSwipe(messageId);
@@ -6893,8 +6893,8 @@ export async function saveReply({ type, getMessage, fromStreaming = false, title
         };
         const swipeInfoArray = Array(swipes.length).fill().map(() => structuredClone(swipeInfo));
         parseReasoningInSwipes(swipes, swipeInfoArray, item.extra?.reasoning_duration);
-        item.swipes.push(...swipes);
-        item.swipe_info.push(...swipeInfoArray);
+        for (const swipe of [...swipes]) item.swipes.push(swipe);
+        for (const swipeInfo of swipeInfoArray) item.swipe_info.push(swipeInfo);
     }
 
     statMesProcess(item, type, characters, this_chid, oldMessage);
@@ -7835,7 +7835,8 @@ export async function getChat() {
             /** @type {ChatHeader} */
             const chatHeader = data.shift();
             chat_metadata = chatHeader?.chat_metadata ?? {};
-            chat.splice(0, chat.length, ...data);
+            chat.splice(0, chat.length);
+            for (const message of data) chat.push(message);
             chat.forEach(ensureMessageMediaIsArray);
         } else {
             // An empty/corrupted chat file
@@ -9729,7 +9730,7 @@ export function updateViewMessageIds(startIndex = null) {
 
 export function getFirstDisplayedMessageId() {
     const allIds = Array.from(document.querySelectorAll('#chat .mes')).map(el => Number(el.getAttribute('mesid'))).filter(x => !isNaN(x));
-    const minId = Math.min(...allIds);
+    const minId = allIds.reduce((min, id) => Math.min(min, id), Infinity);
     return minId;
 }
 

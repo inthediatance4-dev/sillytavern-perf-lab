@@ -116,11 +116,11 @@ export function _getAllVariables(this: Window): Record<string, any> {
   }
   result = result.assign(get_variables_without_clone({ type: 'chat' }));
   if (is_message_iframe) {
-    result = result.assign(
-      ...chat
-        .slice(0, _getCurrentMessageId.call(this) + 1)
-        .map((chat_message: any) => chat_message?.variables?.[chat_message?.swipe_id ?? 0]),
-    );
+    const variables = result.value();
+    for (const chat_message of chat.slice(0, _getCurrentMessageId.call(this) + 1)) {
+      _.assign(variables, chat_message?.variables?.[chat_message?.swipe_id ?? 0]);
+    }
+    result = _(variables);
   }
   return klona(result.value());
 }

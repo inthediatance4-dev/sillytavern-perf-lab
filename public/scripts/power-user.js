@@ -1531,7 +1531,7 @@ export function applyStylePins() {
 
         const pinsElement = document.createElement('div');
         pinsElement.classList.add('style-pins');
-        pinsElement.append(...Array.from(styleTags));
+        for (const style of styleTags) pinsElement.append(style);
         chatElement.prepend(pinsElement);
     } catch (error) {
         console.error('Error applying style pins:', error);

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { summarize, medianDifference, referenceCriteria, bootstrapSeed, resamples } from './benchmark-statistics.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -18,8 +19,10 @@ const { getChatInfo, trySaveChat } = await import('../src/endpoints/chats.js');
 const { createTextMatcher } = await import('../src/chat-search.js');
 const { writeChatFile, recycleOldChatBackups } = await import('../src/chat-io.js');
 const baselineCommit = execFileSync('git', ['rev-parse', '--verify', `${process.env.BENCH_BASELINE || '48a153e'}^{commit}`], { encoding: 'utf8' }).trim();
-const runs = Number(process.env.BENCH_RUNS || 5);
-assert.ok(Number.isSafeInteger(runs) && runs >= 5, 'BENCH_RUNS must be an integer >= 5');
+const runs = Number(process.env.BENCH_RUNS || 30);
+assert.ok(Number.isSafeInteger(runs) && runs >= 30, 'BENCH_RUNS must be an integer >= 30');
+const warmup = Number(process.env.BENCH_WARMUP || 5);
+assert.ok(Number.isSafeInteger(warmup) && warmup >= 1, 'BENCH_WARMUP must be an integer >= 1');
 // Archive the actual modules under the fixture so both variants resolve the same
 // installed dependencies. No worktree, branch, tag or baseline source is modified.
 const baselineRoot = path.join(root, 'baseline');
@@ -34,14 +37,7 @@ const baselineIO = await loadBaseline('chat-io.js');
 const baselineSearch = await loadBaseline('chat-search.js');
 const baselineInfo = baselineChats.getChatInfo;
 const baselineMatcher = baselineSearch.createTextMatcher;
-const output = { node: process.version, platform: process.platform, baselineCommit, currentCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), runs, syntheticOnly: true, backupsEnabled: false, search: [], backup: {}, io: {}, saveChat: {} };
-const percentile = (values, fraction) => [...values].sort((a, b) => a - b)[Math.ceil(values.length * fraction) - 1];
-const median = values => {
-    const sorted = [...values].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
-};
-const summarize = values => ({ median: median(values), p95: percentile(values, 0.95), samples: values });
+const output = { node: process.version, platform: process.platform, baselineCommit, currentCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), runs, warmup, bootstrap: { resamples, seed: bootstrapSeed, method: 'percentile; paired iterations for median differences', confidence: 0.95 }, variantLabels: { baseline: 'baseline', improved: 'current' }, syntheticOnly: true, backupsEnabled: false, search: [], backup: {}, io: {}, saveChat: {} };
 
 for (const count of [1000, 2000, 4000]) {
     const file = path.join(root, `chat-${count}.jsonl`);
@@ -103,12 +99,12 @@ const variants = {
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 for (const [measurement, data, expected] of [['saveChat', chat, serializedChat], ['io', payload, payload]]) {
     const samples = Object.fromEntries(Object.keys(variants).map(name => [name, { operation: [], eventLoop: [] }]));
-    for (const name of Object.keys(variants)) {
-        const file = path.join(root, `${measurement}-${name}.jsonl`);
-        const operation = () => measurement === 'saveChat'
-            ? variants[name].save(data, file, false, 'synthetic', 'Synthetic', root, root)
-            : variants[name].write(file, data);
-        await operation(); // Warm both real APIs and populate the same existing-file state.
+    for (let run = 0; run < warmup; run++) {
+        for (const name of run % 2 ? ['improved', 'baseline'] : ['baseline', 'improved']) {
+            const file = path.join(root, `${measurement}-${name}.jsonl`);
+            if (measurement === 'saveChat') await variants[name].save(data, file, false, 'synthetic', 'Synthetic', root, root);
+            else await variants[name].write(file, data);
+        }
     }
     for (let run = 0; run < runs; run++) {
         for (const name of run % 2 ? ['improved', 'baseline'] : ['baseline', 'improved']) {
@@ -127,6 +123,8 @@ for (const [measurement, data, expected] of [['saveChat', chat, serializedChat],
             assert.equal(await fs.promises.readFile(file, 'utf8'), expected);
         }
     }
+    output[measurement].median_difference_ms = medianDifference(samples.baseline.operation, samples.improved.operation);
+    output[measurement].event_loop_median_difference_ms = medianDifference(samples.baseline.eventLoop, samples.improved.eventLoop);
     for (const name of Object.keys(variants)) {
         output[measurement][name] = {
             bytes: Buffer.byteLength(expected),
@@ -135,14 +133,9 @@ for (const [measurement, data, expected] of [['saveChat', chat, serializedChat],
         };
     }
 }
-output.gates = {};
+output.reference_criteria = {};
 for (const measurement of ['saveChat', 'io']) {
     const { baseline, improved } = output[measurement];
-    const ratio = improved.operation_ms.p95 / baseline.operation_ms.p95;
-    output.gates[measurement] = {
-        p95_regression_percent: (ratio - 1) * 100,
-        p95_regression_at_most_10_percent: ratio <= 1.1,
-        event_loop_delay_not_worse: improved.event_loop_delay_p95_ms.p95 <= baseline.event_loop_delay_p95_ms.p95,
-    };
+    output.reference_criteria[measurement] = referenceCriteria(baseline.operation_ms, improved.operation_ms);
 }
 console.log(JSON.stringify(output, null, 2));

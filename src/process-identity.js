@@ -26,8 +26,8 @@ export const WIN_BOOT_MATCH_TOLERANCE_SEC = 120;
  */
 export const WIN_BOOT_STABILITY_GAP_MS = 2000;
 
-/** Cold PowerShell must finish inside this or the field is omitted. */
-const WINDOWS_PROBE_BUDGET_MS = 200;
+/** Startup-only probe budget, including cold PowerShell startup. */
+export const WINDOWS_PROBE_BUDGET_MS = 3000;
 
 /** Windows FILETIME epoch (1601-01-01) to Unix epoch, in milliseconds. */
 const FILETIME_UNIX_EPOCH_MS = 11644473600000;
@@ -38,8 +38,6 @@ let cachedBootId;
 let windowsBootSample = null;
 /** @type {boolean} */
 let windowsBootUnstable = false;
-/** @type {boolean} */
-let windowsProbeDisabled = false;
 /** @type {Map<number, number|undefined>} */
 const windowsStartCache = new Map();
 
@@ -133,9 +131,11 @@ export function parseLinuxStartTicks(text) {
  * @returns {number|undefined}
  */
 function parseFileTime(stdout) {
-    const parsed = Number(String(stdout).trim());
-    if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
-    const ms = Math.round(parsed / 10000 - FILETIME_UNIX_EPOCH_MS);
+    const text = String(stdout).trim();
+    if (!/^[1-9]\d{0,18}$/.test(text)) return undefined;
+    // Both self and peers use nearest Unix milliseconds, compared exactly.
+    // Round in integer arithmetic: FILETIME exceeds Number's exact range.
+    const ms = Number((BigInt(text) + 5000n) / 10000n - BigInt(FILETIME_UNIX_EPOCH_MS));
     if (!Number.isSafeInteger(ms) || ms <= 0) return undefined;
     return ms;
 }
@@ -145,26 +145,19 @@ function parseFileTime(stdout) {
  * @returns {number|undefined}
  */
 function probeWindowsProcessStartMs(pid) {
-    const started = Date.now();
     try {
-        const script = `$p = Get-Process -Id ${pid} -ErrorAction Stop; $p.StartTime.ToFileTime()`;
-        const stdout = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+        // One provider for self and peers; no CIM/WMIC fallback with different precision.
+        const script = `[System.Diagnostics.Process]::GetProcessById(${pid}).StartTime.ToFileTimeUtc()`;
+        const stdout = execFileSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], {
             timeout: WINDOWS_PROBE_BUDGET_MS,
             windowsHide: true,
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'ignore'],
         });
-        const parsed = parseFileTime(stdout);
-        if (parsed !== undefined) return parsed;
-    } catch (error) {
-        if (error && (error.code === 'ETIMEDOUT' || error.code === 'ENOENT')) {
-            if (Date.now() - started >= WINDOWS_PROBE_BUDGET_MS || error.code === 'ETIMEDOUT') {
-                windowsProbeDisabled = true;
-                return undefined;
-            }
-        }
+        return parseFileTime(stdout);
+    } catch {
+        // Fail closed for this call; a later call may retry even after a timeout.
     }
-    windowsProbeDisabled = true;
     return undefined;
 }
 
@@ -174,7 +167,6 @@ function probeWindowsProcessStartMs(pid) {
  */
 function readWindowsProcessStartMs(pid) {
     if (process.platform !== 'win32') return undefined;
-    if (windowsProbeDisabled) return undefined;
     if (!Number.isInteger(pid) || pid <= 0) return undefined;
     if (pid === process.pid && windowsStartCache.has(pid)) return windowsStartCache.get(pid);
     const value = probeWindowsProcessStartMs(pid);

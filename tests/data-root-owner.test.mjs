@@ -15,6 +15,12 @@ import {
 } from '../src/data-root-owner.js';
 import { readProcessIdentity } from '../src/process-identity.js';
 
+function assertWindowsCiIdentity(identity) {
+    if (process.platform === 'win32' && process.env.CI) {
+        assert.ok(Number.isSafeInteger(identity.processStartMs), 'Windows CI requires a reliable process start identity');
+    }
+}
+
 const moduleUrl = new URL('../src/data-root-owner.js', import.meta.url).href;
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'st-owner-'));
 const helper = path.join(temp, 'acquire-once.mjs');
@@ -338,6 +344,7 @@ test('a new owner record stores a token and the host identity', async () => {
     try {
         const current = JSON.parse(await fs.readFile(owned.lockPath, 'utf8'));
         const identity = readProcessIdentity(process.pid);
+        assertWindowsCiIdentity(identity);
         assert.equal(current.pid, process.pid);
         assert.equal(current.hostname, os.hostname());
         assert.match(current.token, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
@@ -358,6 +365,7 @@ test('a live pid with a different boot or start identity is reclaimed', async t 
     const dataRoot = await freshRoot('pid-reuse');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
+    assertWindowsCiIdentity(identity);
     const forged = ownerRecord({
         startTicks: identity.startTicks,
         bootId: identity.bootId ? `${identity.bootId}-reused` : 'forged-boot-id',
@@ -368,7 +376,7 @@ test('a live pid with a different boot or start identity is reclaimed', async t 
     if (!comparable) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         assert.equal(await fs.readFile(lockPath, 'utf8'), `${JSON.stringify(forged)}\n`);
-        return t.skip('Reclamation requires reliable process start identity; conservative refusal verified');
+        return t.skip('Reliable process start identity unavailable (PowerShell may be unavailable on local Windows); conservative refusal verified');
     }
     const owned = acquireDataRootOwnership(dataRoot);
     try {
@@ -420,6 +428,7 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
         const matchedRoot = await freshRoot('eperm-match');
         const matchedPath = path.join(matchedRoot, DATA_ROOT_OWNER_LOCK);
         const identity = readProcessIdentity(process.pid);
+        assertWindowsCiIdentity(identity);
         const matched = ownerRecord({ token: 'eperm-match' });
         if (identity.bootId) matched.bootId = identity.bootId;
         if (identity.startTicks) matched.startTicks = identity.startTicks;
@@ -441,7 +450,7 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
         await fs.writeFile(reusedPath, `${JSON.stringify(reused)}\n`);
         if (!comparable) {
             assert.throws(() => acquireDataRootOwnership(reusedRoot), /must not share this data root/);
-            return t.skip('Reclamation requires reliable process start identity; conservative refusal verified');
+            return t.skip('Reliable process start identity unavailable (PowerShell may be unavailable on local Windows); conservative refusal verified');
         }
         const owned = acquireDataRootOwnership(reusedRoot);
         try {
@@ -460,6 +469,7 @@ test('two processes cannot both reclaim one reused pid', async t => {
     const dataRoot = await freshRoot('pid-reuse-race');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
+    assertWindowsCiIdentity(identity);
     const forged = ownerRecord({
         startTicks: identity.startTicks,
         bootId: identity.bootId ? `${identity.bootId}-reused` : 'forged-boot-id',
@@ -469,7 +479,7 @@ test('two processes cannot both reclaim one reused pid', async t => {
     if (!(identity.startTicks && identity.bootId) && !Number.isSafeInteger(identity.processStartMs)) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         releaseDataRootOwnership();
-        return t.skip('Reclaim race requires reliable process start identity; conservative refusal verified');
+        return t.skip('Reliable process start identity unavailable (PowerShell may be unavailable on local Windows); conservative refusal verified');
     }
     await assertSingleReclaimWinner(dataRoot);
 });

@@ -11,6 +11,13 @@ let probeDeadline = 0;
 let progressPrinted = false;
 let selfIdentity;
 
+// Peer refusal stays bounded; self gets extra time for a cold PowerShell launch.
+export const PEER_PROBE_TIMEOUT_MS = 3000;
+export const SELF_PROBE_TIMEOUT_MS = 5000;
+export const IDENTITY_PROBE_ATTEMPTS = 2;
+export const PEER_PROBE_BUDGET_MS = PEER_PROBE_TIMEOUT_MS * IDENTITY_PROBE_ATTEMPTS;
+export const SELF_PROBE_BUDGET_MS = SELF_PROBE_TIMEOUT_MS * IDENTITY_PROBE_ATTEMPTS;
+
 function probeIdentity(pid, options, deadline = probeDeadline) {
     if (!Number.isSafeInteger(pid) || pid <= 0) throw Object.assign(new Error('Invalid process pid'), { code: 'EINVAL' });
     if (process.platform === 'win32' && !progressPrinted) {
@@ -18,11 +25,19 @@ function probeIdentity(pid, options, deadline = probeDeadline) {
         progressPrinted = true;
     }
     let identity;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < IDENTITY_PROBE_ATTEMPTS; attempt++) {
         const start = Date.now();
-        const timeout = Math.min(3000, deadline - start);
+        const timeout = Math.min(options?.strict ? SELF_PROBE_TIMEOUT_MS : PEER_PROBE_TIMEOUT_MS, deadline - start);
         if (timeout <= 0) throw Object.assign(new Error('Process identity probe budget exhausted'), { code: 'ETIMEDOUT' });
-        try { identity = identityProvider(pid, { ...options, timeout }); } catch (error) { if (attempt) throw error; }
+        let failure;
+        try { identity = identityProvider(pid, { ...options, timeout }); } catch (error) { failure = error; }
+        const elapsed = Date.now() - start;
+        // The Windows provider can return no identity after swallowing a spawn timeout.
+        if (process.platform === 'win32' && (failure?.code === 'ETIMEDOUT'
+            || (elapsed >= timeout && !Number.isSafeInteger(identity?.processStartMs)))) {
+            failure = Object.assign(new Error(`Process identity probe timed out after ${elapsed} ms (attempt ${attempt + 1}/${IDENTITY_PROBE_ATTEMPTS})`, { cause: failure }), { code: 'ETIMEDOUT' });
+        }
+        if (failure && attempt === IDENTITY_PROBE_ATTEMPTS - 1) throw failure;
         if ((attempt || Date.now() - start > 500) && !progressPrinted) {
             console.error('Verifying data-root owner identity…');
             progressPrinted = true;
@@ -438,7 +453,7 @@ function inspectLock(lockPath, resolved) {
 function ownerPayload(pid, hostname, startedAt) {
     if (!selfIdentity) {
         const start = Date.now();
-        try { selfIdentity = probeIdentity(pid, { fs, strict: true }, start + 6000); }
+        try { selfIdentity = probeIdentity(pid, { fs, strict: true }, start + SELF_PROBE_BUDGET_MS); }
         finally { probeDeadline += Date.now() - start; }
     }
     const identity = selfIdentity;
@@ -659,7 +674,7 @@ export function releaseDataRootOwnership() {
 export function acquireDataRootOwnership(dataRoot, { fs: injectedFs = defaultFs, identityProvider: provider = readProcessIdentity } = {}) {
     const previous = fs;
     identityProvider = provider;
-    probeDeadline = Date.now() + 6000;
+    probeDeadline = Date.now() + PEER_PROBE_BUDGET_MS;
     progressPrinted = false;
     selfIdentity = undefined;
     fs = new Proxy(injectedFs, {

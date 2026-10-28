@@ -79,37 +79,10 @@ export function createRequestDrain(tracker = persistence) {
             response.once('close', done);
             next();
         },
-        async stop(timeoutMs = resolveDrainTimeoutMs()) {
-            if (typeof timeoutMs !== 'number') {
-                stopping = true;
-                return waitForShutdown(Promise.all([tracker.stop(), ...active]), timeoutMs);
-            }
+        async stop(signal) {
+            if (!(signal instanceof AbortSignal)) throw new TypeError('Request drain requires an AbortSignal');
             stopping = true;
-            const pendingHandlers = Promise.resolve(tracker.stop()).catch(error => {
-                console.error('Persistence drain failed:', error);
-            });
-            const activeDrain = Promise.all([...active]).catch(error => {
-                console.error('Request drain failed:', error);
-            });
-            let timer;
-            // Keep the timer referenced so a stuck drain cannot exit the event
-            // loop before the bound fires. It is cleared as soon as the race ends.
-            const timeout = new Promise(resolve => {
-                timer = setTimeout(() => resolve('timeout'), timeoutMs);
-            });
-            let outcome;
-            try {
-                outcome = await Promise.race([
-                    Promise.all([activeDrain, pendingHandlers]).then(() => 'drained'),
-                    timeout,
-                ]);
-            } finally {
-                clearTimeout(timer);
-            }
-            if (outcome === 'timeout') {
-                const handlersLeft = typeof tracker.pendingCount === 'function' ? tracker.pendingCount() : 'unknown';
-                console.error(`Request drain timed out after ${timeoutMs}ms with ${active.size} open response(s) and ${handlersLeft} persistence handler(s); continuing shutdown.`);
-            }
+            return waitForShutdown(Promise.all([tracker.stop(), ...active]), signal);
         },
     };
 }

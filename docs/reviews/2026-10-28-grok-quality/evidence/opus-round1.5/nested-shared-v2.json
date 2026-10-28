@@ -1,0 +1,9 @@
+{
+  "scenario": "nested-shared",
+  "reproduced": false,
+  "code": null,
+  "op": null,
+  "cause": null,
+  "name": "LockOrderError",
+  "message": "Nested path lock requires a new key or upgrade: <review-output>/temp/<case>/b.jsonl"
+}

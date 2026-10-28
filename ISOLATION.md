@@ -159,3 +159,26 @@ The isolated `codex/sillytavern-1.19-sync` branch merges official SillyTavern 1.
 若目标或对应退休标记已存在，先核对并归档冲突证据，人工决定保留哪份数据及退休保护。
 无法确认目标时保持停机，先查备份；确认不再需要该 hold 后才将这一份文件移到数据根外的恢复存档。
 不要批量删除 `.chat-lifecycle/`、hold 文件或退休标记；没有自动恢复 API。
+
+### Owner record v2 and rollback
+
+V2 owner records contain `v: 2`, `pid`, `hostname`, `startedAt`, a random
+`token`, and available identity fields. Linux writes `bootId` and raw
+`startTicks`; it no longer writes `processStartMs`. Windows still writes
+`processStartMs` when CreationTime probing succeeds, and may write `bootId`.
+Other platforms omit unavailable fields.
+
+At rollback target `6f6c825`, the owner parser accepts unknown fields: it
+ignores `v` and `startTicks`, rather than rejecting v2. A different hostname
+is refused; a dead PID (ESRCH) is reclaimable. For a live or EPERM PID, old
+code compares `processStartMs` when both sides have it (equal refuses,
+different reclaims); a start time on only one side refuses. Thus a Linux v2
+record without `processStartMs` is refused when the old Linux probe obtains
+one, including if that PID has been reused. If neither side has a start
+time, differing exact non-Windows boot IDs permit reclaim; missing or
+matching boot IDs refuse. Approximate `win-boot:` differences never suffice.
+Windows v2 records retain the old CreationTime comparison behavior. Unknown
+liveness or unreadable identity fails closed. Stop the current owner before
+rollback; if a stale record still refuses startup, verify the owner process
+is really gone, then manually delete the reported `.st-lab-owner.lock` path.
+Never remove that file while its owner is running.

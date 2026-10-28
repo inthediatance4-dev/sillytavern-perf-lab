@@ -90,7 +90,7 @@ test('directory exclusive waits for shared holders and blocks later file ops', a
     const later = withPathLocks(chatLockPaths([gamma]), async () => {
         order.push('later');
     });
-    const draining = waitForChatIO().then(() => {
+    const draining = waitForChatIO(AbortSignal.timeout(5_000)).then(() => {
         drained = true;
     });
     await flush();
@@ -103,7 +103,7 @@ test('directory exclusive waits for shared holders and blocks later file ops', a
     await Promise.all([alphaOp, betaOp, exclusive, later, draining]);
     assert.deepEqual(order, ['a', 'b', 'exclusive', 'later']);
     assert.equal(drained, true);
-    await waitForChatIO();
+    await waitForChatIO(AbortSignal.timeout(5_000));
 });
 
 test('explicit directory exclusive wins over a shared parent in the same reservation', async () => {
@@ -153,7 +153,7 @@ test('a failed reservation releases every path it held', async () => {
         throw new Error('synthetic failure');
     }), /synthetic failure/);
     assert.equal(await withPathLocks(chatLockPaths([file]), async () => 'recovered'), 'recovered');
-    await waitForChatIO();
+    await waitForChatIO(AbortSignal.timeout(5_000));
 });
 
 test('a completed save starts deferred backup while an unrelated lock stays held', async () => {

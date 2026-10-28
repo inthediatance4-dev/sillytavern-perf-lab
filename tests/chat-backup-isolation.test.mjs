@@ -34,7 +34,7 @@ const server = app.listen(0, '127.0.0.1');
 await once(server, 'listening');
 const base = `http://127.0.0.1:${server.address().port}`;
 after(async () => {
-    await chats.flushChatBackups();
+    await chats.flushChatBackups(AbortSignal.timeout(5_000));
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
     console.log(`Artificial fixtures retained at ${root}`);
@@ -73,7 +73,7 @@ test('one user keeps leading and latest snapshots for three histories of the sam
         await save('alice', 'SameCharacter', history, `${history}-obsolete`);
         await save('alice', 'SameCharacter', history, `${history}-latest`);
     }
-    await chats.flushChatBackups();
+    await chats.flushChatBackups(AbortSignal.timeout(5_000));
     const files = await currentBackups();
     for (const history of ['A', 'B', 'C']) {
         assert(files.some(file => file.bytes === jsonl(rows(`${history}-leading`))), `${history} must have its own leading backup`);
@@ -94,7 +94,7 @@ test('Chinese names, groups and users keep independent latest snapshots and rete
     ];
     for (let version = 0; version < 4; version++) {
         for (const [user, card, history, group] of cases) await save(user, card, history, `${user}/${card}/${history}/${version}`, group);
-        await chats.flushChatBackups();
+        await chats.flushChatBackups(AbortSignal.timeout(5_000));
     }
     for (const [user, card, history] of cases) {
         const files = await currentBackups(user);
@@ -114,7 +114,7 @@ test('resolved path aliases share one schedule and one quota on Windows', async 
     await chats.trySaveChat(rows('identity-leading'), file, false, 'identity-user', 'Identity', directory);
     await chats.trySaveChat(rows('identity-obsolete'), alias, false, 'identity-user', 'Identity', directory);
     await chats.trySaveChat(rows('identity-latest'), file, false, 'identity-user', 'Identity', directory);
-    await chats.flushChatBackups();
+    await chats.flushChatBackups(AbortSignal.timeout(5_000));
     const names = (await fs.promises.readdir(directory)).filter(name => name.endsWith('.jsonl'));
     const bytes = await Promise.all(names.map(name => fs.promises.readFile(path.join(directory, name), 'utf8')));
     assert.deepEqual(new Set(bytes), new Set([jsonl(rows('identity-leading')), jsonl(rows('identity-latest'))]));
@@ -131,7 +131,7 @@ test('user handles separate scheduling and quotas even for the same resolved his
         await chats.trySaveChat(rows(`${handle}-obsolete`), file, false, handle, 'SameCard', directory);
         await chats.trySaveChat(rows(`${handle}-latest`), file, false, handle, 'SameCard', directory);
     }
-    await chats.flushChatBackups();
+    await chats.flushChatBackups(AbortSignal.timeout(5_000));
     const names = (await fs.promises.readdir(directory)).filter(name => name.endsWith('.jsonl'));
     const bytes = await Promise.all(names.map(name => fs.promises.readFile(path.join(directory, name), 'utf8')));
     assert.deepEqual(new Set(bytes), new Set(['first-handle-leading', 'first-handle-latest', 'second-handle-leading', 'second-handle-latest'].map(mes => jsonl(rows(mes)))));
@@ -149,7 +149,7 @@ test('shutdown flush drains backups admitted by chat saves already queued behind
     const leading = chats.trySaveChat(rows('queued-leading'), file, false, 'queued-user', 'Queued', directory);
     const latest = chats.trySaveChat(rows('queued-latest'), file, false, 'queued-user', 'Queued', directory);
     let flushed = false;
-    const flushing = chats.flushChatBackups().then(() => { flushed = true; });
+    const flushing = chats.flushChatBackups(AbortSignal.timeout(5_000)).then(() => { flushed = true; });
     try { await pause(20); assert.equal(flushed, false); }
     finally { release.resolve(); await lock; }
     await Promise.all([leading, latest, flushing]);
@@ -385,5 +385,5 @@ test('a real filesystem rejection is caught and a later snapshot can retry witho
     await scheduler.flush();
     assert.equal(await fs.promises.readFile(path.join(blocked, 'latest.jsonl'), 'utf8'), 'retried latest');
     assert.equal(errors.length, 1);
-    await waitForChatIO();
+    await waitForChatIO(AbortSignal.timeout(5_000));
 });

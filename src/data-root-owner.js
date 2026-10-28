@@ -67,7 +67,7 @@ export class DataRootOwnershipUnverifiedError extends DataRootOwnershipError {
      * @param {string} lockPath
      */
     constructor(cause, lockPath) {
-        super(`Data-root ownership could not be determined at ${lockPath}: ${cause.message}`, 'EREAD');
+        super(`Data-root ownership could not be determined at ${lockPath}: ${cause.message}. Verify the owner process is really gone, then delete ${lockPath}.`, 'EREAD');
         this.name = 'DataRootOwnershipUnverifiedError';
         this.cause = cause;
         this.op = cause.syscall || cause.op || 'acquire';
@@ -370,7 +370,7 @@ function corruptLeftInPlace(lockPath) {
  */
 function lockedError(resolved, owner) {
     return new DataRootOwnershipError(
-        `Data root ${resolved} is owned by pid ${owner.pid} on ${owner.hostname} since ${owner.startedAt}. Another process must not share this data root.${owner.v !== 2 ? ' Legacy owner record: live PID cannot be safely reclaimed.' : ''}`,
+        `Data root ${resolved} is owned by pid ${owner.pid} on ${owner.hostname} since ${owner.startedAt}. Another process must not share this data root.${owner.v !== 2 ? ' Legacy owner record: live PID cannot be safely reclaimed.' : ''} Lock file: ${path.join(resolved, DATA_ROOT_OWNER_LOCK)}. Verify the owner process is really gone, then delete ${path.join(resolved, DATA_ROOT_OWNER_LOCK)}.`,
         'ELOCKED',
     );
 }

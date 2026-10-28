@@ -23,7 +23,7 @@ test('enabled backups flush the latest throttled snapshot and recycle expired ve
         snapshots.push(rows.map(row => JSON.stringify(row)).join('\n'));
         await trySaveChat(rows, file, false, 'synthetic-backup-user', 'Synthetic', backups);
     }
-    await flushChatBackups();
+    await flushChatBackups(AbortSignal.timeout(5_000));
     let names = (await fs.readdir(backups)).filter(name => name.endsWith('.jsonl'));
     assert.equal(names.length, 2, 'Leading and latest trailing backups must both complete');
     assert.equal(new Set(names).size, 2);
@@ -33,7 +33,7 @@ test('enabled backups flush the latest throttled snapshot and recycle expired ve
         const rows = [{ chat_metadata: { integrity: 'synthetic' } }, { name: 'Synthetic', mes: `version-${i}` }];
         snapshots.push(rows.map(row => JSON.stringify(row)).join('\n'));
         await trySaveChat(rows, file, false, 'synthetic-backup-user', 'Synthetic', backups);
-        await flushChatBackups();
+        await flushChatBackups(AbortSignal.timeout(5_000));
     }
     names = (await fs.readdir(backups)).filter(name => name.endsWith('.jsonl'));
     assert.equal(names.length, 2);

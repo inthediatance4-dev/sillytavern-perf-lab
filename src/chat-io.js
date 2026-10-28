@@ -566,6 +566,7 @@ export function pendingChatIOPaths() {
 }
 
 export async function waitForChatIO(signal) {
+    if (!(signal instanceof AbortSignal)) throw new TypeError('Chat I/O drain requires an AbortSignal');
     while (pendingIO.size) await waitForShutdown(Promise.all([...pendingIO.keys()]), signal);
 }
 

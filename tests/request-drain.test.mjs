@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
-import { createRequestDrain } from '../src/request-drain.js';
+import { createRequestDrain, createShutdownDeadline } from '../src/request-drain.js';
 import { withPathLock, waitForChatIO } from '../src/chat-io.js';
 import { createChatBackupScheduler } from '../src/chat-backup-scheduler.js';
 
@@ -22,8 +22,8 @@ test('shutdown rejects new requests and drains admitted writes and trailing back
     });
     let stopped = false;
     const shutdown = (async () => {
-        await drain.stop();
-        await waitForChatIO();
+        await drain.stop(AbortSignal.timeout(5_000));
+        await waitForChatIO(AbortSignal.timeout(5_000));
         await backups.flush();
         stopped = true;
     })();
@@ -42,7 +42,7 @@ test('closed responses release the drain and completion is idempotent', async ()
     const drain = createRequestDrain();
     const response = new EventEmitter();
     drain.middleware({}, response, () => {});
-    const stopping = drain.stop();
+    const stopping = drain.stop(AbortSignal.timeout(5_000));
     response.emit('close');
     response.emit('finish');
     await stopping;
@@ -62,7 +62,7 @@ test('disconnect does not release an async persistence handler before it complet
     drain.middleware({}, response, () => entry.handle({}, response, assert.ifError));
     response.emit('close');
     let stopped = false;
-    const stopping = drain.stop().then(() => { stopped = true; });
+    const stopping = drain.stop(AbortSignal.timeout(5_000)).then(() => { stopped = true; });
     await Promise.resolve();
     assert.equal(stopped, false);
     release();
@@ -109,7 +109,7 @@ test('sync handlers that return a promise are tracked and rejected after stop', 
     drain.middleware({}, response, () => entry.handle({}, response, assert.ifError));
     response.emit('close');
     let stopped = false;
-    const stopping = drain.stop(5_000).then(() => { stopped = true; });
+    const stopping = drain.stop(AbortSignal.timeout(5_000)).then(() => { stopped = true; });
     await Promise.resolve();
     assert.equal(stopped, false);
     assert.equal(completed, false);
@@ -138,7 +138,7 @@ test('sync thenable rejections are forwarded and do not block a later drain', as
     await tracker.stop();
 });
 
-test('drain timeout continues shutdown while a response stays open', async () => {
+test('drain deadline rejects while a response stays open', async () => {
     const { createRequestDrain, resolveDrainTimeoutMs, DEFAULT_DRAIN_TIMEOUT_MS } = await import('../src/request-drain.js');
     assert.equal(resolveDrainTimeoutMs(undefined), DEFAULT_DRAIN_TIMEOUT_MS);
     assert.equal(resolveDrainTimeoutMs(''), DEFAULT_DRAIN_TIMEOUT_MS);
@@ -154,14 +154,16 @@ test('drain timeout continues shutdown while a response stays open', async () =>
     let nextCalls = 0;
     drain.middleware({}, response, () => { nextCalls += 1; });
     const started = Date.now();
+    const deadline = createShutdownDeadline(30);
     try {
-        await drain.stop(30);
+        await assert.rejects(drain.stop(deadline.signal), /Shutdown deadline expired/);
     } finally {
+        deadline.dispose();
         console.error = original;
     }
     assert.equal(nextCalls, 1);
     assert.ok(Date.now() - started < 2_000, 'drain timeout must not wait for the open response');
-    assert.match(logs.join('\n'), /timed out after 30ms/);
+    assert.deepEqual(logs, []);
     let rejected;
     drain.middleware({}, { sendStatus(status) { rejected = status; } }, () => assert.fail('late request admitted'));
     assert.equal(rejected, 503);
@@ -239,4 +241,10 @@ test('chat and backup waits consume the same shutdown signal and report pending 
         release();
         await backups.flush();
     }
+});
+
+test('shutdown drain APIs reject missing signals and legacy numeric timeouts', async () => {
+    await assert.rejects(waitForChatIO(), TypeError);
+    await assert.rejects(createRequestDrain().stop(), TypeError);
+    await assert.rejects(createRequestDrain().stop(20), TypeError);
 });

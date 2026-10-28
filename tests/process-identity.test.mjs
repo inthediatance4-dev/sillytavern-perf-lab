@@ -174,8 +174,9 @@ test('Windows retries after timeout, using the same probe and rounding for self 
     for (const [index, pid] of [process.pid, process.pid, 424242].entries()) {
         const [command, args, options] = identity.calls[index];
         assert.equal(command, 'powershell.exe');
-        assert.deepEqual(args, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command',
-            `[System.Diagnostics.Process]::GetProcessById(${pid}).StartTime.ToFileTimeUtc()`]);
+        assert.equal(args.at(-1), String(pid));
+        assert.match(args[4], /param\(\[long\] \$ownerPid\)/);
+        assert.ok(!args[4].includes(String(pid)));
         assert.equal(options.timeout, WINDOWS_PROBE_BUDGET_MS);
         assert.equal(options.windowsHide, true);
     }

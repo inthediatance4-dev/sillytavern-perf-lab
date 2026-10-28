@@ -144,12 +144,13 @@ function parseFileTime(stdout) {
  * @param {number} pid
  * @returns {number|undefined}
  */
-function probeWindowsProcessStartMs(pid) {
+export function probeWindowsProcessStartMs(pid, spawn = execFileSync, timeout = WINDOWS_PROBE_BUDGET_MS) {
+    if (!Number.isSafeInteger(pid) || pid <= 0) return undefined;
     try {
         // One provider for self and peers; no CIM/WMIC fallback with different precision.
-        const script = `[System.Diagnostics.Process]::GetProcessById(${pid}).StartTime.ToFileTimeUtc()`;
-        const stdout = execFileSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], {
-            timeout: WINDOWS_PROBE_BUDGET_MS,
+        const script = '& { param([long] $ownerPid) if ($ownerPid -le 0) { throw "Invalid pid" }; [System.Diagnostics.Process]::GetProcessById($ownerPid).StartTime.ToFileTimeUtc() }';
+        const stdout = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script, String(pid)], {
+            timeout,
             windowsHide: true,
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'ignore'],
@@ -165,11 +166,11 @@ function probeWindowsProcessStartMs(pid) {
  * @param {number} pid
  * @returns {number|undefined}
  */
-function readWindowsProcessStartMs(pid) {
+function readWindowsProcessStartMs(pid, timeout) {
     if (process.platform !== 'win32') return undefined;
-    if (!Number.isInteger(pid) || pid <= 0) return undefined;
+    if (!Number.isSafeInteger(pid) || pid <= 0) return undefined;
     if (pid === process.pid && windowsStartCache.has(pid)) return windowsStartCache.get(pid);
-    const value = probeWindowsProcessStartMs(pid);
+    const value = probeWindowsProcessStartMs(pid, execFileSync, timeout);
     // Cache only our own immutable start time; foreign PIDs can be reused.
     if (pid === process.pid && value !== undefined) windowsStartCache.set(pid, value);
     return value;
@@ -180,7 +181,11 @@ function readWindowsProcessStartMs(pid) {
  * @param {{ fs?: typeof fs, strict?: boolean }} [options]
  * @returns {{ bootId?: string, startTicks?: string, processStartMs?: number }}
  */
-export function readProcessIdentity(pid, { fs: procFs = fs, strict = false } = {}) {
+export function readProcessIdentity(pid, { fs: procFs = fs, strict = false, timeout = WINDOWS_PROBE_BUDGET_MS } = {}) {
+    if (!Number.isSafeInteger(pid) || pid <= 0) {
+        if (strict) throw Object.assign(new Error('Invalid process pid'), { code: 'EINVAL' });
+        return {};
+    }
     if (process.platform === 'linux') {
         const identity = {};
         try {
@@ -193,7 +198,7 @@ export function readProcessIdentity(pid, { fs: procFs = fs, strict = false } = {
         return identity;
     }
     const bootId = readBootId();
-    const processStartMs = readWindowsProcessStartMs(pid);
+    const processStartMs = readWindowsProcessStartMs(pid, timeout);
     /** @type {{ bootId?: string, processStartMs?: number }} */
     const identity = {};
     if (bootId) identity.bootId = bootId;
@@ -221,6 +226,7 @@ export function bootIdsMatch(recorded, current) {
  * @returns {'alive'|'dead'|'eperm'|'unknown'}
  */
 function signalPid(pid) {
+    if (!Number.isSafeInteger(pid) || pid <= 0) return 'unknown';
     try {
         process.kill(pid, 0);
         return 'alive';
@@ -247,6 +253,7 @@ function signalPid(pid) {
  * @returns {'live'|'dead'|'reused'}
  */
 export function classifyPidLiveness(owner, observed) {
+    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) return 'live';
     const signaled = observed && observed.signaled ? observed.signaled : signalPid(owner.pid);
     if (signaled === 'dead') return 'dead';
     if (signaled === 'unknown' || owner.v !== 2) return 'live';

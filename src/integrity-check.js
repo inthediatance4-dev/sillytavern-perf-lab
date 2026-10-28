@@ -1,3 +1,6 @@
+import os from 'node:os';
+import { classifyPidLiveness } from './process-identity.js';
+import { DATA_ROOT_OWNER_LOCK } from './data-root-owner.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
@@ -71,7 +74,7 @@ export async function checkIntegrity(dataRoot) {
     const recycle = [];
     for (const root of roots) {
         for (const item of await scanLifecycle(root)) {
-            if (item.kind === 'published' || item.kind === 'manual') {
+            if (item.kind === 'published' || item.kind === 'manual' || item.kind === 'delete') {
                 const record = JSON.parse(item.contents);
                 findings.push({ kind: 'marker-visible-conflict', root, source: item.source, visible: item.visible, intent: record.intent ?? null, state: item.kind });
             } else if (item.kind === 'orphan' || item.kind === 'manual-temp') {
@@ -102,5 +105,13 @@ export async function checkIntegrity(dataRoot) {
         recycle.push(usage);
         if (usage.count) findings.push({ kind: 'recycle-usage', ...usage });
     }
-    return { dataRoot, roots, findings, recycle };
+    const warnings = [];
+    const ownerPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
+    await checkLocalPath(ownerPath, dataRoot);
+    try {
+        const owner = JSON.parse(await fs.promises.readFile(ownerPath, 'utf8'));
+        if (Number.isSafeInteger(owner.pid) && owner.pid > 0 && owner.hostname === os.hostname()
+            && classifyPidLiveness(owner) === 'live') warnings.push('Data root has a live owner; results may include in-flight writes.');
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    return { dataRoot, roots, findings, recycle, warnings };
 }

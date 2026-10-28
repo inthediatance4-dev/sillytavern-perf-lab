@@ -8,6 +8,7 @@ try {
         throw new Error('Usage: npm run check:integrity -- --data-root <dir> [--json]');
     }
     const report = await checkIntegrity(options[1]);
+    for (const warning of report.warnings) console.error(`Warning: ${warning}`);
     if (json) console.log(JSON.stringify(report, null, 2));
     else {
         console.log(`Integrity check (read-only): ${report.dataRoot}`);

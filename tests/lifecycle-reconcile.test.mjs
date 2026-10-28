@@ -120,10 +120,7 @@ for (const stage of ['marker', 'container', 'moved']) {
         const contents = await allContents(root);
         assert.ok(contents.includes('original'));
         await assert.rejects(io.assertChatWritable(path.join(root, 'chat.jsonl'), root), { reason: 'retired_path' });
-        if (stage !== 'moved') {
-            assert.equal(await fs.readFile(path.join(root, 'chat.jsonl'), 'utf8'), 'original');
-            assert.match(restart.stderr, /requires manual handling/);
-        }
+        await assert.rejects(fs.stat(path.join(root, 'chat.jsonl')), { code: 'ENOENT' });
     });
 }
 
@@ -157,6 +154,7 @@ test('startup reverts absent publish intent while preserving all original record
     const original = JSON.parse(await fs.readFile(marker, 'utf8'));
     await fs.writeFile(marker, JSON.stringify({ ...original, intent: 'publish', publish_visible_before: false }));
     await reconcileLifecycle(root);
+    delete original.intent;
     assert.deepEqual(JSON.parse(await fs.readFile(marker, 'utf8')), original);
     await assert.rejects(io.assertChatWritable(target, root), { reason: 'retired_path' });
 });

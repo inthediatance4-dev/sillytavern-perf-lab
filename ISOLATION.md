@@ -191,7 +191,7 @@ Explicit retired-path publication atomically rewrites the same marker with
 `intent: "publish"`, preserving its fields; the marker remains until publication
 commits. With a previously absent target, startup moves the marker to `.recycle/`
 if the target is now visible, or removes only the intent fields if it is absent.
-An interrupted delete already has durable intent through marker-first ordering.
+New deletes write explicit `intent: "delete"` before moving their target; exclusive startup completes interrupted deletes by moving the visible target into `.recycle/`.
 A plain marker with a visible target stays protected and logs a manual-handling
 warning: automatically completing a directory deletion could move unrelated
 contents, so reconciliation preserves this ambiguous evidence. Publication that
@@ -206,10 +206,10 @@ recycle directories are never scanned. Ambiguous legacy `filename.NUMBER` files
 outside staging are reported, not moved, because user files can have those names.
 Other staging filenames are untouched. No marker is permanently deleted, and no
 recovery API or bulk marker cleanup is provided. Without exclusive ownership the
-new reconciliation is skipped with an explicit warning; legacy hold migration
-retains its existing behavior. The read-only `scanLifecycle` classification is
-separate from startup's `applyReconciliation` mutations; both require a quiescent
-root, and the latter is for startup under ownership only.
+pre-existing legacy hold migration keeps its behavior, then a read-only
+`scanLifecycle` pass logs finding counts by kind and integrity-check guidance;
+no reconciliation writes run. The read-only `scanLifecycle` classification is
+separate from startup's `applyReconciliation` mutations; a quiescent root gives a consistent scan, and mutations are for startup under ownership only.
 
 ### Read-only integrity check
 
@@ -225,3 +225,39 @@ Exit codes: 0 clean, 1 findings, 2 usage or I/O/metadata errors.
 It changes nothing: no directories, ownership locks, recovery, or cleanup are
 created or performed. Reads can update filesystem access times; a running writer
 can change the data during this unlocked inspection.
+
+### Deployment prerequisites and manual triage
+
+**Deployment prerequisite:** the deployment configuration must enable
+`exclusiveDataRoot: true`. Without it, startup only runs legacy hold migration
+plus the read-only `scanLifecycle`, logs the number of findings by kind, and
+suggests `npm run check:integrity -- --data-root <dir>` and exclusive mode; no
+reconciliation writes run. `check:integrity` warns when the data root has a live
+owner: results may then include in-flight writes.
+
+**Legacy marker without intent and a visible target** (only markers created
+before this upgrade; new deletes write `intent: "delete"` and new publications
+`intent: "publish"`):
+
+1. Stop the server and back up the whole data root, including hidden
+   directories (`.chat-lifecycle/`, `.chat-staging/`, `.recycle/`).
+2. Read the marker JSON: `relative_path`, `reason`, `retired_at`, `token`,
+   `version` and any publish fields. Match it to the visible path through
+   `relative_path` (the marker name is a hash), not by file name alone.
+3. Compare the visible target's content and mtime with `retired_at`, and look
+   for the matching copy and timestamps under `.recycle/`.
+4. Decide:
+   - Delete did not finish (`reason` is a delete, target unchanged since before
+     `retired_at`, no later edits): move the visible target into its own
+     container under `.recycle/` and keep the marker.
+   - Marker is left over from a finished publication/re-import (target written
+     after `retired_at`, or content newer than the recycled copy): move only that
+     marker file into `.recycle/` and keep the visible target.
+   - Unsure: keep all evidence and leave the server stopped. Never `rm` and never
+     bulk-clean markers.
+5. Run `npm run check:integrity` again before starting the server.
+
+**Rollback/upgrade note:** Windows `processStartMs` rounding changed from
+floating point to BigInt. An owner process started by the older build that is
+still running can differ by 1 ms, which causes a refusal (the safe direction).
+Stop the old process before starting the new build, in either direction.

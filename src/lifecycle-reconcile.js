@@ -41,7 +41,7 @@ export async function scanLifecycle(root, { fs: filesystem = fs } = {}) {
                 const present = await exists(visible);
                 const kind = record.intent === 'publish'
                     ? present ? record.publish_visible_before ? 'manual' : 'published' : 'unpublished'
-                    : present ? 'manual' : 'retired';
+                    : present ? record.intent === 'delete' ? 'delete' : 'manual' : 'retired';
                 findings.push({ kind, root, source, visible, contents });
             } else if (entry.isFile() && /\.(?:jsonl|png|json)\.[0-9]{1,10}$/.test(entry.name)) {
                 findings.push({ kind: 'manual-temp', root, source });
@@ -66,7 +66,10 @@ export async function applyReconciliation(findings, { log = console.warn } = {})
             });
             if ((kind === 'published' && !present) || (kind === 'unpublished' && present)) throw new Error(`Visible path changed during reconciliation: ${visible}`);
         }
-        if (kind === 'published' || kind === 'orphan') {
+        if (kind === 'delete') {
+            const destination = await recycleChatPath(visible, root);
+            log('Lifecycle reconciliation completed delete:', visible, destination);
+        } else if (kind === 'published' || kind === 'orphan') {
             const destination = await recycleChatPath(source, root);
             log('Lifecycle reconciliation recycled:', source, destination);
         } else if (kind === 'unpublished') {
@@ -86,5 +89,14 @@ export async function reconcileLifecycle(root, options) {
     await restoreLegacyRetiredHolds(root);
     const findings = await scanLifecycle(root);
     await applyReconciliation(findings, options);
+    return findings;
+}
+
+/** Default startup inspection: no migration or filesystem mutations. */
+export async function reportLifecycleScan(root, { log = console.warn, dataRoot = root } = {}) {
+    const findings = await scanLifecycle(root);
+    const counts = {};
+    for (const { kind } of findings) counts[kind] = (counts[kind] || 0) + 1;
+    log(`Lifecycle read-only scan: ${findings.length} findings ${JSON.stringify(counts)}; root=${root}. Run npm run check:integrity -- --data-root ${dataRoot} and enable exclusiveDataRoot: true for automatic reconciliation.`);
     return findings;
 }

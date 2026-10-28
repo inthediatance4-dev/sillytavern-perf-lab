@@ -445,7 +445,7 @@ export async function retireChatPath(filePath, lifecycleRoot, reason) {
     const token = randomUUID();
     const marker = markerPath(filePath, lifecycleRoot);
     await fs.promises.mkdir(path.dirname(marker), { recursive: true });
-    await writeLifecycleAtomic(marker, JSON.stringify({ version: 1, token, reason, retired_at: new Date().toISOString(), relative_path: path.relative(lifecycleRoot, filePath) }));
+    await writeLifecycleAtomic(marker, JSON.stringify({ version: 1, token, reason, ...(['deleted', 'character_deleted', 'group_deleted'].includes(reason) ? { intent: 'delete' } : {}), retired_at: new Date().toISOString(), relative_path: path.relative(lifecycleRoot, filePath) }));
     return { marker, token, lifecycleRoot };
 }
 
@@ -718,7 +718,7 @@ export async function recycleOldChatBackups(directory, prefix, limit, options = 
     if (!Number.isSafeInteger(limit) || limit < 0) throw new RangeError('Backup retention must be a non-negative integer');
     const maxRecycleBytes = options.maxRecycleBytes ?? -1;
     const names = (await fs.promises.readdir(directory, { withFileTypes: true }))
-        .filter(entry => entry.isFile() && entry.name.startsWith(prefix) && entry.name.endsWith('.jsonl'))
+        .filter(entry => entry.isFile() && !isLifecycleInternalName(entry.name) && entry.name.startsWith(prefix) && entry.name.endsWith('.jsonl'))
         .map(entry => entry.name);
     const recycled = [];
     if (names.length > limit) {
@@ -770,4 +770,10 @@ export async function resolveGroupChatPath(directory, id) {
     const file = path.join(directory, `${id}.jsonl`);
     await assertChatWritable(file, directory);
     return file;
+}
+
+/** Reserved lifecycle entries must never become visible user listings. */
+export function isLifecycleInternalName(name) {
+    return ['.chat-staging', '.chat-lifecycle', '.recycle'].includes(name)
+        || /^hold-.*\.json$/.test(name) || /\.(?:jsonl|png|json)\.[0-9]{1,10}$/.test(name);
 }

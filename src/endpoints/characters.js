@@ -1,3 +1,4 @@
+import { isLifecycleInternalName } from '../chat-io.js';
 import { trackPersistenceRouter } from '../request-drain.js';
 import { withCharacterEdit, withCharacterImport, invalidateCharacterImport } from '../character-lifecycle.js';
 import path from 'node:path';
@@ -376,7 +377,7 @@ const calculateChatSize = (charDir) => {
     let dateLastChat = 0;
 
     if (fs.existsSync(charDir)) {
-        const chats = fs.readdirSync(charDir);
+        const chats = fs.readdirSync(charDir).filter(name => !isLifecycleInternalName(name));
         if (Array.isArray(chats) && chats.length) {
             for (const chat of chats) {
                 const chatStat = fs.statSync(path.join(charDir, chat));
@@ -1626,7 +1627,7 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
         }
 
         const files = fs.readdirSync(chatsDirectory, { withFileTypes: true });
-        const jsonFiles = files.filter(file => file.isFile() && path.extname(file.name) === '.jsonl').map(file => file.name);
+        const jsonFiles = files.filter(file => file.isFile() && !isLifecycleInternalName(file.name) && path.extname(file.name) === '.jsonl').map(file => file.name);
 
         if (jsonFiles.length === 0) {
             return response.send([]);

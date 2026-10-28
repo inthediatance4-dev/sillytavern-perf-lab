@@ -1,5 +1,5 @@
 import { restoreLegacyRetiredHolds } from './chat-io.js';
-import { reconcileLifecycle } from './lifecycle-reconcile.js';
+import { reconcileLifecycle, reportLifecycleScan } from './lifecycle-reconcile.js';
 import { runShutdown } from './request-drain.js';
 import { pendingChatIOPaths } from './chat-io.js';
 // native node modules
@@ -509,8 +509,9 @@ initUserStorage(globalThis.DATA_ROOT)
             for (const root of [directories.chats, directories.characters, directories.groupChats]) {
                 if (cliArgs.exclusiveDataRoot) await reconcileLifecycle(root);
                 else {
+                    // Pre-existing legacy hold restoration is kept; the new scan itself is read-only.
                     await restoreLegacyRetiredHolds(root);
-                    console.warn('Lifecycle reconciliation skipped: exclusive data-root ownership is not held:', root);
+                    await reportLifecycleScan(root, { dataRoot: globalThis.DATA_ROOT });
                 }
             }
         }

@@ -1,5 +1,5 @@
 import { trackPersistenceRouter } from '../request-drain.js';
-import { withCharacterEdit } from '../character-lifecycle.js';
+import { withCharacterEdit, withCharacterImport, invalidateCharacterImport } from '../character-lifecycle.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import { promises as fsPromises } from 'node:fs';
@@ -215,6 +215,24 @@ async function readCharacterData(inputFile, inputFormat = 'png') {
     return result;
 }
 
+/** Hold character and chat publication locks through image processing and commit. */
+async function withImportPublication(outputFile, request, publish) {
+    const avatar = `${outputFile}.png`;
+    const chatsPath = path.join(request.user.directories.chats, outputFile);
+    return withCharacterImport(request.user.directories.characters, avatar, check => {
+        return withPathLocks([chatsPath], () => usingRetiredPathReuses([
+            { filePath: chatsPath, lifecycleRoot: request.user.directories.chats, allowVisible: true },
+            { filePath: path.join(request.user.directories.characters, avatar), lifecycleRoot: request.user.directories.characters, allowVisible: true },
+        ], async () => {
+            check();
+            const result = await publish(check);
+            check();
+            if (!result) throw new Error('Character import did not complete');
+            return result;
+        }));
+    });
+}
+
 /**
  * Writes the character card to the specified image file.
  * @param {string|Buffer} inputFile - Path to the image file or image buffer
@@ -225,6 +243,11 @@ async function readCharacterData(inputFile, inputFormat = 'png') {
  * @returns {Promise<boolean>} - True if the operation was successful
  */
 async function writeCharacterData(inputFile, data, outputFile, request, crop = undefined) {
+    request.checkCharacterImport?.();
+    if (request.characterImport && !request.checkCharacterImport) {
+        return withImportPublication(outputFile, request, check => writeCharacterData(inputFile, data, outputFile, { ...request, checkCharacterImport: check }, crop));
+    }
+
     try {
         // Reset the cache
         for (const key of memoryCache.keys()) {
@@ -257,7 +280,8 @@ async function writeCharacterData(inputFile, data, outputFile, request, crop = u
             }
         }
 
-        const inputImage = await getInputImage();
+        const inputImage = await (request.checkCharacterImport ? request.checkCharacterImport.wait(getInputImage()) : getInputImage());
+        request.checkCharacterImport?.();
 
         // Get the chunks
         const outputImage = write(inputImage, data);
@@ -266,6 +290,7 @@ async function writeCharacterData(inputFile, data, outputFile, request, crop = u
         writeFileAtomicSync(outputImagePath, outputImage);
         return true;
     } catch (err) {
+        if (err instanceof ChatLifecycleError) throw err;
         console.error(err);
         return false;
     }
@@ -777,6 +802,7 @@ async function importFromCharX(uploadPath, { request }, preservedFileName) {
 
     const parser = new CharXParser(data);
     const { card, avatar, auxiliaryAssets, extractedBuffers } = await parser.parse();
+    request.checkCharacterImport?.();
 
     // Apply standard character transformations
     if (card.data?.name) {
@@ -809,10 +835,13 @@ async function importFromCharX(uploadPath, { request }, preservedFileName) {
 
 async function importFromByaf(uploadPath, { request }, preservedFileName) {
     const data = getArrayBufferSlice(await fsPromises.readFile(uploadPath));
+    request.checkCharacterImport?.();
     await fsPromises.unlink(uploadPath);
+    request.checkCharacterImport?.();
     console.info('Importing from BYAF');
 
     const byafData = await new ByafParser(data).parse();
+    request.checkCharacterImport?.();
     const card = readFromV2(byafData.card);
     const fileName = preservedFileName || getPngName(sanitize(byafData.character.displayName || card.name, { replacement: sanitizeSafeCharacterReplacements }), request.user.directories);
 
@@ -977,6 +1006,7 @@ async function importFromJson(uploadPath, { request }, preservedFileName) {
  */
 async function importFromPng(uploadPath, { request }, preservedFileName) {
     const imgData = await readCharacterData(uploadPath);
+    request.checkCharacterImport?.();
     if (imgData === undefined) throw new Error('Failed to read character data');
 
     let jsonData = JSON.parse(imgData);
@@ -1490,6 +1520,7 @@ router.post('/delete', validateAvatarUrlMiddleware, async function (request, res
         return response.sendStatus(403);
     }
 
+    invalidateCharacterImport(request.user.directories.characters, request.body.avatar_url);
     const avatarPath = path.join(request.user.directories.characters, request.body.avatar_url);
     if (!fs.existsSync(avatarPath)) {
         return response.sendStatus(400);
@@ -1667,7 +1698,15 @@ router.post('/import', async function (request, response) {
             throw new Error(`Unsupported format: ${format}`);
         }
 
-        const fileName = await importFunction(uploadPath, { request, response }, preservedFileName);
+        request.characterImport = true;
+        const fileName = preservedFileName
+            ? await withImportPublication(preservedFileName, request, async check => {
+                const importing = importFunction(uploadPath, { request: { ...request, checkCharacterImport: check }, response }, preservedFileName);
+                const result = await check.wait(importing);
+                check();
+                return result;
+            })
+            : await importFunction(uploadPath, { request, response }, preservedFileName);
 
         if (!fileName) {
             console.warn('Failed to import character');
@@ -1680,6 +1719,7 @@ router.post('/import', async function (request, response) {
 
         response.send({ file_name: fileName });
     } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason });
         console.error(err);
         response.send({ error: true });
     }
@@ -1721,7 +1761,14 @@ router.post('/duplicate', validateAvatarUrlMiddleware, async function (request, 
             suffix++;
         }
 
-        fs.copyFileSync(filename, newFilename);
+        const chatsPath = path.join(request.user.directories.chats, path.basename(newFilename, '.png'));
+        await withPathLocks([...chatLockPaths([filename, newFilename]), chatsPath], () => usingRetiredPathReuses([
+            { filePath: newFilename, lifecycleRoot: request.user.directories.characters },
+            { filePath: chatsPath, lifecycleRoot: request.user.directories.chats },
+        ], async () => {
+            await assertChatWritable(filename, request.user.directories.characters);
+            await createChatFileExclusive(newFilename, await fsPromises.readFile(filename));
+        }));
         console.info(`${filename} was copied to ${newFilename}`);
         response.send({ path: path.parse(newFilename).base });
     } catch (error) {

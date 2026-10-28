@@ -238,3 +238,54 @@ test('a failed chat rename restores the destination retirement marker', async ()
     );
     await io.assertChatWritable(source, directory);
 });
+
+test('delete then re-import publishes a character with writable chats', async () => {
+    const name = 'ReimportWritable';
+    const bytes = pngCard(name);
+    fs.writeFileSync(path.join(dirs.characters, `${name}.png`), bytes);
+    fs.mkdirSync(path.join(dirs.chats, name));
+    fs.writeFileSync(path.join(dirs.chats, name, 'old.jsonl'), 'old');
+    assert.equal((await invoke(characters.router, '/delete', { avatar_url: `${name}.png`, delete_chats: true })).status, 200);
+    fs.writeFileSync(path.join(dirs.uploads, 'reimport.png'), bytes);
+    const imported = await invoke(characters.router, '/import', { file_type: 'png' }, {
+        file: { destination: dirs.uploads, filename: 'reimport.png' },
+    });
+    assert.equal(imported.status, 200);
+    assert.equal(imported.data.file_name, name);
+    assert.equal((await invoke(chats.router, '/save', {
+        avatar_url: `${name}.png`, file_name: 'new', chat: [{ mes: 'fresh' }],
+    })).status, 200);
+});
+
+test('deletion cancels an import paused in image processing without resurrection', async () => {
+    const { Jimp } = await import('../src/jimp.js');
+    const name = 'ImportDeleteRace';
+    const bytes = pngCard(name);
+    const target = path.join(dirs.characters, `${name}.png`);
+    fs.writeFileSync(target, bytes);
+    fs.mkdirSync(path.join(dirs.chats, name));
+    fs.writeFileSync(path.join(dirs.uploads, 'race.png'), bytes);
+    let entered;
+    let resume;
+    const inside = new Promise(resolve => { entered = resolve; });
+    const paused = new Promise(resolve => { resume = resolve; });
+    const original = Jimp.read;
+    Jimp.read = async () => {
+        entered();
+        await paused;
+        const image = new Jimp({ width: 1, height: 1 });
+        image.getBuffer = async () => bytes;
+        return image;
+    };
+    try {
+        const importing = invoke(characters.router, '/import', { file_type: 'png', preserved_name: `${name}.png` }, {
+            file: { destination: dirs.uploads, filename: 'race.png' },
+        });
+        await inside;
+        assert.equal((await invoke(characters.router, '/delete', { avatar_url: `${name}.png`, delete_chats: true })).status, 200);
+        assert.equal((await importing).status, 409);
+        resume();
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(fs.existsSync(target), false);
+    } finally { resume(); Jimp.read = original; }
+});

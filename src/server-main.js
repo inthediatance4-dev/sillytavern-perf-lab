@@ -1,3 +1,4 @@
+import { restoreLegacyRetiredHolds } from './chat-io.js';
 // native node modules
 import fs from 'node:fs';
 import path from 'node:path';
@@ -501,6 +502,13 @@ function setDnsResolutionOrder() {
 initUserStorage(globalThis.DATA_ROOT)
     .then(setDnsResolutionOrder)
     .then(ensurePublicDirectoriesExist)
+    .then(async () => {
+        for (const directories of await getUserDirectoriesList()) {
+            await restoreLegacyRetiredHolds(directories.chats);
+            await restoreLegacyRetiredHolds(directories.characters);
+            await restoreLegacyRetiredHolds(directories.groupChats);
+        }
+    })
     .then(migrateUserData)
     .then(migrateSystemPrompts)
     .then(migratePublicOverrides)

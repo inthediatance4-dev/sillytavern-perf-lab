@@ -261,3 +261,22 @@ before this upgrade; new deletes write `intent: "delete"` and new publications
 floating point to BigInt. An owner process started by the older build that is
 still running can differ by 1 ms, which causes a refusal (the safe direction).
 Stop the old process before starting the new build, in either direction.
+
+### Streaming chat export
+
+Export holds the existing shared parent-directory and file path locks through
+both passes and response completion. Text export validates each physical row and
+its display-text conversion before sending headers; malformed rows return the
+existing 400 JSON error and 1-based line number without any export bytes. JSONL
+retains its historical raw UTF-8 behavior (including BOM, blank lines and malformed
+rows), and the first pass checks readability without parsing it. Both formats
+stream the existing JSON response envelope with backpressure on the second pass.
+Memory is bounded by stream buffers and, for text, the longest individual row and
+its converted/escaped message, rather than the entire chat. A single exceptionally
+large row can therefore still require substantial memory.
+
+A save waits for export's shared file lock; export sees one complete version.
+Disconnecting aborts reads and releases the locks. A second-pass I/O error destroys
+the response: clients must treat a disconnected/incomplete JSON response as a failed
+export, even if they already received HTTP 200 headers. These remain in-process
+locks; external writers and multiple processes sharing a data directory are unsupported.

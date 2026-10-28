@@ -8,6 +8,13 @@ import test from 'node:test';
 import yaml from 'yaml';
 import { forwardConsoleBreak, prepareTemporaryLab } from '../scripts/longchat-lab-server.mjs';
 
+// Allow for cold Python startup on Windows CI; this is a hang guard.
+const PYTHON_HANG_GUARD_TIMEOUT_MS = Number(process.env.LONGCHAT_TEST_PYTHON_TIMEOUT_MS || 60000);
+
+function pythonFailureMessage(result, startedAt) {
+    return `Python error=${result.error}, status=${result.status}, signal=${result.signal}, elapsed=${Date.now() - startedAt}ms\nstderr: ${result.stderr}`;
+}
+
 test('temporary measurement config isolates data and preserves retention defaults', async () => {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'longchat-config-'));
     const lab = await prepareTemporaryLab(directory, 18889);
@@ -54,8 +61,9 @@ p.send_signal(signal.CTRL_BREAK_EVENT)
 out, err = p.communicate(timeout=8)
 assert p.returncode == 0 and 'graceful' in out, (p.returncode, out, err)
 `;
-    const result = spawnSync(process.env.LONGCHAT_TEST_PYTHON || 'python', ['-c', code, process.execPath], { encoding: 'utf8', timeout: 15000 });
-    assert.equal(result.status, 0, result.stderr || result.error?.message);
+    const startedAt = Date.now();
+    const result = spawnSync(process.env.LONGCHAT_TEST_PYTHON || 'python', ['-c', code, process.execPath], { encoding: 'utf8', timeout: PYTHON_HANG_GUARD_TIMEOUT_MS });
+    assert.equal(result.status, 0, pythonFailureMessage(result, startedAt));
 });
 
 test('deterministic data, percentiles and CPU ancestor attribution', () => {
@@ -110,6 +118,7 @@ assert row['batchesByIndex'][0]['ms']['n'] == 1
 index = json.loads((output / 'raw-index.json').read_text())
 assert index[0]['sha256'] == hashlib.sha256(before[0]).hexdigest()
 `;
-    const result = spawnSync(python, ['-c', script], { encoding: 'utf8', timeout: 5000, env: { ...process.env, PYTHONPATH: 'tests', PYTHONDONTWRITEBYTECODE: '1' } });
-    assert.equal(result.status, 0, result.stderr || result.error?.message);
+    const startedAt = Date.now();
+    const result = spawnSync(python, ['-c', script], { encoding: 'utf8', timeout: PYTHON_HANG_GUARD_TIMEOUT_MS, env: { ...process.env, PYTHONPATH: 'tests', PYTHONDONTWRITEBYTECODE: '1' } });
+    assert.equal(result.status, 0, pythonFailureMessage(result, startedAt));
 });

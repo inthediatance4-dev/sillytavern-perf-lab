@@ -24,11 +24,11 @@ npm run perf:lab
 页面没有单独的实验室标记，脚本只在标题为 SillyTavern 且地址属于配置源时才写入人工数据。
 需要已安装的 Python Playwright 与 Chromium。本文件不记录新的浏览器或真实生成验收结论。
 
-`test:perf` 当前列出 33 个测试文件；历史 Git 对象缺失时，三个历史源码比较套件会明确跳过。
-基准脚本 `bench:perf` 仍要求历史 Git 对象。部分测试需要本地监听权限。
-2026-10-25 的无套接字选择在 Node 20.19.2 下由 `node --test` 报告 20 项通过
-（此环境每个文件计一项）；不能据此宣称完整套件通过或更新完整用例总数。
-完整运行报告 28 个文件项：20 通过，8 个需要本地监听权限的套件因沙箱限制失败。
+Current verification：[round-1.5 CI run 40656640441](https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/40656640441)，
+提交 `7a0b029`，Node 20/24 × Ubuntu/Windows 全绿。Ubuntu：591 tests / 590 pass / 1 skip；
+Windows：591 tests / 578 pass / 13 skip，均有明确跳过原因。
+Windows CreationTime 回收尚未实际走通，仅验证保守拒绝；Windows 无真实服务器 SIGTERM e2e。
+部署仍待浏览器验收、Windows 实机验收和崩溃对账。
 `npm run lint` 使用根 ESLint 配置：全项目语法检查，实验模块、脚本和测试启用部分规则。
 下文“没有完整 ESLint 配置”和 442/442 等陈述仅描述当时状态。
 

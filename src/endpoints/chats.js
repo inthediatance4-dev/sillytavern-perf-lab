@@ -16,6 +16,7 @@ import { createChatBackupScheduler } from '../chat-backup-scheduler.js';
 import {
     withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO, runAfterPathLocks,
     assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, isValidGroupChatId, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
+    pathLockKey,
 } from '../chat-io.js';
 import {
     getConfigValue,
@@ -88,8 +89,7 @@ const backupScheduler = createChatBackupScheduler(backupChat, { interval: thrott
 
 /** Match path-lock normalization, including Windows case-insensitive paths. */
 function backupIdentity(handle, filePath) {
-    const resolved = path.resolve(filePath);
-    return JSON.stringify([handle, process.platform === 'win32' ? resolved.toLowerCase() : resolved]);
+    return JSON.stringify([handle, pathLockKey(filePath)]);
 }
 
 /**

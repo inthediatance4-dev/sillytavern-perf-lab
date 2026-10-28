@@ -179,7 +179,9 @@ export function withPathLocks(entries, task) {
         for (const request of requests) {
             const held = outer.get(request.key);
             if (!held || (held === 'shared' && request.mode === 'exclusive')) {
-                return Promise.reject(new LockOrderError(request.key));
+                const error = new LockOrderError(request.key);
+                console.error(error, { heldKeys: [...outer.keys()], requestedKeys: requests.map(entry => entry.key) });
+                return Promise.reject(error);
             }
         }
         return Promise.resolve().then(task);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
-import { LockOrderError, chatLockPaths, runAfterPathLocks, waitForChatIO, withPathLocks } from '../src/chat-io.js';
+import { LockOrderError, pathLockKey, chatLockPaths, runAfterPathLocks, waitForChatIO, withPathLocks } from '../src/chat-io.js';
 
 function deferred() {
     /** @type {(value?: unknown) => void} */
@@ -226,4 +226,24 @@ test('deferred work waits for originating and enclosing reservations to release'
     });
     await follow;
     assert.deepEqual(order, ['inner', 'outer', 'follow']);
+});
+
+
+test('lock order rejection logs the error stack and all held and requested keys once', async t => {
+    const calls = [];
+    t.mock.method(console, 'error', (...args) => calls.push(args));
+    const held = path.join(directory, 'logged-held');
+    const requested = path.join(directory, 'logged-requested');
+    await withPathLocks([held], async () => {
+        await assert.rejects(withPathLocks([held, requested], async () => {}), error => {
+            assert.equal(calls.length, 1);
+            assert.equal(calls[0][0], error);
+            assert.match(error.stack, /LockOrderError.*\n/);
+            assert.deepEqual(calls[0][1], {
+                heldKeys: [pathLockKey(held)],
+                requestedKeys: [pathLockKey(held), pathLockKey(requested)].sort(),
+            });
+            return error instanceof LockOrderError;
+        });
+    });
 });

@@ -65,3 +65,80 @@ test('native temp aliases share locks, retirement markers and publication author
         await fs.rm(root, { recursive: true, force: true });
     }
 });
+
+// Run the production marker writer and lookup with Windows paths on every platform.
+test('short and long lifecycle roots find root-relative markers in both directions (simulation)', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const fixture = `
+        import path from 'node:path';
+        export const records = new Map();
+        export const realpath = value => value.replace(/RUNNER~1/ig, 'runneradmin');
+        const key = value => realpath(path.win32.resolve(value)).toLowerCase();
+        export const atomic = async (file, data) => { records.set(key(file), data); };
+        export default { promises: {
+            realpath: async value => realpath(value),
+            mkdir: async () => {},
+            lstat: async value => {
+                if (value.includes('.chat-lifecycle') && value.endsWith('.json') && !records.has(key(value))) {
+                    throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+                }
+                return { isSymbolicLink: () => false };
+            },
+        } };
+    `;
+    const fixtureUrl = `data:text/javascript,${encodeURIComponent(fixture).replaceAll("'", '%27')}`;
+    let source = await readFile(new URL('../src/chat-io.js', import.meta.url), 'utf8');
+    source = source.replace(/from '([^']+)'/g, (_, specifier) => `from '${import.meta.resolve(specifier.startsWith('./') ? `../src/${specifier.slice(2)}` : specifier)}'`)
+        .replace("import fs from 'node:fs';", `import fs, { realpath as simulatedRealpath } from '${fixtureUrl}';`)
+        .replace("import path from 'node:path';", "import { win32 as path } from 'node:path';")
+        .replace(/import writeFileAtomic from '[^']+';/, `import { atomic as writeFileAtomic } from '${fixtureUrl}';`)
+        .replace("process.platform === 'win32'", 'true')
+        .replace('windowsPathKey(resolved)', 'windowsPathKey(resolved, simulatedRealpath)');
+    const io = await import(`data:text/javascript,${encodeURIComponent(source)}`);
+    const { records } = await import(fixtureUrl);
+    const { win32 } = await import('node:path');
+    const roots = ['C:\\Users\\RUNNER~1\\Temp\\chats', 'C:\\Users\\runneradmin\\Temp\\chats'];
+    for (const [index, root] of roots.entries()) {
+        for (const relative of ['chat.jsonl', 'card', 'card\\history.jsonl']) {
+            records.clear();
+            const retirement = await io.retireChatPath(win32.join(root, relative), root, 'test');
+            assert.equal(JSON.parse([...records.values()][0]).relative_path, relative);
+            assert.equal(win32.dirname(retirement.marker), win32.join(root, '.chat-lifecycle'));
+            const other = roots[1 - index];
+            await assert.rejects(io.assertChatWritable(win32.join(other, relative), other), { reason: 'retired_path' });
+            if (relative === 'card') {
+                await assert.rejects(io.assertChatWritable(win32.join(other, relative, 'child.jsonl'), other), { reason: 'retired_path' });
+            }
+        }
+    }
+});
+
+test('DOS short-name lifecycle roots preserve retirement in both directions (native Windows)', {
+    skip: process.platform !== 'win32' ? 'Requires native Windows DOS 8.3 short-name filesystem aliases' : false,
+}, async t => {
+    const fs = await import('node:fs/promises');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const { execFileSync } = await import('node:child_process');
+    const io = await import('../src/chat-io.js');
+    const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'retired long name '));
+    try {
+        const longRoot = await fs.realpath(temporary);
+        const shortRoot = execFileSync('cmd.exe', ['/d', '/c', `for %I in ("${longRoot}") do @echo %~sI`], { encoding: 'utf8' }).trim();
+        if (!shortRoot.includes('~') || shortRoot.toLowerCase() === longRoot.toLowerCase()) {
+            t.skip('The temporary directory has no distinct DOS 8.3 short name (short-name creation may be disabled)');
+            return;
+        }
+        assert.equal((await fs.realpath(shortRoot)).toLowerCase(), longRoot.toLowerCase());
+        for (const [index, root] of [shortRoot, longRoot].entries()) {
+            const relative = `retired-${index}.jsonl`;
+            const retirement = await io.retireChatPath(path.join(root, relative), root, 'test');
+            const record = JSON.parse(await fs.readFile(retirement.marker, 'utf8'));
+            assert.equal(record.relative_path, relative);
+            const other = index === 0 ? longRoot : shortRoot;
+            await assert.rejects(io.assertChatWritable(path.join(other, relative), other), { reason: 'retired_path' });
+        }
+    } finally {
+        await fs.rm(temporary, { recursive: true, force: true });
+    }
+});

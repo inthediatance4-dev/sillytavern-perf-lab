@@ -1,0 +1,14 @@
+✔ win-boot stamps match inside the documented tolerance and not past it (1.6178ms)
+✔ process start wins over a skewed win-boot stamp (0.2383ms)
+✔ an unstable Windows boot sample is omitted after two reads more than 2s apart (0.1786ms)
+✔ Windows re-probes foreign PIDs across successive incarnations (7.9555ms)
+✔ a fresh observer after a clock step cannot reclaim by Windows boot estimate (0.1689ms)
+✔ Windows omits identity when PowerShell is unavailable instead of mixing WMIC timestamps (2.4394ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 116.9013

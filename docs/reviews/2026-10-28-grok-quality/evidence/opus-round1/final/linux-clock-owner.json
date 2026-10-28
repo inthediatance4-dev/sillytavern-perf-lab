@@ -1,0 +1,12 @@
+{
+  "scenario": "linux-btime-clock-correction",
+  "reproduced": false,
+  "originalOwnerStillAlive": true,
+  "originalPid": 2939681,
+  "sameBootId": "502dec9a-d11f-4a3b-ba7b-3dd14bc442a2",
+  "btimeInjectedDeltaSeconds": 60,
+  "actualClockChanged": false,
+  "childStatus": 1,
+  "contender": null,
+  "stderr": "file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:372\n    return new DataRootOwnershipError(\n           ^\n\nDataRootOwnershipError: Data root /tmp/rvf-linux-clock-owner/temp/linux-clock-owner-pfXc2Z is owned by pid 2939681 on <host> since 2026-10-28T05:30:20.101Z. Another process must not share this data root.\n    at lockedError (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:372:12)\n    at inspectLock (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:397:43)\n    at acquireResolved (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:741:32)\n    at acquireOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:662:16)\n    at acquireDataRootOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:642:16)\n    at file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/linux-clock-owner.mjs:22:20 {\n  code: 'ELOCKED'\n}\n\nNode.js v22.20.0\n"
+}

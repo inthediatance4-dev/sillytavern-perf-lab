@@ -298,3 +298,35 @@ Successful Windows self start time is already cached per process; failures are
 retryable and peer identities are never cached. No asynchronous startup warmup
 was added: the provider uses synchronous PowerShell, so scheduling it later would
 still block the event loop; a separate asynchronous provider would broaden this fix.
+
+## Deployment checklist
+
+Run `npm run check:deploy -- --config ./config.yaml --json` before deployment.
+The check reads files only: it takes no ownership/path lock, creates no probe files,
+and does not initialize or migrate config. Exit codes: 0 passes, 1 WARN or FAIL,
+2 invalid arguments/config. Text output distinguishes FAIL prerequisites from WARN hints.
+It describes a live snapshot; concurrent changes can make scan results incomplete.
+
+- Enable `exclusiveDataRoot: true` (FAIL otherwise). The standalone server's
+  `--configPath`, `--dataRoot`, and `--exclusiveDataRoot [true|false]` options are
+  accepted; `--config` and `--data-root` are convenient aliases. Config defaults
+  to `./config.yaml`; relative data paths resolve from the working directory,
+  as on the server. CLI overrides `SILLYTAVERN_EXCLUSIVEDATAROOT` /
+  `SILLYTAVERN_DATAROOT`, which override YAML. This command checks standalone
+  configuration; pass explicit paths when checking a global-mode installation.
+- Review `backups.chat.maxRecycleBytes` (also
+  `SILLYTAVERN_BACKUPS_CHAT_MAXRECYCLEBYTES`). Default `-1` remains off and is OK:
+  retained backups need disk space; a nonnegative budget sacrifices retention.
+- Ensure the data root exists and permits writes/traversal. The read-only access
+  check cannot guarantee future writes or available disk space.
+- Review the smallest detected host/cgroup memory limit and largest visible
+  `.jsonl` file (excluding backups, recycle, staging and lifecycle storage;
+  symlinks are not followed). The check reads standard cgroup v2/v1 limit files,
+  falling back to `os.totalmem()`. WARN means below 512 MiB or estimated export
+  need. Unusual cgroup mounts/nested limits may require manual verification.
+  Streaming export uses bounded buffering, so the estimate does not multiply
+  chat size. When round-3 `export-memory.json` exists, output includes its measured
+  input size and peak RSS; allowance is max(150 MiB, measured peak × 1.25).
+  Otherwise 150 MiB is an explicitly unmeasured fallback. Allow extra headroom
+  for concurrent work and unusually large individual JSONL rows. These hints
+  do not replace browser/Windows acceptance or upgrade/rollback rehearsal.

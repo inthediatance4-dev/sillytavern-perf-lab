@@ -14,7 +14,7 @@ async function fixture(t) {
     const dataRoot = path.join(root, 'data');
     await fs.mkdir(dataRoot);
     await fs.writeFile(configPath, `exclusiveDataRoot: true\ndataRoot: ${JSON.stringify(dataRoot)}\n`);
-    const dependencies = { env: {}, cgroupPaths: [], totalmem: () => 1024 * MiB, memoryEvidence: path.join(root, 'absent-evidence') };
+    const dependencies = { statfs: async () => ({ bavail: 4096 * MiB, bsize: 1 }), env: {}, cgroupPaths: [], totalmem: () => 1024 * MiB, memoryEvidence: path.join(root, 'absent-evidence') };
     return { root, configPath, dataRoot, dependencies };
 }
 async function snapshot(root) {
@@ -110,4 +110,33 @@ test('CLI JSON and exit codes 0, 1, 2', async t => {
     const bad = run(['--bad', '--json']);
     assert.equal(bad.status, 2);
     assert.match(JSON.parse(bad.text).error, /Usage/);
+});
+
+for (const [freeBytes, level] of [[1024 * MiB - 1, 'WARN'], [1024 * MiB, 'OK']]) {
+    test(`disk free-space floor: ${level} (injected, including Windows)`, async t => {
+        const f = await fixture(t);
+        const report = await checkDeploy(f, { ...f.dependencies, statfs: async root => {
+            assert.equal(root, f.dataRoot);
+            return { bavail: freeBytes, bsize: 1 };
+        } });
+        assert.equal(report.checks.find(c => c.check === 'diskSpace').level, level);
+        assert.equal(report.disk.requiredBytes, 1024 * MiB);
+    });
+}
+
+test('disk usage counts nested recycle once and warns at twice usage; statfs failures warn', async t => {
+    const f = await fixture(t);
+    await fs.mkdir(path.join(f.dataRoot, 'chats', '.recycle'), { recursive: true });
+    await fs.mkdir(path.join(f.dataRoot, 'backups'));
+    await fs.writeFile(path.join(f.dataRoot, 'chats', '.recycle', 'retained'), '123');
+    const file = await fs.open(path.join(f.dataRoot, 'backups', 'large'), 'w');
+    await file.truncate(600 * MiB);
+    await file.close();
+    const report = await checkDeploy(f, { ...f.dependencies, statfs: async () => ({ bavail: 1100 * MiB, bsize: 1 }) });
+    assert.equal(report.disk.recycleBytes, 3);
+    assert.equal(report.disk.usageBytes, 600 * MiB + 3);
+    assert.equal(report.disk.requiredBytes, 2 * (600 * MiB + 3));
+    assert.equal(report.checks.find(c => c.check === 'diskSpace').level, 'WARN');
+    const failed = await checkDeploy(f, { ...f.dependencies, statfs: async () => { throw new Error('unavailable'); } });
+    assert.equal(failed.checks.find(c => c.check === 'diskSpace').level, 'WARN');
 });

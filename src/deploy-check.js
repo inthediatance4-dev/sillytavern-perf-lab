@@ -36,6 +36,7 @@ export async function checkDeploy(options = {}, {
     totalmem = os.totalmem,
     memoryEvidence = evidencePath,
     access = fs.access,
+    statfs = fs.statfs,
 } = {}) {
     const configPath = path.resolve(options.configPath ?? './config.yaml');
     const config = yaml.parse(await fs.readFile(configPath, 'utf8'));
@@ -74,6 +75,32 @@ export async function checkDeploy(options = {}, {
         try { await visit(dataRoot); }
         catch (error) { add('WARN', 'chatScan', `Largest chat scan incomplete: ${error.message}`); }
     }
+    const disk = { usageBytes: 0, recycleBytes: 0, freeBytes: null, requiredBytes: null };
+    async function diskUsage(directory, counted = false, recycled = false) {
+        for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+            if (entry.isSymbolicLink()) continue;
+            const target = path.join(directory, entry.name);
+            const inRecycle = recycled || entry.name === '.recycle';
+            const included = counted || inRecycle || ['chats', 'group chats', 'backups'].includes(entry.name);
+            if (entry.isDirectory()) await diskUsage(target, included, inRecycle);
+            else if (entry.isFile() && included) {
+                const { size } = await fs.stat(target);
+                disk.usageBytes += size;
+                if (inRecycle) disk.recycleBytes += size;
+            }
+        }
+    }
+    if (rootReady) {
+        try {
+            await diskUsage(dataRoot);
+            const stats = await statfs(dataRoot);
+            disk.freeBytes = Number(stats.bavail) * Number(stats.bsize);
+            if (!Number.isFinite(disk.freeBytes) || disk.freeBytes < 0) throw new Error('invalid available filesystem bytes');
+            disk.requiredBytes = Math.max(1024 * MiB, 2 * disk.usageBytes);
+            add('INFO', 'diskUsage', `Available=${disk.freeBytes} bytes; recycle=${disk.recycleBytes} bytes; chats+backups+recycle=${disk.usageBytes} bytes (each file counted once; symlinks excluded). Default recycle retention is unbounded.`);
+            add(disk.freeBytes < disk.requiredBytes ? 'WARN' : 'OK', 'diskSpace', `Available space must be >= max(1 GiB, 2 × chats+backups+recycle usage)=${disk.requiredBytes} bytes.`);
+        } catch (error) { add('WARN', 'diskSpace', `Disk scan/statfs incomplete: ${error.message}`); }
+    }
     const hostBytes = totalmem();
     let memoryLimit = { bytes: hostBytes, source: 'os.totalmem()' };
     for (const file of cgroupPaths) {
@@ -104,5 +131,5 @@ export async function checkDeploy(options = {}, {
     add('INFO', 'exportEstimate', `${exportEstimate.source} Estimated need=${exportEstimate.bytes} bytes. Concurrent requests, very large individual rows, and other server work need additional headroom.`);
     const low = memoryLimit.bytes < 512 * MiB || memoryLimit.bytes < exportEstimate.bytes;
     add(low ? 'WARN' : 'OK', 'memoryLimit', `Memory limit=${memoryLimit.bytes} bytes (${memoryLimit.source}); warn below 512 MiB or estimated export need.`);
-    return { configPath, dataRoot, exclusiveDataRoot, maxRecycleBytes, largestChat, memoryLimit, exportEstimate, checks, exitCode: checks.some(check => ['WARN', 'FAIL'].includes(check.level)) ? 1 : 0 };
+    return { configPath, dataRoot, exclusiveDataRoot, maxRecycleBytes, disk, largestChat, memoryLimit, exportEstimate, checks, exitCode: checks.some(check => ['WARN', 'FAIL'].includes(check.level)) ? 1 : 0 };
 }

@@ -1,0 +1,49 @@
+{
+  "node": "v24.22.1",
+  "platform": "linux",
+  "baselineCommit": "48a153eef7411c8c6e9fa5b33bbbea74f7db892e",
+  "currentCommit": "1bb906d9dc1160b9ee024471a426f634aa9d06ec",
+  "workingTreeChangesIncluded": true,
+  "syntheticOnly": true,
+  "inputBytes": 104860395,
+  "rows": 24023,
+  "method": "Separate --expose-gc workers; actual /export route handler in-process; 2ms memoryUsage sampling plus response-boundary samples; Express JSON serialization simulated without HTTP transport. Sampled peaks can miss transient allocations; processLifetimeMaxRssBytes includes module loading.",
+  "baselineBufferedWholeOutput": true,
+  "baselineBufferingEvidence": "48a153e src/endpoints/chats.js /export accumulates buffer += on each readline line and responds only on close.",
+  "current": {
+    "initial": {
+      "rss": 92962816,
+      "heapTotal": 34889728,
+      "heapUsed": 15176200,
+      "external": 4072527,
+      "arrayBuffers": 212883
+    },
+    "peakRss": 507953152,
+    "peakHeapUsed": 304444824,
+    "rssIncrease": 414990336,
+    "heapUsedIncrease": 289268624,
+    "processLifetimeMaxRssBytes": 612085760,
+    "samples": 106,
+    "elapsedMs": 759.729059,
+    "outputBytes": 104091659,
+    "responseBytes": 104139758
+  },
+  "baseline": {
+    "initial": {
+      "rss": 92815360,
+      "heapTotal": 35151872,
+      "heapUsed": 15077888,
+      "external": 4031076,
+      "arrayBuffers": 212883
+    },
+    "peakRss": 510222336,
+    "peakHeapUsed": 307414160,
+    "rssIncrease": 417406976,
+    "heapUsedIncrease": 292336272,
+    "processLifetimeMaxRssBytes": 614354944,
+    "samples": 120,
+    "elapsedMs": 773.668971,
+    "outputBytes": 104091659,
+    "responseBytes": 104139758
+  }
+}

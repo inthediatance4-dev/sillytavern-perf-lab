@@ -210,3 +210,18 @@ new reconciliation is skipped with an explicit warning; legacy hold migration
 retains its existing behavior. The read-only `scanLifecycle` classification is
 separate from startup's `applyReconciliation` mutations; both require a quiescent
 root, and the latter is for startup under ownership only.
+
+### Read-only integrity check
+
+Stop the server to obtain a consistent offline view, then run
+`npm run check:integrity -- --data-root <dir>` (add `--json` for machine output;
+use `node scripts/check-integrity.mjs` directly to avoid npm's banner).
+The command reads the same user storage keys and chats, characters and group-chat
+roots as startup. It reports malformed JSONL rows with physical line numbers,
+legacy holds, marker/visible-file conflicts with intent state, recognized orphan
+staging/temp files, and recycled bytes/file counts per root. Recycled contents
+are counted rather than parsed. Nonempty recycle usage counts as a finding.
+Exit codes: 0 clean, 1 findings, 2 usage or I/O/metadata errors.
+It changes nothing: no directories, ownership locks, recovery, or cleanup are
+created or performed. Reads can update filesystem access times; a running writer
+can change the data during this unlocked inspection.

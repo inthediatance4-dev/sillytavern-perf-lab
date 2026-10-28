@@ -11784,7 +11784,7 @@ jQuery(async function () {
                 // display error message
                 console.log(data.message);
                 await delay(250);
-                toastr.error(`Error: ${data.message}`);
+                toastr.error(`Export failed: ${data.message}${Number.isInteger(data.line) ? ` (line ${data.line})` : ''}`);
                 return;
             } else {
                 const mimeType = format == 'txt' ? 'text/plain' : 'application/octet-stream';

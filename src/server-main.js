@@ -1,6 +1,7 @@
+import { restoreLegacyRetiredHolds } from './chat-io.js';
+import { reconcileLifecycle, reportLifecycleScan } from './lifecycle-reconcile.js';
 import { runShutdown } from './request-drain.js';
 import { pendingChatIOPaths } from './chat-io.js';
-import { restoreLegacyRetiredHolds } from './chat-io.js';
 // native node modules
 import fs from 'node:fs';
 import path from 'node:path';
@@ -339,10 +340,11 @@ async function preSetupTasks() {
         const code = await runShutdown([
             ['requests', signal => requestDrain.stop(signal)],
             ['chat I/O and backups', signal => flushChatBackups(signal)],
+        ], () => [...pendingChatIOPaths(), ...pendingChatBackupPaths()], undefined, [
             ['statistics', () => statsOnExit()],
             ['plugins', () => typeof cleanupPlugins === 'function' ? cleanupPlugins() : undefined],
             ['cache', () => diskCache.dispose()],
-        ], () => [...pendingChatIOPaths(), ...pendingChatBackupPaths()]);
+        ]);
         setWindowTitle(consoleTitle);
         process.exit(code || process.exitCode || 0);
     };
@@ -504,9 +506,14 @@ initUserStorage(globalThis.DATA_ROOT)
     .then(ensurePublicDirectoriesExist)
     .then(async () => {
         for (const directories of await getUserDirectoriesList()) {
-            await restoreLegacyRetiredHolds(directories.chats);
-            await restoreLegacyRetiredHolds(directories.characters);
-            await restoreLegacyRetiredHolds(directories.groupChats);
+            for (const root of [directories.chats, directories.characters, directories.groupChats]) {
+                if (cliArgs.exclusiveDataRoot) await reconcileLifecycle(root);
+                else {
+                    // Pre-existing legacy hold restoration is kept; the new scan itself is read-only.
+                    await restoreLegacyRetiredHolds(root);
+                    await reportLifecycleScan(root, { dataRoot: globalThis.DATA_ROOT });
+                }
+            }
         }
     })
     .then(migrateUserData)

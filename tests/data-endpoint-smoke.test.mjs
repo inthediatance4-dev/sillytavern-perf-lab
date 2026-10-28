@@ -149,9 +149,30 @@ test('all data-writing routes publish valid minimal requests without nested new 
         await post('backups/chat/delete', { name: names[0] });
         assert.equal(fs.existsSync(path.join(dirs.backups, names[0])), false);
     });
+    await t.test('staging stays invisible to list, recent, search and backup enumeration', async () => {
+        for (const directory of [...Object.values(dirs).filter(d => d !== root), path.join(dirs.chats, 'Smoke')]) {
+            const staging = path.join(directory, '.chat-staging');
+            fs.mkdirSync(path.join(staging, 'looks-like-chat.jsonl'), { recursive: true });
+            fs.writeFileSync(path.join(staging, 'a0000000-0000-4000-8000-000000000000'), jsonl);
+        }
+        for (const [route, body] of [
+            ['characters/chats', { avatar_url: 'Smoke.png' }], ['characters/all', {}],
+            ['chats/recent', {}], ['groups/all', {}],
+            ['chats/search', { avatar_url: 'Smoke.png', query: '' }], ['backups/chat/get', {}],
+        ]) {
+            const result = await post(route, body);
+            assert.ok(!JSON.stringify(result).includes('.chat-staging'), route);
+            assert.ok(!JSON.stringify(result).includes('a0000000-0000-4000'), route);
+        }
+        const { recycleOldChatBackups } = await import('../src/chat-io.js');
+        const result = await recycleOldChatBackups(dirs.backups, chats.CHAT_BACKUPS_PREFIX, 10000);
+        assert.deepEqual(result.recycled, []);
+    });
     await t.test('character rename with chat histories and delete with histories', async () => {
         const renamed = await post('characters/rename', { avatar_url: 'Smoke.png', new_name: 'Renamed' });
+        assert.ok(fs.existsSync(path.join(dirs.chats, 'Renamed', '.chat-staging')));
         await post('characters/delete', { avatar_url: renamed.avatar, delete_chats: true });
+        assert.ok(fs.readdirSync(path.join(dirs.chats, '.recycle'), { recursive: true }).some(name => name.includes('.chat-staging')));
         assert.equal(fs.existsSync(path.join(dirs.characters, renamed.avatar)), false);
         assert.equal(fs.existsSync(path.join(dirs.chats, 'Renamed')), false);
     });

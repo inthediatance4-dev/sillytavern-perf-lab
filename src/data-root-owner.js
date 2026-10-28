@@ -6,6 +6,33 @@ import { classifyPidLiveness, readProcessIdentity } from './process-identity.js'
 
 // Acquisition is synchronous; restore the production filesystem before returning.
 let fs = defaultFs;
+let identityProvider = readProcessIdentity;
+let probeDeadline = 0;
+let progressPrinted = false;
+
+function probeIdentity(pid, options) {
+    if (!Number.isSafeInteger(pid) || pid <= 0) throw Object.assign(new Error('Invalid process pid'), { code: 'EINVAL' });
+    if (process.platform === 'win32' && !progressPrinted) {
+        console.error('Verifying data-root owner identity…');
+        progressPrinted = true;
+    }
+    let identity;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const start = Date.now();
+        const timeout = Math.min(3000, probeDeadline - start);
+        if (timeout <= 0) throw Object.assign(new Error('Process identity probe budget exhausted'), { code: 'ETIMEDOUT' });
+        try { identity = identityProvider(pid, { ...options, timeout }); } catch (error) { if (attempt) throw error; }
+        if ((attempt || Date.now() - start > 500) && !progressPrinted) {
+            console.error('Verifying data-root owner identity…');
+            progressPrinted = true;
+        }
+        if (identity && (identity.startTicks !== undefined || identity.processStartMs !== undefined || (process.platform !== 'linux' && process.platform !== 'win32'))) break;
+        if (!progressPrinted) { console.error('Verifying data-root owner identity…'); progressPrinted = true; }
+    }
+    if (!identity || (options?.strict && !identity.startTicks && !Number.isSafeInteger(identity.processStartMs)
+        && (process.platform === 'linux' || process.platform === 'win32'))) throw Object.assign(new Error('Process identity unavailable'), { code: 'EIO' });
+    return identity;
+}
 
 /** Name of the exclusive data-root owner file inside the data root. */
 export const DATA_ROOT_OWNER_LOCK = '.st-lab-owner.lock';
@@ -94,7 +121,7 @@ function classifyOwner(text) {
     try {
         const owner = JSON.parse(text);
         if (!owner || typeof owner !== 'object' || Array.isArray(owner)) return { kind: 'corrupt' };
-        if (!Number.isInteger(owner.pid) || owner.pid <= 0) return { kind: 'corrupt' };
+        if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) return { kind: 'corrupt' };
         if (typeof owner.hostname !== 'string' || owner.hostname.length === 0) return { kind: 'corrupt' };
         if (typeof owner.startedAt !== 'string' || owner.startedAt.length === 0) return { kind: 'corrupt' };
         if (Object.prototype.hasOwnProperty.call(owner, 'token')) {
@@ -333,7 +360,7 @@ function reclaimProcessIsDead(text) {
         const record = JSON.parse(text);
         const marker = classifyOwner(JSON.stringify({ ...record, startedAt: record.startedAt || record.claimedAt }));
         return marker.kind === 'owner' && marker.owner.hostname === os.hostname()
-            && classifyPidLiveness(marker.owner, { identity: readProcessIdentity(marker.owner.pid, { fs }) }) !== 'live';
+            && classifyPidLiveness(marker.owner, { identity: probeIdentity(marker.owner.pid, { fs }) }) !== 'live';
     } catch {
         return false;
     }
@@ -387,12 +414,12 @@ function inspectLock(lockPath, resolved) {
     if (seen.status === 'not-file') return { action: 'refuse', error: corruptLeftInPlace(lockPath) };
     if (seen.status !== 'ok') return { action: 'environment', error: seen.error };
     const classified = classifyOwner(seen.text);
-    if (classified.kind === 'corrupt') return { action: 'refuse', error: corruptLeftInPlace(lockPath) };
+    if (classified.kind === 'corrupt') return { action: 'refuse', error: new DataRootOwnershipUnverifiedError(Object.assign(new Error('Invalid or unreadable owner record'), { code: 'EINVAL' }), lockPath) };
     if (classified.kind === 'empty') return { action: 'reclaim', text: seen.text };
     if (classified.owner.hostname !== os.hostname()) {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }
-    const liveness = classifyPidLiveness(classified.owner, { identity: readProcessIdentity(classified.owner.pid, { fs }) });
+    const liveness = classifyPidLiveness(classified.owner, { identity: probeIdentity(classified.owner.pid, { fs }) });
     if (liveness === 'live') {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }
@@ -408,7 +435,7 @@ function inspectLock(lockPath, resolved) {
  * @returns {string}
  */
 function ownerPayload(pid, hostname, startedAt) {
-    const identity = readProcessIdentity(pid, { fs, strict: true });
+    const identity = probeIdentity(pid, { fs, strict: true });
     /** @type {{ pid: number, hostname: string, startedAt: string, v: number, token: string, bootId?: string, startTicks?: string, processStartMs?: number }} */
     const record = { v: 2, pid, hostname, startedAt, token: randomUUID() };
     if (identity.startTicks !== undefined) record.startTicks = identity.startTicks;
@@ -623,8 +650,11 @@ export function releaseDataRootOwnership() {
  * @param {{ fs?: typeof defaultFs }} [options]
  * @returns {{ lockPath: string, pid: number, hostname: string, startedAt: string, v?: number, token?: string, bootId?: string, startTicks?: string, processStartMs?: number }}
  */
-export function acquireDataRootOwnership(dataRoot, { fs: injectedFs = defaultFs } = {}) {
+export function acquireDataRootOwnership(dataRoot, { fs: injectedFs = defaultFs, identityProvider: provider = readProcessIdentity } = {}) {
     const previous = fs;
+    identityProvider = provider;
+    probeDeadline = Date.now() + 6000;
+    progressPrinted = false;
     fs = new Proxy(injectedFs, {
         get(target, key) {
             const value = target[key];
@@ -642,6 +672,8 @@ export function acquireDataRootOwnership(dataRoot, { fs: injectedFs = defaultFs 
         return acquireOwnership(dataRoot);
     } finally {
         fs = previous;
+        identityProvider = readProcessIdentity;
+        probeDeadline = 0;
     }
 }
 
@@ -679,6 +711,10 @@ function acquireResolved(resolved) {
     const startedAt = new Date().toISOString();
     const hostname = os.hostname();
     const pid = process.pid;
+    const initial = readRegularFile(lockPath);
+    if (initial.status === 'ok' && classifyOwner(initial.text).kind === 'corrupt') {
+        throw new DataRootOwnershipUnverifiedError(Object.assign(new Error('Invalid or unreadable owner record'), { code: 'EINVAL' }), lockPath);
+    }
     let payload;
     try { payload = ownerPayload(pid, hostname, startedAt); }
     catch (error) { throw new DataRootOwnershipUnverifiedError(error, lockPath); }

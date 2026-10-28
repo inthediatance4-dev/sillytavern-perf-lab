@@ -1,3 +1,4 @@
+import { isLifecycleInternalName } from '../chat-io.js';
 import { trackPersistenceRouter } from '../request-drain.js';
 import { withCharacterEdit, withCharacterImport, invalidateCharacterImport } from '../character-lifecycle.js';
 import path from 'node:path';
@@ -30,7 +31,7 @@ import cacheBuster from '../middleware/cacheBuster.js';
 import { randomUUID } from 'node:crypto';
 import {
     withPathLocks, chatLockPaths, assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, ChatLifecycleError, retireChatPath, rollbackChatRetirement,
-    recycleChatPath, createChatFileExclusive, fingerprintChatPath, inheritChatRetirements,
+    recycleChatPath, createChatFileExclusive, fingerprintChatPath, inheritChatRetirements, writeLifecycleAtomic,
 } from '../chat-io.js';
 
 // With 100 MB limit it would take roughly 3000 characters to reach this limit
@@ -287,7 +288,7 @@ async function writeCharacterData(inputFile, data, outputFile, request, crop = u
         const outputImage = write(inputImage, data);
         const outputImagePath = path.join(request.user.directories.characters, `${outputFile}.png`);
 
-        writeFileAtomicSync(outputImagePath, outputImage);
+        await writeLifecycleAtomic(outputImagePath, outputImage);
         return true;
     } catch (err) {
         if (err instanceof ChatLifecycleError) throw err;
@@ -376,7 +377,7 @@ const calculateChatSize = (charDir) => {
     let dateLastChat = 0;
 
     if (fs.existsSync(charDir)) {
-        const chats = fs.readdirSync(charDir);
+        const chats = fs.readdirSync(charDir).filter(name => !isLifecycleInternalName(name));
         if (Array.isArray(chats) && chats.length) {
             for (const chat of chats) {
                 const chatStat = fs.statSync(path.join(charDir, chat));
@@ -1626,7 +1627,7 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
         }
 
         const files = fs.readdirSync(chatsDirectory, { withFileTypes: true });
-        const jsonFiles = files.filter(file => file.isFile() && path.extname(file.name) === '.jsonl').map(file => file.name);
+        const jsonFiles = files.filter(file => file.isFile() && !isLifecycleInternalName(file.name) && path.extname(file.name) === '.jsonl').map(file => file.name);
 
         if (jsonFiles.length === 0) {
             return response.send([]);

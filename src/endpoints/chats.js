@@ -1,3 +1,4 @@
+import { isLifecycleInternalName } from '../chat-io.js';
 import { trackPersistenceRouter } from '../request-drain.js';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -1027,7 +1028,7 @@ router.post('/search', validateAvatarUrlMiddleware, async function (request, res
             }
 
             chatFiles = fs.readdirSync(directoryPath)
-                .filter(file => path.extname(file) === '.jsonl')
+                .filter(file => !isLifecycleInternalName(file) && path.extname(file) === '.jsonl')
                 .map(fileName => path.join(directoryPath, fileName));
         }
 
@@ -1097,7 +1098,7 @@ router.post('/recent', async function (request, response) {
 
         const getCharacterChatFiles = async () => {
             const pngDirents = await fs.promises.readdir(request.user.directories.characters, { withFileTypes: true });
-            const pngFiles = pngDirents.filter(e => e.isFile() && path.extname(e.name) === '.png').map(e => e.name);
+            const pngFiles = pngDirents.filter(e => e.isFile() && !isLifecycleInternalName(e.name) && path.extname(e.name) === '.png').map(e => e.name);
 
             for (const pngFile of pngFiles) {
                 const chatsDirectory = pngFile.replace('.png', '');
@@ -1108,7 +1109,7 @@ router.post('/recent', async function (request, response) {
                 const pathStats = await fs.promises.stat(pathToChats);
                 if (pathStats.isDirectory()) {
                     const chatFiles = await fs.promises.readdir(pathToChats);
-                    const jsonlFiles = chatFiles.filter(file => path.extname(file) === '.jsonl');
+                    const jsonlFiles = chatFiles.filter(file => !isLifecycleInternalName(file) && path.extname(file) === '.jsonl');
 
                     for (const file of jsonlFiles) {
                         const filePath = path.join(pathToChats, file);
@@ -1121,7 +1122,7 @@ router.post('/recent', async function (request, response) {
 
         const getGroupChatFiles = async () => {
             const groupDirents = await fs.promises.readdir(request.user.directories.groups, { withFileTypes: true });
-            const groups = groupDirents.filter(e => e.isFile() && path.extname(e.name) === '.json').map(e => e.name);
+            const groups = groupDirents.filter(e => e.isFile() && !isLifecycleInternalName(e.name) && path.extname(e.name) === '.json').map(e => e.name);
 
             for (const group of groups) {
                 try {
@@ -1153,7 +1154,7 @@ router.post('/recent', async function (request, response) {
 
         const getRootChatFiles = async () => {
             const dirents = await fs.promises.readdir(request.user.directories.chats, { withFileTypes: true });
-            const chatFiles = dirents.filter(e => e.isFile() && path.extname(e.name) === '.jsonl').map(e => e.name);
+            const chatFiles = dirents.filter(e => e.isFile() && !isLifecycleInternalName(e.name) && path.extname(e.name) === '.jsonl').map(e => e.name);
 
             for (const file of chatFiles) {
                 const filePath = path.join(request.user.directories.chats, file);

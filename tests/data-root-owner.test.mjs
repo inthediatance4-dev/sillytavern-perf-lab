@@ -15,6 +15,12 @@ import {
 } from '../src/data-root-owner.js';
 import { readProcessIdentity } from '../src/process-identity.js';
 
+function assertWindowsCiIdentity(identity) {
+    if (process.platform === 'win32' && process.env.CI) {
+        assert.ok(Number.isSafeInteger(identity.processStartMs), 'Windows CI requires a reliable process start identity');
+    }
+}
+
 const moduleUrl = new URL('../src/data-root-owner.js', import.meta.url).href;
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'st-owner-'));
 const helper = path.join(temp, 'acquire-once.mjs');
@@ -24,6 +30,15 @@ import { acquireDataRootOwnership } from ${JSON.stringify(moduleUrl)};
 const root = process.argv[2];
 const mode = process.argv[3] || 'exit';
 const marker = process.argv[4];
+if (mode === 'slow-peer-probe' && process.platform === 'linux') {
+    const read = fs.readFileSync;
+    const wait = new Int32Array(new SharedArrayBuffer(4));
+    fs.readFileSync = (file, ...args) => {
+        // Exercise the real identity comparison with Windows-like probe latency.
+        if (file === '/proc/' + process.ppid + '/stat') Atomics.wait(wait, 0, 0, 300);
+        return read(file, ...args);
+    };
+}
 if (mode === 'clock-shift') {
     const read = fs.readFileSync;
     fs.readFileSync = (file, ...args) => {
@@ -46,8 +61,8 @@ if (mode === 'hold') {
 }
 `);
 
-function runAcquire(dataRoot, mode = 'exit') {
-    return spawnSync(process.execPath, [helper, dataRoot, mode], { encoding: 'utf8', timeout: 10000 });
+function runAcquire(dataRoot, mode = 'exit', timeout = 10000) {
+    return spawnSync(process.execPath, [helper, dataRoot, mode], { encoding: 'utf8', timeout });
 }
 
 async function waitForMarker(file) {
@@ -338,6 +353,7 @@ test('a new owner record stores a token and the host identity', async () => {
     try {
         const current = JSON.parse(await fs.readFile(owned.lockPath, 'utf8'));
         const identity = readProcessIdentity(process.pid);
+        assertWindowsCiIdentity(identity);
         assert.equal(current.pid, process.pid);
         assert.equal(current.hostname, os.hostname());
         assert.match(current.token, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
@@ -358,6 +374,7 @@ test('a live pid with a different boot or start identity is reclaimed', async t 
     const dataRoot = await freshRoot('pid-reuse');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
+    assertWindowsCiIdentity(identity);
     const forged = ownerRecord({
         startTicks: identity.startTicks,
         bootId: identity.bootId ? `${identity.bootId}-reused` : 'forged-boot-id',
@@ -368,7 +385,7 @@ test('a live pid with a different boot or start identity is reclaimed', async t 
     if (!comparable) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         assert.equal(await fs.readFile(lockPath, 'utf8'), `${JSON.stringify(forged)}\n`);
-        return t.skip('Reclamation requires reliable process start identity; conservative refusal verified');
+        return t.skip('Reliable process start identity unavailable (PowerShell may be unavailable on local Windows); conservative refusal verified');
     }
     const owned = acquireDataRootOwnership(dataRoot);
     try {
@@ -420,6 +437,7 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
         const matchedRoot = await freshRoot('eperm-match');
         const matchedPath = path.join(matchedRoot, DATA_ROOT_OWNER_LOCK);
         const identity = readProcessIdentity(process.pid);
+        assertWindowsCiIdentity(identity);
         const matched = ownerRecord({ token: 'eperm-match' });
         if (identity.bootId) matched.bootId = identity.bootId;
         if (identity.startTicks) matched.startTicks = identity.startTicks;
@@ -441,7 +459,7 @@ test('EPERM with a matching identity refuses and a mismatch is reclaimed', async
         await fs.writeFile(reusedPath, `${JSON.stringify(reused)}\n`);
         if (!comparable) {
             assert.throws(() => acquireDataRootOwnership(reusedRoot), /must not share this data root/);
-            return t.skip('Reclamation requires reliable process start identity; conservative refusal verified');
+            return t.skip('Reliable process start identity unavailable (PowerShell may be unavailable on local Windows); conservative refusal verified');
         }
         const owned = acquireDataRootOwnership(reusedRoot);
         try {
@@ -460,6 +478,7 @@ test('two processes cannot both reclaim one reused pid', async t => {
     const dataRoot = await freshRoot('pid-reuse-race');
     const lockPath = path.join(dataRoot, DATA_ROOT_OWNER_LOCK);
     const identity = readProcessIdentity(process.pid);
+    assertWindowsCiIdentity(identity);
     const forged = ownerRecord({
         startTicks: identity.startTicks,
         bootId: identity.bootId ? `${identity.bootId}-reused` : 'forged-boot-id',
@@ -469,7 +488,7 @@ test('two processes cannot both reclaim one reused pid', async t => {
     if (!(identity.startTicks && identity.bootId) && !Number.isSafeInteger(identity.processStartMs)) {
         assert.throws(() => acquireDataRootOwnership(dataRoot), /must not share this data root/);
         releaseDataRootOwnership();
-        return t.skip('Reclaim race requires reliable process start identity; conservative refusal verified');
+        return t.skip('Reliable process start identity unavailable (PowerShell may be unavailable on local Windows); conservative refusal verified');
     }
     await assertSingleReclaimWinner(dataRoot);
 });
@@ -504,11 +523,19 @@ test('an expired marker cannot revoke a paused live reclaimer', async () => {
             const expired = new Date(Date.now() - DATA_ROOT_RECLAIM_TIMEOUT_MS - 1000);
             fsSync.utimesSync(reclaimPath, expired, expired);
             const before = fsSync.readFileSync(lockPath, 'utf8');
+            const markerBefore = fsSync.readFileSync(reclaimPath, 'utf8');
             for (let contender = 0; contender < 2; contender++) {
-                const child = runAcquire(root);
-                assert.notEqual(child.status, 0, child.stderr);
+                // Fifty retries each probe the live marker owner. On Windows,
+                // PowerShell latency alone can exceed the helper's usual 10s.
+                // Slow one Linux contender too, without replacing its identity.
+                const mode = contender === 0 ? 'slow-peer-probe' : 'exit';
+                const child = runAcquire(root, mode, 55000);
+                assert.ifError(child.error);
+                assert.equal(child.signal, null);
+                assert.equal(child.status, 1, child.stderr);
                 assert.match(child.stderr, /Could not acquire/);
                 assert.equal(fsSync.readFileSync(lockPath, 'utf8'), before);
+                assert.equal(fsSync.readFileSync(reclaimPath, 'utf8'), markerBefore);
             }
         }
         return rename(from, to);

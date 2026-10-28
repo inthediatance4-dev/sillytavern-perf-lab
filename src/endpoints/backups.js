@@ -1,3 +1,4 @@
+import { isLifecycleInternalName } from '../chat-io.js';
 import express from 'express';
 import fs, { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
@@ -12,7 +13,7 @@ router.post('/chat/get', async (request, response) => {
         const backupModels = [];
         const backupFiles = await fsPromises
             .readdir(request.user.directories.backups, { withFileTypes: true })
-            .then(d => d.filter(d => d.isFile() && path.extname(d.name) === '.jsonl' && d.name.startsWith(CHAT_BACKUPS_PREFIX)).map(d => d.name));
+            .then(d => d.filter(d => d.isFile() && !isLifecycleInternalName(d.name) && path.extname(d.name) === '.jsonl' && d.name.startsWith(CHAT_BACKUPS_PREFIX)).map(d => d.name));
 
         for (const name of backupFiles) {
             const filePath = path.join(request.user.directories.backups, name);

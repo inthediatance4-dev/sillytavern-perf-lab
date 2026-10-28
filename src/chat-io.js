@@ -248,14 +248,14 @@ export function pathLockKey(filePath) {
     return pathKey(filePath);
 }
 
-function markerPath(filePath, lifecycleRoot) {
+export function markerPath(filePath, lifecycleRoot) {
     const relative = path.relative(pathKey(lifecycleRoot), pathKey(filePath));
     const identity = createHash('sha256').update(relative).digest('hex');
     return path.join(lifecycleRoot, '.chat-lifecycle', `${identity}.json`);
 }
 
 /** Refuse reparse aliases instead of letting different queue keys address one path. */
-async function checkLocalPath(filePath, lifecycleRoot) {
+export async function checkLocalPath(filePath, lifecycleRoot, filesystem = fs) {
     const relative = path.relative(path.resolve(lifecycleRoot), path.resolve(filePath));
     if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) throw new ChatLifecycleError('outside_chat_root');
     const parts = relative ? relative.split(path.sep) : [];
@@ -263,9 +263,9 @@ async function checkLocalPath(filePath, lifecycleRoot) {
     for (const part of [null, ...parts]) {
         if (part !== null) current = path.join(current, part);
         try {
-            const stat = await fs.promises.lstat(current);
+            const stat = await filesystem.promises.lstat(current);
             if (stat.isSymbolicLink()) throw new ChatLifecycleError('path_alias');
-            if (pathKey(await fs.promises.realpath(current)) !== pathKey(current)) throw new ChatLifecycleError('path_alias');
+            if (pathKey(await filesystem.promises.realpath(current)) !== pathKey(current)) throw new ChatLifecycleError('path_alias');
         } catch (error) {
             if (error.code !== 'ENOENT') throw error;
         }
@@ -273,12 +273,12 @@ async function checkLocalPath(filePath, lifecycleRoot) {
 }
 
 /** Containment, reserved names, and alias checks. Retirement markers are separate. */
-async function assertContainedChatPath(filePath, lifecycleRoot) {
+export async function assertContainedChatPath(filePath, lifecycleRoot, filesystem = fs) {
     const parts = path.relative(pathKey(lifecycleRoot), pathKey(filePath)).split(path.sep);
     const reserved = new Set(['.chat-lifecycle', '.chat-staging', '.recycle']);
     if (parts.some(part => reserved.has(process.platform === 'win32' ? part.replace(/[. ]+$/, '') : part))) throw new ChatLifecycleError('reserved_path');
-    await checkLocalPath(filePath, lifecycleRoot);
-    await checkLocalPath(path.join(lifecycleRoot, '.chat-lifecycle'), lifecycleRoot);
+    await checkLocalPath(filePath, lifecycleRoot, filesystem);
+    await checkLocalPath(path.join(lifecycleRoot, '.chat-lifecycle'), lifecycleRoot, filesystem);
 }
 
 /** Persistent file and parent-directory retirement; force is deliberately irrelevant. */
@@ -385,12 +385,36 @@ export async function usingRetiredPathReuses(entries, task) {
         if (heldModes.getStore()?.get(pathKey(entry.filePath)) !== 'exclusive') throw new ChatLifecycleError('publication_lock_required');
         held.push(await holdRetiredPathIfAbsent(entry.filePath, entry.lifecycleRoot, entry.allowVisible));
     }
+    for (const hold of held.filter(Boolean)) {
+        const record = JSON.parse(await fs.promises.readFile(hold.marker, 'utf8'));
+        // Existing visible evidence cannot prove that this transaction published it.
+        const visibleBefore = await fs.promises.lstat(hold.filePath).then(() => true, error => {
+            if (error.code === 'ENOENT') return false;
+            throw error;
+        });
+        hold.record = record;
+        await writeLifecycleAtomic(hold.marker, JSON.stringify({ ...record, intent: 'publish', publish_visible_before: visibleBefore }));
+    }
     const authorization = { valid: true, markers: new Set(held.filter(Boolean).map(hold => pathKey(hold.marker))) };
     return reuseAuthorization.run(authorization, async () => {
         try {
             const result = await task();
             for (const hold of held) await commitRetiredPathHold(hold);
             return result;
+        } catch (error) {
+            authorization.valid = false;
+            for (const hold of held.filter(Boolean)) {
+                await (async () => {
+                    let current;
+                    try { current = JSON.parse(await fs.promises.readFile(hold.marker, 'utf8')); }
+                    catch (readError) { if (readError.code === 'ENOENT') return; throw readError; }
+                    if (current.token !== hold.record.token) throw new ChatLifecycleError('retirement_changed');
+                    await writeLifecycleAtomic(hold.marker, JSON.stringify(hold.record));
+                })().catch(recoveryError => {
+                    console.error('Publication intent remains fail-closed:', hold.marker, recoveryError);
+                });
+            }
+            throw error;
         } finally { authorization.valid = false; }
     });
 }
@@ -421,7 +445,7 @@ export async function retireChatPath(filePath, lifecycleRoot, reason) {
     const token = randomUUID();
     const marker = markerPath(filePath, lifecycleRoot);
     await fs.promises.mkdir(path.dirname(marker), { recursive: true });
-    await writeFileAtomic(marker, JSON.stringify({ version: 1, token, reason, retired_at: new Date().toISOString(), relative_path: path.relative(lifecycleRoot, filePath) }), 'utf8');
+    await writeLifecycleAtomic(marker, JSON.stringify({ version: 1, token, reason, ...(['deleted', 'character_deleted', 'group_deleted'].includes(reason) ? { intent: 'delete' } : {}), retired_at: new Date().toISOString(), relative_path: path.relative(lifecycleRoot, filePath) }));
     return { marker, token, lifecycleRoot };
 }
 
@@ -573,6 +597,29 @@ export async function waitForChatIO(signal) {
     while (pendingIO.size) await waitForShutdown(Promise.all([...pendingIO.keys()]), signal);
 }
 
+/** Atomic replacement with identifiable, recoverable staging names and fsync intact. */
+export async function writeLifecycleAtomic(filePath, data) {
+    const parent = path.dirname(filePath);
+    const stagingParent = path.basename(parent) === '.chat-lifecycle' ? path.dirname(parent) : parent;
+    const staging = path.join(stagingParent, '.chat-staging');
+    await checkLocalPath(staging, stagingParent);
+    await fs.promises.mkdir(staging, { recursive: true });
+    const temporary = path.join(staging, randomUUID());
+    let stat;
+    try { stat = await fs.promises.stat(filePath); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    try {
+        await writeFileAtomic(temporary, data, {
+            encoding: 'utf8',
+            ...(stat ? { mode: stat.mode, ...(process.getuid ? { chown: { uid: stat.uid, gid: stat.gid } } : {}) } : {}),
+        });
+        await fs.promises.rename(temporary, filePath);
+    } catch (error) {
+        await recycleChatPath(temporary, stagingParent).catch(recoveryError => console.error('Atomic staging retained:', temporary, recoveryError));
+        throw error;
+    }
+}
+
 /**
  * Keep the existing atomic-replacement and fsync behavior, using async I/O.
  * The caller holds the chat lock across validation and this write.
@@ -581,7 +628,7 @@ export async function waitForChatIO(signal) {
  */
 export async function writeChatFile(filePath, data) {
     await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await writeFileAtomic(filePath, data, 'utf8');
+    await writeLifecycleAtomic(filePath, data);
 }
 
 function isLexicalChild(parent, target) {
@@ -671,7 +718,7 @@ export async function recycleOldChatBackups(directory, prefix, limit, options = 
     if (!Number.isSafeInteger(limit) || limit < 0) throw new RangeError('Backup retention must be a non-negative integer');
     const maxRecycleBytes = options.maxRecycleBytes ?? -1;
     const names = (await fs.promises.readdir(directory, { withFileTypes: true }))
-        .filter(entry => entry.isFile() && entry.name.startsWith(prefix) && entry.name.endsWith('.jsonl'))
+        .filter(entry => entry.isFile() && !isLifecycleInternalName(entry.name) && entry.name.startsWith(prefix) && entry.name.endsWith('.jsonl'))
         .map(entry => entry.name);
     const recycled = [];
     if (names.length > limit) {
@@ -723,4 +770,10 @@ export async function resolveGroupChatPath(directory, id) {
     const file = path.join(directory, `${id}.jsonl`);
     await assertChatWritable(file, directory);
     return file;
+}
+
+/** Reserved lifecycle entries must never become visible user listings. */
+export function isLifecycleInternalName(name) {
+    return ['.chat-staging', '.chat-lifecycle', '.recycle'].includes(name)
+        || /^hold-.*\.json$/.test(name) || /\.(?:jsonl|png|json)\.[0-9]{1,10}$/.test(name);
 }

@@ -87,7 +87,10 @@ export function createRequestDrain(tracker = persistence) {
     };
 }
 
-/** One abortable budget shared by every shutdown stage. */
+/** Best-effort budget for each non-critical shutdown stage. */
+export const NONCRITICAL_STAGE_BUDGET_MS = 1000;
+
+/** One abortable budget shared by the critical shutdown stages. */
 export function createShutdownDeadline(timeoutMs = resolveDrainTimeoutMs()) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(new Error('Shutdown deadline expired')), timeoutMs);
@@ -107,20 +110,32 @@ export async function waitForShutdown(work, signal) {
     finally { signal.removeEventListener('abort', abort); }
 }
 
-/** Run all cleanup stages against the same deadline and report before exiting. */
-export async function runShutdown(stages, pendingPaths, timeoutMs = resolveDrainTimeoutMs()) {
+/** Drain critical stages under one deadline, then attempt each best-effort stage. */
+export async function runShutdown(stages, pendingPaths, timeoutMs = resolveDrainTimeoutMs(), noncriticalStages = []) {
     const deadline = createShutdownDeadline(timeoutMs);
+    let code = 0;
     let stage;
     try {
         for (const [name, cleanup] of stages) {
             stage = name;
             await waitForShutdown(Promise.resolve().then(() => cleanup(deadline.signal)), deadline.signal);
         }
-        return 0;
     } catch (error) {
         console.error('Shutdown incomplete:', { stage, pendingPaths: pendingPaths(), error: String(error) });
-        return 1;
+        code = 1;
     } finally {
         deadline.dispose();
     }
+    for (const [name, cleanup] of noncriticalStages) {
+        const budget = createShutdownDeadline(NONCRITICAL_STAGE_BUDGET_MS);
+        try {
+            await waitForShutdown(Promise.resolve().then(() => cleanup(budget.signal)), budget.signal);
+        } catch (error) {
+            console.error('Non-critical shutdown stage incomplete:', { stage: name, budgetMs: NONCRITICAL_STAGE_BUDGET_MS, error: String(error) });
+            code = 1;
+        } finally {
+            budget.dispose();
+        }
+    }
+    return code;
 }

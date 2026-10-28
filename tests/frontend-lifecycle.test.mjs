@@ -400,3 +400,28 @@ test('token-count backfill keeps the tab after a lifecycle failure instead of re
     assert.equal(h.observations.reloads, 0);
     assert.equal(h.context.chat.length, 1);
 });
+
+for (const status of [400, 500]) {
+    test(`chat export displays server message and physical line for HTTP ${status}`, async () => {
+        const start = script.indexOf("    $(document).on('click', '.exportChatButton, .exportRawChatButton'");
+        const end = script.indexOf('\n    });', start) + '\n    });'.length;
+        assert.notEqual(start, -1);
+        const errors = [];
+        let handler;
+        const element = { data: () => 'txt', closest: () => ({ find: () => ({ text: () => 'chat' }) }) };
+        const context = vm.createContext({
+            document: {},
+            $: value => value === context.document ? { on: (event, selector, callback) => { handler = callback; } } : element,
+            selected_group: null, characters: [{ avatar: 'test.png' }], this_chid: 0,
+            saveChatConditional: async () => true,
+            getRequestHeaders: () => ({}),
+            fetch: async () => ({ ok: false, status, json: async () => ({ message: status === 400 ? 'Invalid chat JSONL row.' : 'Could not read chat JSONL file.', line: 17 }) }),
+            delay: async () => {}, console: { log() {} },
+            toastr: { error: message => errors.push(message) },
+            download: () => assert.fail('A failed export must not download partial output'),
+        });
+        vm.runInContext(script.slice(start, end), context);
+        await handler.call({}, { stopPropagation() {} });
+        assert.deepEqual(errors, [`Export failed: ${status === 400 ? 'Invalid chat JSONL row.' : 'Could not read chat JSONL file.'} (line 17)`]);
+    });
+}

@@ -249,3 +249,57 @@ test('shutdown drain APIs reject missing signals and legacy numeric timeouts', a
     await assert.rejects(createRequestDrain().stop(), TypeError);
     await assert.rejects(createRequestDrain().stop(20), TypeError);
 });
+
+test('critical timeout reports pending paths before attempting every non-critical stage in order', async t => {
+    const { runShutdown } = await import('../src/request-drain.js');
+    const events = [];
+    const logs = [];
+    t.mock.method(console, 'error', (...args) => { logs.push(args); events.push('report'); });
+    let criticalSignal;
+    const code = await runShutdown([
+        ['requests', signal => { criticalSignal = signal; events.push('requests'); }],
+        ['chat I/O and backups', signal => {
+            assert.equal(signal, criticalSignal);
+            events.push('chat');
+            return new Promise(() => {});
+        }],
+    ], () => ['/pending/chat.jsonl'], 20, ['statistics', 'plugins', 'cache'].map(name => [name, signal => {
+        assert.equal(signal.aborted, false);
+        assert.notEqual(signal, criticalSignal);
+        events.push(name);
+    }]));
+    assert.equal(code, 1);
+    assert.deepEqual(events, ['requests', 'chat', 'report', 'statistics', 'plugins', 'cache']);
+    assert.deepEqual(logs[0][1].pendingPaths, ['/pending/chat.jsonl']);
+});
+
+test('hung non-critical stage has its own one-second budget and later stages still run', async t => {
+    const { runShutdown, NONCRITICAL_STAGE_BUDGET_MS } = await import('../src/request-drain.js');
+    const logs = [];
+    const events = [];
+    t.mock.method(console, 'error', (...args) => logs.push(args));
+    const started = performance.now();
+    let statsSignal;
+    const code = await runShutdown([['requests', () => events.push('requests')]], () => [], 20, [
+        ['statistics', signal => { statsSignal = signal; events.push('statistics'); return new Promise(() => {}); }],
+        ['plugins', signal => { assert.equal(signal.aborted, false); events.push('plugins'); }],
+        ['cache', () => events.push('cache')],
+    ]);
+    const elapsed = performance.now() - started;
+    assert.equal(code, 1);
+    assert.equal(statsSignal.aborted, true);
+    assert.ok(elapsed >= NONCRITICAL_STAGE_BUDGET_MS - 20 && elapsed < 2500, `elapsed=${elapsed}ms`);
+    assert.deepEqual(events, ['requests', 'statistics', 'plugins', 'cache']);
+    assert.equal(logs.length, 1);
+    assert.match(logs[0][0], /Non-critical shutdown stage incomplete/);
+    assert.equal(logs[0][1].stage, 'statistics');
+    assert.match(logs[0][1].error, /Shutdown deadline expired/);
+});
+
+test('successful shutdown preserves critical and non-critical ordering and exits zero', async () => {
+    const { runShutdown } = await import('../src/request-drain.js');
+    const events = [];
+    const stages = names => names.map(name => [name, () => events.push(name)]);
+    assert.equal(await runShutdown(stages(['requests', 'chat']), () => [], 1000, stages(['statistics', 'plugins', 'cache'])), 0);
+    assert.deepEqual(events, ['requests', 'chat', 'statistics', 'plugins', 'cache']);
+});

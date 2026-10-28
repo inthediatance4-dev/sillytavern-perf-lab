@@ -1,3 +1,4 @@
+import { isLifecycleInternalName } from '../chat-io.js';
 import { trackPersistenceRouter } from '../request-drain.js';
 import fs from 'node:fs';
 import { promises as fsPromises } from 'node:fs';
@@ -87,7 +88,7 @@ export async function migrateGroupChatsMetadataFormat(userDirectories) {
                             const chatHeader = { chat_metadata: chatMetadata, user_name: 'unused', character_name: 'unused' };
                             const newChatData = [chatHeader, ...chatData];
                             const newChatDataRaw = newChatData.map(entry => JSON.stringify(entry)).join('\n');
-                            await writeFileAtomic(chatFilePath, newChatDataRaw, 'utf8');
+                            await writeChatFile(chatFilePath, newChatDataRaw);
                             console.log(`Updated group chat data format for ${chatId}`);
                             anyDataMigrated = true;
                         } catch (chatError) {
@@ -120,7 +121,7 @@ router.post('/all', (request, response) => {
         fs.mkdirSync(request.user.directories.groups);
     }
 
-    const files = fs.readdirSync(request.user.directories.groups).filter(x => path.extname(x) === '.json');
+    const files = fs.readdirSync(request.user.directories.groups).filter(x => !isLifecycleInternalName(x) && path.extname(x) === '.json');
     const chats = fs.readdirSync(request.user.directories.groupChats).filter(x => path.extname(x) === '.jsonl');
 
     files.forEach(function (file) {

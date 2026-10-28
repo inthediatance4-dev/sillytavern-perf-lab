@@ -37,7 +37,7 @@ Windows CreationTime 回收尚未实际走通，仅验证保守拒绝；Windows 
 进程内共享/独占路径锁使用队列，只协调本进程。普通文件操作共享父目录、独占文件；目录操作独占目录，后来的共享请求不能抢先。路径预留不创建跨进程锁文件。嵌套调用不能等待已独占的键或把共享升级为独占；备份等待来源预留及其外层预留完成，不等待无关锁。并发服务器共用同一数据根不受支持，应对每个服务器启用 `exclusiveDataRoot`，由数据根所有权锁阻止第二个协作进程启动。关闭排空只协调本进程。
 实验室启动器设置 `exclusiveDataRoot`，并传入 `--exclusiveDataRoot true`。服务器创建 `<dataRoot>/.st-lab-owner.lock`，写入 pid、主机名、启动时间、随机 token，以及能读到的启动标识和进程启动时间。Linux 使用 `/proc/sys/kernel/random/boot_id` 和 `/proc/<pid>/stat` 的 starttime（配合 `/proc/stat` 的 `btime`）。Windows 的近似启动时间不作为回收仍存活 PID 的依据。仅缓存本进程的启动时间，外部 PID 每次重新探测。Windows 写入由 `os.uptime()` 近似得到的 `win-boot:` 时间（相差 120 秒内视为同一次启动）。双方都有 `processStartMs` 时以它为准：相同则仍视为存活，即使 `bootId` 不同；不同则视为复用，即使启动戳相同。只有双方都没有进程启动时间时才比较精确的 Linux 启动标识；只有一侧有则保持存活。两次本地采样相隔超过 2 秒且落在 120 秒窗口之外时，之后的记录省略不稳定的 `bootId`，仍保留 pid、token 和 `processStartMs`。进程启动时间只在 PowerShell 能在 200ms 内返回时写入，否则省略；此时同一次启动内的 pid 复用无法区分，缺少身份字段且 pid 仍存活的锁会保留。`process.kill(pid, 0)` 报存活（含 `EPERM`）且身份一致时，第二个进程拒绝启动。身份不一致视为 pid 复用。已退出的同一主机所有者，或被复用的 pid，由恰好一个进程回收：它用 `O_EXCL` 创建同目录的 `.st-lab-owner.lock.reclaim`，把过期锁文件原子改名到唯一路径，核对内容后才删除，再用 `O_EXCL` 创建新锁。回收标记按年龄过期，崩溃的回收者不会永久挡住下次启动。其他主机的锁、符号链接和无法读取的文件都留在原地，需要人工删除。正常退出、`process.exit` 和未捕获异常只会删除内容仍与本次写入一致的锁。`SIGKILL` 等信号不运行退出处理，文件可能留下，同一主机上的下次获取会回收它。不需要编译器或 Node 头文件。如果意外的文件系统错误让所有权无法判断，启动会记录警告并继续；这不是存活所有者冲突。未打开该标志的进程仍可共用同一个数据根。外部写入、插件后台任务和外部文件系统替换不在此保证内。
 关闭会先停止接纳请求，再等待已接纳的响应和持久化处理器。
-等待上限为 `SILLYTAVERN_DRAIN_TIMEOUT_MS`（默认 30 秒）；超时会记录日志并继续关闭，而不是一直挂起。
+请求、chat I/O 和备份共用 `SILLYTAVERN_DRAIN_TIMEOUT_MS`（默认 30 秒）的关键阶段期限；失败或超时立即报告 pending paths，退出码保持非零。随后统计、插件、缓存仍按顺序各获独立的 1000ms 尽力执行预算（`NONCRITICAL_STAGE_BUDGET_MS`），使用 AbortSignal 和 waitForShutdown。非关键阶段失败或超时也记录阶段名并返回非零，以便发现未完成的清理。总异步等待上限为关键期限 + 3 × 1 秒（另加运行时退出开销）；不强杀卡住的操作，不取消底层文件操作或提前释放锁。同步阻塞无法由 AbortSignal 抢占。Node 24 的原生退出耗时继续作为观察项。
 隔离启动器会去掉继承的 `SILLYTAVERN_*` 变量，因此实验室进程使用该默认值。同步路由若返回 Promise，与 async 路由一样被跟踪，停止后返回 503。
 
 删除、重命名和备份清理将文件保留在相应根目录的 `.recycle/`；
@@ -182,3 +182,82 @@ liveness or unreadable identity fails closed. Stop the current owner before
 rollback; if a stale record still refuses startup, verify the owner process
 is really gone, then manually delete the reported `.st-lab-owner.lock` path.
 Never remove that file while its owner is running.
+
+### Startup lifecycle reconciliation
+
+With exclusive data-root ownership held, startup restores legacy holds and scans
+`chats/`, `characters/`, and `group chats/` before migrations and serving requests.
+Explicit retired-path publication atomically rewrites the same marker with
+`intent: "publish"`, preserving its fields; the marker remains until publication
+commits. With a previously absent target, startup moves the marker to `.recycle/`
+if the target is now visible, or removes only the intent fields if it is absent.
+New deletes write explicit `intent: "delete"` before moving their target; exclusive startup completes interrupted deletes by moving the visible target into `.recycle/`.
+A plain marker with a visible target stays protected and logs a manual-handling
+warning: automatically completing a directory deletion could move unrelated
+contents, so reconciliation preserves this ambiguous evidence. Publication that
+started with existing visible evidence (`publish_visible_before: true`) likewise
+requires manual handling rather than treating old data as proof of completion.
+
+Chat, character-card, and retirement-marker atomic writes now stage in reserved `.chat-staging/` directories using
+UUID v4 names. Startup moves UUID entries and their write-file-atomic decimal
+suffix temps, plus legacy hash-named marker temps in `.chat-lifecycle/`, into
+the lifecycle root's `.recycle/`, logging each move; nested
+recycle directories are never scanned. Ambiguous legacy `filename.NUMBER` files
+outside staging are reported, not moved, because user files can have those names.
+Other staging filenames are untouched. No marker is permanently deleted, and no
+recovery API or bulk marker cleanup is provided. Without exclusive ownership the
+pre-existing legacy hold migration keeps its behavior, then a read-only
+`scanLifecycle` pass logs finding counts by kind and integrity-check guidance;
+no reconciliation writes run. The read-only `scanLifecycle` classification is
+separate from startup's `applyReconciliation` mutations; a quiescent root gives a consistent scan, and mutations are for startup under ownership only.
+
+### Read-only integrity check
+
+Stop the server to obtain a consistent offline view, then run
+`npm run check:integrity -- --data-root <dir>` (add `--json` for machine output;
+use `node scripts/check-integrity.mjs` directly to avoid npm's banner).
+The command reads the same user storage keys and chats, characters and group-chat
+roots as startup. It reports malformed JSONL rows with physical line numbers,
+legacy holds, marker/visible-file conflicts with intent state, recognized orphan
+staging/temp files, and recycled bytes/file counts per root. Recycled contents
+are counted rather than parsed. Nonempty recycle usage counts as a finding.
+Exit codes: 0 clean, 1 findings, 2 usage or I/O/metadata errors.
+It changes nothing: no directories, ownership locks, recovery, or cleanup are
+created or performed. Reads can update filesystem access times; a running writer
+can change the data during this unlocked inspection.
+
+### Deployment prerequisites and manual triage
+
+**Deployment prerequisite:** the deployment configuration must enable
+`exclusiveDataRoot: true`. Without it, startup only runs legacy hold migration
+plus the read-only `scanLifecycle`, logs the number of findings by kind, and
+suggests `npm run check:integrity -- --data-root <dir>` and exclusive mode; no
+reconciliation writes run. `check:integrity` warns when the data root has a live
+owner: results may then include in-flight writes.
+
+**Legacy marker without intent and a visible target** (only markers created
+before this upgrade; new deletes write `intent: "delete"` and new publications
+`intent: "publish"`):
+
+1. Stop the server and back up the whole data root, including hidden
+   directories (`.chat-lifecycle/`, `.chat-staging/`, `.recycle/`).
+2. Read the marker JSON: `relative_path`, `reason`, `retired_at`, `token`,
+   `version` and any publish fields. Match it to the visible path through
+   `relative_path` (the marker name is a hash), not by file name alone.
+3. Compare the visible target's content and mtime with `retired_at`, and look
+   for the matching copy and timestamps under `.recycle/`.
+4. Decide:
+   - Delete did not finish (`reason` is a delete, target unchanged since before
+     `retired_at`, no later edits): move the visible target into its own
+     container under `.recycle/` and keep the marker.
+   - Marker is left over from a finished publication/re-import (target written
+     after `retired_at`, or content newer than the recycled copy): move only that
+     marker file into `.recycle/` and keep the visible target.
+   - Unsure: keep all evidence and leave the server stopped. Never `rm` and never
+     bulk-clean markers.
+5. Run `npm run check:integrity` again before starting the server.
+
+**Rollback/upgrade note:** Windows `processStartMs` rounding changed from
+floating point to BigInt. An owner process started by the older build that is
+still running can differ by 1 ms, which causes a refusal (the safe direction).
+Stop the old process before starting the new build, in either direction.

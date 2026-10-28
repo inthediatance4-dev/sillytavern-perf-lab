@@ -59,19 +59,19 @@ const save = (name, text, extra = {}) => post('/api/chats/save', { avatar_url: '
 const rename = (source, target, extra = {}) => post('/api/chats/rename', { avatar_url: 'Synthetic.png', original_file: `${source}.jsonl`, renamed_file: `${target}.jsonl`, ...extra });
 const remove = name => post('/api/chats/delete', { avatar_url: 'Synthetic.png', chatfile: `${name}.jsonl` });
 function pauseAtomicSave(target) {
-    const original = fs.rename;
+    const original = fs.promises.rename;
     let unblock; let entered;
     const gate = new Promise(resolve => { unblock = resolve; });
     const started = new Promise(resolve => { entered = resolve; });
-    fs.rename = (source, destination, ...rest) => {
+    fs.promises.rename = async (source, destination, ...rest) => {
         if (path.resolve(destination) === target) {
             entered();
-            gate.then(() => original(source, destination, ...rest));
-            return;
+            await gate;
+            return original(source, destination, ...rest);
         }
         return original(source, destination, ...rest);
     };
-    return { started, unblock, restore: () => { fs.rename = original; } };
+    return { started, unblock, restore: () => { fs.promises.rename = original; } };
 }
 async function retained(directory, needle) {
     const found = [];
@@ -227,13 +227,13 @@ test('Windows case aliases refer to the same retired path', { skip: process.plat
 
 test('marker creation failure leaves the rename source active and removes the published candidate recoverably', async () => {
     const source = file('marker-failure', 'marker-original');
-    const original = fs.rename;
-    fs.rename = (a, b, ...rest) => {
-        if (String(b).includes('.chat-lifecycle')) return rest.at(-1)(Object.assign(new Error('artificial marker failure'), { code: 'EIO' }));
+    const original = fs.promises.rename;
+    fs.promises.rename = async (a, b, ...rest) => {
+        if (String(b).includes('.chat-lifecycle')) throw Object.assign(new Error('artificial marker failure'), { code: 'EIO' });
         return original(a, b, ...rest);
     };
     try { assert.equal((await rename('marker-failure', 'marker-failed-target')).status, 500); }
-    finally { fs.rename = original; }
+    finally { fs.promises.rename = original; }
     assert.match(await fs.promises.readFile(source, 'utf8'), /marker-original/);
     assert.equal(fs.existsSync(path.join(path.dirname(source), 'marker-failed-target.jsonl')), false);
     assert.equal((await save('marker-failure', 'still-active-after-marker-failure')).status, 200);

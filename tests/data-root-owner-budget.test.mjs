@@ -41,7 +41,7 @@ test('Windows simulation: absent peer probes self before writing', async t => {
 });
 
 for (const peer of [false, true]) {
-    test(`Windows simulation: failing ${peer ? 'peer' : 'self'} consumes at most its 6s budget and reports progress`, async t => {
+    test(`Windows simulation: failing ${peer ? 'peer' : 'self'} consumes at most its ${peer ? '6s' : '10s'} budget and reports progress`, async t => {
         const root = await fixture(t);
         if (peer) await fs.writeFile(path.join(root, owner.DATA_ROOT_OWNER_LOCK), JSON.stringify({ v: 2, pid: process.ppid, hostname: os.hostname(), startedAt: 'test', processStartMs: 123 }));
         const now = Date.now;
@@ -56,14 +56,18 @@ for (const peer of [false, true]) {
             assert.throws(() => owner.acquireDataRootOwnership(root, { identityProvider: (pid, { timeout, strict }) => {
                 assert.equal(pid, peer ? process.ppid : process.pid);
                 assert.equal(Boolean(strict), !peer);
-                assert.equal(timeout, 3000);
+                assert.equal(timeout, peer ? 3000 : 5000);
                 calls++;
                 clock += timeout;
                 throw Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' });
-            } }), owner.DataRootOwnershipUnverifiedError);
+            } }), error => {
+                assert.ok(error instanceof owner.DataRootOwnershipUnverifiedError);
+                assert.match(error.cause.message, /timed out after (3000|5000) ms \(attempt 2\/2\)/);
+                return true;
+            });
         } finally { Date.now = now; console.error = error; }
         assert.equal(calls, 2);
-        assert.equal(clock - start, 6000);
+        assert.equal(clock - start, peer ? owner.PEER_PROBE_BUDGET_MS : owner.SELF_PROBE_BUDGET_MS);
         assert.equal(logs.filter(text => /Verifying data-root/.test(text)).length, 1);
         if (!peer) assert.deepEqual(await fs.readdir(root), []);
     });
@@ -74,12 +78,14 @@ test('Windows simulation: self receives a full budget after a slow stale peer', 
     await fs.writeFile(path.join(root, owner.DATA_ROOT_OWNER_LOCK), JSON.stringify({ v: 2, pid: process.ppid, hostname: os.hostname(), startedAt: 'test', processStartMs: 1 }));
     const now = Date.now;
     let clock = now();
+    const start = clock;
     const selfTimeouts = [];
     let peerCalls = 0;
     Date.now = () => clock;
     try {
         assert.throws(() => owner.acquireDataRootOwnership(root, { identityProvider: (_pid, { timeout, strict }) => {
             if (!strict) {
+                assert.ok(timeout <= owner.PEER_PROBE_TIMEOUT_MS);
                 if (++peerCalls === 1) {
                     clock += timeout;
                     throw Object.assign(new Error('cold peer timeout'), { code: 'ETIMEDOUT' });
@@ -92,5 +98,31 @@ test('Windows simulation: self receives a full budget after a slow stale peer', 
             throw Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' });
         } }), owner.DataRootOwnershipUnverifiedError);
     } finally { Date.now = now; }
-    assert.deepEqual(selfTimeouts, [3000, 3000]);
+    assert.deepEqual(selfTimeouts, [5000, 5000]);
+    assert.equal(clock - start, 15900);
+    assert.ok(clock - start <= owner.PEER_PROBE_BUDGET_MS + owner.SELF_PROBE_BUDGET_MS);
+});
+
+test('Windows simulation: swallowed provider timeouts retain attempt timing and failures are retryable', async t => {
+    const root = await fixture(t);
+    const now = Date.now;
+    let clock = now();
+    Date.now = () => clock;
+    try {
+        assert.throws(() => owner.acquireDataRootOwnership(root, { identityProvider: (_pid, { timeout }) => {
+            clock += timeout;
+            return {}; // The real PowerShell provider omits identity after a timeout.
+        } }), error => {
+            assert.ok(error instanceof owner.DataRootOwnershipUnverifiedError);
+            assert.match(error.cause.message, /timed out after 5000 ms \(attempt 2\/2\)/);
+            return true;
+        });
+        let calls = 0;
+        owner.acquireDataRootOwnership(root, { identityProvider: (_pid, { timeout }) => {
+            assert.equal(timeout, 5000);
+            calls++;
+            return { processStartMs: 123 };
+        } });
+        assert.equal(calls, 1);
+    } finally { Date.now = now; }
 });

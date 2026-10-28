@@ -30,6 +30,12 @@ import { acquireDataRootOwnership } from ${JSON.stringify(moduleUrl)};
 const root = process.argv[2];
 const mode = process.argv[3] || 'exit';
 const marker = process.argv[4];
+function publishMarker(text) {
+    if (!marker) return;
+    const temporary = marker + '.pending';
+    fs.writeFileSync(temporary, text);
+    fs.renameSync(temporary, marker);
+}
 if (mode === 'slow-peer-probe' && process.platform === 'linux') {
     const read = fs.readFileSync;
     const wait = new Int32Array(new SharedArrayBuffer(4));
@@ -49,14 +55,14 @@ if (mode === 'clock-shift') {
 try {
     acquireDataRootOwnership(root);
 } catch (error) {
-    if (marker) fs.writeFileSync(marker, 'err\\n' + (error && error.message ? error.message : error));
+    publishMarker('err\\n' + (error && error.message ? error.message : error));
     console.error(error.message);
     process.exit(1);
 }
 if (mode === 'exit-code') process.exit(1);
 if (mode === 'throw') setTimeout(() => { throw new Error('boom'); }, 30);
 if (mode === 'hold') {
-    if (marker) fs.writeFileSync(marker, 'ok');
+    publishMarker('ok');
     setInterval(() => {}, 1000);
 }
 `);

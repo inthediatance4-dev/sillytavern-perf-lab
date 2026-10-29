@@ -144,7 +144,7 @@ for (const [side, input] of args.base ? [['base', args.base], ['head', args.head
 }
 let worker, workerLines;
 async function browserMeasure(side, trace) {
-    worker.stdin.write(JSON.stringify({ origin, browser: args.browser, profile: path.join(output, 'browser-profile', side), trace }) + '\n');
+    worker.stdin.write(JSON.stringify({ origin, browser: args.browser, profile: path.join(output, 'browser-profile', 'shared'), trace }) + '\n');
     const line = await Promise.race([workerLines.next(), sleep(120000).then(() => { throw new Error('Browser worker deadline exceeded'); })]);
     if (line.done) throw new Error('Browser worker exited');
     const result = JSON.parse(line.value);

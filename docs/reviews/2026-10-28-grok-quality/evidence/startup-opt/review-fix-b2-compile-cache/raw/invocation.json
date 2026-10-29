@@ -1,0 +1,62 @@
+{
+  "args": {
+    "scenario": "S3",
+    "browser": "warm",
+    "runs": 12,
+    "output": ".evidence/review-fix-b2-ab",
+    "node": "<tmp>/node-v24.22.1-linux-x64/bin/node",
+    "base": "<tmp>/startup-review-cc/cc-off",
+    "head": "WORKTREE"
+  },
+  "temporary": "<tmp>",
+  "products": {
+    "base": {
+      "directory": "<tmp>/startup-review-cc/cc-off",
+      "revision": "<tmp>/startup-review-cc/cc-off",
+      "lab": {
+        "dataRoot": "<tmp>/base/data",
+        "configPath": "<tmp>/base/config.yaml",
+        "port": 33373
+      },
+      "productSourceSha256": "ceb08cb15839818bda3c33e2c21bd5b4ba20bc3cef5fdbc000a20bf393b394ed"
+    },
+    "head": {
+      "directory": "<repo>",
+      "revision": "WORKTREE",
+      "lab": {
+        "dataRoot": "<tmp>/head/data",
+        "configPath": "<tmp>/head/config.yaml",
+        "port": 33373
+      },
+      "productSourceSha256": "5e0d6dc85c3f950b373991476d682d97701760cfa5d3d62afc8e37f2e3c1d96a"
+    }
+  },
+  "toolCommit": "edce4e8d0b274efecbfd01d4751fa35ff3d54b3c",
+  "toolSourceSha256": {
+    "scripts/benchmark-statistics.mjs": "2e29a4aefce1f04a2a2990641dfc1baed6ea521e979b86ce4ff1585ca1c38945",
+    "scripts/start-performance-lab.mjs": "1a11d0f28e936f33484cb11769469e94c0c85a403f9756b69ccb64b0b2f7b9ba",
+    "tests/lab_browser.py": "6b942d461c94f78fb8d498e2dd40858fed18d7fe8b261a91aae099b8e3755fc0",
+    "server.js": "32f99e9653db0059af0479ea7fd56c0379db77023125dcee51a7ece758e3f461",
+    "src/startup-trace.js": "420651c0583241f9d253e7772f217776b77fd39248e7fc9f15590131d81c4df1",
+    "src/server-main.js": "ec75418c2724d6a4a362037c7bd4eb9ed27dc4f6666862e615e1a0f92679002c",
+    "src/process-identity.js": "5d060e6c3de0f6887e8be7d4279c181123a138f65ea478ad174c8bf45454b053",
+    "src/data-root-owner.js": "cd09154fd056bb9c2885abc9005b50436d8ddc1a939c1aa9da4fac316a065069",
+    "src/lifecycle-reconcile.js": "bf767e16bf41a7a82912aeb5bcee671e18c3117e4f03a62504018eade57414f8",
+    "src/middleware/webpack-serve.js": "4389556b579de0c189335dd8351634fd686b4749f42669aeaa352450a2db5a73",
+    "scripts/measure-startup.mjs": "5eec9148560414d62a6d74d3ecc39e3bcf61f24d75697abb1710a5d56a3d449c",
+    "scripts/measure-startup-browser.py": "0ed37a484a83fe03b93a66c5f1e751e77159547fad194297762dee4ec793b030",
+    "scripts/startup-browser-probe.js": "3c9afe37b01a402a9701893ac82c38c18b74b23b000a7b103b03d5b12657f624",
+    "scripts/describe-data-root.mjs": "508bce6c6d025c18b76912b16f232d37a049b6d0050c16829b7d315d81dd703d"
+  },
+  "node": "v24.22.1",
+  "os": {
+    "platform": "linux",
+    "release": "6.12.94+",
+    "arch": "x64",
+    "cpus": 8,
+    "cpu": "Intel(R) Xeon(R) Processor",
+    "totalMemory": 16779640832
+  },
+  "bootstrapSeed": "opus-round1.5",
+  "resamples": 2000
+}

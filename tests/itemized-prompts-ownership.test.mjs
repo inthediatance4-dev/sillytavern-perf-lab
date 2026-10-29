@@ -22,6 +22,7 @@ function harness() {
     const stored = new Map([['A', rows('A')], ['B', rows('B')]]);
     const reads = [], writes = [], events = [], logs = [];
     const c = vm.createContext({
+        olderMessagesInsertion: null,
         structuredClone,
         localforage: { createInstance: () => ({
             getItem(id) { const gate = deferred(); reads.push({ id, ...gate }); return gate.promise; },

@@ -70,6 +70,7 @@ def profile_summary(profile):
     own, total, files, inclusive_files = defaultdict(int), defaultdict(int), defaultdict(int), defaultdict(int)
     duration = sum(profile.get('timeDeltas', []))
     focus_names = ['messageFormatting', 'addOneMessage', 'updateMessageElement', 'redisplayChat', 'showMoreMessages',
+                   'prepareOlderMessageFragment', 'placeOlderFragment',
                    'saveChat', 'saveChatConditional', 'stringify', 'getTokenCount', 'getTokenCountAsync']
     focus_self, focus_total, focus_seen = defaultdict(int), defaultdict(int), set()
     def key(node_id):
@@ -262,7 +263,7 @@ def aggregate_results(raw, sizes, settings, output, overwrite=False):
              '| Messages | Truncation | Completed | Open | Send incl save | Save response wait | Batch | Heap open MiB |',
              '|---:|---:|---:|---:|---:|---:|---:|---:|']
     def fmt(d, scale=1):
-        return '—' if not d['n'] else f"{d['median']/scale:.1f} / {d['p95']/scale:.1f}"
+        return '—' if not d['n'] or d['median'] is None else f"{d['median']/scale:.1f} / {d['p95']/scale:.1f}"
     for r in aggregate:
         m = r['metrics']
         lines.append(f"| {r['size']} | {r['truncation']} | {r['success']}/{r['attempted']} | {fmt(m['openMs'])} | {fmt(m['sendMs'])} | {fmt(m['saveResponseWaitMs'])} | {fmt(r['batchMs'])} | {fmt(m['heapOpenBytes'], 2**20)} |")
@@ -327,7 +328,9 @@ def node_statistics(base, head):
 def equivalence(page, args, deadline):
     result = {'dom': {'open': page.evaluate('labProbe.chatSnapshot()')}, 'tabs': {},
               'events': {'open': page.evaluate('labProbe.takeRenderingEvents()')}}
-    run_async(page, 'async () => { await labScript.showMoreMessages(); await labIdle(); return true; }', None, deadline)
+    if args.tab_limit:
+        result['tabOrder'] = {}
+    run_async(page, 'async n => { for (let i = 0; i < n; i++) await labScript.showMoreMessages(); await labIdle(); return true; }', args.older_batches, deadline)
     result['dom']['older'] = page.evaluate('labProbe.chatSnapshot()')
     result['events']['older'] = page.evaluate('labProbe.takeRenderingEvents()')
     for scenario in ['older', 'appended', 'class-added', 'ancestor-disabled', 'ancestor-enabled', 'popup-open', 'popup-closed']:
@@ -344,13 +347,21 @@ def equivalence(page, args, deadline):
             assert payload['chat'][-1]['is_user'] and payload['chat'][-1]['mes'] == 'Synthetic equivalence append'
             page.wait_for_function("document.querySelector('#chat .last_mes .mes_text')?.textContent.includes('Synthetic equivalence append')")
         count = run_async(page, 'name => labProbe.prepareTabScenario(name)', scenario, deadline)
-        print('tabs', scenario, max(args.tab_count, count), flush=True)
-        sequence = []
-        for _ in range(max(args.tab_count, count)):
+        total = min(args.tab_limit, max(args.tab_count, count)) if args.tab_limit else max(args.tab_count, count)
+        if args.tab_limit:
+            result['tabOrder'][scenario] = page.evaluate('labTabOrder')
+        print('tabs', scenario, total, 'computed focusables', count, flush=True)
+        page.evaluate('labProbe.beginTabRecording()')
+        for index in range(total):
             if time.monotonic() >= deadline:
                 raise TimeoutError('Tab traversal exceeded run deadline')
             page.keyboard.press('Tab')
-            sequence.append(page.evaluate('labProbe.focusDescriptor()'))
+            # Keep the original per-key RPC as a ground-truth check on each walk.
+            if index < 16:
+                check = page.evaluate('({original: labProbe.focusDescriptor(), recorded: labTabSequence.at(-1)})')
+                assert check['original'] == check['recorded'], 'Tab recorder differs from original descriptor'
+        sequence = page.evaluate('labProbe.finishTabRecording()')
+        assert len(sequence) == total, 'Tab recorder missed or duplicated a key'
         result['tabs'][scenario] = sequence
         if scenario == 'appended':
             result['events']['send'] = page.evaluate('labProbe.takeRenderingEvents()')
@@ -411,7 +422,7 @@ def read_snapshot(snapshot, directory):
 
 def compare_equivalence(base, head, base_directory=None, head_directory=None):
     differences = {}
-    for kind in ['dom', 'tabs', 'events']:
+    for kind in ['dom', 'tabs', 'tabOrder', 'events']:
         for scenario in sorted(set(base.get(kind, {})) | set(head.get(kind, {}))):
             a, b = base.get(kind, {}).get(scenario), head.get(kind, {}).get(scenario)
             if kind == 'dom':
@@ -440,6 +451,12 @@ def compare_revisions(args):
                     command = [sys.executable, str(ROOT / 'tests/browser-longchat-perf.py'), '--output', str(output), '--product-root', str(products[side][0]),
                                '--sizes', str(size), '--settings', str(truncation), '--runs', '1', '--no-profiles', '--node', args.node,
                                '--older-batches', str(args.older_batches), '--run-timeout', str(args.run_timeout), '--tab-count', str(args.tab_count), '--product-revision', products[side][1], '--combo-timeout', str(args.combo_timeout)]
+                    if args.sliced_older:
+                        command.append('--sliced-older')
+                    if args.older_scenario:
+                        command += ['--older-scenario', args.older_scenario]
+                    if args.tab_limit:
+                        command += ['--tab-limit', str(args.tab_limit)]
                     if args.open_only:
                         command.append('--open-only')
                     if args.equivalence:
@@ -469,6 +486,10 @@ def compare_revisions(args):
             if all(r['status'] == 'ok' for rows in records.values() for r in rows):
                 for metric in ['open'] + ([] if args.open_only else ['send']):
                     metrics[metric] = node_statistics([r[metric]['ms'] for r in records['base']], [r[metric]['ms'] for r in records['head']])
+            if args.sliced_older and not args.open_only and all(r['status'] == 'ok' for rows in records.values() for r in rows):
+                for index in range(args.older_batches):
+                    for metric, extract in [('ms', lambda b: b['ms']), ('longestTaskMs', lambda b: tasks_summary(b['tasks'])['maxMs']), ('anchorDriftPx', lambda b: b['anchorDriftPx'])]:
+                        metrics[f'older{index + 1}/{metric}'] = node_statistics(*[[extract(r['scroll']['batches'][index]) for r in records[side]] for side in ['base', 'head']])
             report['settings'].append({'size': size, 'truncation': truncation, 'metrics': metrics, 'equivalence': checks})
     write_json(args.output / 'comparison.json', report)
     raise SystemExit(1 if failed else 0)
@@ -491,17 +512,20 @@ def main():
     parser.add_argument('--product-root', type=pathlib.Path, default=ROOT, help=argparse.SUPPRESS)
     parser.add_argument('--startup-runs', type=int, default=0, help='Fresh-context startups only; forces first-run onboarding in the synthetic settings response')
     parser.add_argument('--open-only', action='store_true')
+    parser.add_argument('--sliced-older', action='store_true', help='P3: three anchored batches without scroll sweeps; time through completion, without quiet wait')
+    parser.add_argument('--older-scenario', choices=['send', 'double', 'reference'], help='P3 functional concurrency scenario (WORKTREE only)')
     parser.add_argument('--no-profiles', action='store_true')
     parser.add_argument('--profile-phases', nargs='+', choices=['open', 'scroll', 'send'], default=['open', 'scroll', 'send'], help='Limit CPU capture in additional profiled runs')
     parser.add_argument('--equivalence', action='store_true')
     parser.add_argument('--tab-count', type=int, default=0, help='Minimum Tab presses; default also traverses all focusable controls')
+    parser.add_argument('--tab-limit', type=int, default=0, help='Optional physical Tab prefix limit; also compares complete computed focus order')
     parser.add_argument('--legacy-shape', action='store_true', help='Diagnostic only: original generator')
     args = parser.parse_args()
     if args.equivalence:
         args.open_only = True  # Focus scenarios mutate chat state; keep them out of send/scroll timings.
     if args.runs is not None and args.runs < 1:
         parser.error('--runs must be positive')
-    if args.startup_runs < 0 or args.tab_count < 0:
+    if args.startup_runs < 0 or args.tab_count < 0 or args.tab_limit < 0:
         parser.error('startup and Tab counts must be nonnegative')
     if args.head != 'WORKTREE' and not args.base:
         parser.error('--head requires --base')
@@ -639,7 +663,7 @@ def main():
                             result['onboarding'] = wait_application(page, origin, deadline)
                             page.evaluate('async source => { window.labProbe = await import(URL.createObjectURL(new Blob([source], {type:"text/javascript"}))); }', probe)
                             page.evaluate('(t) => window.labProbe.installProbe(t)', truncation)
-                            if args.equivalence:
+                            if args.equivalence or args.older_scenario:
                                 page.evaluate('labProbe.installRenderingRecorder()')
                             cdp = context.new_cdp_session(page)
                             profiling = result['profiled']
@@ -671,14 +695,25 @@ def main():
                                                              redact(text, origin, temporary))
                                     for scenario, text in result['equivalence']['dom'].items()
                                 }
+                            if args.older_scenario:
+                                scenario = run_async(page, 'mode => labProbe.concurrentOlderSend(mode)', args.older_scenario, deadline)
+                                scenario['dom'] = write_snapshot(args.output / f'run-{label}-dom-concurrent.html.gz', redact(scenario['dom'], origin, temporary))
+                                result['olderScenario'] = scenario
+                                if args.older_scenario != 'double':
+                                    stored = context.request.post(origin + 'api/chats/get', headers=headers,
+                                                                  data={'avatar_url': avatar, 'file_name': card['chat']}).json()[1:]
+                                    stored[-1]['send_date'] = '<send-time>'
+                                    assert stored == scenario['chat'], 'Saved file differs from chat array: ' + str(list(difflib.unified_diff(json.dumps(stored, indent=2).splitlines(), json.dumps(scenario['chat'], indent=2).splitlines()))[:40])
+                                    scenario['savedMatchesChat'] = True
+                                result['olderScenario'] = scenario
                             if args.open_only:
                                 assert not errors, errors
                                 continue
-                            scroll = phase('scroll', lambda: run_async(page, 'n => window.labProbe.scrollChat(n)', args.older_batches, deadline))
+                            scroll = phase('scroll', lambda: run_async(page, 'n => window.labProbe.' + ('measureOlderBatches' if args.sliced_older else 'scrollChat') + '(n)', args.older_batches, deadline))
                             frames = scroll['frames']
                             result['scroll'] = {**scroll, 'frameMs': distribution(frames),
-                                                'over16_7Percent': sum(x > 16.7 for x in frames) / len(frames) * 100,
-                                                'over50Percent': sum(x > 50 for x in frames) / len(frames) * 100,
+                                                'over16_7Percent': sum(x > 16.7 for x in frames) / len(frames) * 100 if frames else 0,
+                                                'over50Percent': sum(x > 50 for x in frames) / len(frames) * 100 if frames else 0,
                                                 'longTasks': tasks_summary(scroll['tasks'])}
                             result['afterScroll'] = snapshot()
                             print(label, 'scrolled', flush=True)
@@ -712,11 +747,17 @@ def main():
                         except Exception as error:
                             result.update(status='timeout' if 'Timeout' in type(error).__name__ else 'error', error=str(error))
                         finally:
-                            result['dialogs'] = page.locator('dialog[open]').all_text_contents()
+                            # A closed page must not discard the result or hide the original error.
+                            try:
+                                if not page.is_closed():
+                                    result['dialogs'] = page.locator('dialog[open]').all_text_contents()
+                            except Exception as dialog_error:
+                                result['dialogError'] = str(dialog_error)
                             result['pageErrorStacks'] = stacks
                             result['pageErrors'] = errors
                             result['forbiddenRequests'] = list(forbidden)
-                            page.close()
+                            if not page.is_closed():
+                                page.close()
                             raw.append(result)
                             write_json(args.output / f'run-{label}.json', result, origin, temporary)
                             print(label, result['status'], flush=True)

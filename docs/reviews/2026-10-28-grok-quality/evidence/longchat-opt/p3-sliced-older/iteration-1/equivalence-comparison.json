@@ -1,0 +1,129 @@
+{
+  "revisions": {
+    "base": "dfab84be2da4bb64ec3924ff8f60f4cc1ae2a18d",
+    "head": "WORKTREE"
+  },
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 1145.7999999970198,
+            "p95": 1145.7999999970198,
+            "median_ci95": [
+              1145.7999999970198,
+              1145.7999999970198
+            ],
+            "p95_ci95": [
+              1145.7999999970198,
+              1145.7999999970198
+            ],
+            "samples": [
+              1145.7999999970198
+            ]
+          },
+          "head": {
+            "median": 1091.8999999985099,
+            "p95": 1091.8999999985099,
+            "median_ci95": [
+              1091.8999999985099,
+              1091.8999999985099
+            ],
+            "p95_ci95": [
+              1091.8999999985099,
+              1091.8999999985099
+            ],
+            "samples": [
+              1091.8999999985099
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -53.899999998509884,
+            "ci95": [
+              -53.899999998509884,
+              -53.899999998509884
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": [
+        {
+          "iteration": 0,
+          "status": "equal",
+          "equal": true,
+          "differences": {}
+        }
+      ]
+    },
+    {
+      "size": 2000,
+      "truncation": 500,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 1755.4000000022352,
+            "p95": 1755.4000000022352,
+            "median_ci95": [
+              1755.4000000022352,
+              1755.4000000022352
+            ],
+            "p95_ci95": [
+              1755.4000000022352,
+              1755.4000000022352
+            ],
+            "samples": [
+              1755.4000000022352
+            ]
+          },
+          "head": {
+            "median": 2063.099999997765,
+            "p95": 2063.099999997765,
+            "median_ci95": [
+              2063.099999997765,
+              2063.099999997765
+            ],
+            "p95_ci95": [
+              2063.099999997765,
+              2063.099999997765
+            ],
+            "samples": [
+              2063.099999997765
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": 307.69999999552965,
+            "ci95": [
+              307.69999999552965,
+              307.69999999552965
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": [
+        {
+          "iteration": 0,
+          "status": "equal",
+          "equal": true,
+          "differences": {}
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "equivalence/comparison.json",
+    "equivalence-500-bounded/comparison.json"
+  ],
+  "initialFailure": {
+    "side": "base",
+    "size": 2000,
+    "truncation": 500,
+    "iteration": 0,
+    "status": "timeout"
+  }
+}

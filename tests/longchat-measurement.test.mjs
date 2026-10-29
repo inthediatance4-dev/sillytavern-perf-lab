@@ -97,6 +97,10 @@ perturbed['tabs']['older'][0]['id'] = 'different'
 perturbed['events']['send']['records'][0]['args'] = [1999]
 diff = m.compare_equivalence(check, perturbed)
 assert not diff['equal'] and set(diff['differences']) == {'dom/open','tabs/older','events/send'}
+check['tabOrder'] = {'older':[{'path':'button:nth-of-type(1)'}]}
+perturbed = json.loads(json.dumps(check))
+perturbed['tabOrder']['older'][0]['path'] = 'button:nth-of-type(2)'
+assert set(m.compare_equivalence(check, perturbed)['differences']) == {'tabOrder/older'}
 assert sum('swipes' in r for r in a) == 200
 assert all(not r['is_user'] for r in a if 'swipes' in r)
 assert all(a[i+1]['is_user'] == (i % 2 == 0) for i in range(2000))

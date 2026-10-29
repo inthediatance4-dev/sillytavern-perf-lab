@@ -278,6 +278,7 @@ function useActualClearChat(h) {
     const promptWrites = [];
     Object.assign(h.context, {
         characterChatLoadSerial: 0,
+        olderMessagesInsertion: null,
         itemizedPrompts: [{ mesId: 0, rawPrompt: 'prior open prompt' }],
         chat: [{ mes: 'prior open message' }],
         mediaLoadScrollHandler: { cancel() {} },

@@ -75,8 +75,7 @@ export function chatSnapshot() {
     return normalizeSnapshot(tree(document.querySelector('#chat')));
 }
 
-export function focusDescriptor() {
-    const el = document.activeElement;
+export function focusDescriptor(el = document.activeElement) {
     const path = [];
     for (let node = el; node && node !== document.body; node = node.parentElement) {
         const siblings = [...node.parentElement.children].filter(x => x.localName === node.localName);
@@ -86,6 +85,20 @@ export function focusDescriptor() {
         message: el.closest('.mes')?.getAttribute('mesid') ?? null, role: el.getAttribute('role'),
         name: el.getAttribute('aria-label') ?? el.getAttribute('name'), title: el.getAttribute('title'),
         type: el.getAttribute('type'), href: el.getAttribute('href'), text: el.children.length ? null : el.textContent.trim().replace(/\s+/g, ' ').slice(0, 120), classes: [...el.classList].sort() };
+}
+
+// Record after trusted keyup dispatch, avoiding one browser RPC per Tab.
+export function beginTabRecording() {
+    window.labTabSequence = [];
+    window.labTabListener = event => {
+        if (event.key === 'Tab') queueMicrotask(() => window.labTabSequence.push(focusDescriptor()));
+    };
+    window.addEventListener('keyup', window.labTabListener, true);
+}
+
+export function finishTabRecording() {
+    window.removeEventListener('keyup', window.labTabListener, true);
+    return window.labTabSequence.splice(0);
 }
 
 export async function prepareTabScenario(name) {
@@ -109,6 +122,9 @@ export async function prepareTabScenario(name) {
     const dialog = document.querySelector('dialog[open]');
     const focusables = [...(dialog ?? document).querySelectorAll('input,select,textarea,button,a[href],[tabindex]')]
         .filter(el => el.tabIndex >= 0 && !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+    window.labTabOrder = focusables.map((el, index) => ({ el, index }))
+        .sort((a, b) => (a.el.tabIndex > 0 ? a.el.tabIndex : Infinity) - (b.el.tabIndex > 0 ? b.el.tabIndex : Infinity) || a.index - b.index)
+        .map(({ el }) => focusDescriptor(el));
     const start = dialog ?? document.body;
     start.tabIndex = -1;
     start.focus();
@@ -139,4 +155,89 @@ export function installRenderingRecorder() {
 
 export function takeRenderingEvents() {
     return { registered: window.labRenderingEventNames, records: window.labRenderingEvents.splice(0) };
+}
+
+// P3 interval excludes the historical 500 ms quiet window and scroll sweeps.
+export async function measureOlderBatches(maxBatches) {
+    const chat = document.querySelector('#chat');
+    const batches = [];
+    // Prove the explicit anchor correction without browser scroll anchoring.
+    const previousAnchor = chat.style.overflowAnchor;
+    chat.style.overflowAnchor = 'none';
+    for (let batch = 0; batch < maxBatches && document.querySelector('#show_more_messages'); batch++) {
+        chat.scrollTop = 0;
+        await window.labIdle();
+        const before = chat.querySelectorAll('.mes').length;
+        const anchor = [...chat.querySelectorAll('.mes')].find(el => el.getBoundingClientRect().bottom > chat.getBoundingClientRect().top);
+        const offset = anchor.getBoundingClientRect().top;
+        const drifts = [];
+        const sample = () => drifts.push(Math.abs(anchor.getBoundingClientRect().top - offset));
+        const observer = new MutationObserver(sample);
+        observer.observe(chat, { childList: true });
+        window.labTasks = [];
+        const start = performance.now();
+        await window.labScript.showMoreMessages();
+        const end = performance.now();
+        sample();
+        observer.disconnect();
+        await window.labIdle();
+        const ids = [...chat.querySelectorAll('.mes')].map(el => Number(el.getAttribute('mesid')));
+        const size = SillyTavern.getContext().chat.length;
+        const expected = Array.from({ length: ids.length }, (_, i) => size - ids.length + i);
+        if (JSON.stringify(ids) !== JSON.stringify(expected)) throw new Error('Older message IDs missing, duplicated or out of order');
+        batches.push({ ms: end - start, added: ids.length - before, firstId: ids[0], lastId: ids.at(-1),
+            count: ids.length, orderCorrect: true, anchorId: Number(anchor.getAttribute('mesid')),
+            anchorDriftPx: Math.max(...drifts), anchorSamples: drifts.length,
+            tasks: window.labTasks.filter(task => task.start < end && task.start + task.duration >= start) });
+    }
+    if (previousAnchor) chat.style.overflowAnchor = previousAnchor;
+    else chat.style.removeProperty('overflow-anchor');
+    return { frames: [], batches, olderMessagesRemain: !!document.querySelector('#show_more_messages'), tasks: batches.flatMap(batch => batch.tasks) };
+}
+
+export async function concurrentOlderSend(mode) {
+    const ctx = SillyTavern.getContext();
+    const initialLength = ctx.chat.length;
+    const before = document.querySelectorAll('#chat .mes').length;
+    const batch = (await import(location.origin + '/scripts/power-user.js')).power_user.chat_truncation;
+    let partialCount = null;
+    let send;
+    let completionCount = 0;
+    const completed = () => { completionCount++; };
+    ctx.eventSource.on(ctx.eventTypes.MORE_MESSAGES_LOADED, completed);
+    // Preparation no longer inserts per slice, so a child-list observer cannot see a partial batch.
+    // The first scheduler.yield is inside that off-DOM window, while the live count is still `before`.
+    const scheduler = globalThis.scheduler;
+    const originalYield = scheduler?.yield?.bind(scheduler);
+    if (mode !== 'reference') {
+        if (!originalYield) throw new Error('Preparation yield hook unavailable');
+        scheduler.yield = () => {
+            if (!send) {
+                partialCount = document.querySelectorAll('#chat .mes').length;
+                send = mode === 'double' ? labScript.showMoreMessages() : labScript.sendMessageAsUser('Synthetic concurrent append');
+            }
+            return originalYield();
+        };
+    }
+    try {
+        await labScript.showMoreMessages();
+    } finally {
+        if (originalYield) scheduler.yield = originalYield;
+    }
+    if (mode === 'reference') send = labScript.sendMessageAsUser('Synthetic concurrent append');
+    if (!send) throw new Error('Scenario did not trigger during preparation');
+    await send;
+    await labIdle();
+    ctx.eventSource.removeListener(ctx.eventTypes.MORE_MESSAGES_LOADED, completed);
+    const ids = [...document.querySelectorAll('#chat .mes')].map(el => Number(el.getAttribute('mesid')));
+    const expectedLength = initialLength + (mode === 'double' ? 0 : 1);
+    const expectedCount = before + batch + (mode === 'double' ? 0 : 1);
+    if (ctx.chat.length !== expectedLength || ids.length !== expectedCount || completionCount !== 1
+        || ids.some((id, i) => id !== initialLength - before - batch + i)) throw new Error('Concurrent load final invariant failed');
+    // Normalize only the appended send's wall-clock field. All other chat data is significant.
+    // Match save serialization: swipe metadata can contain undefined generation fields.
+    const chat = JSON.parse(JSON.stringify(ctx.chat));
+    if (mode !== 'double') chat.at(-1).send_date = '<send-time>';
+    return { mode, initialLength, partialCount, completionCount, ids, chat,
+        dom: chatSnapshot(), events: takeRenderingEvents() };
 }

@@ -14,6 +14,7 @@ function harness(messages = [{ mes: 'hello' }, { mes: 'world' }]) {
     const seen = { renders: 0, menus: 0, events: [], focus: 0, saves: 0, yields: 0, logs: 0 };
     const timers = [];
     const c = vm.createContext({
+        olderMessagesInsertion: null,
         characters: [{ name: 'Synthetic', avatar: 'synthetic.png', chat: 'history' }], this_chid: 0,
         selected_group: null, chat_metadata: {}, chat: [], name2: '', power_user: { chat_truncation: 100 },
         console: { log() { seen.logs++; }, debug() {} }, unshallowCharacter: async () => {},
@@ -94,8 +95,9 @@ for (const guarded of [false, true]) {
         assert.equal(h.seen.saves, 0);
     });
 }
-test('general redisplay remains atomic without task scheduling', () => {
-    assert.doesNotMatch(fn('redisplayChat'), /await |delay\(|yield/);
+test('general redisplay remains atomic after the older-insertion entry barrier', () => {
+    const render = fn('redisplayChat').replace('if (olderMessagesInsertion) await olderMessagesInsertion;', '');
+    assert.doesNotMatch(render, /await |delay\(|yield/);
 });
 
 for (const length of [249999, 250000, 250001]) {

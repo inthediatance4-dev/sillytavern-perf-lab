@@ -225,3 +225,53 @@ post-save DOM assertion and retrieval of observed tasks remain outside that
 timer; a final still-running task is not guaranteed to have been delivered to
 the observer. Subtracting HTTP request-to-response-end from elapsed time only
 bounds time outside that HTTP interval; it does not attribute a named JS task.
+
+P3's `--sliced-older` mode replaces scroll sweeps with three real older loads
+at scrollTop=0. Each records elapsed time through the completion promise
+(**excludes** the historical 500 ms quiet window), the overlapping long tasks,
+contiguous message IDs/count and maximum visible-anchor drift. Older messages
+are prepared off-DOM and inserted once, so a child-list MutationObserver sees
+one insertion task; the final sample includes completion hooks/button removal.
+Scroll matches the pre-slice path and is not sampled per message: immediately
+before that insertion the show-more button is tested for being fully in the
+window, and only then is `scrollHeight` recorded. After swipe refresh and
+optional button removal, `scrollTop` is replaced with the height delta. When
+the button is not fully in view, `scrollTop` is left unchanged.
+CSS `overflow-anchor` is explicitly disabled on both sides during these
+measurements. The quiet window still drains task observation outside each
+timer. Send follows the three loads with the existing
+fill/input-through-save-response timer. Empty frame readings are reported as
+unavailable, since this mode performs no frame sweep. `comparison.json`
+additionally summarizes each batch's elapsed time, longest observed task and
+drift with the existing paired bootstrap method.
+
+Use `--equivalence --older-batches 3` separately for exact normalized DOM,
+complete Tab walks and P2 event-recorder comparison after all three loads.
+Equivalence now honors the batch limit (use `--older-batches 1` to reproduce P0–P2).
+`--older-scenario send|double|reference --open-only --settings 500 --runs 1`
+executes a functional P3 scenario on a fresh synthetic chat. The public send
+function or another older load is triggered from the first `scheduler.yield`
+during off-DOM preparation, while the live message count is still unchanged;
+the reference sends only after completion. It asserts exactly one completion,
+contiguous DOM IDs, final array count, and (for sends) exact JSON serialization
+of the array versus the saved file fetched through `/api/chats/get`. Undefined
+generation fields in swipe metadata are omitted by JSON serialization,
+just as in the production save. Only the appended message's send_date is
+normalized for cross-run comparison; the DOM uses the existing normalizer.
+These scenarios do not contribute latency samples. Browser cases remain opt-in.
+
+Full Tab walks can be expensive at 2000/500 after three older loads. The recorder
+now samples the same focus descriptor in a microtask after trusted keyup dispatch,
+while Playwright still issues every individual Tab press. Each walk cross-checks
+the first 16 samples with the original post-key browser RPC and asserts exactly
+one descriptor per key. This removes an extra RPC per key without shortening the
+walk. Use an explicit larger `--run-timeout` for these functional runs (P3 uses
+1800 seconds at 500); this does not change the latency run's time budget.
+
+For a documented bounded alternative, `--tab-limit N` limits physical presses per
+scenario and also stores the complete computed focus order (positive tabindex
+first, then zero/native controls in document order) using the same descriptors.
+`tabOrder` is compared exactly alongside DOM, physical `tabs` and events. This is
+not a full native Tab cycle; report that limitation explicitly. Default zero
+retains the original full walk. P3's 500-message final check uses 128 physical
+presses per non-modal scenario and all 5500+ computed descriptors.

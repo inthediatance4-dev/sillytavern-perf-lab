@@ -1,0 +1,200 @@
+TAP version 13
+# Subtest: variadic keyboard wrapper preserves order, custom classes and tabindex state
+ok 1 - variadic keyboard wrapper preserves order, custom classes and tabindex state
+  ---
+  duration_ms: 2.9966
+  ...
+# Subtest: keyboard initialization and extension registration iterate 300k controls without argument spread
+ok 2 - keyboard initialization and extension registration iterate 300k controls without argument spread
+  ---
+  duration_ms: 484.833471
+  ...
+# Subtest: displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics
+ok 3 - displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics
+  ---
+  duration_ms: 239.711544
+  ...
+# Subtest: neutral chat restoration keeps array identity and message order for 300k messages
+ok 4 - neutral chat restoration keeps array identity and message order for 300k messages
+  ---
+  duration_ms: 398.2493
+  ...
+# Subtest: reply swipe append preserves aliased input, array identity and render event arguments
+ok 5 - reply swipe append preserves aliased input, array identity and render event arguments
+  ---
+  duration_ms: 5.186408
+  ...
+# Subtest: message flattening and API chat assembly retain order and fields for 300k messages
+ok 6 - message flattening and API chat assembly retain order and fields for 300k messages
+  ---
+  duration_ms: 234.245329
+  ...
+# Subtest: StreamingProcessor swipe payload: empty append matches spread
+ok 7 - StreamingProcessor swipe payload: empty append matches spread
+  ---
+  duration_ms: 3.583613
+  ...
+# Subtest: StreamingProcessor swipe metadata: empty append matches spread
+ok 8 - StreamingProcessor swipe metadata: empty append matches spread
+  ---
+  duration_ms: 2.913454
+  ...
+# Subtest: saveReply swipe payload: empty append matches spread
+ok 9 - saveReply swipe payload: empty append matches spread
+  ---
+  duration_ms: 2.864342
+  ...
+# Subtest: saveReply swipe metadata: empty append matches spread
+ok 10 - saveReply swipe metadata: empty append matches spread
+  ---
+  duration_ms: 2.636046
+  ...
+# Subtest: getChat loaded history: empty replacement matches splice spread
+ok 11 - getChat loaded history: empty replacement matches splice spread
+  ---
+  duration_ms: 2.848201
+  ...
+# Subtest: getGroupChat loaded history: empty replacement matches splice spread
+ok 12 - getGroupChat loaded history: empty replacement matches splice spread
+  ---
+  duration_ms: 0.78667
+  ...
+# Subtest: assistant-note import history: empty replacement matches splice spread
+ok 13 - assistant-note import history: empty replacement matches splice spread
+  ---
+  duration_ms: 0.671031
+  ...
+# Subtest: restoreNeutralChat: empty replacement matches splice spread
+ok 14 - restoreNeutralChat: empty replacement matches splice spread
+  ---
+  duration_ms: 0.999014
+  ...
+# Subtest: initializeInteractables: empty controls match variadic call
+ok 15 - initializeInteractables: empty controls match variadic call
+  ---
+  duration_ms: 1.453164
+  ...
+# Subtest: registerInteractableType: empty controls match variadic call
+ok 16 - registerInteractableType: empty controls match variadic call
+  ---
+  duration_ms: 1.473737
+  ...
+# Subtest: getFirstDisplayedMessageId: empty minimum matches Math.min spread
+ok 17 - getFirstDisplayedMessageId: empty minimum matches Math.min spread
+  ---
+  duration_ms: 15.54783
+  ...
+# Subtest: visualNovelUpdateLayers: empty maximum matches Math.max spread
+ok 18 - visualNovelUpdateLayers: empty maximum matches Math.max spread
+  ---
+  duration_ms: 3.35125
+  ...
+# Subtest: MessageCollection.flatten: empty nested collection matches push spread
+ok 19 - MessageCollection.flatten: empty nested collection matches push spread
+  ---
+  duration_ms: 1.739453
+  ...
+# Subtest: ChatCompletion.getChat: empty nested collection matches push spread
+ok 20 - ChatCompletion.getChat: empty nested collection matches push spread
+  ---
+  duration_ms: 1.224814
+  ...
+# Subtest: applyStylePins: empty style NodeList matches append spread
+ok 21 - applyStylePins: empty style NodeList matches append spread
+  ---
+  duration_ms: 2.675386
+  ...
+# Subtest: openSwipePicker: empty blocks match replaceChildren spread
+ok 22 - openSwipePicker: empty blocks match replaceChildren spread
+  ---
+  duration_ms: 0.945609
+  ...
+# Subtest: StreamingProcessor swipe payload: single-element append matches spread
+ok 23 - StreamingProcessor swipe payload: single-element append matches spread
+  ---
+  duration_ms: 2.49511
+  ...
+# Subtest: StreamingProcessor swipe metadata: single-element append matches spread
+ok 24 - StreamingProcessor swipe metadata: single-element append matches spread
+  ---
+  duration_ms: 6.708466
+  ...
+# Subtest: saveReply swipe payload: single-element append matches spread
+ok 25 - saveReply swipe payload: single-element append matches spread
+  ---
+  duration_ms: 2.395959
+  ...
+# Subtest: saveReply swipe metadata: single-element append matches spread
+ok 26 - saveReply swipe metadata: single-element append matches spread
+  ---
+  duration_ms: 2.527883
+  ...
+# Subtest: getChat loaded history: single-element replacement matches splice spread
+ok 27 - getChat loaded history: single-element replacement matches splice spread
+  ---
+  duration_ms: 2.521581
+  ...
+# Subtest: getGroupChat loaded history: single-element replacement matches splice spread
+ok 28 - getGroupChat loaded history: single-element replacement matches splice spread
+  ---
+  duration_ms: 0.59126
+  ...
+# Subtest: assistant-note import history: single-element replacement matches splice spread
+ok 29 - assistant-note import history: single-element replacement matches splice spread
+  ---
+  duration_ms: 0.611342
+  ...
+# Subtest: restoreNeutralChat: single-element replacement matches splice spread
+ok 30 - restoreNeutralChat: single-element replacement matches splice spread
+  ---
+  duration_ms: 0.817309
+  ...
+# Subtest: initializeInteractables: single-element controls match variadic call
+ok 31 - initializeInteractables: single-element controls match variadic call
+  ---
+  duration_ms: 1.14792
+  ...
+# Subtest: registerInteractableType: single-element controls match variadic call
+ok 32 - registerInteractableType: single-element controls match variadic call
+  ---
+  duration_ms: 1.107328
+  ...
+# Subtest: getFirstDisplayedMessageId: single-element minimum matches Math.min spread
+ok 33 - getFirstDisplayedMessageId: single-element minimum matches Math.min spread
+  ---
+  duration_ms: 15.314021
+  ...
+# Subtest: visualNovelUpdateLayers: single-element maximum matches Math.max spread
+ok 34 - visualNovelUpdateLayers: single-element maximum matches Math.max spread
+  ---
+  duration_ms: 2.723132
+  ...
+# Subtest: MessageCollection.flatten: single-element nested collection matches push spread
+ok 35 - MessageCollection.flatten: single-element nested collection matches push spread
+  ---
+  duration_ms: 1.193851
+  ...
+# Subtest: ChatCompletion.getChat: single-element nested collection matches push spread
+ok 36 - ChatCompletion.getChat: single-element nested collection matches push spread
+  ---
+  duration_ms: 1.195172
+  ...
+# Subtest: applyStylePins: single-element style NodeList matches append spread
+ok 37 - applyStylePins: single-element style NodeList matches append spread
+  ---
+  duration_ms: 1.704885
+  ...
+# Subtest: openSwipePicker: single-element blocks match replaceChildren spread
+ok 38 - openSwipePicker: single-element blocks match replaceChildren spread
+  ---
+  duration_ms: 0.57943
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 38
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1536.106171

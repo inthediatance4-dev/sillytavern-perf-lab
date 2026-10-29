@@ -429,8 +429,8 @@ test('local transitive source edits require compilation', async () => {
     const first = await simpleBuild(f);
     assert.equal(first.compilerCalls, 1);
     const manifest = JSON.parse(fs.readFileSync(first.manifestPath, 'utf8'));
-    assert.ok(manifest.dependencies.files.includes('public/a.js'));
-    assert.ok(manifest.dependencies.files.includes('public/b.js'));
+    assert.ok(manifest.dependencies.files.includes(path.join('public', 'a.js')));
+    assert.ok(manifest.dependencies.files.includes(path.join('public', 'b.js')));
     assert.equal((await simpleBuild(f)).compilerCalls, 0);
     fs.copyFileSync(dependency, `${dependency}.before-change.bak`);
     fs.writeFileSync(dependency, 'export const marker = "two";\n');

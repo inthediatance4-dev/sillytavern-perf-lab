@@ -32,6 +32,9 @@ Statistics use the unchanged `scripts/benchmark-statistics.mjs`: 2,000 bootstrap
 | ui − http | 2612.7 | 2249.4 | -363.3 | [-959.0, 501.3] | no |
 | send − ui | 774.1 | 723.2 | -50.9 | [-249.5, 38.5] | no |
 
+
+> **Review-fix B3 attribution note:** Only the ~800 ms carried by `httpMs` is attributed to P2-a. The remaining ~730 ms (uiMs) / ~850 ms (sendMs) is **unexplained**: the base-side ui − http (2613 ms) is slower than the P0 baseline for the same product (2174 ms), while head (2249 ms) matches it. See `../review-fix-b3-attribution/README.md`.
+
 The combined change significantly reduces the webpack stage and HTTP readiness. The absolute UI and send endpoints also improve in this sample. The separate browser segments have intervals containing zero; they do not establish a frontend-phase speedup. **The server_main_import interval includes zero: this run does not prove a P2-c compile-cache speedup.** P2-c remains an optional, fail-safe cache; no separate causal performance claim is made for it.
 
 All 12 measured head runs report `webpack_skipped=true`, `durationMs=0`, `builtModules=0`. Their nonzero enclosing webpack stage includes SHA-256 verification of inputs and outputs. `assets.json` confirms the full-build manifest's lib.js SHA-256 equals the live lib.js SHA-256 after the measured skip runs; the real-Webpack unit test independently checks full/skip bytes and hashes. A missing manifest always forces compilation even when outputs exist.

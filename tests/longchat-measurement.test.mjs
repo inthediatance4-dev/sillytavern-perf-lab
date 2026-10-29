@@ -106,6 +106,8 @@ assert all(not r['is_user'] for r in a if 'swipes' in r)
 assert all(a[i+1]['is_user'] == (i % 2 == 0) for i in range(2000))
 assert m.distribution([1,2,3,4,100]) == {'n':5,'median':3,'p95':100}
 assert m.distribution([])['median'] is None
+assert m.distribution([None, None]) == {'n':0,'median':None,'p95':None}
+assert m.distribution([None, 3, 1]) == {'n':2,'median':1,'p95':3}
 assert m.redact({'path': r'C:\\Temp\\lab\\data'}, temporary=r'C:\\Temp\\lab') == {'path': r'<tmp>\\data'}
 p = {'nodes':[{'id':1,'callFrame':{'url':'a','functionName':'parent','lineNumber':0},'children':[2]}, {'id':2,'callFrame':{'url':'b','functionName':'child','lineNumber':2}}], 'samples':[2,1], 'timeDeltas':[300,100]}
 s = m.profile_summary(p)

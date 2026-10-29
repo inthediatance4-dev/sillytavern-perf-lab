@@ -29,6 +29,7 @@ def percentile(values, fraction):
 
 
 def distribution(values):
+    values = [value for value in values if value is not None]
     return {'n': len(values), 'median': percentile(values, .5), 'p95': percentile(values, .95)}
 
 
@@ -346,6 +347,10 @@ def equivalence(page, args, deadline):
             assert len(payload['chat']) == before + 2
             assert payload['chat'][-1]['is_user'] and payload['chat'][-1]['mes'] == 'Synthetic equivalence append'
             page.wait_for_function("document.querySelector('#chat .last_mes .mes_text')?.textContent.includes('Synthetic equivalence append')")
+        # Startup/save success toasts expire on wall-clock timers and are focusable.
+        # Wait for their actual disappearance so a Tab walk cannot straddle expiry.
+        page.wait_for_function("!document.querySelector('#toast-container .toast')",
+                               timeout=max(1, (deadline - time.monotonic()) * 1000))
         count = run_async(page, 'name => labProbe.prepareTabScenario(name)', scenario, deadline)
         total = min(args.tab_limit, max(args.tab_count, count)) if args.tab_limit else max(args.tab_count, count)
         if args.tab_limit:
@@ -514,6 +519,7 @@ def main():
     parser.add_argument('--open-only', action='store_true')
     parser.add_argument('--sliced-older', action='store_true', help='P3: three anchored batches without scroll sweeps; time through completion, without quiet wait')
     parser.add_argument('--older-scenario', choices=['send', 'double', 'reference'], help='P3 functional concurrency scenario (WORKTREE only)')
+    parser.add_argument('--trim-scenario', action='store_true', help='P4: trim anchor, reload and edit/delete boundary checks (WORKTREE only)')
     parser.add_argument('--no-profiles', action='store_true')
     parser.add_argument('--profile-phases', nargs='+', choices=['open', 'scroll', 'send'], default=['open', 'scroll', 'send'], help='Limit CPU capture in additional profiled runs')
     parser.add_argument('--equivalence', action='store_true')
@@ -521,7 +527,7 @@ def main():
     parser.add_argument('--tab-limit', type=int, default=0, help='Optional physical Tab prefix limit; also compares complete computed focus order')
     parser.add_argument('--legacy-shape', action='store_true', help='Diagnostic only: original generator')
     args = parser.parse_args()
-    if args.equivalence:
+    if args.equivalence or args.trim_scenario:
         args.open_only = True  # Focus scenarios mutate chat state; keep them out of send/scroll timings.
     if args.runs is not None and args.runs < 1:
         parser.error('--runs must be positive')
@@ -531,6 +537,8 @@ def main():
         parser.error('--head requires --base')
     if args.startup_runs and args.base:
         parser.error('--startup-runs is separate from A/B measurements')
+    if args.trim_scenario and args.base:
+        parser.error('--trim-scenario requires WORKTREE')
     if args.base and not args.equivalence and args.runs is not None and args.runs < 7:
         parser.error('A/B timing requires at least seven runs; use --equivalence for a one-pair self-check')
     if args.combine:
@@ -706,6 +714,9 @@ def main():
                                     assert stored == scenario['chat'], 'Saved file differs from chat array: ' + str(list(difflib.unified_diff(json.dumps(stored, indent=2).splitlines(), json.dumps(scenario['chat'], indent=2).splitlines()))[:40])
                                     scenario['savedMatchesChat'] = True
                                 result['olderScenario'] = scenario
+                            if args.trim_scenario:
+                                result['trimScenario'] = run_async(page, 'arg => labProbe.trimBoundaryScenario(arg)',
+                                                                   {'avatar': avatar, 'chatName': card['chat']}, deadline)
                             if args.open_only:
                                 assert not errors, errors
                                 continue
@@ -743,6 +754,7 @@ def main():
                                         'serverTiming': response.headers.get('server-timing'),
                                         'serverMs': float(response.headers['x-response-time'].removesuffix('ms')), 'timing': timing}
                             result['send'] = phase('send', send)
+                            result['afterSend'] = snapshot()
                             assert not errors, errors
                         except Exception as error:
                             result.update(status='timeout' if 'Timeout' in type(error).__name__ else 'error', error=str(error))

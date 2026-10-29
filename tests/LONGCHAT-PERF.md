@@ -275,3 +275,24 @@ first, then zero/native controls in document order) using the same descriptors.
 not a full native Tab cycle; report that limitation explicitly. Default zero
 retains the original full walk. P3's 500-message final check uses 128 physical
 presses per non-modal scenario and all 5500+ computed descriptors.
+
+P4 adds `--trim-scenario --sizes 2000 --settings 100 --runs 1 --no-profiles`
+for a browser-only functional check. It loads ten older batches, disables CSS
+scroll anchoring, sends through the public API, and checks the first kept
+message's geometry at `MESSAGE_SENT`, before the new message is rendered. It
+also checks button restoration, untouched chat data, safe missing-DOM edit/delete,
+edit/delete of the first kept message, contiguous renumbering, and reloading and
+editing a retired message. This mode records no send latency samples. Ordinary
+runs now record `afterSend` DOM/memory outside the existing send timer.
+
+The always-on trim runs after the older-insertion barrier in `sendMessageAsUser`:
+when more than five truncation batches are displayed, it retains the newest five.
+The append itself can leave one additional message. Truncation zero disables the
+trim. An editor, textarea or focused control in the removable prefix defers it
+until a later send. History browsing can exceed the threshold: trimming the top
+immediately after show-more would remove the just-loaded messages and prevent
+progress. All original array entries remain reloadable with show-more.
+
+Sliced-load mode has no frame sweep. Aggregation excludes unavailable (`None`)
+frame values and reports `n=0`, median/p95 null, including when combining multiple
+saved runs. It never replaces missing measurements with zero.

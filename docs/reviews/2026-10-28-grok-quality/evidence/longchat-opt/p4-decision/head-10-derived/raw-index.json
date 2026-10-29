@@ -1,0 +1,47 @@
+[
+  {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 0,
+    "profiled": false,
+    "status": "ok",
+    "sourceRecord": "head-10/run-2000-100-0.json",
+    "sha256": "16a86c5be35f7b0cff6c4d165945f0f6ef034086dc9beed31fef24acef50154e"
+  },
+  {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 1,
+    "profiled": false,
+    "status": "ok",
+    "sourceRecord": "head-10/run-2000-100-1.json",
+    "sha256": "4cdb2ac72e185159232b5141f3b4b8ea08d20d45ce74c9835d49198c9e812d5f"
+  },
+  {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 2,
+    "profiled": false,
+    "status": "ok",
+    "sourceRecord": "head-10/run-2000-100-2.json",
+    "sha256": "81a783416fe28187d63086477d71cb795ce5fe8a94257bded0d07f931014567b"
+  },
+  {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 3,
+    "profiled": false,
+    "status": "ok",
+    "sourceRecord": "head-10/run-2000-100-3.json",
+    "sha256": "df03c98b8d86a44f81261f04ef5667c41e603bc0d1c7409b5a0778e0d118b57a"
+  },
+  {
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 4,
+    "profiled": false,
+    "status": "ok",
+    "sourceRecord": "head-10/run-2000-100-4.json",
+    "sha256": "fe45be556174869fa5cf41f4b538ece5ab309107a16021ac5c93adda4a5d5a6a"
+  }
+]

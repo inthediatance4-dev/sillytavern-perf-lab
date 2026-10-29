@@ -241,3 +241,65 @@ export async function concurrentOlderSend(mode) {
     return { mode, initialLength, partialCount, completionCount, ids, chat,
         dom: chatSnapshot(), events: takeRenderingEvents() };
 }
+
+// Functional P4 check; deliberately excluded from latency samples.
+export async function trimBoundaryScenario({ avatar, chatName }) {
+    const ctx = SillyTavern.getContext();
+    const { power_user } = await import(location.origin + '/scripts/power-user.js');
+    const container = document.querySelector('#chat');
+    container.style.overflowAnchor = 'none';
+    const ids = () => [...container.querySelectorAll(':scope > .mes')].map(el => Number(el.getAttribute('mesid')));
+    const checkIds = (first, count) => {
+        const actual = ids();
+        if (actual.length !== count || actual.some((id, i) => id !== first + i)) throw new Error('Trim scenario message IDs differ');
+        return actual;
+    };
+    for (let i = 0; i < 10; i++) await labScript.showMoreMessages();
+    const beforeIds = checkIds(900, 1100);
+    const originalChat = JSON.stringify(ctx.chat);
+    // Exercise restoration even when the existing button is absent, as after reaching ID 0.
+    document.querySelector('#show_more_messages').remove();
+    container.scrollTop = container.scrollHeight - container.clientHeight - 300;
+    const anchor = container.querySelector('.mes[mesid="1500"]');
+    const beforeTop = anchor.getBoundingClientRect().top;
+    power_user.auto_scroll_chat_to_bottom = false;
+    let drift;
+    let atSent;
+    ctx.eventSource.once(ctx.eventTypes.MESSAGE_SENT, () => {
+        drift = Math.abs(anchor.getBoundingClientRect().top - beforeTop);
+        atSent = checkIds(1500, 500);
+    });
+    await labScript.sendMessageAsUser('Synthetic trim boundary append');
+    await labIdle();
+    const afterIds = checkIds(1500, 501);
+    if (drift > 2 || atSent?.length !== 500) throw new Error('Trim anchor moved or send event missing');
+    if (JSON.stringify(ctx.chat.slice(0, -1)) !== originalChat) throw new Error('Trim changed chat data');
+    const restoredButton = !!document.querySelector('#show_more_messages');
+    if (!restoredButton) throw new Error('Trim failed to restore show-more');
+    const afterSendChat = JSON.stringify(ctx.chat);
+    const response = await fetch('/api/chats/get', { method: 'POST', headers: labScript.getRequestHeaders(),
+        body: JSON.stringify({ avatar_url: avatar, file_name: chatName }) });
+    if (!response.ok) throw new Error('Cannot verify saved chat after trim');
+    const stored = (await response.json()).slice(1);
+    if (JSON.stringify(stored) !== afterSendChat) throw new Error('Saved chat differs after trim');
+    await labScript.messageEdit(1499);
+    await labScript.deleteMessage(1499);
+    if (JSON.stringify(ctx.chat) !== afterSendChat || document.querySelector('#curEditTextarea')) throw new Error('Missing-DOM edit/delete changed state');
+    await labScript.messageEdit(1500);
+    if (!container.querySelector('.mes[mesid="1500"] #curEditTextarea')) throw new Error('Boundary edit did not open');
+    container.querySelector('.mes[mesid="1500"] .mes_edit_cancel').click();
+    await labIdle();
+    const nextMessage = ctx.chat[1501];
+    await labScript.deleteMessage(1500);
+    const afterDeleteIds = checkIds(1500, 500);
+    if (ctx.chat[1500] !== nextMessage) throw new Error('Boundary deletion changed survivor data');
+    await labScript.showMoreMessages();
+    const afterReloadIds = checkIds(1400, 600);
+    await labScript.messageEdit(1499);
+    if (!container.querySelector('.mes[mesid="1499"] #curEditTextarea')) throw new Error('Reloaded message cannot be edited');
+    container.querySelector('.mes[mesid="1499"] .mes_edit_cancel').click();
+    await labIdle();
+    return { beforeIds, atSent, afterIds, afterDeleteIds, afterReloadIds, anchorDriftPx: drift,
+        restoredButton, chatPrefixUnchanged: true, savedMatchesChat: true, missingDomEditDeleteNoop: true,
+        boundaryEditDelete: true, reloadedMessageEditable: true, overflowAnchor: container.style.overflowAnchor };
+}

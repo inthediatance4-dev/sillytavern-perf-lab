@@ -13,6 +13,7 @@ import { color } from './src/util.js';
 // preventing startup or adding a missing file to Webpack's build dependencies.
 const cacheInputs = [
     { file: fileURLToPath(import.meta.url), optional: false },
+    { file: path.join(serverDirectory, 'src/webpack-manifest.js'), optional: false },
     { file: path.join(serverDirectory, 'package.json'), optional: false },
     { file: path.join(serverDirectory, 'package-lock.json'), optional: true },
     { file: path.join(serverDirectory, 'npm-shrinkwrap.json'), optional: true },
@@ -30,7 +31,7 @@ const cacheBuildDependencies = cacheInputs.filter(input => input.present).map(in
 /**
  * Identify build configuration and dependency inputs, including uncommitted edits.
  * Backend-only Git commits do not invalidate the frontend cache. Entry modules
- * and installed packages are still checked by Webpack's filesystem snapshots.
+ * and installed packages are checked by the manifest or Webpack's snapshots.
  * @returns {string} The cache version string.
  */
 function getWebpackCacheVersion() {
@@ -120,10 +121,12 @@ export default function getPublicLibConfig({ forceDist = false, pruneCache = fal
     }
 
     return {
+        context: serverDirectory,
         mode: 'production',
         entry: path.join(serverDirectory, 'public/lib.js'),
         cache: {
             type: 'filesystem',
+            version: cacheVersion,
             cacheDirectory: cacheDirectory,
             store: 'pack',
             compression: 'gzip',

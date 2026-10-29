@@ -1,6 +1,7 @@
 import path from 'node:path';
 import webpack from 'webpack';
 import getPublicLibConfig from '../../webpack.config.js';
+import { prepareWebpackManifest } from '../webpack-manifest.js';
 
 import { mark as traceMark } from '../startup-trace.js';
 
@@ -33,6 +34,12 @@ export default function getWebpackServeMiddleware() {
      * @returns {Promise<void>}
      */
     devMiddleware.runWebpackCompiler = ({ forceDist = false, pruneCache = false } = {}) => {
+        const manifest = prepareWebpackManifest(getPublicLibConfig({ forceDist }));
+        if (manifest.matches) {
+            traceMark('webpack_stats', { webpack_skipped: true, durationMs: 0, builtModules: 0 });
+            return Promise.resolve();
+        }
+
         console.log();
         console.log('Compiling frontend libraries...');
 
@@ -53,7 +60,7 @@ export default function getWebpackServeMiddleware() {
                         // Read the existing compilation, preserving the public Promise<void> API.
                         try {
                             const modules = [...stats.compilation.modules];
-                            traceMark('webpack_stats', { modules: modules.length,
+                            traceMark('webpack_stats', { webpack_skipped: false, modules: modules.length,
                                 builtModules: modules.filter(module => stats.compilation.builtModules.has(module)).length,
                                 cachedModules: modules.filter(module => !stats.compilation.builtModules.has(module)).length,
                                 durationMs: stats.endTime - stats.startTime });
@@ -72,7 +79,10 @@ export default function getWebpackServeMiddleware() {
 
                 const finishClose = closeError => {
                     if (error || closeError) reject(error ?? closeError);
-                    else resolve();
+                    else {
+                        manifest.record(stats);
+                        resolve();
+                    }
                 };
                 try {
                     compiler.close(finishClose);

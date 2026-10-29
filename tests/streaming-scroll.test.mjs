@@ -59,7 +59,8 @@ function fixture() {
     const context = vm.createContext({
         Element, HTMLElement: Element, AbortController,
         scrollLock: false,
-        power_user: { auto_scroll_chat_to_bottom: true },
+        streamingProcessor: null,
+        power_user: { auto_scroll_chat_to_bottom: true, optimized_streaming: true },
         chatElement: { 0: container },
         document: {
             getElementById(id) {
@@ -80,8 +81,8 @@ function fixture() {
             return id;
         },
         cancelAnimationFrame(id) { frames.delete(id); },
-        eventSource: { on(name, callback) { events.set(name, callback); } },
-        event_types: { CHAT_CHANGED: 'changed' },
+        eventSource: { makeFirst(name, callback) { events.set(name, callback); } },
+        event_types: { CHAT_CHANGED: 'changed', MESSAGE_SWIPED: 'swiped' },
     });
     vm.runInContext(scrollSource + '\n' + handlersSource, context);
     const run = text => vm.runInContext(text, context);
@@ -473,7 +474,7 @@ test('streaming paints read chat geometry before reasoning and message DOM write
             MessageChannel: class {
                 constructor() {
                     this.port1 = {};
-                    this.port2 = { postMessage: () => tasks.push(() => this.port1.onmessage()) };
+                    this.port2 = { postMessage: data => tasks.push(() => this.port1.onmessage({ data })) };
                 }
             },
         });
@@ -482,10 +483,10 @@ test('streaming paints read chat geometry before reasoning and message DOM write
         const processor = new f.context.StreamingProcessor('normal', false, new Date(0), '', {});
         processor.messageId = 0;
         if (path === 'coalesced') {
-            processor.generator = async function* () { yield { text: 'new text' }; };
+            processor.generator = async function* () { yield { text: 'first text' }; yield { text: 'new text' }; };
             await processor.generate();
             f.geometry.length = 0;
-            f.frame();
+            while (!tasks.length && f.frames.size) f.frame();
             assert.equal(tasks.length, 1);
             tasks.shift()();
         } else {

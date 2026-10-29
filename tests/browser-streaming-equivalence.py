@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Streaming equivalence: archived ffd5f4e vs this worktree.
+"""Streaming equivalence: an archived base vs this worktree.
 
 Linux lab test (Playwright Chromium). Not part of npm test:perf.
 Cases: DOM tail-patch, tab order, normal send, stop, continue, swipe,
@@ -10,6 +10,7 @@ Ignored saved-chat fields (wall clock, not model output):
   extra.time_to_first_token, extra.reasoning_duration
   (also when copied onto swipe_info entries).
 """
+import argparse
 import hashlib
 import json
 import os
@@ -29,7 +30,9 @@ if sys.platform == 'win32':
     sys.exit(0)
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
-BASE_REV = 'ffd5f4e'
+BASE_REV = 'ee771bb'
+OPTIMIZED = True
+SMOOTH = False
 NODE = os.environ.get('LAB_NODE') or shutil.which('node') or 'node'
 EVIDENCE = REPO / 'docs' / 'reviews' / '2026-10-28-grok-quality' / 'evidence' / 'streaming-opt' / 's1'
 sys.path.insert(0, str(REPO / 'tests'))
@@ -188,7 +191,12 @@ def canonical_diff(left, right, path='$'):
 
 INSTALL_HOOKS = r"""
 () => {
-  const eq = window.__eq = { tokens: [], received: 0, rendered: 0, impersonate: 0, impersonateText: '', stopAt: 0 };
+  const eq = window.__eq = { tokens: [], received: 0, rendered: 0, impersonate: 0, impersonateText: '', stopAt: 0, domWrites: [] };
+  const html = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+  Object.defineProperty(Element.prototype, 'innerHTML', { ...html, set(value) {
+    html.set.call(this, value);
+    if (this.matches('#chat .mes_text')) eq.domWrites.push({tokenIndex:eq.tokens.length, epochMs:performance.timeOrigin + performance.now()});
+  } });
   const ctx = SillyTavern.getContext();
   ctx.eventSource.on(ctx.eventTypes.STREAM_TOKEN_RECEIVED, (text) => {
     eq.tokens.push(String(text));
@@ -285,6 +293,7 @@ async () => {
     dom,
     chatCount: document.querySelectorAll('#chat').length,
     group: Boolean(ctx.groupId),
+    domWrites: window.__eq.domWrites,
   };
 }
 """
@@ -367,6 +376,7 @@ def reset_case(page, stop_at=0):
       eq.impersonate = 0;
       eq.impersonateText = '';
       eq.stopAt = stopAt;
+      eq.domWrites = [];
       const dom = window.__stStreamingDom;
       if (dom) { dom.incremental = 0; dom.full = 0; dom.fade = 0; dom.frames = 0; }
     }""", stop_at)
@@ -438,6 +448,7 @@ def summarize(side, raw, expect_events=True):
         'chatCount': raw['chatCount'],
         'group': raw['group'],
         'expectEvents': expect_events,
+        'domWrites': raw['domWrites'],
     }
 
 
@@ -450,6 +461,17 @@ def run_side(browser, origin, probe):
     out = {'errors': errors}
     try:
         boot(page, origin, probe)
+        if probe:
+            page.wait_for_function("document.querySelector('#directorButton') !== null", timeout=15000)
+        out['settings'] = page.evaluate("""async () => {
+          const p = (await import('/scripts/power-user.js')).power_user;
+          return {smooth_streaming:p.smooth_streaming, optimized_streaming:p.optimized_streaming ?? null,
+            optimizedCheckbox:document.querySelector('#optimized_streaming')?.checked ?? null};
+        }""")
+        if out['settings']['smooth_streaming'] != SMOOTH:
+            raise AssertionError('smooth setting did not load')
+        if probe and (out['settings']['optimized_streaming'] != OPTIMIZED or out['settings']['optimizedCheckbox'] != OPTIMIZED):
+            raise AssertionError('optimized setting/checkbox did not load')
         out['tabOrder'] = tab_order(page)
         if probe:
             out['patch'] = page.evaluate("""async () => {
@@ -605,6 +627,13 @@ def compare_case(name, base, head, once=True):
         'directEqual': {'base': base.get('directEqual'), 'head': head.get('directEqual')},
         'chatLength': {'base': base['chatLength'], 'head': head['chatLength']},
         'headDom': head.get('dom'),
+        'tokensEqual': base['tokens'] == head['tokens'],
+        'tokenOrderSha256': {'base': base['tokenSha256'], 'head': head['tokenSha256']},
+        'mesTextEqual': base['mesText'] == head['mesText'],
+        'memoryEqual': base['memory'] == head['memory'],
+        'jsonlEqual': base['disk'] == head['disk'],
+        'jsonlSha256': {side: sha256(json.dumps(value['disk'], sort_keys=True, ensure_ascii=False)) for side, value in [('base', base), ('head', head)]},
+        'domUpdateCounts': {'base': len(base['domWrites']), 'head': len(head['domWrites'])},
     }
     if name == 'impersonate':
         length_same = base['lengthBefore'] == base['chatLength'] == head['lengthBefore'] == head['chatLength']
@@ -622,7 +651,12 @@ def compare_case(name, base, head, once=True):
         result['pass'] = not problems
         result['problems'] = problems
         result['textareaSha256'] = sha256(head['textarea'])
-    if name == 'normal' and head.get('dom'):
+    if not OPTIMIZED and head.get('dom'):
+        if head['dom'].get('incremental', 0) != 0 or head['dom'].get('frames', 0) != 0:
+            problems.append({'disabledOptimizationStillCoalescedOrPatched': head['dom']})
+            result['pass'] = False
+            result['problems'] = problems
+    if name == 'normal' and OPTIMIZED and head.get('dom'):
         if head['dom'].get('incremental', 0) < 1 or head['dom'].get('frames', 0) < 1 or head['dom'].get('full', 0) < 1:
             problems.append({'domStats': head['dom']})
             result['pass'] = False
@@ -631,12 +665,23 @@ def compare_case(name, base, head, once=True):
 
 
 def main():
-    global out_plain_url, out_reasoning_url
-    output = pathlib.Path(sys.argv[sys.argv.index('--output') + 1]) if '--output' in sys.argv else EVIDENCE / 'equivalence.json'
+    global out_plain_url, out_reasoning_url, BASE_REV, OPTIMIZED, SMOOTH
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--base', default=BASE_REV)
+    parser.add_argument('--optimized', choices=['on', 'off'], default='on')
+    parser.add_argument('--smooth', action='store_true')
+    parser.add_argument('--output', type=pathlib.Path, default=EVIDENCE / 'equivalence.json')
+    args = parser.parse_args()
+    BASE_REV, OPTIMIZED, SMOOTH = args.base, args.optimized == 'on', args.smooth
+    output = args.output
     temp = pathlib.Path(tempfile.mkdtemp(prefix='st-eq-'))
     report = {
         'baseRevision': BASE_REV,
         'head': 'WORKTREE',
+        'optimized': OPTIMIZED,
+        'smooth': SMOOTH,
+        'extensions': 'Built-in extensions enabled; unrelated third-party extensions disabled on both products.',
+        'cadence': 'Final HTML/data and event count/order are exact assertions. Per-run synchronous .mes_text innerHTML write counts are reported; wall-clock tick cadence is not asserted across independent runs.',
         'ignoredFields': IGNORED,
         'ignoredFieldReasons': {
             'gen_started': 'Wall-clock start of this generation.',
@@ -649,7 +694,7 @@ def main():
             'integrity': 'Random UUID assigned on save (uuidv4), not a hash of the message text.',
             'gen_id': 'Group batch id. Greeting uses Date.now()*Math.random(); a reply uses Date.now().',
         },
-        'note': 'Extensions reading .mes_text inside STREAM_TOKEN_RECEIVED may see the DOM up to two frames behind. The write waits for the next animation frame and runs after that frame paints. Slow formatting can skip one or two more frames. Finish still paints immediately.',
+        'note': 'Optimized mode paints first visible content immediately; subsequent writes can lag STREAM_TOKEN_RECEIVED by a frame plus its post-frame task. Slow formatting can skip one or two more frames. Finish paints immediately. OFF mode uses synchronous full writes; S2 follow-bottom remains enabled.',
         'pass': False,
         'cases': {},
     }
@@ -677,7 +722,7 @@ def main():
             lab_dir = temp / f'{label}-data'
             lab_dir.mkdir()
             port = free_port()
-            seeded = json.loads(subprocess.check_output([NODE, str(seed), str(product), str(lab_dir), str(port), plain_url], cwd=REPO, text=True))
+            seeded = json.loads(subprocess.check_output([NODE, str(seed), str(product), str(lab_dir), str(port), plain_url, 'on' if SMOOTH else 'off', 'on' if OPTIMIZED else 'off'], cwd=REPO, text=True))
             log_handle = open(temp / f'{label}-server.log', 'w', encoding='utf-8')
             proc = spawn([
                 NODE, 'server.js',
@@ -708,14 +753,19 @@ def main():
                 head = run_side(browser, origins['head'], True)
             finally:
                 browser.close()
+        report['settings'] = {'base': base['settings'], 'head': head['settings']}
         report['tabOrderEqual'] = base['tabOrder'] == head['tabOrder']
-        if not report['tabOrderEqual']:
-            report['tabOrder'] = {
+        director_tabs = [item for item in head['tabOrder'] if item.startswith('DIV#directorButton|')]
+        report['tabOrderEqualExceptDirector'] = len(director_tabs) == 1 and base['tabOrder'] == [item for item in head['tabOrder'] if item not in director_tabs]
+        report['tabOrder'] = {
+                'base': base['tabOrder'],
+                'head': head['tabOrder'],
                 'baseLen': len(base['tabOrder']),
                 'headLen': len(head['tabOrder']),
                 'baseOnly': [item for item in base['tabOrder'] if item not in head['tabOrder']][:20],
                 'headOnly': [item for item in head['tabOrder'] if item not in base['tabOrder']][:20],
-            }
+                'intentionalExtra': '🎬 Director button beside the extensions menu',
+        }
         patch = head.get('patch') or {}
         patch_ok = patch == {
             'extended': 'incremental',
@@ -738,7 +788,7 @@ def main():
         base_errors, head_errors = notable(base['errors']), notable(head['errors'])
         if base_errors or head_errors:
             report['pageErrors'] = {'base': base_errors, 'head': head_errors}
-        report['pass'] = report['tabOrderEqual'] and patch_ok and all(item['pass'] for item in report['cases'].values()) and not base_errors and not head_errors
+        report['pass'] = report['tabOrderEqualExceptDirector'] and patch_ok and all(item['pass'] for item in report['cases'].values()) and not base_errors and not head_errors
     except Exception as error:
         report['error'] = redact(f'{type(error).__name__}: {error}')
         tails = {}
@@ -780,10 +830,10 @@ const yaml = require('yaml');
 const { prepareTemporaryLab } = await import('<REPO>/scripts/longchat-lab-server.mjs');
 const { write: writeCard } = await import('<REPO>/src/character-card-parser.js');
 
-const [product, dataDir, portText, plainUrl] = process.argv.slice(2);
+const [product, dataDir, portText, plainUrl, smooth = 'off', optimized = 'on'] = process.argv.slice(2);
 const lab = await prepareTemporaryLab(dataDir, Number(portText));
 const config = yaml.parse(await fs.readFile(lab.configPath, 'utf8'));
-config.extensions.enabled = false;
+config.extensions.enabled = true;
 await fs.writeFile(lab.configPath, yaml.stringify(config));
 const settings = JSON.parse(await fs.readFile(path.join(product, 'default/content/settings.json'), 'utf8'));
 Object.assign(settings, { firstRun: false, username: 'Synthetic Tester', main_api: 'openai' });
@@ -791,8 +841,10 @@ Object.assign(settings.oai_settings, {
     chat_completion_source: 'custom', custom_url: plainUrl, custom_model: 'startup-synthetic', stream_openai: true, show_thoughts: true,
 });
 Object.assign(settings.power_user, {
-    auto_connect: true, chat_truncation: 100, smooth_streaming: false, stream_fade_in: false, streaming_fps: 30, auto_swipe: false, continue_on_send: false,
+    auto_connect: true, chat_truncation: 100, smooth_streaming: smooth === 'on', optimized_streaming: optimized === 'on', stream_fade_in: false, streaming_fps: 30, auto_swipe: false, continue_on_send: false,
 });
+settings.extension_settings.disabledExtensions = (await fs.readdir(path.join(product, 'public/scripts/extensions/third-party'))).map(name => `third-party/${name}`);
+settings.extension_settings.notifyUpdates = false;
 const user = path.join(lab.dataRoot, 'default-user');
 await fs.mkdir(path.join(user, 'characters'), { recursive: true });
 await fs.mkdir(path.join(user, 'chats', 'StartupSynthetic'), { recursive: true });
@@ -800,7 +852,10 @@ await fs.writeFile(path.join(user, 'settings.json'), JSON.stringify(settings));
 const card = { name: 'Startup Synthetic', description: 'Synthetic streaming fixture', personality: '', scenario: '', first_mes: 'Synthetic ready', mes_example: '', creatorcomment: '', avatar: 'none', chat: 'startup-chat', talkativeness: '0.5', fav: false, spec: 'chara_card_v2', spec_version: '2.0', data: { name: 'Startup Synthetic', description: 'Synthetic streaming fixture', personality: '', scenario: '', first_mes: 'Synthetic ready', mes_example: '', creator_notes: '', system_prompt: '', post_history_instructions: '', alternate_greetings: [], tags: [], creator: '', character_version: '', extensions: { talkativeness: '0.5', fav: false } } };
 const png = writeCard(await fs.readFile(path.join(product, 'public/img/ai4.png')), JSON.stringify(card));
 await fs.writeFile(path.join(user, 'characters', 'StartupSynthetic.png'), png);
-const header = { user_name: 'Synthetic Tester', character_name: 'Startup Synthetic', create_date: '2026-1-1@00h00m00s' };
+// Authors Note initializes these defaults on chat load. Seed them equally so a
+// fast first generation cannot race its debounced metadata save on either side.
+const header = { user_name: 'Synthetic Tester', character_name: 'Startup Synthetic', create_date: '2026-1-1@00h00m00s',
+    chat_metadata: { note_depth: 4, note_interval: 1, note_position: 1, note_prompt: '', note_role: 0 } };
 const greeting = { name: 'Startup Synthetic', is_user: false, is_system: false, send_date: '2026-1-1@00h00m00s', mes: 'Synthetic ready', extra: {} };
 await fs.writeFile(path.join(user, 'chats', 'StartupSynthetic', 'startup-chat.jsonl'), JSON.stringify(header) + '\n' + JSON.stringify(greeting) + '\n');
 const index = JSON.parse(await fs.readFile(path.join(product, 'default/content/index.json'), 'utf8'));

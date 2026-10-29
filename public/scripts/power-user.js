@@ -132,6 +132,7 @@ export const power_user = {
     markdown_escape_strings: '',
     chat_truncation: 100,
     streaming_fps: 30,
+    optimized_streaming: true,
     smooth_streaming: false,
     smooth_streaming_no_think: false,
     smooth_streaming_speed: 50,
@@ -1749,6 +1750,7 @@ export async function loadPowerUserSettings(settings, data) {
 
     $('#streaming_fps').val(power_user.streaming_fps);
     $('#streaming_fps_counter').val(power_user.streaming_fps);
+    $('#optimized_streaming').prop('checked', power_user.optimized_streaming);
 
     $('#smooth_streaming').prop('checked', power_user.smooth_streaming);
     $('#smooth_streaming_no_think').prop('checked', power_user.smooth_streaming_no_think);
@@ -3406,6 +3408,11 @@ jQuery(() => {
     $('#streaming_fps').on('input', function () {
         power_user.streaming_fps = Number($('#streaming_fps').val());
         $('#streaming_fps_counter').val(power_user.streaming_fps);
+        saveSettingsDebounced();
+    });
+
+    $('#optimized_streaming').on('input', function () {
+        power_user.optimized_streaming = !!$(this).prop('checked');
         saveSettingsDebounced();
     });
 

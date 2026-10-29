@@ -3845,8 +3845,13 @@ class StreamingProcessor {
     #streamingDomHold = 0;
     /** @type {number} requestAnimationFrame id, or 0. */
     #streamingDomRaf = 0;
-    /** @type {number} Bumped to invalidate a frame callback that lost the race with the final paint. */
+    /** @type {number} Session token for both frame callbacks and post-frame tasks. */
     #streamingDomGeneration = 0;
+    /** @type {boolean} The chat or active swipe no longer belongs to this stream. */
+    #streamingDomAbandoned = false;
+    /** @type {boolean} First visible content/reasoning bypass the frame gate independently. */
+    #hasStreamContentPaint = false;
+    #hasStreamReasoningPaint = false;
     /** @type {number|null} Message whose latest text should be painted. */
     #pendingStreamMessageId = null;
     /** @type {number} performance.now() of the last coalesced paint. */
@@ -3971,7 +3976,7 @@ class StreamingProcessor {
      * painted in a task after that frame so the callback itself stays short.
      */
     #beginStreamingDomCoalesce() {
-        if (this.type === 'impersonate' || power_user.stream_fade_in) {
+        if (this.type === 'impersonate' || power_user.stream_fade_in || !power_user.optimized_streaming) {
             this.#coalesceStreamingDom = false;
             return;
         }
@@ -3984,7 +3989,7 @@ class StreamingProcessor {
     #ensureStreamingDomChannel() {
         if (this.#streamingDomPort) return;
         const channel = new MessageChannel();
-        channel.port1.onmessage = () => this.#onStreamingDomTask();
+        channel.port1.onmessage = event => this.#onStreamingDomTask(event.data);
         this.#streamingDomPort = channel.port2;
     }
 
@@ -4009,6 +4014,7 @@ class StreamingProcessor {
     }
 
     #scheduleStreamingDom(messageId) {
+        if (this.#streamingDomAbandoned) return;
         this.#pendingStreamMessageId = messageId;
         if (this.#streamingDomHold > 0 || this.#streamingDomRaf || this.#streamingDomTaskQueued) return;
         this.#armStreamingDomFrame();
@@ -4027,8 +4033,8 @@ class StreamingProcessor {
      * @param {number} generation
      */
     #onStreamingFrame(timestamp, waited, generation) {
-        this.#streamingDomRaf = 0;
         if (generation !== this.#streamingDomGeneration || this.#pendingStreamMessageId == null) return;
+        this.#streamingDomRaf = 0;
         if (this.#streamingDomHold > 0) return;
         const gap = this.#adaptiveFrameGap();
         const elapsed = timestamp - this.#lastStreamDomFrameAt;
@@ -4044,10 +4050,11 @@ class StreamingProcessor {
         this.#ensureStreamingDomChannel();
         this.#streamingDomTaskQueued = true;
         // Queued during the animation frame, so it runs after style, layout, and paint.
-        this.#streamingDomPort.postMessage(0);
+        this.#streamingDomPort.postMessage(this.#streamingDomGeneration);
     }
 
-    #onStreamingDomTask() {
+    #onStreamingDomTask(generation) {
+        if (generation !== this.#streamingDomGeneration) return;
         this.#streamingDomTaskQueued = false;
         if (this.#pendingStreamMessageId == null || this.#streamingDomHold > 0) return;
         const messageId = this.#pendingStreamMessageId;
@@ -4063,6 +4070,14 @@ class StreamingProcessor {
             this.#streamingDomRaf = 0;
         }
         this.#pendingStreamMessageId = null;
+        this.#streamingDomTaskQueued = false;
+    }
+
+    /** Abandon queued writes without touching the newly selected chat or swipe. */
+    abandonStreamingDom() {
+        this.#streamingDomAbandoned = true;
+        this.#cancelScheduledStreamingDom();
+        this.#endStreamingDomCoalesce();
     }
 
     /**
@@ -4126,9 +4141,9 @@ class StreamingProcessor {
 
     /** Error/abort path: paint the stopwatch tick that has not reached a frame yet. */
     #flushStreamingDomSync() {
-        if (this.#pendingStreamMessageId == null) return;
         const messageId = this.#pendingStreamMessageId;
         this.#cancelScheduledStreamingDom();
+        if (messageId == null || this.#streamingDomAbandoned) return;
         if (this.type === 'impersonate' || !chat[messageId] || !(this.messageTextDom instanceof HTMLElement)) return;
         prepareStreamingScroll();
         const fade = !!power_user.stream_fade_in;
@@ -4139,14 +4154,17 @@ class StreamingProcessor {
     }
 
     async onProgressStreaming(messageId, text, isFinal) {
+        if (this.#streamingDomAbandoned) return;
         const isImpersonate = this.type == 'impersonate';
         const isContinue = this.type == 'continue';
+        let deferredDom = false;
 
         // The final paint is synchronous and not incremental, and it must beat any queued frame.
-        if (!isImpersonate && (isFinal || power_user.stream_fade_in)) {
+        if (!isImpersonate && (isFinal || power_user.stream_fade_in || !power_user.optimized_streaming)) {
             this.#cancelScheduledStreamingDom();
-            if (isFinal) this.#endStreamingDomCoalesce();
+            if (isFinal || !power_user.optimized_streaming) this.#endStreamingDomCoalesce();
         }
+        const generation = this.#streamingDomGeneration;
 
         if (!isImpersonate && !isContinue && Array.isArray(this.swipes) && this.swipes.length > 0) {
             for (let i = 0; i < this.swipes.length; i++) {
@@ -4188,6 +4206,7 @@ class StreamingProcessor {
                 prepareStreamingScroll();
                 const mesChanged = chat[messageId].mes !== processedText;
                 await this.#checkDomElements(messageId);
+                if (generation !== this.#streamingDomGeneration) return;
                 this.#updateMessageBlockVisibility();
                 const currentTime = new Date();
                 chat[messageId].mes = processedText;
@@ -4200,11 +4219,13 @@ class StreamingProcessor {
 
                 // Update reasoning. process() may rewrite mes and must stay ahead of the paint.
                 await this.reasoningHandler.process(messageId, mesChanged, this.promptReasoning);
+                if (generation !== this.#streamingDomGeneration) return;
                 processedText = chat[messageId].mes;
 
                 // Token count update.
                 const tokenCountText = this.reasoningHandler.reasoning + processedText;
                 const currentTokenCount = isFinal && power_user.message_token_count_enabled ? await getTokenCountAsync(tokenCountText, 0) : 0;
+                if (generation !== this.#streamingDomGeneration) return;
                 if (currentTokenCount) {
                     chat[messageId].extra.token_count = currentTokenCount;
                     if (this.messageTokenCounterDom instanceof HTMLElement) {
@@ -4222,15 +4243,26 @@ class StreamingProcessor {
                     };
                 }
 
-                if (coalesce) {
+                const hasContent = Boolean(processedText.trim());
+                const hasReasoning = Boolean((this.reasoningHandler.reasoningDisplayText ?? this.reasoningHandler.reasoning).trim());
+                const firstVisible = (hasContent && !this.#hasStreamContentPaint) || (hasReasoning && !this.#hasStreamReasoningPaint);
+                if (coalesce && !firstVisible) {
                     this.#pendingStreamMessageId = messageId;
+                    deferredDom = true;
                 } else {
+                    if (coalesce) {
+                        // First visible text must not wait for rAF plus a post-frame task.
+                        this.#cancelScheduledStreamingDom();
+                        this.reasoningHandler.applyStreamingDom(messageId, { incremental: false });
+                    }
                     // Final refresh is a full innerHTML write. Fade-in keeps its own synchronous morph.
                     this.#noteFormatDuration(this.#renderStreamingMessage(messageId, {
                         incremental: false,
                         fade: !!power_user.stream_fade_in,
                         tokenCount: currentTokenCount,
                     }));
+                    this.#hasStreamContentPaint ||= hasContent;
+                    this.#hasStreamReasoningPaint ||= hasReasoning;
                 }
 
                 this.setFirstSwipe(messageId);
@@ -4248,7 +4280,7 @@ class StreamingProcessor {
             }
         }
 
-        if (!(!isImpersonate && this.#coalesceStreamingDom && !isFinal && !power_user.stream_fade_in) && !scrollLock) {
+        if (!deferredDom && !scrollLock) {
             this.#scrollStreaming(messageId, true);
         }
     }
@@ -4263,7 +4295,9 @@ class StreamingProcessor {
      * @param {boolean} options.unlockUI - Whether to unlock the generation UI.
      */
     async finalizeIntermediaryMessage(messageId, text, { unlockUI = true }) {
+        if (this.#streamingDomAbandoned) return;
         await this.onProgressStreaming(messageId, text, true);
+        if (this.#streamingDomAbandoned) return;
         const messageElement = chatElement.find(`.mes[mesid="${messageId}"]`);
         const message = chat[messageId];
         addCopyToCodeBlocks(messageElement);
@@ -4328,6 +4362,8 @@ class StreamingProcessor {
     }
 
     onErrorStreaming() {
+        this.#flushStreamingDomSync();
+        this.#endStreamingDomCoalesce();
         this.abortController.abort();
         this.isStopped = true;
 
@@ -4355,6 +4391,8 @@ class StreamingProcessor {
     }
 
     onStopStreaming() {
+        this.#flushStreamingDomSync();
+        this.#endStreamingDomCoalesce();
         this.abortController.abort();
         this.isFinished = true;
     }
@@ -4403,14 +4441,19 @@ class StreamingProcessor {
                 this.images = state?.images ?? [];
                 this.reasoningSignature = state?.signature ?? null;
                 await eventSource.emit(event_types.STREAM_TOKEN_RECEIVED, text);
-                await sw.tick(async () => await this.onProgressStreaming(this.messageId, this.continueMessage + text));
+                const firstVisible = (!this.#hasStreamContentPaint && text.trim()) || (!this.#hasStreamReasoningPaint && this.reasoningHandler.reasoning.trim());
+                if (this.#coalesceStreamingDom && firstVisible) {
+                    await this.onProgressStreaming(this.messageId, this.continueMessage + text);
+                    sw.lastAction = Date.now();
+                } else {
+                    await sw.tick(async () => await this.onProgressStreaming(this.messageId, this.continueMessage + text));
+                }
             }
             const seconds = (timestamps[timestamps.length - 1] - timestamps[0]) / 1000;
             console.warn(`Stream stats: ${timestamps.length} tokens, ${seconds.toFixed(2)} seconds, rate: ${Number(timestamps.length / seconds).toFixed(2)} TPS`);
         } catch (err) {
             // in the case of a self-inflicted abort, we have already cleaned up
             if (!this.isFinished) {
-                this.#flushStreamingDomSync();
                 console.error(err);
                 this.onErrorStreaming();
             }
@@ -5835,6 +5878,19 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
         return Promise.resolve();
     }
 
+    const generationMetadata = chat_metadata;
+    const generationChatId = getCurrentChatId();
+    const generationSignal = abortController.signal;
+    // Unlike GENERATION_ENDED (UI unlock), this event means an API generation
+    // completed successfully. Director instructions survive errors and stops.
+    const notifyGenerationCompleted = async () => {
+        if (!generationSignal.aborted) {
+            await eventSource.emit(event_types.GENERATION_COMPLETED, {
+                type, data: generate_data, chatMetadata: generationMetadata, chatId: generationChatId,
+            });
+        }
+    };
+
     /**
      * Saves itemized prompt bits and calls streaming or non-streaming generation API.
      * @returns {Promise<void|*|Awaited<*>|String|{fromStream}|string|undefined|Object>}
@@ -5951,7 +6007,9 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             }
 
             if (isStreamFinished) {
+                const completedStream = streamingProcessor;
                 await streamingProcessor.onFinishStreaming(streamingProcessor.messageId, getMessage);
+                if (!completedStream.abortController.signal.aborted) await notifyGenerationCompleted();
                 streamingProcessor = null;
                 triggerAutoContinue(messageChunk, isImpersonate);
                 return Object.defineProperties(new String(getMessage), {
@@ -5993,7 +6051,9 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
 
         if (jsonSchema) {
             unblockGeneration(type);
-            return extractJsonFromData(data, { returnInvalidJson: jsonSchema.returnInvalid ?? false });
+            const json = extractJsonFromData(data, { returnInvalidJson: jsonSchema.returnInvalid ?? false });
+            await notifyGenerationCompleted();
+            return json;
         }
 
         //const getData = await response.json();
@@ -6039,6 +6099,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             await eventSource.emit(event_types.IMPERSONATE_READY, getMessage);
         } else if (type == 'quiet') {
             unblockGeneration(type);
+            await notifyGenerationCompleted();
             return getMessage;
         } else {
             // Without streaming we'll be having a full message on continuation. Treat it as a last chunk.
@@ -6085,6 +6146,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
 
         console.debug('/api/chats/save called by /Generate');
         await saveChatConditional();
+        await notifyGenerationCompleted();
         unblockGeneration(type);
         streamingProcessor = null;
 
@@ -11985,7 +12047,11 @@ jQuery(async function () {
     const clearChatTouch = () => { chatTouch = null; };
     chatElementScroll.addEventListener('touchend', clearChatTouch, { passive: true });
     chatElementScroll.addEventListener('touchcancel', clearChatTouch, { passive: true });
-    eventSource.on(event_types.CHAT_CHANGED, () => {
+    eventSource.makeFirst(event_types.MESSAGE_SWIPED, messageId => {
+        if (streamingProcessor?.messageId === messageId) streamingProcessor.abandonStreamingDom();
+    });
+    eventSource.makeFirst(event_types.CHAT_CHANGED, () => {
+        streamingProcessor?.abandonStreamingDom();
         streamingScrollActive = false;
         streamingContentPending = false;
         scrollLock = false;

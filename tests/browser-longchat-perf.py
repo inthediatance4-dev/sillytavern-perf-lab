@@ -140,6 +140,10 @@ def redact(value, origin='', temporary=''):
             if source:
                 value = value.replace(source, target)
         value = re.sub(r'/tmp/[^\s\"\'<>]+', '<tmp>', value)
+        # After stripping the absolute repo prefix, normalize separators so
+        # Windows CI and Linux agree on redacted paths.
+        if '<repo>' in value:
+            value = value.replace('\\', '/')
         return value
     return value
 

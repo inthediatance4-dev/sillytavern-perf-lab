@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 
+const startupTrace = process.env.ST_STARTUP_TRACE ? await import('./startup-trace.js') : null;
+
 /**
  * Identity used to tell a live owner from a recycled pid.
  *
@@ -149,6 +151,7 @@ export function probeWindowsProcessStartMs(pid, spawn = execFileSync, timeout = 
     try {
         // One provider for self and peers; no CIM/WMIC fallback with different precision.
         const script = '& { param([long] $ownerPid) if ($ownerPid -le 0) { throw "Invalid pid" }; [System.Diagnostics.Process]::GetProcessById($ownerPid).StartTime.ToFileTimeUtc() }';
+        if (startupTrace) { startupTrace.mark('powershell_spawn'); startupTrace.noteChildSpawn('powershell.exe'); }
         const stdout = spawn('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script, String(pid)], {
             timeout,
             windowsHide: true,

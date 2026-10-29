@@ -1,0 +1,10 @@
+{
+  "headFullCompileRecordedLibSha256": "0e6d321a92f9f05e1609b4a0d04706e9a324d77a1c8d246292829e3ec8b74b35",
+  "headAfterMeasuredSkipLibSha256": "0e6d321a92f9f05e1609b4a0d04706e9a324d77a1c8d246292829e3ec8b74b35",
+  "equal": true,
+  "recordedAssets": {
+    "lib.js": "0e6d321a92f9f05e1609b4a0d04706e9a324d77a1c8d246292829e3ec8b74b35",
+    "lib.js.LICENSE.txt": "7d9c6fd5c043071752d853a02c63fbb9a7828157265ff1a90b75edaf6f5a9fc0"
+  },
+  "verification": "warmup-head performed a full compilation; subsequent measured head runs skipped compilation and retained the full-build output hash."
+}

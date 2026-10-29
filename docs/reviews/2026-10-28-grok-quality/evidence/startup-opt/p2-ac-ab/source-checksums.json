@@ -1,0 +1,14 @@
+{
+  "baseCommit": "9360604104812ea008eaaddd106fd39cc5484697",
+  "head": "WORKTREE (Git index is read-only)",
+  "files": {
+    "server.js": "32f99e9653db0059af0479ea7fd56c0379db77023125dcee51a7ece758e3f461",
+    "src/compile-cache.js": "4a08c05898409dc85bc91c44fd3b955965e9c3604603448ce4ae208f8d552b4c",
+    "src/webpack-manifest.js": "e92040ce50c970ca59cdebdd74fd3a1e452d41f1fdbe0bb072b2a044f452643e",
+    "src/middleware/webpack-serve.js": "4389556b579de0c189335dd8351634fd686b4749f42669aeaa352450a2db5a73",
+    "webpack.config.js": "e2d3d9207f2844fb173269ec9c9737c8e1677557550ff6d18fe48a089a74d467",
+    "package.json": "f5aa5159371f344978110e248af2d83bcd45324e95860b4a21fc3b2228b43151",
+    "tests/startup-webpack.test.mjs": "9a23ae485f50910a4f54f1cc23d2ef4ffd1e0825079b3f2fc021e340ff8e0207",
+    "tests/startup-compile-cache.test.mjs": "1805c07b8d3684616c36afd5550243e60e25e951e3ff6a5aa2583c6f14d2ddec"
+  }
+}

@@ -6,6 +6,7 @@ import vm from 'node:vm';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import test, { after } from 'node:test';
 import webpack from 'webpack';
+import { prepareWebpackManifest } from '../src/webpack-manifest.js';
 
 const configSource = fs.readFileSync(new URL('../webpack.config.js', import.meta.url), 'utf8');
 const middlewareSource = fs.readFileSync(new URL('../src/middleware/webpack-serve.js', import.meta.url), 'utf8');
@@ -37,6 +38,7 @@ function fixture(name) {
     fs.mkdirSync(path.join(root, 'src'), { recursive: true });
     fs.mkdirSync(path.join(root, 'public'), { recursive: true });
     fs.mkdirSync(data, { recursive: true });
+    fs.copyFileSync(new URL('../src/webpack-manifest.js', import.meta.url), path.join(root, 'src/webpack-manifest.js'));
     // The unfixed implementation permanently removes old caches. Redirect that
     // legacy syscall into this fixture's recycle directory during RED runs too.
     fs.writeFileSync(path.join(root, 'webpack.config.js'), configSource.replace("import fs from 'node:fs';", "import fs from './src/startup-safe-fs.js';"));
@@ -60,16 +62,22 @@ export default { ...fs, rmSync(target) {
     fs.renameSync(target, path.join(recycle, crypto.randomUUID() + '-' + path.basename(target)));
 } };
 `);
-    for (const file of ['webpack.config.js', 'package.json', 'package-lock.json', 'version.json', 'src/server-directory.js', 'src/util.js', 'src/startup-safe-fs.js']) {
+    for (const file of ['webpack.config.js', 'package.json', 'package-lock.json', 'version.json', 'src/server-directory.js', 'src/util.js', 'src/startup-safe-fs.js', 'src/webpack-manifest.js']) {
         rememberOriginal(path.join(root, file));
     }
+    let getConfig;
     return {
         root,
         data,
+        currentConfig(options) {
+            globalThis.DATA_ROOT = data;
+            return getConfig(options);
+        },
         async config(options = {}) {
             globalThis.DATA_ROOT = data;
             const module = await import(`${pathToFileURL(path.join(root, 'webpack.config.js')).href}?instance=${crypto.randomUUID()}`);
-            return module.default(options);
+            getConfig = module.default;
+            return getConfig(options);
         },
     };
 }
@@ -88,11 +96,11 @@ function retire(file, label) {
 
 // Executes the real middleware control flow. Callback failures that are not
 // reproducible with ordinary writes are injected at the compiler I/O boundary.
-function middleware(compilerFactory, getConfig) {
+function middleware(compilerFactory, getConfig, trace = []) {
     const source = middlewareSource
         .replace(/^import .*;\r?\n/gm, '')
         .replace('export default function', 'function');
-    const context = vm.createContext({ path, webpack: compilerFactory, getPublicLibConfig: getConfig, console: { log() {} } });
+    const context = vm.createContext({ path, webpack: compilerFactory, getPublicLibConfig: getConfig, prepareWebpackManifest, process: { env: {} }, traceMark(name, detail) { trace.push({ name, detail }); }, console: { log() {} } });
     new vm.Script(`${source}\nglobalThis.makeMiddleware = getWebpackServeMiddleware;`, { filename: 'src/middleware/webpack-serve.js' }).runInContext(context);
     return context.makeMiddleware();
 }
@@ -270,25 +278,38 @@ test('real Webpack repairs output and invalidates changed entry and installed de
 
     async function build() {
         const config = await f.config();
-        const app = middleware(webpack, () => config);
+        let compilerCalls = 0;
+        const trace = [];
+        const app = middleware(options => { compilerCalls++; return webpack(options); }, () => config, trace);
         await app.runWebpackCompiler();
         const output = path.join(config.output.path, config.output.filename);
         const module = await import(`${pathToFileURL(output).href}?result=${crypto.randomUUID()}`);
-        return { config, output, marker: module.startupMarker, bytes: fs.readFileSync(output) };
+        return { config, output, marker: module.startupMarker, bytes: fs.readFileSync(output), compilerCalls, trace, app };
     }
 
     const first = await build();
     assert.equal(first.marker, 'entry-one:dependency-one');
+    assert.equal(first.compilerCalls, 1);
+    assert.ok(prepareWebpackManifest(first.config).matches, 'Successful full compilation must record a usable manifest');
     const warm = await build();
+    assert.equal(warm.compilerCalls, 0, 'A matching input/output manifest must skip compiler creation and run');
+    assert.equal(warm.trace[0].detail.webpack_skipped, true);
+    assert.equal(warm.trace[0].detail.durationMs, 0);
+    let served;
+    warm.app({ method: 'GET', path: '/lib.js' }, { sendFile(file, options) { served = path.join(options.root, file); } }, () => assert.fail('lib.js must be served after skip'));
+    assert.equal(served, warm.output);
+    assert.equal(crypto.createHash('sha256').update(warm.bytes).digest('hex'), crypto.createHash('sha256').update(first.bytes).digest('hex'));
     assert.deepEqual(warm.bytes, first.bytes, 'A validated warm build must produce exactly the same frontend bytes');
     const originalOutput = retire(warm.output, 'missing-output');
     const restored = await build();
+    assert.equal(restored.compilerCalls, 1);
     assert.deepEqual(restored.bytes, first.bytes, 'A missing output must be rebuilt even with a warm compiler cache');
     assert.ok(fs.existsSync(originalOutput));
     fs.copyFileSync(restored.output, `${restored.output}.before-corruption.bak`);
     fs.writeFileSync(restored.output, 'synthetic corrupt output');
     fs.copyFileSync(restored.output, `${restored.output}.before-repair.bak`);
     const repaired = await build();
+    assert.equal(repaired.compilerCalls, 1);
     assert.deepEqual(repaired.bytes, first.bytes, 'Corrupted output must be replaced by the validated build');
 
     fs.copyFileSync(entry, `${entry}.before-change.bak`);
@@ -296,6 +317,7 @@ test('real Webpack repairs output and invalidates changed entry and installed de
     const changedEntry = await build();
     assert.equal(changedEntry.config.cache.cacheDirectory, first.config.cache.cacheDirectory, 'Entry edits stay within Webpack\'s own snapshot-validated cache');
     assert.equal(changedEntry.marker, 'entry-two:dependency-one');
+    assert.equal(changedEntry.compilerCalls, 1);
 
     // Installed managed packages are immutable per version in Webpack. A real
     // update changes both their package identity and their shipped source files.
@@ -305,6 +327,7 @@ test('real Webpack repairs output and invalidates changed entry and installed de
     fs.writeFileSync(path.join(dependency, 'index.js'), 'export const dependencyMarker = "dependency-two";\n');
     const changedDependency = await build();
     assert.equal(changedDependency.marker, 'entry-two:dependency-two');
+    assert.equal(changedDependency.compilerCalls, 1);
 
     fs.copyFileSync(entry, `${entry}.before-error.bak`);
     fs.writeFileSync(entry, 'import "startup-synthetic-unresolvable-package";\n');
@@ -314,4 +337,253 @@ test('real Webpack repairs output and invalidates changed entry and installed de
     assert.equal(ready, false, 'A real unresolved module cannot be reported as a ready server');
     assert.deepEqual(fs.readFileSync(changedDependency.output), changedDependency.bytes, 'A failed build must retain the last complete frontend output');
     t.diagnostic(`Synthetic fixtures retained at ${f.root}`);
+});
+
+async function simpleBuild(f, { options = {}, configure = config => config, compiler = webpack } = {}) {
+    const config = configure(await f.config(options));
+    const calls = [];
+    let compilerCalls = 0;
+    const app = middleware(config => { compilerCalls++; return compiler(config); }, requested => {
+        calls.push(requested);
+        return configure(f.currentConfig({ ...requested, ...options }));
+    });
+    await app.runWebpackCompiler({ pruneCache: true });
+    return { config, compilerCalls, calls, manifestPath: path.join(path.dirname(config.cache.cacheDirectory), 'manifest.json') };
+}
+
+function simpleFixture(name) {
+    const f = fixture(name);
+    fs.writeFileSync(path.join(f.root, 'public/lib.js'), '/*! @license Synthetic startup fixture */ export const marker = "safe";\n');
+    rememberOriginal(path.join(f.root, 'public/lib.js'));
+    return f;
+}
+
+test('warm manifest skips pruning; missing or malformed manifest requires full compilation', async () => {
+    const f = simpleFixture('manifest-required');
+    const first = await simpleBuild(f);
+    assert.equal(first.compilerCalls, 1);
+    const warm = await simpleBuild(f);
+    assert.equal(warm.compilerCalls, 0);
+    assert.ok(warm.calls.every(options => !options.pruneCache));
+    retire(first.manifestPath, 'manifest-missing');
+    const missing = await simpleBuild(f);
+    assert.equal(missing.compilerCalls, 1, 'Existing output alone cannot authorize a skip');
+    assert.ok(missing.calls.some(options => options.pruneCache));
+    retire(missing.manifestPath, 'manifest-malformed');
+    fs.writeFileSync(missing.manifestPath, '{invalid');
+    assert.equal((await simpleBuild(f)).compilerCalls, 1);
+});
+
+for (const lockName of ['package-lock.json', 'npm-shrinkwrap.json']) {
+    test(`manifest rejects optional ${lockName} appearance, edits and disappearance`, async () => {
+        const f = simpleFixture(`manifest-${lockName}`);
+        const lock = path.join(f.root, lockName);
+        if (fs.existsSync(lock)) retire(lock, 'initially-absent');
+        assert.equal((await simpleBuild(f)).compilerCalls, 1);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+        fs.writeFileSync(lock, '{"lockfileVersion":3}');
+        rememberOriginal(lock);
+        assert.equal((await simpleBuild(f)).compilerCalls, 1);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+        fs.copyFileSync(lock, `${lock}.before-change.bak`);
+        fs.appendFileSync(lock, '\n');
+        assert.equal((await simpleBuild(f)).compilerCalls, 1);
+        retire(lock, 'removed-again');
+        assert.equal((await simpleBuild(f)).compilerCalls, 1);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    });
+}
+
+test('wide public/lib source set and recorded emitted assets invalidate the manifest', async () => {
+    const f = simpleFixture('manifest-wide-assets');
+    const source = path.join(f.root, 'public/lib/future-entry.js');
+    fs.mkdirSync(path.dirname(source), { recursive: true });
+    fs.writeFileSync(source, '// conservative extra input\n');
+    rememberOriginal(source);
+    const first = await simpleBuild(f);
+    assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    fs.copyFileSync(source, `${source}.before-change.bak`);
+    fs.appendFileSync(source, '// edit\n');
+    assert.equal((await simpleBuild(f)).compilerCalls, 1);
+    assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    const manifest = JSON.parse(fs.readFileSync(first.manifestPath, 'utf8'));
+    const sidecar = Object.keys(manifest.outputSha256).find(name => name !== 'lib.js');
+    assert.ok(sidecar, 'Real build must record its emitted license sidecar too');
+    const sidecarPath = path.join(first.config.output.path, sidecar);
+    retire(sidecarPath, 'missing-sidecar');
+    assert.equal((await simpleBuild(f)).compilerCalls, 1);
+    assert.equal((await simpleBuild(f)).compilerCalls, 0);
+});
+
+test('local transitive source edits require compilation', async () => {
+    const f = simpleFixture('manifest-transitive');
+    const entry = path.join(f.root, 'public/lib.js');
+    fs.copyFileSync(entry, `${entry}.before-change.bak`);
+    fs.writeFileSync(entry, 'export { marker } from "./a.js";\n');
+    const intermediate = path.join(f.root, 'public/a.js');
+    fs.writeFileSync(intermediate, 'export { marker } from "./b.js";\n');
+    rememberOriginal(intermediate);
+    const dependency = path.join(f.root, 'public/b.js');
+    fs.writeFileSync(dependency, 'export const marker = "one";\n');
+    rememberOriginal(dependency);
+    const first = await simpleBuild(f);
+    assert.equal(first.compilerCalls, 1);
+    const manifest = JSON.parse(fs.readFileSync(first.manifestPath, 'utf8'));
+    assert.ok(manifest.dependencies.files.includes(path.join('public', 'a.js')));
+    assert.ok(manifest.dependencies.files.includes(path.join('public', 'b.js')));
+    assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    fs.copyFileSync(dependency, `${dependency}.before-change.bak`);
+    fs.writeFileSync(dependency, 'export const marker = "two";\n');
+    const changed = await simpleBuild(f);
+    assert.equal(changed.compilerCalls, 1);
+    const output = path.join(changed.config.output.path, changed.config.output.filename);
+    assert.equal((await import(`${pathToFileURL(output).href}?result=${crypto.randomUUID()}`)).marker, 'two');
+    assert.equal((await simpleBuild(f)).compilerCalls, 0);
+});
+
+test('every emitted asset, including source maps and license files, is validated', { timeout: 120000 }, async t => {
+    const f = simpleFixture('manifest-all-assets');
+    const configure = config => ({ ...config, devtool: 'source-map' });
+    const build = () => simpleBuild(f, { configure });
+    const first = await build();
+    const manifest = JSON.parse(fs.readFileSync(first.manifestPath, 'utf8'));
+    const assets = Object.keys(manifest.outputSha256);
+    assert.ok(assets.includes('lib.js'));
+    assert.ok(assets.some(name => name.endsWith('.map')));
+    assert.ok(assets.some(name => name.includes('LICENSE')));
+    for (const name of assets) {
+        await t.test(name, async () => {
+            const output = path.join(first.config.output.path, name);
+            const original = fs.readFileSync(output);
+            retire(output, 'missing-asset');
+            assert.equal((await build()).compilerCalls, 1);
+            assert.deepEqual(fs.readFileSync(output), original);
+            assert.equal((await build()).compilerCalls, 0);
+            retire(output, 'tampered-asset');
+            fs.writeFileSync(output, 'tampered synthetic asset');
+            assert.equal((await build()).compilerCalls, 1);
+            assert.deepEqual(fs.readFileSync(output), original);
+            assert.equal((await build()).compilerCalls, 0);
+        });
+    }
+});
+
+for (const [name, content] of [['invalid-json', '{invalid'], ['wrong-schema', '{"schema":999}'], ['truncated', '{"schema":1,"dependencies":']]) {
+    test(`manifest ${name} requires compilation and is rewritten validly`, async () => {
+        const f = simpleFixture(`manifest-${name}`);
+        const first = await simpleBuild(f);
+        retire(first.manifestPath, name);
+        fs.writeFileSync(first.manifestPath, content);
+        assert.equal((await simpleBuild(f)).compilerCalls, 1);
+        const manifest = JSON.parse(fs.readFileSync(first.manifestPath, 'utf8'));
+        assert.equal(manifest.schema, 1);
+        assert.ok(prepareWebpackManifest(first.config).matches);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    });
+}
+
+test('mode changes invalidate a manifest even when cache version is unchanged', async () => {
+    const f = simpleFixture('manifest-mode');
+    await simpleBuild(f);
+    assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    const development = await simpleBuild(f, { configure: config => ({ ...config, mode: 'development' }) });
+    assert.equal(development.compilerCalls, 1);
+    assert.equal((await simpleBuild(f)).compilerCalls, 1);
+});
+
+for (const name of ['.browserslistrc', 'babel.config.json']) {
+    test(`optional ${name} appearance, edit and absence invalidate build identity`, async () => {
+        const f = simpleFixture(`manifest-tool-config-${name}`);
+        const absent = await simpleBuild(f);
+        const file = path.join(f.root, name);
+        fs.writeFileSync(file, name === '.browserslistrc' ? 'chrome 120\n' : '{}\n');
+        rememberOriginal(file);
+        const appeared = await simpleBuild(f);
+        assert.notEqual(appeared.config.cache.version, absent.config.cache.version);
+        assert.equal(appeared.compilerCalls, 1);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+        fs.copyFileSync(file, `${file}.before-change.bak`);
+        fs.appendFileSync(file, '\n');
+        const edited = await simpleBuild(f);
+        assert.notEqual(edited.config.cache.version, appeared.config.cache.version);
+        assert.equal(edited.compilerCalls, 1);
+        retire(file, 'tool-config-absent');
+        assert.equal((await simpleBuild(f)).compilerCalls, 1);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    });
+}
+
+test('browserslist build environment invalidates the cache identity', async () => {
+    const f = simpleFixture('manifest-build-env');
+    const previous = process.env.BROWSERSLIST_ENV;
+    try {
+        process.env.BROWSERSLIST_ENV = 'review-one';
+        const first = await simpleBuild(f);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+        process.env.BROWSERSLIST_ENV = 'review-two';
+        const changed = await simpleBuild(f);
+        assert.notEqual(changed.config.cache.version, first.config.cache.version);
+        assert.equal(changed.compilerCalls, 1);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    } finally {
+        if (previous === undefined) delete process.env.BROWSERSLIST_ENV;
+        else process.env.BROWSERSLIST_ENV = previous;
+    }
+});
+
+test('forceDist and distinct data roots have independent manifests and outputs', async () => {
+    const f = simpleFixture('manifest-roots');
+    const previous = process.cwd();
+    try {
+        process.chdir(f.root);
+        const regular = await simpleBuild(f);
+        const dist = await simpleBuild(f, { options: { forceDist: true } });
+        assert.notEqual(regular.manifestPath, dist.manifestPath);
+        assert.notEqual(regular.config.output.path, dist.config.output.path);
+        assert.equal(dist.compilerCalls, 1, 'Data-root manifest cannot authorize the first dist build');
+        assert.equal((await simpleBuild(f, { options: { forceDist: true } })).compilerCalls, 0);
+        retire(dist.manifestPath, 'dist-manifest');
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+        assert.equal((await simpleBuild(f, { options: { forceDist: true } })).compilerCalls, 1);
+        const otherData = path.join(f.root, 'other-data');
+        const configure = config => ({ ...config,
+            cache: { ...config.cache, cacheDirectory: config.cache.cacheDirectory.replace(f.data, otherData) },
+            output: { ...config.output, path: config.output.path.replace(f.data, otherData) },
+        });
+        const other = await simpleBuild(f, { configure });
+        assert.notEqual(other.manifestPath, regular.manifestPath);
+        assert.equal(other.compilerCalls, 1);
+        assert.equal((await simpleBuild(f, { configure })).compilerCalls, 0);
+        assert.equal((await simpleBuild(f)).compilerCalls, 0);
+    } finally {
+        process.chdir(previous);
+    }
+});
+
+test('a competing output writer cannot make record bless stale compiler output', async () => {
+    const f = simpleFixture('manifest-competing-writer');
+    const first = await simpleBuild(f);
+    const output = path.join(first.config.output.path, first.config.output.filename);
+    const oldBytes = fs.readFileSync(output);
+    const entry = path.join(f.root, 'public/lib.js');
+    fs.copyFileSync(entry, `${entry}.before-change.bak`);
+    fs.writeFileSync(entry, 'export const marker = "new-input";\n');
+    retire(first.manifestPath, 'before-competing-write');
+    const compiler = config => {
+        const instance = webpack(config);
+        const close = instance.close.bind(instance);
+        instance.close = callback => close(error => {
+            // Reproduce an older concurrent compiler finishing after this one.
+            retire(output, 'new-output-before-competing-write');
+            fs.writeFileSync(output, oldBytes);
+            callback(error);
+        });
+        return instance;
+    };
+    assert.equal((await simpleBuild(f, { compiler })).compilerCalls, 1);
+    assert.equal(prepareWebpackManifest(first.config).matches, false);
+    const repaired = await simpleBuild(f);
+    assert.equal(repaired.compilerCalls, 1);
+    assert.equal((await import(`${pathToFileURL(output).href}?result=${crypto.randomUUID()}`)).marker, 'new-input');
+    assert.equal((await simpleBuild(f)).compilerCalls, 0);
 });

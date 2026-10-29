@@ -1,0 +1,46 @@
+Verifying data-root owner identity…
+✔ Windows simulation: live peer refuses with one peer probe and no self probe (7.651764ms)
+Verifying data-root owner identity…
+✔ Windows simulation: absent peer probes self before writing (4.314377ms)
+✔ Windows simulation: failing self consumes at most its 10s budget and reports progress (1.341598ms)
+✔ Windows simulation: failing peer consumes at most its 6s budget and reports progress (1.385179ms)
+Verifying data-root owner identity…
+✔ Windows simulation: self receives a full budget after a slow stale peer (2.073139ms)
+Verifying data-root owner identity…
+Verifying data-root owner identity…
+✔ Windows simulation: swallowed provider timeouts retain attempt timing and failures are retryable (2.759385ms)
+✔ disabled trace adds no timers or files and preserves async results/errors (37.778242ms)
+✔ enabled trace records ordered high resolution events and one node timing snapshot (29.886628ms)
+✔ real asynchronous child spawning is observed without affecting its result (32.120574ms)
+✔ unwritable trace warns once and disables without throwing (26.409367ms)
+✔ data description uses file metadata and skips recycled files, symlinks and missing directories (4.721637ms)
+✔ frontend cache survives a backend-only Git revision change (10.524184ms)
+✔ frontend cache identity includes uncommitted webpack.config.js bytes (5.177753ms)
+✔ frontend cache identity includes uncommitted package.json bytes (4.692508ms)
+✔ frontend cache identity includes uncommitted package-lock.json bytes (4.070376ms)
+✔ Webpack explicitly snapshots application config, package and lockfile (3.262769ms)
+Recycled outdated cache directory: synthetic-old-cache
+✔ a distribution without lockfiles still configures and builds real frontend output (730.362665ms)
+✔ optional package-lock.json presence, edits and absence change cache identity (8.86967ms)
+✔ optional npm-shrinkwrap.json presence, edits and absence change cache identity (5.158515ms)
+✔ missing package metadata remains fatal while its fixture bytes are recoverable (2.297033ms)
+✔ outdated caches are recoverable and the existing recycle directory is preserved (4.470231ms)
+✔ dist output remains separate from the configured data root (2.888061ms)
+✔ startup rejects run-error and closes its compiler (0.866805ms)
+✔ startup rejects missing-stats and closes its compiler (0.571264ms)
+✔ startup rejects stats-errors and closes its compiler (0.564407ms)
+✔ startup rejects close-error and closes its compiler (0.47147ms)
+✔ startup rejects run-throw and closes its compiler (0.427172ms)
+✔ startup rejects close-throw and closes its compiler (0.528256ms)
+✔ successful startup remains pending until compiler close finishes (1.770606ms)
+<w> [webpack.cache.PackFileCacheStrategy] Restoring pack failed from <repo>/.fixtures/startup-webpack-ee093664-31dc-49ad-bb3b-a1e4707f96de/real-compilation/synthetic-data/_webpack/e08ce36683913cf9/cache/default-production.pack.gz: Error: unexpected end of file
+✔ real Webpack repairs output and invalidates changed entry and installed dependency (1147.99737ms)
+ℹ Synthetic fixtures retained at <repo>/.fixtures/startup-webpack-ee093664-31dc-49ad-bb3b-a1e4707f96de/real-compilation
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2017.446191

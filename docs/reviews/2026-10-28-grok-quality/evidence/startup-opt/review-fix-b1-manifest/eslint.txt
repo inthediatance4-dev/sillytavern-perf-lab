@@ -1,0 +1,2 @@
+Node 24.22.1; repository ESLint configuration; exit 0, no diagnostics.
+Command: node node_modules/eslint/bin/eslint.js webpack.config.js src/webpack-manifest.js src/middleware/webpack-serve.js tests/startup-webpack.test.mjs tests/startup-compile-cache.test.mjs docs/reviews/2026-10-28-grok-quality/evidence/startup-opt/review-fix-b2-compile-cache/analyze.mjs docs/reviews/2026-10-28-grok-quality/evidence/startup-opt/review-fix-b2-compile-cache/activation/preload.mjs docs/reviews/2026-10-28-grok-quality/evidence/startup-opt/review-fix-b2-compile-cache/activation/run.mjs

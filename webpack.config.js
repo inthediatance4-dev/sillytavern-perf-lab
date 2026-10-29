@@ -13,9 +13,17 @@ import { color } from './src/util.js';
 // preventing startup or adding a missing file to Webpack's build dependencies.
 const cacheInputs = [
     { file: fileURLToPath(import.meta.url), optional: false },
+    { file: path.join(serverDirectory, 'src/webpack-manifest.js'), optional: false },
     { file: path.join(serverDirectory, 'package.json'), optional: false },
     { file: path.join(serverDirectory, 'package-lock.json'), optional: true },
     { file: path.join(serverDirectory, 'npm-shrinkwrap.json'), optional: true },
+    // Also fingerprint absence: a newly added resolver/tool configuration must
+    // invalidate both the skip manifest and Webpack's filesystem cache.
+    ...['.browserslistrc', 'browserslist', '.babelrc', '.babelrc.json', '.babelrc.js', '.babelrc.cjs', '.babelrc.mjs',
+        'babel.config.json', 'babel.config.js', 'babel.config.cjs', 'babel.config.mjs']
+        .map(name => ({ file: path.join(serverDirectory, name), optional: true })),
+    ...['BROWSERSLIST_CONFIG', 'BROWSERSLIST_STATS'].filter(name => process.env[name])
+        .map(name => ({ file: path.resolve(process.env[name]), optional: true })),
 ].map(({ file, optional }) => {
     try {
         const fingerprint = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -30,13 +38,17 @@ const cacheBuildDependencies = cacheInputs.filter(input => input.present).map(in
 /**
  * Identify build configuration and dependency inputs, including uncommitted edits.
  * Backend-only Git commits do not invalidate the frontend cache. Entry modules
- * and installed packages are still checked by Webpack's filesystem snapshots.
+ * and installed packages are checked by the manifest or Webpack's snapshots.
  * @returns {string} The cache version string.
  */
 function getWebpackCacheVersion() {
     return crypto.createHash('shake256', { outputLength: 8 })
         .update(JSON.stringify([
             webpack.version,
+            // Webpack's implicit browserslist target can read these even though
+            // this config has no env-dependent mode or loader selection.
+            ...['NODE_ENV', 'BROWSERSLIST', 'BROWSERSLIST_ENV', 'BROWSERSLIST_CONFIG', 'BROWSERSLIST_STATS']
+                .map(name => [name, process.env[name] ?? null]),
             ...cacheInputs.map(input => [path.basename(input.file), input.fingerprint]),
         ]))
         .digest('hex');
@@ -120,10 +132,12 @@ export default function getPublicLibConfig({ forceDist = false, pruneCache = fal
     }
 
     return {
+        context: serverDirectory,
         mode: 'production',
         entry: path.join(serverDirectory, 'public/lib.js'),
         cache: {
             type: 'filesystem',
+            version: cacheVersion,
             cacheDirectory: cacheDirectory,
             store: 'pack',
             compression: 'gzip',

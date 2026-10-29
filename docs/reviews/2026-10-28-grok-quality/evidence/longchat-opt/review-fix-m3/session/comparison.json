@@ -1,0 +1,1174 @@
+{
+  "basePublicRevision": "37a48181fc55f7d2c45bae05f1a68c26a4c76d5d",
+  "headRevision": "b2122a4d81deb7877d9a870e159db0b44f0257bc",
+  "construction": "git archive HEAD support/backend/tests/scripts; git archive 37a4818 public/; current harness invokes both",
+  "harnessSha256": {
+    "tests/browser-longchat-perf.py": "78aa52cff920292efd78a29344bfca5724eed704b40a9e5b4bf3696b5fa5d293",
+    "tests/longchat-browser-probe.mjs": "637532c32b42563ad398c3852836aca43684d29d7e02ab5b4de50e4483ecc00a",
+    "tests/longchat-normalization.mjs": "0f01a556d4819c181775634308a4889304f1f7583c3e6b018417c6dfcdf4d124",
+    "tests/lab_browser.py": "6b942d461c94f78fb8d498e2dd40858fed18d7fe8b261a91aae099b8e3755fc0",
+    "tests/longchat-final-ab.py": "2e605f1c081c42e86be676b3f97db90b1a0518beb7ec5a95cccb51fc928982d8",
+    "scripts/longchat-lab-server.mjs": "35ea33164fe61b11185eb1b72da881d7f229892b1c0c4046fdd6a3571d47fee1",
+    "scripts/start-performance-lab.mjs": "1a11d0f28e936f33484cb11769469e94c0c85a403f9756b69ccb64b0b2f7b9ba",
+    "scripts/benchmark-statistics.mjs": "2e29a4aefce1f04a2a2990641dfc1baed6ea521e979b86ce4ff1585ca1c38945"
+  },
+  "startedUtc": "2026-10-29T02:15:58Z",
+  "plannedPairs": 10,
+  "order": [
+    {
+      "iteration": 0,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "00-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 0,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "00-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 0,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "00-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 0,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "00-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 0,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "00-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 0,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "00-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 1,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "01-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 1,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "01-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 1,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "01-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 1,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "01-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 1,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "01-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 1,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "01-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 2,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "02-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 2,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "02-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 2,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "02-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 2,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "02-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 2,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "02-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 2,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "02-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 3,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "03-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 3,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "03-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 3,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "03-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 3,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "03-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 3,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "03-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 3,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "03-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 4,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "04-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 4,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "04-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 4,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "04-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 4,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "04-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 4,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "04-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 4,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "04-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 5,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "05-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 5,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "05-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 5,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "05-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 5,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "05-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 5,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "05-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 5,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "05-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 6,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "06-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 6,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "06-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 6,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "06-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 6,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "06-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 6,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "06-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 6,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "06-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 7,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "07-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 7,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "07-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 7,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "07-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 7,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "07-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 7,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "07-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 7,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "07-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 8,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "08-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 8,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "08-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 8,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "08-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 8,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "08-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 8,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "08-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 8,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "08-0-immediate-head/run-2000-0-0.json"
+    },
+    {
+      "iteration": 9,
+      "case": "100-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "09-100-immediate-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 9,
+      "case": "100-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "09-100-immediate-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 9,
+      "case": "100-history10",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "09-100-history10-base/run-2000-100-0.json"
+    },
+    {
+      "iteration": 9,
+      "case": "100-history10",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "09-100-history10-head/run-2000-100-0.json"
+    },
+    {
+      "iteration": 9,
+      "case": "0-immediate",
+      "side": "base",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "09-0-immediate-base/run-2000-0-0.json"
+    },
+    {
+      "iteration": 9,
+      "case": "0-immediate",
+      "side": "head",
+      "exitCode": 0,
+      "status": "ok",
+      "record": "09-0-immediate-head/run-2000-0-0.json"
+    }
+  ],
+  "metrics": {
+    "2000/100 open": {
+      "base": {
+        "median": 925.3500000014901,
+        "p95": 1184.8000000044703,
+        "median_ci95": [
+          829.7000000029802,
+          1144.2000000029802
+        ],
+        "p95_ci95": [
+          1045.7000000029802,
+          1184.8000000044703
+        ],
+        "samples": [
+          829.7000000029802,
+          884.3999999985099,
+          913.5,
+          817.7000000029802,
+          1155.6000000014901,
+          1144.2000000029802,
+          937.2000000029802,
+          1045.7000000029802,
+          1184.8000000044703,
+          805.8999999985099
+        ]
+      },
+      "head": {
+        "median": 1034.949999999255,
+        "p95": 1148.5,
+        "median_ci95": [
+          828.8999999985099,
+          1081.3500000014901
+        ],
+        "p95_ci95": [
+          1076.2000000029802,
+          1148.5
+        ],
+        "samples": [
+          805.3999999985099,
+          799.8999999985099,
+          828.8999999985099,
+          1031,
+          1038.8999999985099,
+          1086.5,
+          1148.5,
+          1076.2000000029802,
+          999.3999999985099,
+          1077.2999999970198
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": 109.59999999776483,
+        "ci95": [
+          -111.00000000372529,
+          207.29999999701977
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": false
+    },
+    "2000/100 send": {
+      "base": {
+        "median": 663.5864170020795,
+        "p95": 895.7334929946228,
+        "median_ci95": [
+          449.38263000221923,
+          851.414422999369
+        ],
+        "p95_ci95": [
+          787.5086310014012,
+          895.7334929946228
+        ],
+        "samples": [
+          473.9215920053539,
+          462.7813170009176,
+          579.5310130051803,
+          415.2076149985078,
+          895.7334929946228,
+          787.5086310014012,
+          852.2533299983479,
+          851.414422999369,
+          747.6418209989788,
+          424.8436679990846
+        ]
+      },
+      "head": {
+        "median": 660.574652498326,
+        "p95": 762.8422410052735,
+        "median_ci95": [
+          467.9467379974085,
+          727.2120180059574
+        ],
+        "p95_ci95": [
+          707.1114130012575,
+          762.8422410052735
+        ],
+        "samples": [
+          437.0299190049991,
+          408.3309269990423,
+          467.9467379974085,
+          707.1114130012575,
+          727.2120180059574,
+          645.1657700017677,
+          762.8422410052735,
+          729.4025259980117,
+          633.65800199972,
+          675.9835349948844
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -3.0117645037535112,
+        "ci95": [
+          -142.34286099963356,
+          232.1710424948833
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": false
+    },
+    "2000/100 send after10": {
+      "base": {
+        "median": 2198.8154704995395,
+        "p95": 2650.528123995173,
+        "median_ci95": [
+          1589.3907739991846,
+          2478.850905994477
+        ],
+        "p95_ci95": [
+          2339.838301006239,
+          2650.528123995173
+        ],
+        "samples": [
+          2339.838301006239,
+          2650.528123995173,
+          2156.579802998749,
+          2241.05113800033,
+          1536.1341370007722,
+          1491.61029500101,
+          1642.647410997597,
+          2478.850905994477,
+          2125.068012996053,
+          2544.5360820012866
+        ]
+      },
+      "head": {
+        "median": 881.6043400001945,
+        "p95": 2281.8021809944184,
+        "median_ci95": [
+          832.8634630015586,
+          1519.1506404989923
+        ],
+        "p95_ci95": [
+          1049.581079998461,
+          2281.8021809944184
+        ],
+        "samples": [
+          832.8634630015586,
+          812.30191099894,
+          1988.7202009995235,
+          867.3564700002316,
+          785.4887919966131,
+          1370.1315299986163,
+          862.1449130005203,
+          895.8522100001574,
+          1049.581079998461,
+          2281.8021809944184
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -1317.211130499345,
+        "ci95": [
+          -1597.2465659942827,
+          -519.3896050004696
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": true
+    },
+    "2000/100 older1": {
+      "base": {
+        "median": 449.04999999701977,
+        "p95": 496.3999999985099,
+        "median_ci95": [
+          367.0000000037253,
+          479
+        ],
+        "p95_ci95": [
+          479,
+          496.3999999985099
+        ],
+        "samples": [
+          461.3999999985099,
+          436.69999999552965,
+          247.30000000447035,
+          492.29999999701977,
+          413.20000000298023,
+          479,
+          496.3999999985099,
+          320.80000000447035,
+          464.1000000014901,
+          373.8999999985099
+        ]
+      },
+      "head": {
+        "median": 263.1500000022352,
+        "p95": 414.3999999985099,
+        "median_ci95": [
+          214.90000000596046,
+          378.20000000298023
+        ],
+        "p95_ci95": [
+          327.3999999985099,
+          414.3999999985099
+        ],
+        "samples": [
+          344.40000000596046,
+          288.90000000596046,
+          412,
+          231.5,
+          237.39999999850988,
+          214.90000000596046,
+          156.80000000447035,
+          198.89999999850988,
+          414.3999999985099,
+          327.3999999985099
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -185.8999999947846,
+        "ci95": [
+          -260.79999999701977,
+          -46.5
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": true
+    },
+    "2000/100 older1 longest task": {
+      "base": {
+        "median": 449.5,
+        "p95": 497,
+        "median_ci95": [
+          367,
+          479
+        ],
+        "p95_ci95": [
+          479,
+          497
+        ],
+        "samples": [
+          462,
+          437,
+          247,
+          493,
+          413,
+          479,
+          497,
+          321,
+          464,
+          374
+        ]
+      },
+      "head": {
+        "median": 115,
+        "p95": 198,
+        "median_ci95": [
+          93,
+          166
+        ],
+        "p95_ci95": [
+          144,
+          198
+        ],
+        "samples": [
+          153,
+          108,
+          179,
+          111,
+          78,
+          119,
+          72,
+          103,
+          198,
+          144
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -334.5,
+        "ci95": [
+          -375,
+          -230
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": true
+    },
+    "2000/100 older2": {
+      "base": {
+        "median": 318.5,
+        "p95": 553.2999999970198,
+        "median_ci95": [
+          280.40000000596046,
+          473.30000000447035
+        ],
+        "p95_ci95": [
+          473.30000000447035,
+          553.2999999970198
+        ],
+        "samples": [
+          275.19999999552965,
+          293.59999999403954,
+          231.10000000149012,
+          553.2999999970198,
+          473.30000000447035,
+          400.5,
+          480.69999999552965,
+          343.40000000596046,
+          280.40000000596046,
+          285.70000000298023
+        ]
+      },
+      "head": {
+        "median": 226.84999999776483,
+        "p95": 350.40000000596046,
+        "median_ci95": [
+          166.40000000223517,
+          319.5
+        ],
+        "p95_ci95": [
+          283.8999999985099,
+          350.40000000596046
+        ],
+        "samples": [
+          275.8999999985099,
+          283.8999999985099,
+          350.1000000014901,
+          177.79999999701977,
+          152.39999999850988,
+          176.10000000149012,
+          156.70000000298023,
+          174.20000000298023,
+          350.40000000596046,
+          288.8999999985099
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -91.65000000223517,
+        "ci95": [
+          -302.8999999985099,
+          36.44999999552965
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": false
+    },
+    "2000/100 older2 longest task": {
+      "base": {
+        "median": 319,
+        "p95": 554,
+        "median_ci95": [
+          281,
+          474
+        ],
+        "p95_ci95": [
+          474,
+          554
+        ],
+        "samples": [
+          276,
+          294,
+          232,
+          554,
+          474,
+          401,
+          482,
+          344,
+          281,
+          289
+        ]
+      },
+      "head": {
+        "median": 92.5,
+        "p95": 172,
+        "median_ci95": [
+          78.5,
+          134
+        ],
+        "p95_ci95": [
+          103,
+          172
+        ],
+        "samples": [
+          103,
+          103,
+          172,
+          82,
+          79,
+          78,
+          73,
+          79,
+          165,
+          103
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -226.5,
+        "ci95": [
+          -395,
+          -147
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": true
+    },
+    "2000/100 older3": {
+      "base": {
+        "median": 517.5999999977648,
+        "p95": 588.9000000059605,
+        "median_ci95": [
+          462.6000000014901,
+          560.2999999970198
+        ],
+        "p95_ci95": [
+          554.8999999985099,
+          588.9000000059605
+        ],
+        "samples": [
+          473.29999999701977,
+          532.3999999985099,
+          253,
+          588.9000000059605,
+          452.1000000014901,
+          502.79999999701977,
+          565.6999999955297,
+          554.8999999985099,
+          462.6000000014901,
+          557.6000000014901
+        ]
+      },
+      "head": {
+        "median": 216.2500000037253,
+        "p95": 407.5,
+        "median_ci95": [
+          173.89999999850988,
+          317.29999999701977
+        ],
+        "p95_ci95": [
+          251.39999999850988,
+          407.5
+        ],
+        "samples": [
+          251.39999999850988,
+          277.1000000014901,
+          407.5,
+          169.30000000447035,
+          173.89999999850988,
+          204.20000000298023,
+          171.60000000149012,
+          182.69999999552965,
+          228.30000000447035,
+          383.19999999552965
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -301.34999999403954,
+        "ci95": [
+          -381,
+          -197.04999999701977
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": true
+    },
+    "2000/100 older3 longest task": {
+      "base": {
+        "median": 519.5,
+        "p95": 591,
+        "median_ci95": [
+          464,
+          562
+        ],
+        "p95_ci95": [
+          557,
+          591
+        ],
+        "samples": [
+          475,
+          534,
+          254,
+          591,
+          454,
+          505,
+          567,
+          557,
+          464,
+          560
+        ]
+      },
+      "head": {
+        "median": 100,
+        "p95": 216,
+        "median_ci95": [
+          90,
+          155
+        ],
+        "p95_ci95": [
+          115,
+          216
+        ],
+        "samples": [
+          154,
+          93,
+          216,
+          85,
+          91,
+          102,
+          87,
+          98,
+          115,
+          195
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -419.5,
+        "ci95": [
+          -467.5,
+          -321
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": true
+    },
+    "2000/0 open": {
+      "base": {
+        "median": 5833.699999999255,
+        "p95": 6411.89999999851,
+        "median_ci95": [
+          5796.80000000447,
+          6074.5
+        ],
+        "p95_ci95": [
+          5901.5,
+          6411.89999999851
+        ],
+        "samples": [
+          5789.89999999851,
+          5807.5,
+          6074.5,
+          5901.5,
+          5842.79999999702,
+          6411.89999999851,
+          5796.80000000447,
+          5824.60000000149,
+          5725.79999999702,
+          6096.70000000298
+        ]
+      },
+      "head": {
+        "median": 5720.75,
+        "p95": 6979.20000000298,
+        "median_ci95": [
+          5186.5,
+          6748.199999999255
+        ],
+        "p95_ci95": [
+          6662.5999999940395,
+          6979.20000000298
+        ],
+        "samples": [
+          6063.5,
+          6733.5,
+          5378,
+          5186.5,
+          6762.89999999851,
+          6979.20000000298,
+          4996,
+          6662.5999999940395,
+          5015.4000000059605,
+          5282.30000000447
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -112.94999999925494,
+        "ci95": [
+          -716.7999999970198,
+          905.4000000022352
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": false
+    },
+    "2000/0 send": {
+      "base": {
+        "median": 3583.8547720013594,
+        "p95": 3974.60334799689,
+        "median_ci95": [
+          3437.241477997304,
+          3818.6796459995094
+        ],
+        "p95_ci95": [
+          3773.208266997244,
+          3974.60334799689
+        ],
+        "samples": [
+          3974.60334799689,
+          3304.6641600012663,
+          3818.6796459995094,
+          3515.489831996092,
+          3358.9931239985162,
+          3971.15305600164,
+          3610.4549360024976,
+          3459.176589996787,
+          3773.208266997244,
+          3557.254608000221
+        ]
+      },
+      "head": {
+        "median": 1767.521260495414,
+        "p95": 3277.5816260036663,
+        "median_ci95": [
+          1426.146386002074,
+          3093.790770995838
+        ],
+        "p95_ci95": [
+          2207.924226000614,
+          3277.5816260036663
+        ],
+        "samples": [
+          3277.5816260036663,
+          2207.924226000614,
+          1498.747141995409,
+          1426.146386002074,
+          3093.790770995838,
+          3125.5358690032153,
+          1311.3209549992462,
+          2036.295378995419,
+          1383.9013229953707,
+          1433.726798000862
+        ]
+      },
+      "difference": {
+        "current_minus_baseline": -1816.3335115059454,
+        "ci95": [
+          -2319.9325040041003,
+          -594.1763560040272
+        ]
+      },
+      "bootstrapSeed": "opus-round1.5",
+      "resamples": 2000,
+      "nPerSide": 10,
+      "significant": true
+    }
+  },
+  "finishedUtc": "2026-10-29T02:51:08Z",
+  "acceptance": "met"
+}

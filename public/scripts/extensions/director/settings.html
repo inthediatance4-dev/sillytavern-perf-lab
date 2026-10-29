@@ -6,6 +6,8 @@
         </div>
         <div class="inline-drawer-content">
             <p>点击输入框左侧的 🎬 选择预设。弹出菜单获得焦点时可按 1–9，Esc 关闭。</p>
+            <p>导演指令不会写成聊天消息。只有包含该指令的一次生成成功完成后才会消耗；接口报错或手动停止时保留，供下次生成重试。成功消耗会保存到当前聊天，重新载入后也不会重复发送。</p>
+            <p>标记或取消章节时，章节元数据会同步到该消息的所有 swipe，切换 swipe 或重新载入聊天后仍保持一致。</p>
             <label for="director_hotkey">快捷键（默认关闭）</label>
             <input id="director_hotkey" class="text_pole" type="text" placeholder="Ctrl+Shift+D" autocomplete="off">
             <small>留空关闭。输入文字时不触发快捷键。预设输入可留空；取消对话框不会插入内容。</small>

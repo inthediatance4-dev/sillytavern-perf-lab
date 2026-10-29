@@ -59,6 +59,25 @@ test('mark and unmark keep foreign director metadata and drop an empty chapter s
     assert.equal(unmarkChapter(noted), false);
 });
 
+test('chapter metadata survives every swipe and JSONL reload, and unmark clears every swipe', () => {
+    const message = { mes: 'first', extra: {}, swipe_id: 0, swipes: ['first', 'second', 'third'],
+        swipe_info: [{ extra: { model: 'first-model' } }, { extra: { model: 'second-model' } }] };
+    markChapter(message, '跨 swipe 章节', 'chapter-id');
+    const director = structuredClone(message.extra.director);
+    assert.deepEqual(message.swipe_info.map(info => info.extra.director), [director, director, director]);
+    assert.notEqual(message.swipe_info[0].extra.director, message.swipe_info[1].extra.director);
+    assert.notEqual(message.swipe_info[0].extra.director, message.extra.director);
+    assert.equal(message.swipe_info[1].extra.model, 'second-model');
+    // syncSwipeToMes restores the selected swipe's entire extra object.
+    message.extra = structuredClone(message.swipe_info[1].extra);
+    message.extra = structuredClone(message.swipe_info[0].extra);
+    const reloaded = JSON.parse(JSON.stringify(message));
+    assert.deepEqual(listChapters([reloaded]), [{ index: 0, number: 1, title: '跨 swipe 章节' }]);
+    assert.equal(unmarkChapter(reloaded), true);
+    assert.ok(reloaded.swipe_info.every(info => !Object.hasOwn(info.extra, 'director')));
+    assert.equal(reloaded.swipe_info[1].extra.model, 'second-model');
+});
+
 test('loading confirm starts only past 500 messages and names the exact gap', () => {
     assert.equal(messagesBeforeLoadedRange(1900, 0), 1900);
     assert.equal(needsLoadConfirm(1900), true);

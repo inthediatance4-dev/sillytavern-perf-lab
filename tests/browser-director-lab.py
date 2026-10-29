@@ -756,6 +756,13 @@ def run(args, temporary):
                 result['checks']['chapterDividersUseLiveNumbersOutsideMesText'] = True
 
                 stage = 'mark and unmark an arbitrary message'
+                page.evaluate("""() => {
+                    const message = SillyTavern.getContext().chat[0];
+                    message.swipe_id = 0;
+                    message.swipes = [message.mes, 'Synthetic alternate greeting'];
+                    message.swipe_info = message.swipes.map((_, index) => ({ send_date:message.send_date,
+                        extra:{ ...structuredClone(message.extra), swipeSentinel:index } }));
+                }""")
                 target = page.locator('#chat .mes[mesid="0"]')
                 html_before = target.locator('.mes_text').inner_html()
                 assert page.evaluate("() => !SillyTavern.getContext().chat[0]?.extra?.director?.chapter")
@@ -787,12 +794,32 @@ def run(args, temporary):
                 assert stored['preset'] == 'chapter' and stored['chapter'] == {'title': '手动章节'}
                 assert set(stored) == {'id', 'preset', 'chapter'}
                 assert str(uuid.UUID(stored['id'])) == stored['id']
+                stage = 'chapter survives swiping away, back and disk reload'
+                for swipe_id in [1, 0]:
+                    page.evaluate("""async swipeId => {
+                        const main = await import('/script.js');
+                        const { SWIPE_DIRECTION, SWIPE_SOURCE } = await import('/scripts/constants.js');
+                        await main.swipe(null, SWIPE_DIRECTION.RIGHT, { source:SWIPE_SOURCE.SLASH_COMMAND,
+                            forceMesId:0, forceSwipeId:swipeId, forceDuration:0 });
+                    }""", swipe_id)
+                    page.wait_for_function("""swipeId => SillyTavern.getContext().chat[0].swipe_id === swipeId &&
+                        document.querySelector('#chat .mes[mesid="0"] .director-chapter-divider')?.textContent === '第1章 手动章节'""", arg=swipe_id)
+                page.evaluate("""async () => {
+                    const context = SillyTavern.getContext();
+                    await context.saveChat();
+                    await context.reloadCurrentChat();
+                }""")
+                page.wait_for_function("""() => document.querySelector('#chat .mes[mesid="0"] .director-chapter-divider')?.textContent === '第1章 手动章节'""")
+                swipe_directors = page.evaluate("""() => SillyTavern.getContext().chat[0].swipe_info.map(info => info.extra.director)""")
+                assert swipe_directors == [stored, stored]
+                result['checks']['chapterSurvivesSwipeAwayBackAndDiskReload'] = True
                 row, menu_button = open_chapter_menu(page, 0)
                 with page.expect_response(is_saved_chat) as unmarked_save:
                     menu_button.click()
                 unmarked_save.value.finished()
                 page.wait_for_function("""() => !document.querySelector('#chat .mes[mesid="0"]').classList.contains('director-chapter')""")
                 assert page.evaluate("() => SillyTavern.getContext().chat[0].extra.director") is None
+                assert page.evaluate("() => SillyTavern.getContext().chat[0].swipe_info.every(info => !info.extra.director)")
                 assert target.locator('.mes_text').inner_html() == html_before
                 assert chapter_snapshot(page) == existing
                 result['checks']['markUnmarkArbitraryMessagePersistsWithoutNumber'] = True
@@ -977,6 +1004,84 @@ def run(args, temporary):
                 assert '群聊只出现一次的指令' not in second_body and '——群聊片刻后——' in second_body
                 result['checks']['groupNarratorCommentAndInstruct'] = True
                 print('Group narrator, comment and one-shot instruct passed', flush=True)
+
+                stage = 'Director instruct API failure and successful retry'
+                page.evaluate("""async sample => {
+                    const context = SillyTavern.getContext();
+                    const index = context.characters.findIndex(card => card.avatar === sample.avatar);
+                    await context.selectCharacterById(String(index));
+                    await SillyTavern.getContext().openCharacterChat(sample.chatName);
+                }""", sample)
+
+                def configure_provider(options):
+                    request = urllib.request.Request(fake_url.removesuffix('/v1') + '/__configure',
+                        data=json.dumps(options).encode(), headers={'Content-Type': 'application/json'}, method='POST')
+                    with urllib.request.urlopen(request, timeout=10) as response:
+                        assert json.load(response)['configured']
+
+                def generate():
+                    return page.evaluate("""async () => {
+                        try { await SillyTavern.getContext().generate('normal'); return { failed:false }; }
+                        catch { return { failed:true }; }
+                    }""")
+
+                failed_instruction = 'Keep the synthetic failure instruction for retry.'
+                preset(page, 'direct', text=failed_instruction)
+                baseline = len(requests())
+                configure_provider({'nextStatus': 500})
+                failed = generate()
+                assert failed['failed'], failed
+                assert failed_instruction in json.dumps(requests()[baseline], ensure_ascii=False)
+                assert page.evaluate("""text => Object.values(SillyTavern.getContext().chatMetadata.script_injects || {}).some(inject => inject.value.includes(text))""", failed_instruction)
+                generate()
+                assert failed_instruction in json.dumps(requests()[baseline + 1], ensure_ascii=False)
+                page.evaluate("""async () => { await SillyTavern.getContext().reloadCurrentChat(); }""")
+                assert not page.evaluate("""text => Object.values(SillyTavern.getContext().chatMetadata.script_injects || {}).some(inject => inject.value.includes(text))""", failed_instruction)
+                generate()
+                assert failed_instruction not in json.dumps(requests()[baseline + 2], ensure_ascii=False)
+                result['checks']['instructSurvivesApi500ThenConsumedOnSuccessfulRetryAndDiskReload'] = True
+
+                stage = 'Director instruct user stop and successful retry'
+                stopped_instruction = 'Keep the synthetic stopped instruction for retry.'
+                preset(page, 'direct', text=stopped_instruction)
+                baseline = len(requests())
+                configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
+                page.evaluate("""async () => {
+                    (await import('/scripts/openai.js')).oai_settings.stream_openai = true;
+                    window.__directorPendingGeneration = SillyTavern.getContext().generate('normal').catch(() => null);
+                }""")
+                page.wait_for_function("""() => {
+                    const context = SillyTavern.getContext();
+                    return context.streamingProcessor?.result?.length > 20;
+                }""", timeout=30000)
+                page.evaluate("SillyTavern.getContext().stopGeneration()")
+                page.evaluate("window.__directorPendingGeneration")
+                assert stopped_instruction in json.dumps(requests()[baseline], ensure_ascii=False)
+                assert page.evaluate("""text => Object.values(SillyTavern.getContext().chatMetadata.script_injects || {}).some(inject => inject.value.includes(text))""", stopped_instruction)
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                generate()
+                assert stopped_instruction in json.dumps(requests()[baseline + 1], ensure_ascii=False)
+                page.evaluate("""async () => { await SillyTavern.getContext().reloadCurrentChat(); }""")
+                generate()
+                assert stopped_instruction not in json.dumps(requests()[baseline + 2], ensure_ascii=False)
+                result['checks']['instructSurvivesStopThenConsumedOnSuccessfulStreamingRetry'] = True
+
+                stage = 'ordinary ephemeral inject retains upstream stop lifecycle'
+                page.evaluate("""async () => {
+                    await SillyTavern.getContext().SlashCommandParser.commands.inject.callback({
+                        id:'ordinary-stop-check', ephemeral:'true', position:'chat', depth:'0',
+                    }, 'Ordinary synthetic ephemeral injection');
+                }""")
+                configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
+                page.evaluate("""() => {
+                    window.__directorPendingGeneration = SillyTavern.getContext().generate('normal').catch(() => null);
+                }""")
+                page.wait_for_function("() => SillyTavern.getContext().streamingProcessor?.result?.length > 20", timeout=30000)
+                page.evaluate("SillyTavern.getContext().stopGeneration()")
+                page.evaluate("window.__directorPendingGeneration")
+                assert page.evaluate("() => !SillyTavern.getContext().chatMetadata.script_injects?.['ordinary-stop-check']")
+                result['checks']['ordinaryEphemeralInjectStillClearsOnStop'] = True
+                print('Director failure, stop, retry and ordinary inject lifecycle passed', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

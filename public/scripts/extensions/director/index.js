@@ -16,9 +16,11 @@ import {
     messagesBeforeLoadedRange,
     needsLoadConfirm,
     prefillChapterTitle,
+    syncChapterToSwipes,
     unmarkChapter,
 } from './chapters.js';
 import { initPresetManager } from './manager.js';
+import { initInstructLifecycle } from './instruct.js';
 import { createDefaultPresets, presetForDigit, resolvePresetArgument } from './presets.js';
 import { collectPresetInputs, renderDirectorTemplate } from './template.js';
 
@@ -109,7 +111,12 @@ async function usePreset(preset, inputText) {
         // input containing pipes or named-argument syntax remains literal text.
         const commands = context.SlashCommandParser.commands;
         if (preset.mode === 'instruct') {
-            await commands.inject.callback({ id: `director-${id}`, ephemeral: 'true', position: 'chat', depth: '0', role: 'system', scan: 'false' }, text);
+            const injectId = `director-${id}`;
+            await commands.inject.callback({ id: injectId, ephemeral: 'false', position: 'chat', depth: '0', role: 'system', scan: 'false' }, text);
+            if (context.chatMetadata.script_injects[injectId]) {
+                context.chatMetadata.script_injects[injectId].directorEphemeral = true;
+                context.saveMetadataDebounced();
+            }
         } else {
             const metadata = { id, preset: preset.isChapter ? 'chapter' : preset.id };
             if (preset.isChapter) {
@@ -121,6 +128,7 @@ async function usePreset(preset, inputText) {
             const attachMetadata = messageId => {
                 if (messageId === index && context.chat[index]) {
                     context.chat[index].extra.director = metadata;
+                    if (preset.isChapter) syncChapterToSwipes(context.chat[index]);
                 }
             };
             // MESSAGE_SENT runs before rendering and the command's JSONL save.
@@ -372,6 +380,7 @@ export async function init() {
         seeded = true;
     }
     const context = getContext();
+    initInstructLifecycle(getContext);
     if (seeded) context.saveSettingsDebounced();
     $('#extensions_settings').append(await renderExtensionTemplateAsync('director', 'settings'));
     $('#director_hotkey').val(settings.hotkey).on('input', function () {
@@ -474,6 +483,7 @@ export async function init() {
         context.eventTypes.CHARACTER_MESSAGE_RENDERED,
         context.eventTypes.USER_MESSAGE_RENDERED,
         context.eventTypes.MESSAGE_UPDATED,
+        context.eventTypes.MESSAGE_SWIPED,
         context.eventTypes.MESSAGE_DELETED,
         context.eventTypes.MORE_MESSAGES_LOADED,
     ]) context.eventSource.on(type, refreshChapters);

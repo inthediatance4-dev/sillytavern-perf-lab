@@ -64,6 +64,24 @@ export function prefillChapterTitle(message) {
 }
 
 /**
+ * Chapter metadata belongs to the message, so every swipe must restore it.
+ * Keep each swipe's other extras, and avoid sharing mutable director objects.
+ * @param {object} message Chat message
+ */
+export function syncChapterToSwipes(message) {
+    if (!Array.isArray(message.swipes) && !Array.isArray(message.swipe_info)) return;
+    if (!Array.isArray(message.swipe_info)) message.swipe_info = [];
+    const count = Math.max(message.swipes?.length ?? 0, message.swipe_info.length);
+    for (let index = 0; index < count; index++) {
+        if (!message.swipe_info[index] || typeof message.swipe_info[index] !== 'object') message.swipe_info[index] = {};
+        const info = message.swipe_info[index];
+        if (!info.extra || typeof info.extra !== 'object' || Array.isArray(info.extra)) info.extra = {};
+        if (message.extra?.director) info.extra.director = structuredClone(message.extra.director);
+        else delete info.extra.director;
+    }
+}
+
+/**
  * Marks a message as a chapter start. An existing director block keeps its
  * id and preset; a new block uses preset 'chapter'. No chapter number is written.
  * @param {object} message Chat message
@@ -81,6 +99,7 @@ export function markChapter(message, title, id) {
     if (!director.preset) director.preset = 'chapter';
     director.chapter = { title };
     message.extra.director = director;
+    syncChapterToSwipes(message);
     return director;
 }
 
@@ -98,6 +117,7 @@ export function unmarkChapter(message) {
     const keys = Object.keys(director);
     const chapterShell = keys.length > 0 && keys.every(key => key === 'id' || key === 'preset') && director.preset === 'chapter';
     if (keys.length === 0 || chapterShell) delete message.extra.director;
+    syncChapterToSwipes(message);
     return true;
 }
 

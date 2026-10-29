@@ -1,9 +1,13 @@
 #!/usr/bin/env node
-import { CommandLineParser } from './src/command-line.js';
+import { enableStartupCompileCache } from './src/compile-cache.js';
 import { serverDirectory } from './src/server-directory.js';
+
+enableStartupCompileCache();
 
 const startupTrace = process.env.ST_STARTUP_TRACE ? await import('./src/startup-trace.js') : null;
 if (startupTrace) startupTrace.mark('server_js_enter');
+
+const { CommandLineParser } = await import('./src/command-line.js');
 
 console.log(`Node version: ${process.version}. Running in ${process.env.NODE_ENV} environment. Server directory: ${serverDirectory}`);
 

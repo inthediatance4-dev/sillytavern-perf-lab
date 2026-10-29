@@ -1,0 +1,69 @@
+{
+  "side": "head",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 4,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 33.4,
+    "framesOver16_7Pct": 7.600950118764846,
+    "framesOver33Pct": 3.800475059382423,
+    "loafCount": 3,
+    "loafTotalMs": 294.29999999701977,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 207.19999999552965,
+    "formatP50Ms": 1.3999999985098839,
+    "formatP95Ms": 4.5,
+    "domP50Ms": 0.20000000298023224,
+    "domP95Ms": 0.30000000447034836,
+    "reasoningP95Ms": 0.20000000298023224,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 21.176801057338416,
+    "firstTokenMs": 118.305419921875,
+    "finishMs": 216.328857421875,
+    "typingP50Ms": 26.400146484375,
+    "typingP95Ms": 45.900146484375,
+    "scrollStolen": 22
+  },
+  "samples": {
+    "frames": 882,
+    "keys": 74,
+    "hooks": 1267
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793270513413.0947,
+    "receivedNs": "52671551524394",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793270513420.7249,
+    "lastChunkEpochMs": 1793270528248.2712,
+    "doneEpochMs": 1793270528248.2896,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

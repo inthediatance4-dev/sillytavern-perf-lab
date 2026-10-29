@@ -1,3 +1,4 @@
+import { streamingPerfEnabled, recordStreamingPerf } from './scripts/streaming-perf.js';
 import {
     showdown,
     moment,
@@ -3864,6 +3865,8 @@ class StreamingProcessor {
                 };
             }
 
+            let perfStart;
+            if (streamingPerfEnabled) perfStart = performance.now();
             const formattedText = messageFormatting(
                 processedText,
                 chat[messageId].name,
@@ -3873,6 +3876,10 @@ class StreamingProcessor {
                 {},
                 false,
             );
+            if (streamingPerfEnabled) {
+                recordStreamingPerf('format', perfStart, messageId);
+                perfStart = performance.now();
+            }
             if (this.messageTextDom instanceof HTMLElement) {
                 if (power_user.stream_fade_in) {
                     applyStreamFadeIn(this.messageTextDom, formattedText);
@@ -3880,6 +3887,8 @@ class StreamingProcessor {
                     this.messageTextDom.innerHTML = formattedText;
                 }
             }
+
+            if (streamingPerfEnabled) recordStreamingPerf('dom', perfStart, messageId);
 
             const timePassed = formatGenerationTimer(this.timeStarted, currentTime, currentTokenCount, this.reasoningHandler.getDuration(), this.timeToFirstToken);
             if (this.messageTimerDom instanceof HTMLElement) {
@@ -3891,7 +3900,13 @@ class StreamingProcessor {
         }
 
         if (!scrollLock) {
-            scrollChatToBottom({ waitForFrame: true });
+            if (streamingPerfEnabled) {
+                const start = performance.now();
+                scrollChatToBottom({ waitForFrame: true });
+                recordStreamingPerf('scroll', start, messageId);
+            } else {
+                scrollChatToBottom({ waitForFrame: true });
+            }
         }
     }
 

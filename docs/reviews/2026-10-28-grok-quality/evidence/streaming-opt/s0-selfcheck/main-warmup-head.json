@@ -1,0 +1,69 @@
+{
+  "side": "head",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 0,
+  "discarded": true,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 16.8,
+    "framesOver16_7Pct": 5.433526011560693,
+    "framesOver33Pct": 0.9248554913294799,
+    "loafCount": 2,
+    "loafTotalMs": 298.79999999701977,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 44.900000005960464,
+    "loafScriptotherMs": 162.70000000298023,
+    "formatP50Ms": 1.1000000014901161,
+    "formatP95Ms": 1.6000000014901161,
+    "domP50Ms": 0.19999999552965164,
+    "domP95Ms": 0.30000000447034836,
+    "reasoningP95Ms": 0.20000000298023224,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 22.72663310072663,
+    "firstTokenMs": 102.741455078125,
+    "finishMs": 250.468017578125,
+    "typingP50Ms": 20.900146484375,
+    "typingP95Ms": 38.900146484375,
+    "scrollStolen": 0
+  },
+  "samples": {
+    "frames": 907,
+    "keys": 74,
+    "hooks": 1027
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793270368061.1587,
+    "receivedNs": "52526199590847",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793270368069.221,
+    "lastChunkEpochMs": 1793270382677.632,
+    "doneEpochMs": 1793270382677.6592,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

@@ -3,7 +3,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import http from 'node:http';
 import net from 'node:net';
 import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +13,7 @@ import yaml from 'yaml';
 import isDocker from 'is-docker';
 import { labServerArguments } from './start-performance-lab.mjs';
 import { medianDifference, summarize, bootstrapSeed, resamples } from './benchmark-statistics.mjs';
+import { createFakeOpenAI } from './fake-openai-endpoint.mjs';
 import { describeDataRoot } from './describe-data-root.mjs';
 import { write as writeCard } from '../src/character-card-parser.js';
 
@@ -82,22 +82,8 @@ async function materialize(input) {
     return { directory, revision };
 }
 let generation = null;
-const fake = http.createServer(async (request, response) => {
-    const received = mono();
-    let body = '';
-    for await (const chunk of request) body += chunk;
-    response.setHeader('Content-Type', 'application/json');
-    if (request.url.endsWith('/models')) { response.end(JSON.stringify({ data: [{ id: 'startup-synthetic', object: 'model' }] })); return; }
-    if (!request.url.endsWith('/chat/completions')) { response.writeHead(404).end('{}'); return; }
-    const payload = JSON.parse(body);
-    generation = { receivedNs: received, path: request.url, model: payload.model, messageCount: payload.messages?.length };
-    if (payload.stream) {
-        response.setHeader('Content-Type', 'text/event-stream');
-        response.end(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: 'Synthetic reply' }, finish_reason: null }] })}\n\ndata: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\ndata: [DONE]\n\n`);
-    } else response.end(JSON.stringify({ id: 'synthetic', object: 'chat.completion', model: 'startup-synthetic', choices: [{ index: 0, message: { role: 'assistant', content: 'Synthetic reply' }, finish_reason: 'stop' }], usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 } }));
-});
-await new Promise(resolve => fake.listen(0, '127.0.0.1', resolve));
-const fakeUrl = `http://127.0.0.1:${fake.address().port}/v1`;
+const fake = await createFakeOpenAI({ reply: 'Synthetic reply' });
+const fakeUrl = fake.url;
 const port = await freePort();
 const origin = `http://127.0.0.1:${port}/`;
 const settings = JSON.parse(await fs.readFile(path.join(repo, 'default/content/settings.json'), 'utf8'));
@@ -215,6 +201,7 @@ async function run(side, label, discarded = false) {
     const epochMs = Date.now(), t0 = mono();
     const result = { side, label, discarded, cache, t0: { epochMs, hrtimeNs: t0.toString() }, status: 'failed' };
     generation = null;
+    fake.reset();
     try {
         const profileArgs = args.profile ? ['--cpu-prof', `--cpu-prof-dir=${temporary}`, '--cpu-prof-name=startup.cpuprofile'] : [];
         // A custom launch command inherits ST_LAB_*; it must use that isolated root/config/port.
@@ -227,9 +214,10 @@ async function run(side, label, discarded = false) {
         if (!args['lock-only']) {
             const trace = args.profile ? path.join(temporary, 'chromium-trace.json') : undefined;
             result.browser = await browserMeasure(side, trace);
+            generation = fake.generations.at(-1);
             if (!generation) throw new Error('No generation request reached fake server');
             result.uiMs = result.browser.uiEpochMs - epochMs;
-            result.sendMs = Number(generation.receivedNs - t0) / 1e6;
+            result.sendMs = Number(BigInt(generation.receivedNs) - t0) / 1e6;
             result.navigationToUiMs = result.browser.navigationToUiMs;
             result.uiAfterHttpMs = result.uiMs - result.httpMs;
             result.sendAfterUiMs = result.sendMs - result.uiMs;
@@ -305,6 +293,6 @@ try {
 } finally {
     worker?.stdin.end();
     if (worker) await new Promise(resolve => { worker.once('exit', resolve); setTimeout(() => { worker.kill(); resolve(); }, 5000).unref(); });
-    await new Promise(resolve => fake.close(resolve));
+    await fake.close();
     // Retain temp fixture/caches. Cleanup is deliberately manual and recoverable.
 }

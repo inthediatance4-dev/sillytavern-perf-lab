@@ -1,3 +1,4 @@
+import { streamingPerfEnabled, recordStreamingPerf } from './streaming-perf.js';
 import {
     moment,
 } from '../lib.js';
@@ -560,6 +561,8 @@ export class ReasoningHandler {
      * @param {number} messageId - The ID of the message to update
      */
     updateDom(messageId) {
+        let perfStart;
+        if (streamingPerfEnabled) perfStart = performance.now();
         this.#checkDomElements(messageId);
 
         // Main CSS class to show this message includes reasoning
@@ -598,6 +601,7 @@ export class ReasoningHandler {
 
         // Update the reasoning duration in the UI
         this.#updateReasoningTimeUI();
+        if (streamingPerfEnabled) recordStreamingPerf('reasoning', perfStart, messageId);
     }
 
     /**

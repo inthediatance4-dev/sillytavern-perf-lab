@@ -2,6 +2,8 @@ import path from 'node:path';
 import webpack from 'webpack';
 import getPublicLibConfig from '../../webpack.config.js';
 
+import { mark as traceMark } from '../startup-trace.js';
+
 export default function getWebpackServeMiddleware() {
     /**
      * A very spartan recreation of webpack-dev-middleware.
@@ -47,6 +49,18 @@ export default function getWebpackServeMiddleware() {
                         error = new Error('Webpack frontend compilation failed. See the compiler diagnostics.');
                     }
 
+                    if (typeof traceMark === 'function' && process.env.ST_STARTUP_TRACE && stats) {
+                        // Read the existing compilation, preserving the public Promise<void> API.
+                        try {
+                            const modules = [...stats.compilation.modules];
+                            traceMark('webpack_stats', { modules: modules.length,
+                                builtModules: modules.filter(module => stats.compilation.builtModules.has(module)).length,
+                                cachedModules: modules.filter(module => !stats.compilation.builtModules.has(module)).length,
+                                durationMs: stats.endTime - stats.startTime });
+                        } catch {
+                            traceMark('webpack_stats_unavailable');
+                        }
+                    }
                     const output = stats?.toString(publicLibConfig.stats);
                     if (output) {
                         console.log(output);

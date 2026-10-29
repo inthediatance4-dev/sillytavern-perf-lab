@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { assertContainedChatPath, checkLocalPath, markerPath, pathLockKey, recycleChatPath, restoreLegacyRetiredHolds, writeLifecycleAtomic } from './chat-io.js';
 
+const startupTrace = process.env.ST_STARTUP_TRACE ? await import('./startup-trace.js') : null;
+
 const markerName = /^[a-f0-9]{64}\.json$/;
 const stagingName = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}(?:\.[0-9]{1,10})?$/;
 
@@ -9,6 +11,7 @@ const stagingName = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-
 export async function scanLifecycle(root, { fs: filesystem = fs } = {}) {
     const io = filesystem.promises;
     const findings = [];
+    let traceFileCount = 0;
     async function exists(file) {
         try { await io.lstat(file); return true; }
         catch (error) { if (error.code === 'ENOENT') return false; throw error; }
@@ -20,6 +23,7 @@ export async function scanLifecycle(root, { fs: filesystem = fs } = {}) {
         catch (error) { if (error.code === 'ENOENT') return; throw error; }
         for (const entry of entries) {
             const source = path.join(directory, entry.name);
+            if (startupTrace && entry.isFile()) traceFileCount++;
             // Recycled evidence is intentionally outside reconciliation's scan.
             if (entry.name === '.recycle') continue;
             await checkLocalPath(source, root, filesystem);
@@ -49,6 +53,7 @@ export async function scanLifecycle(root, { fs: filesystem = fs } = {}) {
         }
     }
     await visit(root);
+    if (startupTrace) startupTrace.mark('lifecycle_scan_stats', { fileCount: traceFileCount, findings: findings.length });
     return findings;
 }
 
@@ -86,15 +91,21 @@ export async function applyReconciliation(findings, { log = console.warn } = {})
 
 /** Real startup entry point, also used by crash/restart tests. */
 export async function reconcileLifecycle(root, options) {
+    if (startupTrace) startupTrace.mark('restore_legacy_holds_begin');
     await restoreLegacyRetiredHolds(root);
+    if (startupTrace) startupTrace.mark('restore_legacy_holds_end');
+    if (startupTrace) startupTrace.mark('lifecycle_scan_begin');
     const findings = await scanLifecycle(root);
+    if (startupTrace) startupTrace.mark('lifecycle_scan_end', { findings: findings.length });
     await applyReconciliation(findings, options);
     return findings;
 }
 
 /** Default startup inspection: no migration or filesystem mutations. */
 export async function reportLifecycleScan(root, { log = console.warn, dataRoot = root } = {}) {
+    if (startupTrace) startupTrace.mark('lifecycle_scan_begin');
     const findings = await scanLifecycle(root);
+    if (startupTrace) startupTrace.mark('lifecycle_scan_end', { findings: findings.length });
     const counts = {};
     for (const { kind } of findings) counts[kind] = (counts[kind] || 0) + 1;
     log(`Lifecycle read-only scan: ${findings.length} findings ${JSON.stringify(counts)}; root=${root}. Run npm run check:integrity -- --data-root ${dataRoot} and enable exclusiveDataRoot: true for automatic reconciliation.`);

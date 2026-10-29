@@ -4,6 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { classifyPidLiveness, readProcessIdentity } from './process-identity.js';
 
+const startupTrace = process.env.ST_STARTUP_TRACE ? await import('./startup-trace.js') : null;
+
 // Acquisition is synchronous; restore the production filesystem before returning.
 let fs = defaultFs;
 let identityProvider = readProcessIdentity;
@@ -26,12 +28,15 @@ function probeIdentity(pid, options, deadline = probeDeadline) {
     }
     let identity;
     for (let attempt = 0; attempt < IDENTITY_PROBE_ATTEMPTS; attempt++) {
+        const traceSpawnCount = startupTrace ? startupTrace.childSpawnCount() : 0;
+        if (startupTrace) startupTrace.mark('identity_probe_begin', { self: pid === process.pid, attempt });
         const start = Date.now();
         const timeout = Math.min(options?.strict ? SELF_PROBE_TIMEOUT_MS : PEER_PROBE_TIMEOUT_MS, deadline - start);
         if (timeout <= 0) throw Object.assign(new Error('Process identity probe budget exhausted'), { code: 'ETIMEDOUT' });
         let failure;
         try { identity = identityProvider(pid, { ...options, timeout }); } catch (error) { failure = error; }
         const elapsed = Date.now() - start;
+        if (startupTrace) startupTrace.mark('identity_probe_end', { self: pid === process.pid, attempt, powershell_spawned: startupTrace.childSpawnCount() > traceSpawnCount });
         // The Windows provider can return no identity after swallowing a spawn timeout.
         if (process.platform === 'win32' && (failure?.code === 'ETIMEDOUT'
             || (elapsed >= timeout && !Number.isSafeInteger(identity?.processStartMs)))) {

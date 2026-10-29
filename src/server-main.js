@@ -82,6 +82,9 @@ import { diskCache } from './endpoints/characters.js';
 import { migrateFlatSecrets } from './endpoints/secrets.js';
 import { migrateGroupChatsMetadataFormat } from './endpoints/groups.js';
 
+const startupTrace = process.env.ST_STARTUP_TRACE ? await import('./startup-trace.js') : null;
+if (startupTrace) startupTrace.mark('imports_done');
+
 // Work around a node v20.0.0, v20.1.0, and v20.2.0 bug. The issue was fixed in v20.3.0.
 // https://github.com/nodejs/node/issues/47822#issuecomment-1564708870
 // Safe to remove once support for Node v20 is dropped.
@@ -106,7 +109,9 @@ if (!cliArgs.enableIPv6 && !cliArgs.enableIPv4) {
 // Opt-in. Ordinary startup and tests leave this unset. The lab launcher sets it.
 if (cliArgs.exclusiveDataRoot) {
     try {
+        if (startupTrace) startupTrace.mark('lock_acquire_begin', { exclusive: true });
         const owner = await acquireDataRootOwnership(globalThis.DATA_ROOT);
+        if (startupTrace) startupTrace.mark('lock_acquire_end', { exclusive: true });
         if (!owner.lockPath) throw new Error('Data-root ownership was not verified');
     } catch (error) {
         console.error(error.message);
@@ -318,6 +323,7 @@ async function preSetupTasks() {
     console.log();
 
     const directories = await getUserDirectoriesList();
+    if (startupTrace) startupTrace.mark('pre_setup_migrations_begin');
     await migrateGroupChatsMetadataFormat(directories);
     await checkForNewContent(directories);
     await diskCache.verify(directories);
@@ -328,8 +334,11 @@ async function preSetupTasks() {
     await settingsInit();
     await statsInit();
 
+    if (startupTrace) startupTrace.mark('pre_setup_migrations_end');
     const pluginsDirectory = path.join(serverDirectory, 'plugins');
+    if (startupTrace) startupTrace.mark('plugins_begin');
     const cleanupPlugins = await loadPlugins(app, pluginsDirectory);
+    if (startupTrace) startupTrace.mark('plugins_end');
     const consoleTitle = process.title;
 
     let isExiting = false;
@@ -375,7 +384,9 @@ async function preSetupTasks() {
     initRequestProxy({ enabled: cliArgs.requestProxyEnabled, url: cliArgs.requestProxyUrl, bypass: cliArgs.requestProxyBypass, enableKeepAlive: cliArgs.enableKeepAlive, privateRequestFilterEnabled: requestFilterOptions.enabled });
 
     // Wait for frontend libs to compile
+    if (startupTrace) startupTrace.mark('webpack_begin');
     await webpackMiddleware.runWebpackCompiler({ pruneCache: true });
+    if (startupTrace) startupTrace.mark('webpack_end');
 }
 
 /**
@@ -501,26 +512,39 @@ function setDnsResolutionOrder() {
 }
 
 // User storage module needs to be initialized before starting the server
-initUserStorage(globalThis.DATA_ROOT)
+(startupTrace ? startupTrace.measureAsync('init_user_storage', () => initUserStorage(globalThis.DATA_ROOT)) : initUserStorage(globalThis.DATA_ROOT))
     .then(setDnsResolutionOrder)
     .then(ensurePublicDirectoriesExist)
     .then(async () => {
         for (const directories of await getUserDirectoriesList()) {
             for (const root of [directories.chats, directories.characters, directories.groupChats]) {
+                if (startupTrace) startupTrace.mark('lifecycle_begin', { rootKind: path.basename(root), exclusive: cliArgs.exclusiveDataRoot });
                 if (cliArgs.exclusiveDataRoot) await reconcileLifecycle(root);
                 else {
                     // Pre-existing legacy hold restoration is kept; the new scan itself is read-only.
+                    if (startupTrace) startupTrace.mark('restore_legacy_holds_begin');
                     await restoreLegacyRetiredHolds(root);
+                    if (startupTrace) startupTrace.mark('restore_legacy_holds_end');
                     await reportLifecycleScan(root, { dataRoot: globalThis.DATA_ROOT });
                 }
+                if (startupTrace) startupTrace.mark('lifecycle_end', { rootKind: path.basename(root) });
             }
         }
+        if (startupTrace) startupTrace.mark('user_migrations_begin');
     })
     .then(migrateUserData)
     .then(migrateSystemPrompts)
     .then(migratePublicOverrides)
-    .then(verifySecuritySettings)
+    .then(startupTrace ? () => { startupTrace.mark('user_migrations_end'); return verifySecuritySettings(); } : verifySecuritySettings)
     .then(preSetupTasks)
     .then(apply404Middleware)
-    .then(() => new ServerStartup(app, cliArgs).start())
+    .then(() => {
+        if (startupTrace) startupTrace.mark('listen_begin');
+        const started = new ServerStartup(app, cliArgs).start();
+        return startupTrace ? started.then(result => {
+            startupTrace.mark('listen_end');
+            startupTrace.finalize({ rss: process.memoryUsage().rss });
+            return result;
+        }) : started;
+    })
     .then(postSetupTasks);

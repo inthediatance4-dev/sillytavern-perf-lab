@@ -1,9 +1,12 @@
-"""Director acceptance on a temporary, isolated lab; retained for D3 to extend.
+"""Director acceptance on a temporary, isolated lab.
 
-Run with a Python environment containing Playwright. The S0 provider defaults to
-scripts/fake-openai-endpoint.mjs; --fake-endpoint can point at its unmerged copy.
-Only summary hashes are retained. Data, logs, base assets and Chromium state live
-in a temporary directory, and every process this script stops is its own child.
+This is the director browser suite. tests/browser-lifecycle-lab.py --director
+runs this same file. The default lifecycle command is unchanged.
+
+Run with a Python environment containing Playwright. The S0 provider is
+scripts/fake-openai-endpoint.mjs. Only summary hashes are retained. Data, logs,
+base assets and Chromium state live in a temporary directory, and every process
+this script stops is its own child.
 """
 import argparse
 import contextlib
@@ -138,8 +141,67 @@ def chat_count(page):
     return page.evaluate('SillyTavern.getContext().chat.length')
 
 
+CHAPTER_SNAPSHOT = """() => {
+    const chat = SillyTavern.getContext().chat;
+    const chapters = [];
+    let number = 0;
+    for (let index = 0; index < chat.length; index++) {
+        const director = chat[index]?.extra?.director;
+        const title = director?.chapter?.title;
+        if (typeof title !== 'string') continue;
+        number += 1;
+        const mes = document.querySelector('#chat .mes[mesid="' + index + '"]');
+        const text = mes?.querySelector('.mes_text');
+        chapters.push({
+            index, number, title,
+            divider: mes?.querySelector('.mes_block > .director-chapter-divider')?.textContent ?? null,
+            insideText: !!text?.querySelector('.director-chapter-divider'),
+            hasClass: !!mes?.classList.contains('director-chapter'),
+            text: text?.textContent ?? null,
+            html: text?.innerHTML ?? null,
+            storedKeys: director ? Object.keys(director).sort() : [],
+            chapterKeys: director?.chapter ? Object.keys(director.chapter).sort() : [],
+        });
+    }
+    return chapters;
+}"""
+
+
+def chapter_snapshot(page):
+    chapters = page.evaluate(CHAPTER_SNAPSHOT)
+    for chapter in chapters:
+        assert chapter['divider'] == f"第{chapter['number']}章 {chapter['title']}", chapter
+        assert chapter['insideText'] is False
+        assert chapter['hasClass'] is True
+        assert 'number' not in chapter['storedKeys']
+        assert chapter['chapterKeys'] == ['title']
+    return chapters
+
+
+def open_chapter_menu(page, mesid):
+    row = page.locator(f'#chat .mes[mesid="{mesid}"]')
+    row.scroll_into_view_if_needed()
+    button = row.locator('.mes_director_chapter')
+    if not button.is_visible():
+        row.locator('.extraMesButtonsHint').click()
+        button.wait_for(state='visible')
+    return row, button
+
+
+def connect_api(page):
+    page.evaluate("document.querySelector('#api_button_openai').click()")
+    page.wait_for_function("[...document.querySelectorAll('.online_status_text')].some(node => node.textContent.toLowerCase().includes('valid'))", timeout=15000)
+
+
+def wait_director_idle(page):
+    # usePreset ignores a new click until its command (and optional /trigger) finishes.
+    page.wait_for_function("() => !document.querySelector('#directorButton')?.hasAttribute('data-director-busy')")
+
+
 def open_manager(page):
+    wait_director_idle(page)
     page.locator('#directorButton').click()
+    page.locator('#directorPopover').wait_for(state='visible')
     page.locator('#directorPopover').get_by_text('⚙ 管理预设', exact=True).click()
     page.locator('#director_presets').wait_for(state='visible')
     assert page.locator('#directorPopover').is_hidden()
@@ -171,9 +233,15 @@ def wait_presets_saved(data_root, expected):
     raise AssertionError('Debounced Director presets did not persist')
 
 
+def is_saved_chat(response):
+    path = urllib.parse.urlparse(response.url).path
+    return response.status == 200 and path in {'/api/chats/save', '/api/chats/group/save'}
+
+
 def preset(page, preset_id, text=None, cancel=False, digit=None):
     saves_chat = not cancel and preset_id in {'time-skip', 'scene', 'narration', 'chapter', 'event', 'note'}
-    save = page.expect_response(lambda response: '/api/chats/save' in response.url and response.status == 200) if saves_chat else contextlib.nullcontext()
+    save = page.expect_response(is_saved_chat) if saves_chat else contextlib.nullcontext()
+    wait_director_idle(page)
     with save as saved:
         page.locator('#directorButton').click()
         page.locator('#directorPopover').wait_for(state='visible')
@@ -191,9 +259,8 @@ def preset(page, preset_id, text=None, cancel=False, digit=None):
     if saves_chat:
         saved.value.body()
     page.locator('#directorPopover').wait_for(state='hidden')
-    # Rendering precedes JSONL persistence; allow the command's final continuation
-    # to release its execution guard before the next user action.
-    page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+    # The save response arrives before usePreset releases its guard.
+    wait_director_idle(page)
 
 
 def run(args, temporary):
@@ -332,7 +399,9 @@ def run(args, temporary):
                 director_box = page.locator('#directorButton').bounding_box()
                 assert abs(wand_box['y'] - director_box['y']) < 1 and director_box['x'] >= wand_box['x'] + wand_box['width'] - 1
                 enabled_focus = snapshot(page)['focus']
-                # Director intentionally adds one focusable button next to the extension menu.
+                # Intentional tab-order change: only the extra 🎬 #directorButton.
+                # The chapter menu item lives in the hidden per-message … menu and
+                # is not a left-row tab stop.
                 assert [item for item in enabled_focus if item != 'directorButton'] == disabled['focus']
                 assert enabled_focus.count('directorButton') == 1
                 result['checks']['buttonAdjacentAndIntentionalFocusEntry'] = True
@@ -429,8 +498,7 @@ def run(args, temporary):
                 preset(page, 'direct', text=instruction)
                 assert chat_count(page) == 5 and page.locator('#chat .mes').count() == 5
                 result['checks']['instructAddsNoChatMessage'] = True
-                page.evaluate("document.querySelector('#api_button_openai').click()")
-                page.wait_for_function("[...document.querySelectorAll('.online_status_text')].some(node => node.textContent.toLowerCase().includes('valid'))", timeout=15000)
+                connect_api(page)
                 request_url = fake_url.removesuffix('/v1') + '/__requests'
 
                 def requests():
@@ -479,7 +547,9 @@ def run(args, temporary):
                 result['checks']['nextChapterCountComputedLive'] = True
 
                 stage = 'optional configured hotkey'
+                wait_director_idle(page)
                 page.locator('#directorButton').click()
+                page.locator('#directorPopover').wait_for(state='visible')
                 page.locator('#directorPopover').get_by_text('⚙ 管理预设', exact=True).click()
                 page.locator('#director_hotkey').fill('Ctrl+Shift+D')
                 page.locator('#extensions-settings-button .drawer-toggle').click()
@@ -667,6 +737,246 @@ def run(args, temporary):
                 assert chat_count(page) == 15 and len(requests()) == 3
                 result['checks']['actualQuickReplyExecutionExactNarrator'] = True
                 print('D2 manager persistence, reorder, import/export, restore and slash command passed', flush=True)
+
+                stage = 'digit one with popover closed'
+                page.locator('#send_textarea').fill('')
+                assert page.locator('#directorPopover').is_hidden()
+                page.locator('#send_textarea').press('1')
+                assert page.locator('#send_textarea').input_value() == '1'
+                assert chat_count(page) == 15 and page.locator('dialog[open]').count() == 0
+                assert page.locator('#directorPopover').is_hidden()
+                page.locator('#send_textarea').fill('')
+                result['checks']['digitOneInsertsOnlyWhenPopoverClosed'] = True
+
+                stage = 'chapter dividers outside message text'
+                existing = chapter_snapshot(page)
+                assert len(existing) >= 3, existing
+                assert all('第' not in chapter['divider'] or chapter['divider'].startswith('第') for chapter in existing)
+                assert any(chapter['text'] != chapter['divider'] for chapter in existing)
+                result['checks']['chapterDividersUseLiveNumbersOutsideMesText'] = True
+
+                stage = 'mark and unmark an arbitrary message'
+                target = page.locator('#chat .mes[mesid="0"]')
+                html_before = target.locator('.mes_text').inner_html()
+                assert page.evaluate("() => !SillyTavern.getContext().chat[0]?.extra?.director?.chapter")
+                row, menu_button = open_chapter_menu(page, 0)
+                menu_button.click()
+                dialog = page.locator('dialog[open]')
+                dialog.locator('textarea').wait_for(state='visible')
+                assert dialog.locator('textarea').input_value() == 'Synthetic greeting'
+                dialog.locator('textarea').fill('手动章节')
+                with page.expect_response(is_saved_chat) as marked_save:
+                    dialog.locator('.popup-button-ok').click()
+                dialog.wait_for(state='hidden')
+                marked_save.value.finished()
+                page.wait_for_function("""() => document.querySelector('#chat .mes[mesid="0"] .director-chapter-divider')?.textContent === '第1章 手动章节'""")
+                assert target.locator('.mes_text').inner_html() == html_before
+                assert target.locator('.mes_text .director-chapter-divider').count() == 0
+                marked = chapter_snapshot(page)
+                assert marked[0]['title'] == '手动章节' and marked[0]['index'] == 0
+                assert [chapter['title'] for chapter in marked[1:]] == [chapter['title'] for chapter in existing]
+                assert [chapter['number'] for chapter in marked[1:]] == [chapter['number'] + 1 for chapter in existing]
+                stored = page.evaluate("""async (sample) => {
+                    const context = SillyTavern.getContext();
+                    const response = await fetch('/api/chats/get', { method:'POST', headers:context.getRequestHeaders(),
+                        body:JSON.stringify({ avatar_url:sample.avatar, file_name:sample.chatName }) });
+                    if (!response.ok) throw new Error('chapter JSONL read failed');
+                    const rows = await response.json();
+                    return rows[1].extra.director;
+                }""", sample)
+                assert stored['preset'] == 'chapter' and stored['chapter'] == {'title': '手动章节'}
+                assert set(stored) == {'id', 'preset', 'chapter'}
+                assert str(uuid.UUID(stored['id'])) == stored['id']
+                row, menu_button = open_chapter_menu(page, 0)
+                with page.expect_response(is_saved_chat) as unmarked_save:
+                    menu_button.click()
+                unmarked_save.value.finished()
+                page.wait_for_function("""() => !document.querySelector('#chat .mes[mesid="0"]').classList.contains('director-chapter')""")
+                assert page.evaluate("() => SillyTavern.getContext().chat[0].extra.director") is None
+                assert target.locator('.mes_text').inner_html() == html_before
+                assert chapter_snapshot(page) == existing
+                result['checks']['markUnmarkArbitraryMessagePersistsWithoutNumber'] = True
+
+                stage = 'delete middle chapter renumbers'
+                before_delete = chapter_snapshot(page)
+                middle = before_delete[len(before_delete) // 2]
+                following = next(chapter for chapter in before_delete if chapter['number'] == middle['number'] + 1)
+                page.locator('#send_textarea').click()
+                victim = page.locator(f"#chat .mes[mesid='{middle['index']}']")
+                victim.scroll_into_view_if_needed()
+                victim.hover()
+                victim.locator('.mes_edit').click()
+                victim.locator('.mes_edit_delete').click()
+                page.locator('dialog[open]').get_by_text('Delete Message', exact=True).click()
+                page.wait_for_function("""({removed, title, label}) => {
+                    const chat = SillyTavern.getContext().chat;
+                    if (chat.some(message => message?.extra?.director?.chapter?.title === removed)) return false;
+                    const index = chat.findIndex(message => message?.extra?.director?.chapter?.title === title);
+                    return document.querySelector('#chat .mes[mesid="' + index + '"] .director-chapter-divider')?.textContent === label;
+                }""", arg={'removed': middle['title'], 'title': following['title'], 'label': f"第{following['number'] - 1}章 {following['title']}"})
+                after_delete = chapter_snapshot(page)
+                assert [chapter['title'] for chapter in after_delete] == [chapter['title'] for chapter in before_delete if chapter['title'] != middle['title']]
+                assert [chapter['number'] for chapter in after_delete] == list(range(1, len(after_delete) + 1))
+                renumbered = next(chapter for chapter in after_delete if chapter['title'] == following['title'])
+                assert renumbered['number'] == following['number'] - 1
+                assert renumbered['text'] == following['text']
+                result['checks']['deleteMiddleChapterRecomputesNumbers'] = True
+                print('Chapter mark, unmark and live renumber passed', flush=True)
+
+                stage = 'chapter list jumps through a 2000 message chat'
+                page.set_default_timeout(180000)
+                long_chat = page.evaluate("""async (sample) => {
+                    const main = await import('/script.js');
+                    const deadline = Date.now() + 15000;
+                    while (main.isChatSaving && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+                    const token = (await (await fetch('/csrf-token')).json()).token;
+                    const post = async (url, body) => {
+                        const response = await fetch(url, { method:'POST', headers:{ 'X-CSRF-Token':token, 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+                        if (!response.ok) throw new Error(url + ' ' + response.status + ' ' + await response.text());
+                        return response.json();
+                    };
+                    const file = 'DirectorLong-' + sample.suffix;
+                    const titles = { 0:'开端', 1000:'中段', 1990:'近尾' };
+                    const rows = [{ user_name:'Synthetic Tester', character_name:'Director Synthetic', chat_metadata:{ integrity:'director-long-' + sample.suffix } }];
+                    for (let i = 0; i < 2000; i++) {
+                        const extra = {};
+                        if (titles[i]) extra.director = { id:crypto.randomUUID(), preset:'chapter', chapter:{ title:titles[i] } };
+                        rows.push({ name:i % 2 ? 'Director Synthetic' : 'Synthetic Tester', is_user:i % 2 === 0, is_system:false,
+                            send_date:'2026-01-01T00:00:00.000Z', mes:'Synthetic long ' + i, extra });
+                    }
+                    await post('/api/chats/save', { avatar_url:sample.avatar, file_name:file, chat:rows });
+                    const opened = await SillyTavern.getContext().openCharacterChat(file);
+                    if (opened === false) throw new Error('2000 message chat did not open');
+                    return file;
+                }""", {**sample, 'suffix': uuid.uuid4().hex[:10]})
+                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2000 && document.querySelectorAll('#chat .mes').length === 100 && !!document.querySelector('#show_more_messages')""", timeout=60000)
+                tail = page.locator('#chat .mes[mesid="1990"] .director-chapter-divider')
+                tail.wait_for(state='visible')
+                assert tail.inner_text() == '第3章 近尾'
+                assert page.locator('#chat .mes[mesid="1990"] .mes_text').inner_text() == 'Synthetic long 1990'
+                assert page.locator('#chat .mes[mesid="1990"] .mes_text .director-chapter-divider').count() == 0
+                assert page.locator('#chat .mes[mesid="0"]').count() == 0
+                page.locator('#directorButton').click()
+                page.locator('#directorPopover').get_by_text('📖 章节', exact=True).click()
+                assert page.locator('#directorPopover .director_chapter_jump').count() == 3
+                page.locator('#directorPopover .director_chapter_jump', has_text='第3章 近尾').click()
+                page.wait_for_function("""() => {
+                    const mes = document.querySelector('#chat .mes[mesid="1990"]');
+                    if (!mes?.classList.contains('director-chapter-highlight')) return false;
+                    const rect = mes.getBoundingClientRect();
+                    return rect.bottom > 0 && rect.top < innerHeight && !document.querySelector('dialog[open]');
+                }""")
+                first_loaded = page.evaluate("""() => Number(document.querySelector('#chat .mes').getAttribute('mesid'))""")
+                distance = first_loaded - 0
+                assert distance > 500, distance
+                page.locator('#directorButton').click()
+                page.locator('#directorPopover').get_by_text('📖 章节', exact=True).click()
+                page.locator('#directorPopover .director_chapter_jump', has_text='第1章 开端').click()
+                dialog = page.locator('dialog[open]')
+                dialog.get_by_text(f'需要加载约 {distance} 条消息', exact=True).wait_for()
+                dialog.get_by_text('取消', exact=True).click()
+                dialog.wait_for(state='hidden')
+                assert page.locator('#chat .mes[mesid="0"]').count() == 0
+                page.locator('#directorButton').click()
+                page.locator('#directorPopover').get_by_text('📖 章节', exact=True).click()
+                page.locator('#directorPopover .director_chapter_jump', has_text='第1章 开端').click()
+                dialog.get_by_text('加载', exact=True).click()
+                page.wait_for_function("""() => {
+                    const mes = document.querySelector('#chat .mes[mesid="0"]');
+                    if (!mes?.classList.contains('director-chapter-highlight')) return false;
+                    const rect = mes.getBoundingClientRect();
+                    const divider = mes.querySelector('.mes_block > .director-chapter-divider');
+                    return rect.bottom > 0 && rect.top < innerHeight && divider?.textContent === '第1章 开端'
+                        && mes.querySelector('.mes_text')?.textContent === 'Synthetic long 0'
+                        && !mes.querySelector('.mes_text .director-chapter-divider')
+                        && !document.querySelector('#show_more_messages');
+                }""", timeout=180000)
+                loaded = chapter_snapshot(page)
+                assert [chapter['title'] for chapter in loaded] == ['开端', '中段', '近尾']
+                assert loaded[1]['divider'] == '第2章 中段'
+                assert page.evaluate("""() => SillyTavern.getContext().chat.every(message => {
+                    const director = message?.extra?.director;
+                    if (!director) return true;
+                    return !Object.hasOwn(director, 'number') && !Object.hasOwn(director.chapter || {}, 'number');
+                })""")
+                result['checks']['chapterListJumpsAcrossTwoThousandMessages'] = True
+                result['longChat'] = {'file': long_chat, 'loadedBeforeJump': 100, 'confirmDistance': distance}
+                print('Chapter list loaded and jumped to chapter 1', flush=True)
+
+                stage = 'group chat narrator comment and instruct'
+                # Restoring presets reloads the page, and auto-connect is off.
+                connect_api(page)
+                request_baseline = len(requests())
+                page.evaluate("""async (sample) => {
+                    const main = await import('/script.js');
+                    const deadline = Date.now() + 15000;
+                    while (main.isChatSaving && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+                    const token = (await (await fetch('/csrf-token')).json()).token;
+                    const post = async (url, body) => {
+                        const response = await fetch(url, { method:'POST', headers:{ 'X-CSRF-Token':token, 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(url + ' ' + response.status + ' ' + JSON.stringify(data));
+                        return data;
+                    };
+                    const chatId = 'DirectorGroup-' + sample.suffix;
+                    const group = await post('/api/groups/create', { name:'Synthetic Director Group', members:[sample.avatar],
+                        chat_id:chatId, chats:[chatId], activation_strategy:1, generation_mode:0 });
+                    await post('/api/chats/group/save', { id:chatId, chat:[
+                        { user_name:'Synthetic Tester', character_name:'Group', chat_metadata:{ integrity:'director-group-' + sample.suffix } },
+                        { name:'Synthetic Tester', is_user:true, is_system:false, send_date:'2026-01-01T00:00:00.000Z', mes:'Group synthetic start', extra:{} },
+                    ] });
+                    const groupModule = await import('/scripts/group-chats.js');
+                    await groupModule.getGroups();
+                    if (!await groupModule.openGroupById(group.id)) throw new Error('Synthetic group did not open');
+                }""", {**sample, 'suffix': uuid.uuid4().hex[:10]})
+                page.wait_for_function("""() => !!SillyTavern.getContext().groupId && SillyTavern.getContext().chat.length === 1 && document.querySelectorAll('#chat .mes').length === 1""", timeout=60000)
+                preset(page, 'time-skip', text='群聊片刻')
+                page.wait_for_function("""() => SillyTavern.getContext().chat.at(-1)?.mes === '——群聊片刻后——'""")
+                narrator = page.evaluate("""() => {
+                    const message = SillyTavern.getContext().chat.at(-1);
+                    return {
+                        type: message?.extra?.type ?? null,
+                        preset: message?.extra?.director?.preset ?? null,
+                        text: message?.mes ?? null,
+                        system: message?.is_system ?? null,
+                        director: message?.extra?.director ?? null,
+                        extraKeys: message?.extra ? Object.keys(message.extra) : [],
+                    };
+                }""")
+                # /sys stores is_system as '' when extractMessageBias finds no {{bias}}.
+                # The empty string is falsy, so the narrator stays in the prompt like /sys.
+                assert narrator['text'] == '——群聊片刻后——', narrator
+                assert narrator['type'] == 'narrator', narrator
+                assert narrator['preset'] == 'time-skip', narrator
+                assert narrator['system'] == '', narrator
+                assert narrator['director'].get('chapter') is None, narrator
+                preset(page, 'note', text='群聊备注不进模型')
+                page.wait_for_function("""() => SillyTavern.getContext().chat.at(-1)?.mes === '群聊备注不进模型' && SillyTavern.getContext().chat.at(-1)?.is_system === true""")
+                comment_preset = page.evaluate("""() => SillyTavern.getContext().chat.at(-1).extra.director.preset""")
+                assert comment_preset == 'note'
+                before_instruct = chat_count(page)
+                preset(page, 'direct', text='群聊只出现一次的指令')
+                assert chat_count(page) == before_instruct
+                page.evaluate("""() => SillyTavern.getContext().executeSlashCommandsWithOptions('/trigger await=true')""")
+                page.wait_for_function("""() => SillyTavern.getContext().chat.at(-1)?.mes === 'Synthetic Director reply.'""", timeout=30000)
+                deadline = time.monotonic() + 15
+                while len(requests()) < request_baseline + 1 and time.monotonic() < deadline:
+                    page.wait_for_timeout(50)
+                first_group = requests()[request_baseline:]
+                assert len(first_group) == 1, len(requests())
+                first_body = json.dumps(first_group[0], ensure_ascii=False)
+                assert '——群聊片刻后——' in first_body and '群聊备注不进模型' not in first_body and '群聊只出现一次的指令' in first_body
+                page.evaluate("""() => SillyTavern.getContext().executeSlashCommandsWithOptions('/trigger await=true')""")
+                page.wait_for_function("""() => SillyTavern.getContext().chat.filter(message => message.mes === 'Synthetic Director reply.').length === 2""", timeout=30000)
+                deadline = time.monotonic() + 15
+                while len(requests()) < request_baseline + 2 and time.monotonic() < deadline:
+                    page.wait_for_timeout(50)
+                second_group = requests()[request_baseline:]
+                assert len(second_group) == 2
+                second_body = json.dumps(second_group[1], ensure_ascii=False)
+                assert '群聊只出现一次的指令' not in second_body and '——群聊片刻后——' in second_body
+                result['checks']['groupNarratorCommentAndInstruct'] = True
+                print('Group narrator, comment and one-shot instruct passed', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

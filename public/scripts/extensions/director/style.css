@@ -115,3 +115,33 @@
 .director_preset textarea {
     resize: vertical;
 }
+
+.director_empty {
+    margin: 8px;
+}
+
+/* Divider stays outside .mes_text so streaming and other extensions keep the message body. */
+.director-chapter-divider {
+    margin: 2px 0 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeQuoteColor);
+    font-weight: 600;
+    text-align: center;
+    user-select: none;
+}
+
+.mes.director-chapter-highlight {
+    box-shadow: inset 0 0 0 2px var(--SmartThemeQuoteColor);
+}
+
+.extraMesButtons:has(> .mes_director_chapter) {
+    overflow: visible;
+}
+
+.mes_director_chapter {
+    flex: 0 0 auto;
+    font-style: normal;
+    font-weight: 600;
+    white-space: nowrap;
+}

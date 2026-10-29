@@ -2,12 +2,26 @@
 
 Defaults to the launcher at http://127.0.0.1:8780/ and writes evidence under
 the repo `.evidence/browser` directory. See tests/lab_browser.py.
+
+Director suite (own lab, fake OpenAI endpoint, no LAB_URL required):
+
+    python tests/browser-lifecycle-lab.py --director
+
+That is the same suite as tests/browser-director-lab.py. Extra arguments after
+--director are passed through, for example --output and --node.
 """
 import json
 import pathlib
+import runpy
 import sys
 import uuid
 from playwright.sync_api import sync_playwright
+
+if __name__ == '__main__' and '--director' in sys.argv:
+    suite = pathlib.Path(__file__).with_name('browser-director-lab.py')
+    sys.argv = [str(suite), *[arg for arg in sys.argv[1:] if arg != '--director']]
+    runpy.run_path(str(suite), run_name='__main__')
+    raise SystemExit(0)
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lab_browser import assert_lab_page, evidence_dir, lab_origin, launch_chromium

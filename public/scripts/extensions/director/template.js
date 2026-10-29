@@ -49,11 +49,13 @@ export async function collectPresetInputs(template, text, collectInputs) {
 
 /**
  * Counts chapter markers from the current chat, so deletions need no renumbering.
+ * A marker is a string title at extra.director.chapter.title. Chapter numbers
+ * are not stored, and a chapter object without a title does not count.
  * @param {object[]} chat Current messages
  * @returns {number} Number of marked chapters
  */
 export function countChapters(chat = []) {
-    return chat.filter(message => message?.extra?.director?.chapter).length;
+    return chat.filter(message => typeof message?.extra?.director?.chapter?.title === 'string').length;
 }
 
 /**

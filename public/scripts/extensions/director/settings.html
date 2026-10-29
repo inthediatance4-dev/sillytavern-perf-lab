@@ -22,6 +22,7 @@
             <small>导入会整份替换，校验失败则保持原样。文件须为 {"version":1,"presets":[…]}，不能是裸数组。每项只能包含 id、icon、name、mode、template、isChapter、autoGenerate，重复 id 会被拒绝。名称和 id 不可为空白，mode 只能是 narrator、comment、instruct。id / 图标 / 名称 / 模板长度上限分别为 128 / 64 / 200 / 20000 字符，最多 50 个预设。</small>
             <p id="director_preset_status" role="status" aria-live="polite"></p>
             <p><code>/director &lt;名称或序号&gt; [文字]</code> 可用于 Quick Reply。文字填入第一个输入框，其余输入使用默认值；没有默认值的输入会弹出对话框。名称先精确匹配，再忽略大小写。纯数字始终表示序号。含空格的名称请加引号。</p>
+            <p>章节只保存在该消息的 extra.director 上，形如 id、preset 为 chapter、chapter.title。不保存章节序号，不写入 chat_metadata，也没有单独的章节文件。序号按整段聊天里带标题的消息顺序现算，删除中间章节后自动重排。章节预设的标题是模板里第一个 {{input}} 的原始输入（默认预设的提示是「章节标题」），后面的输入只进入正文；没有输入框时用预设名称。展开后的「第N章」文字不是标题。消息菜单「设为章节起点」可标记任意消息，标题框预填该消息首行；再点一次取消。取消后如果 director 只剩下章节外壳（id，且 preset 为 chapter）就整段删除，其他预设留下的 id 和 preset 会保留。弹出菜单里的「章节」列出序号和标题，点击跳到该消息；目标距当前已加载范围超过 500 条时会先确认。</p>
         </div>
     </div>
     <template id="director_preset_template">

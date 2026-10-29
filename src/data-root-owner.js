@@ -371,12 +371,30 @@ function reclaimMarkerState(reclaimPath, ourPayload) {
  * @param {string} text
  * @returns {boolean}
  */
+/**
+ * Same-host liveness with identity probing. Skip the probe when the pid is
+ * already gone (ESRCH): Windows PowerShell identity reads otherwise burn the
+ * peer budget on a process that cannot be live.
+ * @param {{ v?: number, pid: number, bootId?: string, startTicks?: string, processStartMs?: number }} owner
+ * @returns {'live'|'dead'|'reused'}
+ */
+function classifySameHostLiveness(owner) {
+    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) return 'live';
+    try {
+        process.kill(owner.pid, 0);
+    } catch (error) {
+        if (error && error.code === 'ESRCH') return 'dead';
+        // EPERM/unknown still need identity: a live Windows pid can refuse signals.
+    }
+    return classifyPidLiveness(owner, { identity: probeIdentity(owner.pid, { fs }) });
+}
+
 function reclaimProcessIsDead(text) {
     try {
         const record = JSON.parse(text);
         const marker = classifyOwner(JSON.stringify({ ...record, startedAt: record.startedAt || record.claimedAt }));
         return marker.kind === 'owner' && marker.owner.hostname === os.hostname()
-            && classifyPidLiveness(marker.owner, { identity: probeIdentity(marker.owner.pid, { fs }) }) !== 'live';
+            && classifySameHostLiveness(marker.owner) !== 'live';
     } catch {
         return false;
     }
@@ -435,7 +453,7 @@ function inspectLock(lockPath, resolved) {
     if (classified.owner.hostname !== os.hostname()) {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }
-    const liveness = classifyPidLiveness(classified.owner, { identity: probeIdentity(classified.owner.pid, { fs }) });
+    const liveness = classifySameHostLiveness(classified.owner);
     if (liveness === 'live') {
         return { action: 'refuse', error: lockedError(resolved, classified.owner) };
     }

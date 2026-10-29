@@ -22,7 +22,7 @@ export async function installProbe(truncation) {
     };
 }
 
-export async function openChat({ avatar, size }) {
+export async function openChat({ avatar, size, chatFile }) {
     const ctx = SillyTavern.getContext();
     await ctx.getCharacters();
     const index = ctx.characters.findIndex(c => c.avatar === avatar);
@@ -30,7 +30,7 @@ export async function openChat({ avatar, size }) {
     ctx.eventSource.once(ctx.eventTypes.CHAT_CHANGED, () => { changed = true; });
     window.labTasks = [];
     const start = performance.now();
-    await ctx.selectCharacterById(String(index));
+    await ctx.selectCharacterById(String(index), chatFile ? { chatFile } : {});
     if (!changed || ctx.chat.length !== size || !document.querySelector(`#chat .mes[mesid="${size - 1}"]`)) throw new Error('Open completion invariant failed');
     await window.labIdle();
     return { ms: performance.now() - start, tasks: window.labTasks.filter(t => t.start >= start), loadedTruncationBeforeOverride: window.labDefaultTruncation, settings: window.labSettings };
@@ -302,4 +302,177 @@ export async function trimBoundaryScenario({ avatar, chatName }) {
     return { beforeIds, atSent, afterIds, afterDeleteIds, afterReloadIds, anchorDriftPx: drift,
         restoredButton, chatPrefixUnchanged: true, savedMatchesChat: true, missingDomEditDeleteNoop: true,
         boundaryEditDelete: true, reloadedMessageEditable: true, overflowAnchor: container.style.overflowAnchor };
+}
+
+// Each run starts from the identical saved chat in a fresh page. The reference
+// invokes the same operation only after showMoreMessages resolves.
+export async function preparationConcurrency({ case: scenario, mode, target }) {
+    const ctx = SillyTavern.getContext();
+    const script = window.labScript;
+    // Date is fixed across paired pages. jQuery animations use Date.now(), so
+    // disable their duration to let regeneration's hide callback complete.
+    script.setAnimationDuration(0);
+    const { power_user } = await import(location.origin + '/scripts/power-user.js');
+    const { SWIPE_SOURCE, SWIPE_DIRECTION } = await import(location.origin + '/scripts/constants.js');
+    const container = document.querySelector('#chat');
+    container.style.overflowAnchor = 'none';
+    // Rendering backfills swipe metadata. Canonicalize the same starting model
+    // on both sides so unrelated-entry checks include those fields exactly.
+    for (const [id, message] of ctx.chat.entries()) {
+        if (script.ensureSwipes(message)) script.syncMesToSwipe(id);
+    }
+    const initial = JSON.parse(JSON.stringify(ctx.chat));
+    const originalIdentity = { character: script.this_chid, chat: script.getCurrentChatId() };
+    const before = container.querySelectorAll('.mes').length;
+    const boundary = Number(container.querySelector('.mes').getAttribute('mesid'));
+    const editId = boundary + 2;
+    const deleteId = boundary - 1; // In the detached batch; deletion must wait until it is displayed.
+    const swipeId = ctx.chat.findIndex((m, i) => i >= boundary && m.swipes?.length > 1);
+    const wrongChatInsertions = [];
+    const insertions = [];
+    let loading = true;
+    let trigger = null;
+    let operation;
+    let operationError;
+    let completions = 0;
+    const completed = () => { completions++; };
+    ctx.eventSource.on(ctx.eventTypes.MORE_MESSAGES_LOADED, completed);
+    // Inspect synchronously at the actual insertion, before a clear can erase
+    // transient contamination. A later final snapshot alone cannot detect it.
+    const originals = new Map();
+    for (const method of ['insertBefore', 'prepend']) {
+        const original = container[method];
+        originals.set(method, original);
+        container[method] = function (node, ...rest) {
+            if (loading && node.nodeType === Node.DOCUMENT_FRAGMENT_NODE && node.querySelector('.mes')) {
+                const record = { method, count: node.querySelectorAll('.mes').length,
+                    character: script.this_chid ?? null, chat: script.getCurrentChatId() ?? null };
+                insertions.push(record);
+                if (script.this_chid !== originalIdentity.character || script.getCurrentChatId() !== originalIdentity.chat) {
+                    wrongChatInsertions.push(record);
+                }
+            }
+            return original.call(this, node, ...rest);
+        };
+    }
+    const perform = async () => {
+        if (scenario === 'switch-character') {
+            const id = ctx.characters.findIndex(c => c.avatar === target.avatar);
+            if (id < 0) throw new Error('Target character missing');
+            await script.selectCharacterById(String(id), { chatFile: target.chatFile });
+        } else if (scenario === 'switch-chat') {
+            await script.selectCharacterById(String(script.this_chid), { chatFile: target.sameChatFile });
+        } else if (scenario === 'delete') {
+            await script.deleteMessage(deleteId);
+        } else if (scenario === 'delete-last') {
+            await script.deleteLastMessage();
+        } else if (scenario === 'edit') {
+            await script.messageEdit(editId);
+            const textarea = container.querySelector('#curEditTextarea');
+            if (!textarea) throw new Error('Editor did not open');
+            textarea.value = 'Synthetic edited message.';
+            const updated = new Promise(resolve => ctx.eventSource.once(ctx.eventTypes.MESSAGE_UPDATED, resolve));
+            container.querySelector('.mes[mesid="' + editId + '"] .mes_edit_done').click();
+            await updated;
+        } else if (scenario === 'swipe') {
+            if (swipeId < 0) throw new Error('Swipe fixture missing');
+            await script.swipe(null, SWIPE_DIRECTION.RIGHT, { source: SWIPE_SOURCE.SWIPE_PICKER,
+                forceMesId: swipeId, forceSwipeId: 1, forceDuration: 0 });
+        } else if (scenario === 'regenerate') {
+            await script.Generate('regenerate');
+        } else {
+            throw new Error('Unknown preparation scenario');
+        }
+    };
+    if (scenario === 'regenerate') {
+        script.changeMainAPI('kobold');
+        (await import(location.origin + '/scripts/kai-settings.js')).kai_settings.streaming_kobold = false;
+        script.setOnlineStatus('longchat-synthetic');
+    }
+    const scheduler = globalThis.scheduler;
+    const originalYield = scheduler?.yield;
+    if (!originalYield) throw new Error('Preparation yield hook unavailable');
+    if (mode === 'concurrent') {
+        scheduler.yield = async () => {
+            if (!trigger) {
+                trigger = { liveCount: container.querySelectorAll('.mes').length, before, insertions: insertions.length };
+                operation = perform().catch(error => { operationError = error; });
+                // These operations touch displayed messages only and can complete
+                // while the older fragment remains detached. Structural ops queue.
+                if (scenario === 'edit' || scenario === 'swipe') await operation;
+                // Same-character navigation first polls the save gate (10 ms).
+                // Hold this detached slice across that poll so clearChat is reached
+                // before rendering resumes; this pause is outside all latency data.
+                if (scenario === 'switch-chat') await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            return originalYield.call(scheduler);
+        };
+    }
+    try {
+        await script.showMoreMessages();
+        loading = false;
+        if (mode === 'reference') operation = perform().catch(error => { operationError = error; });
+        else if (!trigger || trigger.liveCount !== before || trigger.insertions !== 0) throw new Error('Operation did not trigger during off-DOM preparation');
+        await operation;
+        if (operationError) throw operationError;
+        await labIdle();
+        // Drain pending edit/deletion/swipe saves and compare exact JSON data.
+        script.cancelDebouncedChatSave();
+        if (await script.saveChatConditional() === false) throw new Error('Scenario save failed');
+        await labIdle();
+        const active = SillyTavern.getContext();
+        const chat = JSON.parse(JSON.stringify(active.chat));
+        let expected = structuredClone(initial);
+        const switched = scenario.startsWith('switch-');
+        if (switched) {
+            if (chat.length !== 1 || chat[0].mes !== 'SWITCH TARGET only.') throw new Error('Switch array contaminated');
+        } else {
+            if (scenario === 'delete') expected.splice(deleteId, 1);
+            if (scenario === 'delete-last') expected.pop();
+            if (scenario === 'edit') {
+                if (chat[editId].mes !== 'Synthetic edited message.') throw new Error('Edit did not apply');
+                expected.splice(editId, 1);
+            }
+            if (scenario === 'swipe') {
+                if (chat[swipeId].swipe_id !== 1 || chat[swipeId].mes !== initial[swipeId].swipes[1]) throw new Error('Swipe did not apply');
+                expected.splice(swipeId, 1);
+            }
+            if (scenario === 'regenerate') {
+                if (chat.at(-1).mes !== 'Synthetic regenerated response.') throw new Error('Regenerate did not replace reply');
+                expected.pop();
+                // saveReply initializes reasoning on the preceding user message
+                // before appending the replacement reply. Expect that exact field;
+                // every other field on this message remains subject to comparison.
+                if (!expected.at(-1).extra.reasoning) expected.at(-1).extra.reasoning = '';
+            }
+            const untouched = chat.filter((_, i) => !(scenario === 'edit' && i === editId)
+                && !(scenario === 'swipe' && i === swipeId) && !(scenario === 'regenerate' && i === chat.length - 1));
+            if (JSON.stringify(untouched) !== JSON.stringify(expected)) {
+                const differences = [];
+                const compare = (before, after, path) => {
+                    if (JSON.stringify(before) === JSON.stringify(after) || differences.length >= 8) return;
+                    if (before && after && typeof before === 'object' && typeof after === 'object') {
+                        for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) compare(before[key], after[key], `${path}.${key}`);
+                    } else differences.push({ path, expected: before ?? null, actual: after ?? null });
+                };
+                compare(expected, untouched, 'chat');
+                throw new Error('Operation changed unrelated chat entries: ' + JSON.stringify(differences));
+            }
+        }
+        const ids = [...container.querySelectorAll('.mes')].map(el => Number(el.getAttribute('mesid')));
+        const first = switched ? 0 : boundary - power_user.chat_truncation;
+        if (ids.length !== chat.length - first || ids.some((id, i) => id !== first + i)) throw new Error('Final message IDs invalid');
+        const expectedInsertions = mode === 'concurrent' && switched ? 0 : 1;
+        if (insertions.length !== expectedInsertions || completions !== expectedInsertions) throw new Error('Unexpected older fragment insertion/completion count');
+        const response = await fetch('/api/chats/get', { method: 'POST', headers: script.getRequestHeaders(),
+            body: JSON.stringify({ avatar_url: active.characters[active.characterId].avatar, file_name: script.getCurrentChatId() }) });
+        if (!response.ok || JSON.stringify((await response.json()).slice(1)) !== JSON.stringify(chat)) throw new Error('Saved chat differs from active array');
+        return { scenario, mode, initialLength: initial.length, boundary, deleteId, editId, swipeId,
+            trigger, completions, insertions, wrongChatInsertions, ids,
+            arrayIntegrity: true, savedMatchesChat: true, chat, dom: chatSnapshot() };
+    } finally {
+        scheduler.yield = originalYield;
+        for (const [method, original] of originals) container[method] = original;
+        ctx.eventSource.removeListener(ctx.eventTypes.MORE_MESSAGES_LOADED, completed);
+    }
 }

@@ -8,7 +8,12 @@ export function normalizeSnapshot(node) {
         if (['timer', 'timestamp', 'data-timestamp', 'data-generation-started', 'data-generation-finished'].includes(name)) return false;
         if (['id', 'for', 'aria-describedby', 'aria-labelledby'].includes(name) && randomId.test(value)) return false;
         return true;
-    }).map(([name, value]) => [name, value]);
+    }).map(([name, value]) => {
+        // These attributes contain unordered tokens. Keep ordered ID references
+        // (aria-labelledby/describedby) and CSS declarations in their original order.
+        const unordered = ['class', 'classlist', 'classList', 'rel', 'sandbox', 'part', 'headers'];
+        return [name, unordered.includes(name) ? value.split(/\s+/).filter(Boolean).sort().join(' ') : value];
+    });
     // Message dates and generation timing tooltips have locale/clock-dependent text.
     const timestamp = attributes.some(([name, value]) => name === 'class' && value.split(/\s+/).some(x => ['timestamp', 'mes_timer'].includes(x)));
     if (timestamp) {

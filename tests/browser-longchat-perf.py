@@ -134,7 +134,9 @@ def redact(value, origin='', temporary=''):
     if isinstance(value, list):
         return [redact(item, origin, temporary) for item in value]
     if isinstance(value, str):
-        for source, target in [(origin.rstrip('/'), 'http://<host>'), (temporary, '<tmp>'), (socket.gethostname(), '<host>')]:
+        for source, target in [(origin.rstrip('/'), 'http://<host>'), (temporary, '<tmp>'),
+                               (str(ROOT), '<repo>'), (str((ROOT / 'node_modules').resolve()), '<repo>/node_modules'),
+                               (socket.gethostname(), '<host>')]:
             if source:
                 value = value.replace(source, target)
         value = re.sub(r'/tmp/[^\s\"\'<>]+', '<tmp>', value)
@@ -519,6 +521,7 @@ def main():
     parser.add_argument('--open-only', action='store_true')
     parser.add_argument('--sliced-older', action='store_true', help='P3: three anchored batches without scroll sweeps; time through completion, without quiet wait')
     parser.add_argument('--older-scenario', choices=['send', 'double', 'reference'], help='P3 functional concurrency scenario (WORKTREE only)')
+    parser.add_argument('--prep-scenarios', help='Comma-separated P3 prep concurrency cases; each gets a fresh sequential reference and concurrent run')
     parser.add_argument('--trim-scenario', action='store_true', help='P4: trim anchor, reload and edit/delete boundary checks (WORKTREE only)')
     parser.add_argument('--no-profiles', action='store_true')
     parser.add_argument('--profile-phases', nargs='+', choices=['open', 'scroll', 'send'], default=['open', 'scroll', 'send'], help='Limit CPU capture in additional profiled runs')
@@ -527,7 +530,16 @@ def main():
     parser.add_argument('--tab-limit', type=int, default=0, help='Optional physical Tab prefix limit; also compares complete computed focus order')
     parser.add_argument('--legacy-shape', action='store_true', help='Diagnostic only: original generator')
     args = parser.parse_args()
-    if args.equivalence or args.trim_scenario:
+    prep_cases = ['switch-character', 'switch-chat', 'delete', 'delete-last', 'edit', 'swipe', 'regenerate']
+    if args.prep_scenarios:
+        prep_cases = args.prep_scenarios.split(',')
+        if args.base or any(case not in ['switch-character', 'switch-chat', 'delete', 'delete-last', 'edit', 'swipe', 'regenerate'] for case in prep_cases):
+            parser.error('--prep-scenarios requires WORKTREE or --product-root and known cases')
+        if ',' in args.sizes or ',' in args.settings or int(args.settings) <= 0 or int(args.sizes) < 3 * int(args.settings):
+            parser.error('--prep-scenarios requires one size >= three truncation batches')
+        args.runs = 2 * len(prep_cases)
+        args.no_profiles = True
+    if args.equivalence or args.trim_scenario or args.prep_scenarios:
         args.open_only = True  # Focus scenarios mutate chat state; keep them out of send/scroll timings.
     if args.runs is not None and args.runs < 1:
         parser.error('--runs must be positive')
@@ -639,6 +651,23 @@ def main():
             avatar = created.text()
             cards = context.request.post(origin + 'api/characters/all', headers=headers, data={}).json()
             card = next(c for c in cards if c['avatar'] == avatar)
+            target = None
+            if args.prep_scenarios:
+                response = context.request.post(origin + 'api/characters/create', headers=headers,
+                                                multipart={'ch_name': 'Prep Target', 'file_name': 'PrepTarget',
+                                                           'first_mes': 'SWITCH TARGET only.'})
+                assert response.ok, response.text()
+                target_avatar = response.text()
+                target_card = next(c for c in context.request.post(origin + 'api/characters/all', headers=headers, data={}).json() if c['avatar'] == target_avatar)
+                target = {'avatar': target_avatar, 'chatFile': target_card['chat'], 'sameChatFile': 'prep-target-chat'}
+                target_rows = [{'chat_metadata': {'integrity': 'prep-target'}},
+                               {'name': 'Prep Target', 'is_user': False, 'is_system': False,
+                                'send_date': '2023-11-14T22:13:20.000Z', 'mes': 'SWITCH TARGET only.', 'extra': {}}]
+                for target_owner, target_file in [(target_avatar, target['chatFile']), (avatar, target['sameChatFile'])]:
+                    response = context.request.post(origin + 'api/chats/save', headers=headers,
+                                                    data={'avatar_url': target_owner, 'file_name': target_file, 'chat': target_rows})
+                    assert response.ok, response.text()
+            references = {}
             probe = (ROOT / 'tests/longchat-normalization.mjs').read_text() + (ROOT / 'tests/longchat-browser-probe.mjs').read_text().replace("import { normalizeSnapshot } from './longchat-normalization.mjs';", '')
             # Dynamic import via a blob keeps this test module out of public/.
             page.close()
@@ -662,6 +691,13 @@ def main():
                                                      data={'avatar_url': avatar, 'file_name': card['chat'], 'chat': rows})
                         assert saved.ok, saved.text()
                         page = context.new_page()
+                        if args.prep_scenarios:
+                            page.clock.set_fixed_time(1701000000000)
+                            generated = []
+                            def mock_generate(route):
+                                generated.append({'url': route.request.url, 'streaming': json.loads(route.request.post_data).get('streaming', False)})
+                                route.fulfill(json={'results': [{'text': 'Synthetic regenerated response.'}]})
+                            page.route('**/api/backends/kobold/generate', mock_generate)
                         page.set_default_timeout(min(30000, args.run_timeout * 1000))
                         errors = []
                         stacks = []
@@ -692,7 +728,7 @@ def main():
                             def snapshot():
                                 cdp.send('HeapProfiler.collectGarbage')
                                 return {**cdp.send('Runtime.getHeapUsage'), **page.evaluate('({nodes:document.getElementsByTagName("*").length, messages:document.querySelectorAll("#chat .mes").length})')}
-                            opened = phase('open', lambda: run_async(page, 'arg => window.labProbe.openChat(arg)', {'avatar': avatar, 'size': size}, deadline))
+                            opened = phase('open', lambda: run_async(page, 'arg => window.labProbe.openChat(arg)', {'avatar': avatar, 'size': size, **({'chatFile': card['chat']} if args.prep_scenarios else {})}, deadline))
                             result['open'] = {**opened, 'longTasks': tasks_summary(opened['tasks'])}
                             result['afterOpen'] = snapshot()
                             print(label, 'opened', flush=True)
@@ -714,6 +750,30 @@ def main():
                                     assert stored == scenario['chat'], 'Saved file differs from chat array: ' + str(list(difflib.unified_diff(json.dumps(stored, indent=2).splitlines(), json.dumps(scenario['chat'], indent=2).splitlines()))[:40])
                                     scenario['savedMatchesChat'] = True
                                 result['olderScenario'] = scenario
+                            if args.prep_scenarios:
+                                case = prep_cases[iteration // 2]
+                                mode = 'reference' if iteration % 2 == 0 else 'concurrent'
+                                scenario = run_async(page, 'arg => labProbe.preparationConcurrency(arg)',
+                                                     {'case': case, 'mode': mode, 'target': target}, deadline)
+                                dom = scenario.pop('dom')
+                                chat = scenario.pop('chat')
+                                scenario['dom'] = write_snapshot(args.output / f'run-{label}-dom-prep.html.gz', redact(dom, origin, temporary))
+                                scenario['chat'] = write_snapshot(args.output / f'run-{label}-chat-prep.json.gz', json.dumps(redact(chat, origin, temporary), ensure_ascii=False))
+                                scenario['mockGenerationRequests'] = generated
+                                result['prepScenario'] = scenario
+                                if mode == 'reference':
+                                    references[case] = (dom, chat)
+                                else:
+                                    ref_dom, ref_chat = references[case]
+                                    scenario['domMatchesReference'] = dom == ref_dom
+                                    scenario['chatMatchesReference'] = chat == ref_chat
+                                    if dom != ref_dom:
+                                        diff = '\n'.join(difflib.unified_diff(ref_dom.splitlines(), dom.splitlines(), fromfile='reference', tofile='concurrent'))
+                                        write_snapshot(args.output / f'run-{label}-dom-diff.txt.gz', redact(diff, origin, temporary))
+                                    assert dom == ref_dom, 'Final normalized DOM differs from sequential reference'
+                                    assert chat == ref_chat, 'Final chat array differs from sequential reference'
+                                assert len(generated) == (1 if case == 'regenerate' else 0), generated
+                                assert not scenario['wrongChatInsertions'], scenario['wrongChatInsertions']
                             if args.trim_scenario:
                                 result['trimScenario'] = run_async(page, 'arg => labProbe.trimBoundaryScenario(arg)',
                                                                    {'avatar': avatar, 'chatName': card['chat']}, deadline)

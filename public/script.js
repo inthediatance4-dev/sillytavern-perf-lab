@@ -1506,8 +1506,9 @@ export async function replaceCurrentChat() {
 // change the hidden prefix or replace the message list while that prefix is prepared
 // off-DOM. Displayed-message edit, move and copy are not queued: they require a live
 // message element, so their ids are at or after the first displayed message and outside
-// the prepared range. Completion listeners may themselves send or edit, so the promise
-// is released before MORE_MESSAGES_LOADED.
+// the prepared range. Navigation invalidates the detached preparation instead of
+// placing old messages after the selection changes. Completion listeners may themselves
+// send or edit, so the promise is released before MORE_MESSAGES_LOADED.
 let olderMessagesLoading = false;
 let olderMessagesInsertion = null;
 
@@ -1534,13 +1535,15 @@ function yieldOlderMessages() {
  * Builds one detached fragment for an older batch. Nothing is inserted and no layout is read.
  * @param {number} firstId First message ID (inclusive)
  * @param {number} endId Last message ID (exclusive)
- * @returns {Promise<DocumentFragment>} Prepared messages in ascending ID order
+ * @param {function(): boolean} [isCurrent] Whether this preparation still owns the chat
+ * @returns {Promise<DocumentFragment|null>} Prepared messages in ascending ID order, or null when superseded
  */
-async function prepareOlderMessageFragment(firstId, endId) {
+async function prepareOlderMessageFragment(firstId, endId, isCurrent = () => true) {
     const renderContext = createMessageRenderContext();
     const fragment = document.createDocumentFragment();
     let messageId = firstId;
     while (messageId < endId) {
+        if (!isCurrent()) return null;
         const start = performance.now();
         do {
             fragment.append(updateMessageElement(chat[messageId], { messageId, renderContext })[0]);
@@ -1573,6 +1576,14 @@ export async function showMoreMessages(messagesToLoad = null) {
     let finishInsertion;
     olderMessagesInsertion = new Promise(resolve => { finishInsertion = resolve; });
     try {
+        const owner = {
+            serial: characterChatLoadSerial, character: this_chid, group: selected_group,
+            file: getCurrentChatId(), metadata: chat_metadata, messages: chat, length: chat.length,
+        };
+        const isCurrent = () => owner.serial === characterChatLoadSerial
+            && owner.character === this_chid && owner.group === selected_group
+            && owner.file === getCurrentChatId() && owner.metadata === chat_metadata
+            && owner.messages === chat && owner.length === chat.length;
         const container = chatElement[0];
         const firstMes = container.querySelector('.mes');
         let messageId = Number(firstMes?.getAttribute('mesid'));
@@ -1590,7 +1601,8 @@ export async function showMoreMessages(messagesToLoad = null) {
             // A nonzero scrollTop with the button still fully visible is replaced by that
             // delta, matching the old assignment. The write happens after swipe refresh
             // and button removal, then style pins run.
-            const fragment = await prepareOlderMessageFragment(firstId, messageId);
+            const fragment = await prepareOlderMessageFragment(firstId, messageId, isCurrent);
+            if (!fragment || !isCurrent()) return;
             const showMoreButton = document.getElementById('show_more_messages');
             const buttonInView = isElementInViewport(showMoreButton);
             const previousHeight = buttonInView ? container.scrollHeight : 0;
@@ -1701,8 +1713,10 @@ export function cancelDebouncedChatSave() {
  * @param {boolean} [options.clearData=false] Optionally clear the chat array's contents.
  */
 export async function clearChat({ clearData = false } = {}) {
-    if (olderMessagesInsertion) await olderMessagesInsertion;
+    // Invalidate detached older messages before waiting for their preparation to stop.
     const clearSerial = ++characterChatLoadSerial;
+    if (olderMessagesInsertion) await olderMessagesInsertion;
+    if (clearSerial !== characterChatLoadSerial) return;
     const promptClear = cancelItemizedPromptsLoad();
     mediaLoadScrollHandler.cancel();
     cancelDebouncedChatSave();

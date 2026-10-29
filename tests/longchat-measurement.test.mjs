@@ -109,6 +109,7 @@ assert m.distribution([])['median'] is None
 assert m.distribution([None, None]) == {'n':0,'median':None,'p95':None}
 assert m.distribution([None, 3, 1]) == {'n':2,'median':1,'p95':3}
 assert m.redact({'path': r'C:\\Temp\\lab\\data'}, temporary=r'C:\\Temp\\lab') == {'path': r'<tmp>\\data'}
+assert m.redact(str((m.ROOT / 'node_modules').resolve() / 'dependency/index.js')) == '<repo>/node_modules/dependency/index.js'
 p = {'nodes':[{'id':1,'callFrame':{'url':'a','functionName':'parent','lineNumber':0},'children':[2]}, {'id':2,'callFrame':{'url':'b','functionName':'child','lineNumber':2}}], 'samples':[2,1], 'timeDeltas':[300,100]}
 s = m.profile_summary(p)
 assert s['self'][0]['function'] == 'child' and s['self'][0]['percent'] == 75
@@ -235,6 +236,25 @@ test('snapshot normalization removes only declared volatile fields and preserves
     assert.notEqual(normalizeSnapshot(tree), normalizeSnapshot(changed));
     changed.children[2] = 'Changed message';
     assert.notEqual(normalizeSnapshot(tree), normalizeSnapshot(changed));
+});
+
+test('snapshot normalization sorts unordered tokens while preserving membership and ordered references', async () => {
+    const { normalizeSnapshot } = await import('./longchat-normalization.mjs');
+    const unordered = ['class', 'classList', 'rel', 'sandbox', 'part', 'headers'];
+    const tree = { tag: 'div', attributes: unordered.map(name => [name, 'last_swipe fade last_mes']), children: [] };
+    const reordered = structuredClone(tree);
+    reordered.attributes = unordered.map(name => [name, 'last_swipe\tlast_mes  fade']);
+    assert.equal(normalizeSnapshot(tree), normalizeSnapshot(reordered));
+    for (const [index, name] of unordered.entries()) {
+        const changed = structuredClone(reordered);
+        changed.attributes[index] = [name, 'last_swipe last_mes'];
+        assert.notEqual(normalizeSnapshot(tree), normalizeSnapshot(changed), name);
+    }
+    for (const name of ['aria-labelledby', 'aria-describedby', 'style']) {
+        const a = { tag: 'div', attributes: [[name, 'first second']], children: [] };
+        const b = { ...a, attributes: [[name, 'second first']] };
+        assert.notEqual(normalizeSnapshot(a), normalizeSnapshot(b), name);
+    }
 });
 
 test('paired bootstrap uses the backend seeded method and preserves pairing', async () => {

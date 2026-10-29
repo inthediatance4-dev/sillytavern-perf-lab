@@ -56,6 +56,8 @@ function fixture({ buttonInView = false } = {}) {
             getElementById: () => ({ id: 'show_more_messages' }),
         },
         isElementInViewport: () => buttonInView,
+        characterChatLoadSerial: 0, this_chid: 0, selected_group: null, chat_metadata: {},
+        currentChatId: 'history', getCurrentChatId: () => context.currentChatId,
         chat: Array.from({ length: 42 }, (_, id) => ({ id })),
         chatElement: { 0: container, children: () => ({ last: () => ({ remove() {} }) }) },
         createMessageRenderContext: () => ({}),
@@ -291,4 +293,41 @@ test('concurrent older scenario hooks preparation yield instead of a partial ins
     assert.match(concurrent, /scheduler\.yield/);
     assert.match(concurrent, /did not trigger during preparation/);
     assert.doesNotMatch(concurrent, /MutationObserver/);
+});
+
+for (const [label, invalidate] of [
+    ['same-file reload serial', c => { c.characterChatLoadSerial++; }],
+    ['character', c => { c.this_chid = 1; }],
+    ['group', c => { c.selected_group = 'another-group'; }],
+    ['chat file', c => { c.currentChatId = 'another-file'; }],
+    ['metadata owner', c => { c.chat_metadata = {}; }],
+    ['array replacement', c => { c.chat = Array.from(c.chat); }],
+    ['message count', c => { c.chat.pop(); }],
+]) {
+    test(`stale preparation discards its fragment after changing ${label}`, async () => {
+        const f = fixture();
+        let changed = false;
+        f.context.globalThis.scheduler.yield = async () => {
+            if (!changed) { changed = true; invalidate(f.context); }
+        };
+        await f.context.showMoreMessages();
+        assert.equal(changed, true);
+        assert.equal(f.insertCount, 0);
+        assert.deepEqual(f.events, []);
+        assert.ok(f.created[0].items.length < 40, 'stop rendering after the first stale slice');
+        assert.equal(vm.runInContext('olderMessagesInsertion', f.context), null);
+        assert.equal(vm.runInContext('olderMessagesLoading', f.context), false);
+    });
+}
+
+test('ownership is checked again after preparation resolves and before insertion', async () => {
+    const f = fixture();
+    f.context.finishStale = async () => {
+        f.context.currentChatId = 'another-file';
+        return { items: [] };
+    };
+    vm.runInContext('prepareOlderMessageFragment = finishStale', f.context);
+    await f.context.showMoreMessages();
+    assert.equal(f.insertCount, 0);
+    assert.deepEqual(f.events, []);
 });

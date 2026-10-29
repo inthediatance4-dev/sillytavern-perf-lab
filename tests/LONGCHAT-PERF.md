@@ -192,8 +192,11 @@ DOM tree for browser-free tests. It sorts attributes, escapes text/attributes,
 removes UUID/select2 random ID references and the explicit volatile attributes
 `timer`, `timestamp`, `data-timestamp`, `data-generation-started`, `data-generation-finished`.
 Only `.timestamp` and `.mes_timer` content/title become `<timestamp>`.
-Message index identity attributes, text, role, tabindex, classes, styles,
-order, and all other attributes remain significant. Whitespace is preserved.
+Unordered tokens in `class`/`classList`, `rel`, `sandbox`, `part`, and `headers`
+are sorted; token membership remains significant. Ordered ARIA references and
+style declarations retain their order. Message index identity attributes, text,
+role, tabindex, styles, element order, and all other attributes remain significant.
+Whitespace outside these unordered token attributes is preserved.
 No focusability attribute is normalized away. Each normalized snapshot is stored
 next to its run JSON as `run-<label>-dom-<phase>.html.gz`, with gzip mtime 0 and
 no embedded filename. The run's `equivalence.dom` entries contain only `sha256`
@@ -259,6 +262,36 @@ generation fields in swipe metadata are omitted by JSON serialization,
 just as in the production save. Only the appended message's send_date is
 normalized for cross-run comparison; the DOM uses the existing normalizer.
 These scenarios do not contribute latency samples. Browser cases remain opt-in.
+
+M2 prep-phase acceptance is a separate, bounded functional mode:
+
+```sh
+/tmp/pw-venv/bin/python tests/browser-longchat-perf.py \
+  --node /tmp/node-v20.19.2-linux-x64/bin/node --sizes 300 --settings 100 \
+  --prep-scenarios switch-character,switch-chat,delete,delete-last,edit,swipe,regenerate \
+  --output /tmp/m2-preparation
+```
+
+Each case restores the same saved starting chat in two fresh pages. Its reference
+finishes one older load before invoking the operation; its concurrent page invokes
+the same operation at the first preparation yield, before any insertion. Same-chat
+navigation holds that yield for 50 ms to cross its 10 ms save-gate poll. Edit and
+swipe finish while preparation is paused; structural mutations use the production
+insertion barrier. A synchronous insertion probe catches transient wrong-chat
+insertion even if a later clear would hide it. Switches must discard the fragment
+without completion; other cases insert once and complete once. Final normalized
+DOM and full JSON chat arrays must match exactly; contiguous IDs, unrelated entries,
+saved active-chat data, page errors, and forbidden requests are also checked.
+The shared fixture backfills swipe metadata before capturing its starting array.
+Wall time is fixed and JS animation duration is zero on both pages. Regeneration
+uses the real `Generate('regenerate')` flow with one locally fulfilled Kobold
+response; no real LLM request is sent. DOM and array artifacts are gzipped. This
+mode contributes no latency samples and is opt-in, outside `test:perf`.
+Regeneration expects `saveReply()` to initialize the preceding user message's
+`extra.reasoning` to an empty string; every other field on that message is still
+compared exactly. Unrelated-entry failures include a bounded JSON field diff.
+M2 continuation evidence and the complete 14-run result are recorded in
+`docs/reviews/2026-10-28-grok-quality/evidence/longchat-opt/review-fix-m2/README.md`.
 
 Full Tab walks can be expensive at 2000/500 after three older loads. The recorder
 now samples the same focus descriptor in a microtask after trusted keyup dispatch,

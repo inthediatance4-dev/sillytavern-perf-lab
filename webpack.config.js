@@ -17,6 +17,13 @@ const cacheInputs = [
     { file: path.join(serverDirectory, 'package.json'), optional: false },
     { file: path.join(serverDirectory, 'package-lock.json'), optional: true },
     { file: path.join(serverDirectory, 'npm-shrinkwrap.json'), optional: true },
+    // Also fingerprint absence: a newly added resolver/tool configuration must
+    // invalidate both the skip manifest and Webpack's filesystem cache.
+    ...['.browserslistrc', 'browserslist', '.babelrc', '.babelrc.json', '.babelrc.js', '.babelrc.cjs', '.babelrc.mjs',
+        'babel.config.json', 'babel.config.js', 'babel.config.cjs', 'babel.config.mjs']
+        .map(name => ({ file: path.join(serverDirectory, name), optional: true })),
+    ...['BROWSERSLIST_CONFIG', 'BROWSERSLIST_STATS'].filter(name => process.env[name])
+        .map(name => ({ file: path.resolve(process.env[name]), optional: true })),
 ].map(({ file, optional }) => {
     try {
         const fingerprint = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -38,6 +45,10 @@ function getWebpackCacheVersion() {
     return crypto.createHash('shake256', { outputLength: 8 })
         .update(JSON.stringify([
             webpack.version,
+            // Webpack's implicit browserslist target can read these even though
+            // this config has no env-dependent mode or loader selection.
+            ...['NODE_ENV', 'BROWSERSLIST', 'BROWSERSLIST_ENV', 'BROWSERSLIST_CONFIG', 'BROWSERSLIST_STATS']
+                .map(name => [name, process.env[name] ?? null]),
             ...cacheInputs.map(input => [path.basename(input.file), input.fingerprint]),
         ]))
         .digest('hex');

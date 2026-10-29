@@ -37,6 +37,7 @@ function sourceTree(directory) {
 function fixedIdentity(config) {
     return sha256(JSON.stringify([
         config.cache.version,
+        config.mode, config.devtool, config.output.path,
         // Re-read raw build inputs as well as using the existing cache identity.
         config.cache.buildDependencies.config.map(file => [path.relative(config.context, file), fileIdentity(file)]),
         fileIdentity(config.entry), sourceTree(path.join(path.dirname(config.entry), 'lib')),
@@ -67,12 +68,13 @@ function outputHashes(config, names) {
 /**
  * Prepare a fail-open optimization: any uncertainty requires the full compiler.
  * @param {import('webpack').Configuration} config Frontend build configuration.
- * @returns {{matches: boolean, record: function(import('webpack').Stats): void}} Manifest state.
+ * @returns {{matches: boolean, capture: function(import('webpack').Compilation): void, record: function(import('webpack').Stats): void}} Manifest state.
  */
 export function prepareWebpackManifest(config) {
     let before;
     let manifestPath;
     let matches = false;
+    let compiledHashes;
     try {
         manifestPath = path.join(path.dirname(config.cache.cacheDirectory), 'manifest.json');
         before = fixedIdentity(config);
@@ -85,9 +87,17 @@ export function prepareWebpackManifest(config) {
 
     return {
         matches,
+        capture(compilation) {
+            // Capture final compiler bytes before emission replaces Sources with
+            // SizeOnlySource. Disk files may belong to a concurrent compiler.
+            try {
+                compiledHashes = Object.fromEntries(compilation.getAssets()
+                    .map(({ name, source }) => [name, sha256(source.buffer())]));
+            } catch { compiledHashes = undefined; }
+        },
         record(stats) {
             try {
-                if (!before || before !== fixedIdentity(config)) return;
+                if (!before || !compiledHashes || before !== fixedIdentity(config)) return;
                 const compilation = stats.compilation;
                 const relative = files => [...files].map(file => path.relative(config.context, file)).sort();
                 const dependencies = {
@@ -100,11 +110,14 @@ export function prepareWebpackManifest(config) {
                     const stat = fs.statSync(path.resolve(config.context, file));
                     return stat.isFile() && stat.mtimeMs > stats.startTime;
                 })) return;
+                const outputs = outputHashes(config, compilation.getAssets().map(asset => asset.name));
+                if (Object.keys(outputs).length !== Object.keys(compiledHashes).length
+                    || Object.entries(outputs).some(([name, hash]) => hash !== compiledHashes[name])) return;
                 const manifest = {
                     schema: 1,
                     inputIdentity: inputIdentity(config, dependencies),
                     dependencies,
-                    outputSha256: outputHashes(config, compilation.getAssets().map(asset => asset.name)),
+                    outputSha256: outputs,
                 };
                 fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
                 // Atomic replacement with fsync; an interrupted write cannot enable a skip.

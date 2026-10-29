@@ -45,6 +45,7 @@ export default function getWebpackServeMiddleware() {
 
         const publicLibConfig = getPublicLibConfig({ forceDist, pruneCache });
         const compiler = webpack(publicLibConfig);
+        compiler.hooks?.emit.tap('StartupWebpackManifest', manifest.capture);
 
         return new Promise((resolve, reject) => {
             const finish = (runError, stats) => {

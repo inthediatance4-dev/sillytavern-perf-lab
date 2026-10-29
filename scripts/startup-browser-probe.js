@@ -5,7 +5,14 @@
     let hooked = false;
     function hook(app) {
         if (hooked || !app?.getContext) return;
-        const { eventSource, eventTypes } = app.getContext();
+        let context;
+        try { context = app.getContext(); }
+        catch (error) {
+            // The global is assigned before script.js finishes initializing its exports.
+            if (error instanceof ReferenceError && error.message.includes('before initialization')) return;
+            throw error;
+        }
+        const { eventSource, eventTypes } = context;
         if (!eventSource || !eventTypes) return;
         hooked = true;
         eventSource.once(eventTypes.APP_READY, () => { probe.appReadyMs = performance.now(); });
@@ -15,7 +22,7 @@
     }
     let app;
     Object.defineProperty(window, 'SillyTavern', { configurable: true, get: () => app,
-        set(value) { app = value; probe.libJsEvaluatedByMs = performance.now(); try { hook(value); } catch { /* Context may still be initializing; timer retries. */ } } });
+        set(value) { app = value; probe.libJsEvaluatedByMs = performance.now(); hook(value); } });
     const timer = setInterval(() => { hook(window.SillyTavern); if (hooked) clearInterval(timer); }, 10);
     document.addEventListener('load', event => {
         if (event.target.tagName === 'SCRIPT' && event.target.src.includes('/scripts/extensions/')) {

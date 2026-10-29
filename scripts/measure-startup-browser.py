@@ -13,7 +13,7 @@ from playwright.sync_api import sync_playwright
 def measure(browser, context, command):
     page = context.new_page()
     errors = []
-    page.on('pageerror', lambda e: errors.append(str(e)))
+    page.on('pageerror', lambda e: errors.append(e.stack or str(e)))
     cdp = context.new_cdp_session(page)
     responses = []
     cdp.send('Network.enable')

@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 3,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 16.8,
+    "framesOver16_7Pct": 5.673758865248227,
+    "framesOver33Pct": 0.7092198581560284,
+    "loafCount": 2,
+    "loafTotalMs": 194.7000000011176,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 25.299999998882413,
+    "loafScriptotherMs": 118.30000000074506,
+    "formatP50Ms": 1,
+    "formatP95Ms": 1.200000001117587,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.19999999925494194,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 21.600422207771818,
+    "firstTokenMs": 106.853271484375,
+    "finishMs": 158.432373046875,
+    "typingP50Ms": 22.599853515625,
+    "typingP95Ms": 35.60009765625,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 175,
+    "keys": 13,
+    "hooks": 185
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282808254.8467,
+    "receivedNs": "8527186799699",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793282808267.9072,
+    "lastChunkEpochMs": 1793282810675.2676,
+    "doneEpochMs": 1793282810675.2915,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

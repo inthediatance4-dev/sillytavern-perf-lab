@@ -78,10 +78,16 @@ async function freePort() {
 const products = {}, records = [];
 let worker, lines;
 const fake = await createFakeOpenAI();
+function isLiveTree(input) {
+    // WORKTREE measures this checkout, including uncommitted edits. An omitted side does the same.
+    if (!input || input === 'WORKTREE') return true;
+    return path.resolve(input) === repo;
+}
 async function materialize(side, input) {
-    const revision = input ? (await command('git', ['rev-parse', '--verify', `${input}^{commit}`])).trim() : 'WORKTREE';
+    const live = isLiveTree(input);
+    const revision = live ? 'WORKTREE' : (await command('git', ['rev-parse', '--verify', `${input}^{commit}`])).trim();
     let directory = repo;
-    if (input) {
+    if (!live) {
         directory = path.join(temporary, `product-${side}`);
         await fs.mkdir(directory);
         const archive = path.join(temporary, `${side}.tar`);
@@ -200,6 +206,7 @@ async function run(side, name, scenario, iteration, discarded = false) {
         if (browser.scrollProbe?.delta < 590) throw new Error('Scroll probe could not move up 600px');
         if (scenario.reasoning && !browser.finalReasoning) throw new Error('Reasoning was not parsed');
         result.metrics = metrics(browser, generation);
+        result.dom = browser.dom || null;
         result.samples = { frames: browser.frames.length, keys: browser.typing.length, hooks: browser.hooks.records.length };
         result.settings = browser.settings;
         result.generation = { ...generation, chunks: generation.chunks.length, requestBodySha256: createHash('sha256').update(JSON.stringify(fake.requests[0])).digest('hex') };

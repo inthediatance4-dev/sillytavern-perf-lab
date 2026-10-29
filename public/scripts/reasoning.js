@@ -1,8 +1,8 @@
-import { streamingPerfEnabled, recordStreamingPerf } from './streaming-perf.js';
+import { streamingPerfEnabled, recordStreamingPerf, recordStreamingDomMode } from './streaming-perf.js';
 import {
     moment,
 } from '../lib.js';
-import { chat, closeMessageEditor, event_types, eventSource, main_api, messageFormatting, saveChatConditional, saveChatDebounced, saveSettingsDebounced, substituteParams, syncMesToSwipe, updateMessageBlock } from '../script.js';
+import { chat, closeMessageEditor, event_types, eventSource, main_api, messageFormatting, replaceStreamingHtml, saveChatConditional, saveChatDebounced, saveSettingsDebounced, substituteParams, syncMesToSwipe, updateMessageBlock } from '../script.js';
 import { getRegexedString, regex_placement } from './extensions/regex/engine.js';
 import { getCurrentLocale, t, translate } from './i18n.js';
 import { macros, MacroCategory } from './macros/macro-system.js';
@@ -281,6 +281,10 @@ export class ReasoningHandler {
     #isParsingReasoning = false;
     /** @type {number?} When reasoning is being parsed manually, and the reasoning has ended, this will be the index at which the actual messages starts */
     #parsingReasoningMesStartIndex = null;
+    /** @type {((messageId: number) => void)|null} Set only while streaming DOM updates are coalesced. */
+    #streamDomScheduler = null;
+    /** @type {string} Last reasoning DOM signature painted. Unchanged frames skip the write. */
+    #appliedSignature = '';
 
     /**
      * @param {Date?} [timeStarted=null] - When the generation started
@@ -554,15 +558,56 @@ export class ReasoningHandler {
     }
 
     /**
+     * Coalesce reasoning DOM writes onto the streaming animation frame.
+     * Unset (or stream fade-in) keeps the immediate full write.
+     * @param {((messageId: number) => void)|null} scheduler
+     */
+    setStreamDomScheduler(scheduler) {
+        this.#streamDomScheduler = scheduler;
+    }
+
+    /**
+     * Writes the reasoning block now. The streaming frame passes incremental for the body HTML.
+     * @param {number} messageId Message ID
+     * @param {{ incremental?: boolean }} [options] Tail-patch when true; full innerHTML otherwise
+     * @returns {number} messageFormatting duration in milliseconds
+     */
+    applyStreamingDom(messageId, { incremental = false } = {}) {
+        return this.#applyDom(messageId, { incremental });
+    }
+
+    /**
      * Updates the reasoning UI elements for a message.
      *
      * Toggles the CSS class, updates states, reasoning message, and duration.
+     * During a coalesced stream the write itself waits for the animation frame.
      *
      * @param {number} messageId - The ID of the message to update
      */
     updateDom(messageId) {
+        if (this.#streamDomScheduler && !power_user.stream_fade_in) {
+            this.#streamDomScheduler(messageId);
+            return;
+        }
+        this.#applyDom(messageId, { incremental: false });
+    }
+
+    /**
+     * @param {number} messageId
+     * @param {{ incremental?: boolean }} options
+     * @returns {number}
+     */
+    #applyDom(messageId, { incremental }) {
         let perfStart;
         if (streamingPerfEnabled) perfStart = performance.now();
+        // State and text already on screen. Skip the class, dataset, and HTML
+        // writes so an idle reasoning block does not dirty layout every frame.
+        // A final (non-incremental) paint always runs.
+        const signature = `${this.state}\0${this.type ?? ''}\0${this.reasoningDisplayText ?? ''}\0${this.reasoning}\0${this.endTime ? this.endTime.getTime() : ''}`;
+        if (incremental && signature === this.#appliedSignature) {
+            if (streamingPerfEnabled) recordStreamingPerf('reasoning', perfStart, messageId);
+            return 0;
+        }
         this.#checkDomElements(messageId);
 
         // Main CSS class to show this message includes reasoning
@@ -580,12 +625,15 @@ export class ReasoningHandler {
         const hasStoredReasoning = Boolean(this.reasoningDisplayText || this.reasoning);
         const hasReasoningContent = Boolean(String(rawReasoning ?? '').trim());
         setDatasetProperty(this.messageReasoningDetailsDom, 'hasContent', hasReasoningContent ? 'true' : null);
+        const formatStart = performance.now();
         const displayReasoning = messageFormatting(reasoning, '', false, false, messageId, {}, true);
+        const formatMs = performance.now() - formatStart;
 
         if (power_user.stream_fade_in) {
             applyStreamFadeIn(this.messageReasoningContentDom, displayReasoning);
+            recordStreamingDomMode('fade');
         } else {
-            this.messageReasoningContentDom.innerHTML = displayReasoning;
+            recordStreamingDomMode(replaceStreamingHtml(this.messageReasoningContentDom, displayReasoning, incremental));
         }
 
         // Update tooltip for hidden reasoning edit
@@ -601,7 +649,9 @@ export class ReasoningHandler {
 
         // Update the reasoning duration in the UI
         this.#updateReasoningTimeUI();
+        this.#appliedSignature = signature;
         if (streamingPerfEnabled) recordStreamingPerf('reasoning', perfStart, messageId);
+        return formatMs;
     }
 
     /**

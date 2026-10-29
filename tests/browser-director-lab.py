@@ -188,6 +188,36 @@ def open_chapter_menu(page, mesid):
     return row, button
 
 
+def swipe_message(page, mesid, swipe_id):
+    page.evaluate("""async ({mesid, swipeId}) => {
+        const main = await import('/script.js');
+        const { SWIPE_DIRECTION, SWIPE_SOURCE } = await import('/scripts/constants.js');
+        await main.swipe(null, SWIPE_DIRECTION.RIGHT, { source:SWIPE_SOURCE.SLASH_COMMAND,
+            forceMesId:mesid, forceSwipeId:swipeId, forceDuration:0 });
+    }""", {'mesid': mesid, 'swipeId': swipe_id})
+
+
+def assert_chapter_swipes(page, mesid, count, director, label=None):
+    message = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id])', mesid)
+    assert len(message['swipes']) == len(message['swipe_info']) == count
+    for info in message['swipe_info']:
+        if director is None:
+            assert 'director' not in info['extra'], info
+        else:
+            assert info['extra']['director'] == director, info
+    for swipe_id in reversed(range(count)):
+        swipe_message(page, mesid, swipe_id)
+        page.wait_for_function("""({mesid, swipeId, director, label}) => {
+            const message = SillyTavern.getContext().chat[mesid];
+            const row = document.querySelector('#chat .mes[mesid="' + mesid + '"]');
+            const divider = row?.querySelector('.mes_block > .director-chapter-divider');
+            return message.swipe_id === swipeId && (director ?
+                JSON.stringify(message.extra.director) === JSON.stringify(director) &&
+                    row.classList.contains('director-chapter') && divider?.textContent === label :
+                !Object.hasOwn(message.extra, 'director') && !row.classList.contains('director-chapter') && !divider);
+        }""", arg={'mesid': mesid, 'swipeId': swipe_id, 'director': director, 'label': label})
+
+
 def connect_api(page):
     page.evaluate("document.querySelector('#api_button_openai').click()")
     page.wait_for_function("[...document.querySelectorAll('.online_status_text')].some(node => node.textContent.toLowerCase().includes('valid'))", timeout=15000)
@@ -796,12 +826,7 @@ def run(args, temporary):
                 assert str(uuid.UUID(stored['id'])) == stored['id']
                 stage = 'chapter survives swiping away, back and disk reload'
                 for swipe_id in [1, 0]:
-                    page.evaluate("""async swipeId => {
-                        const main = await import('/script.js');
-                        const { SWIPE_DIRECTION, SWIPE_SOURCE } = await import('/scripts/constants.js');
-                        await main.swipe(null, SWIPE_DIRECTION.RIGHT, { source:SWIPE_SOURCE.SLASH_COMMAND,
-                            forceMesId:0, forceSwipeId:swipeId, forceDuration:0 });
-                    }""", swipe_id)
+                    swipe_message(page, 0, swipe_id)
                     page.wait_for_function("""swipeId => SillyTavern.getContext().chat[0].swipe_id === swipeId &&
                         document.querySelector('#chat .mes[mesid="0"] .director-chapter-divider')?.textContent === '第1章 手动章节'""", arg=swipe_id)
                 page.evaluate("""async () => {
@@ -823,6 +848,67 @@ def run(args, temporary):
                 assert target.locator('.mes_text').inner_html() == html_before
                 assert chapter_snapshot(page) == existing
                 result['checks']['markUnmarkArbitraryMessagePersistsWithoutNumber'] = True
+
+                stage = 'unmarked existing swipes stay clear after disk reload'
+                page.evaluate('async () => { await SillyTavern.getContext().reloadCurrentChat(); }')
+                assert_chapter_swipes(page, 0, 2, None)
+                assert target.locator('.mes_text').inner_html() == html_before
+                assert chapter_snapshot(page) == existing
+                result['checks']['unmarkClearsExistingSwipesAfterDiskReload'] = True
+
+                stage = 'generate a new swipe after marking a chapter'
+                connect_api(page)
+                before_generation = chat_count(page)
+                page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+                mesid = before_generation
+                assert chat_count(page) == before_generation + 1
+                message = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id])', mesid)
+                assert not message['is_user'] and not message.get('is_system')
+                assert not message['extra'].get('director')
+                swipe_count = len(message['swipes'])
+                assert swipe_count == 1
+                row, menu_button = open_chapter_menu(page, mesid)
+                menu_button.click()
+                dialog = page.locator('dialog[open]')
+                dialog.locator('textarea').fill('新 swipe 章节')
+                with page.expect_response(is_saved_chat) as marked_save:
+                    dialog.locator('.popup-button-ok').click()
+                dialog.wait_for(state='hidden')
+                marked_save.value.finished()
+                director = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id].extra.director)', mesid)
+                label = f"第{len(existing) + 1}章 新 swipe 章节"
+                assert_chapter_swipes(page, mesid, swipe_count, director, label)
+                request_baseline = len(requests())
+                # The out-of-range target enters swipe()'s regenerate branch and
+                # saveReply(type='swipe'); no new swipe is seeded by the fixture.
+                swipe_message(page, mesid, swipe_count)
+                assert len(requests()) == request_baseline + 1
+                assert chat_count(page) == before_generation + 1
+                assert page.evaluate('id => SillyTavern.getContext().chat[id].swipe_id', mesid) == swipe_count
+                assert row.locator('.mes_block > .director-chapter-divider').text_content() == label
+                assert_chapter_swipes(page, mesid, swipe_count + 1, director, label)
+                page.evaluate("""async () => {
+                    const context = SillyTavern.getContext();
+                    await context.saveChat();
+                    await context.reloadCurrentChat();
+                }""")
+                assert_chapter_swipes(page, mesid, swipe_count + 1, director, label)
+                result['checks']['chapterSurvivesNewSwipeGenerationAndDiskReload'] = {
+                    'swipesBeforeMark': swipe_count, 'newSwipeId': swipe_count,
+                    'checkedSwipeIdsAfterReload': list(range(swipe_count + 1)),
+                }
+
+                stage = 'unmark clears generated and original swipes after disk reload'
+                row, menu_button = open_chapter_menu(page, mesid)
+                with page.expect_response(is_saved_chat) as unmarked_save:
+                    menu_button.click()
+                unmarked_save.value.finished()
+                assert_chapter_swipes(page, mesid, swipe_count + 1, None)
+                page.evaluate('async () => { await SillyTavern.getContext().reloadCurrentChat(); }')
+                assert_chapter_swipes(page, mesid, swipe_count + 1, None)
+                assert chapter_snapshot(page) == existing
+                result['checks']['unmarkClearsGeneratedAndOriginalSwipesAfterDiskReload'] = True
+                print('Chapter survives a newly generated swipe; unmark stays clear on every swipe after disk reload', flush=True)
 
                 stage = 'delete middle chapter renumbers'
                 before_delete = chapter_snapshot(page)

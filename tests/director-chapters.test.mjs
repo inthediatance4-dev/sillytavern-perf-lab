@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import vm from 'node:vm';
 import {
     chapterLabel,
     chapterTitleFromValues,
@@ -12,6 +14,17 @@ import {
     unmarkChapter,
 } from '../public/scripts/extensions/director/chapters.js';
 import { countChapters, renderDirectorTemplate } from '../public/scripts/extensions/director/template.js';
+
+function swipeFunctions() {
+    const source = readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
+    return ['saveReply', 'syncMesToSwipe', 'syncSwipeToMes', 'clearMessageData'].map(name => {
+        const match = source.match(new RegExp(`^( *)(?:export )?(?:async )?function ${name}\\(`, 'm'));
+        assert.ok(match, `${name} must exist`);
+        const end = source.indexOf(`\n${match[1]}}`, match.index);
+        assert.notEqual(end, -1, `${name} must have a closing brace`);
+        return source.slice(match.index, end + match[1].length + 2).trimStart().replace(/^export /, '');
+    }).join('\n');
+}
 
 test('chapter titles use the first input and never a stored number', () => {
     assert.equal(chapterTitleFromValues(['河岸夜话', '被忽略的正文'], '新章节'), '河岸夜话');
@@ -76,6 +89,62 @@ test('chapter metadata survives every swipe and JSONL reload, and unmark clears 
     assert.equal(unmarkChapter(reloaded), true);
     assert.ok(reloaded.swipe_info.every(info => !Object.hasOwn(info.extra, 'director')));
     assert.equal(reloaded.swipe_info[1].extra.model, 'second-model');
+});
+
+test('a chapter survives a newly regenerated swipe and reload, then unmark stays clear after reload', async () => {
+    const message = { mes: 'second', extra: { model: 'second-model', memory: 'old memory' }, swipe_id: 1,
+        swipes: ['first', 'second'], swipe_info: [{ extra: { model: 'first-model' } }, { extra: { model: 'second-model' } }] };
+    markChapter(message, '生成后的章节', 'regenerated-chapter-id');
+    const director = structuredClone(message.extra.director);
+    const context = vm.createContext({
+        chat: [message], chat_metadata: { tainted: true }, characters: [], this_chid: 0,
+        generation_started: null, power_user: {}, structuredClone,
+        getMessageTimeStamp: () => 'fixed', getGeneratingApi: () => 'synthetic', getGeneratingModel: () => 'new-model',
+        processImageAttachment: async () => {}, statMesProcess() {}, addOneMessage() {},
+        event_types: { MESSAGE_RECEIVED: 'received', CHARACTER_MESSAGE_RENDERED: 'rendered' },
+        eventSource: { emit: async () => {} },
+    });
+    vm.runInContext(swipeFunctions(), context);
+
+    // swipe() saves the current swipe, selects an empty slot, and clears generation data.
+    assert.equal(context.syncMesToSwipe(), true);
+    const newSwipeId = message.swipes.length;
+    message.swipe_id = newSwipeId;
+    context.clearMessageData(message);
+    assert.equal(message.extra.memory, undefined);
+    assert.deepEqual(message.extra.director, director);
+
+    // Execute saveReply's real swipe branch, including its extra copy into the new swipe_info.
+    await context.saveReply({ type: 'swipe', getMessage: 'generated after marking' });
+    assert.equal(message.swipes.length, newSwipeId + 1);
+    assert.equal(message.swipe_id, newSwipeId);
+    assert.equal(message.swipes[newSwipeId], 'generated after marking');
+    assert.deepEqual(message.swipe_info[newSwipeId].extra.director, director);
+    assert.notEqual(message.swipe_info[newSwipeId].extra.director, message.extra.director);
+    assert.notEqual(message.swipe_info[newSwipeId].extra.director, message.swipe_info[0].extra.director);
+
+    const reloadJsonl = item => [{ chat_metadata: {} }, item].map(row => JSON.stringify(row)).join('\n').split('\n').map(row => JSON.parse(row))[1];
+    let reloaded = reloadJsonl(message);
+    context.chat[0] = reloaded;
+    for (let swipeId = 0; swipeId <= newSwipeId; swipeId++) {
+        assert.equal(context.syncSwipeToMes(0, swipeId), true);
+        assert.equal(reloaded.mes, reloaded.swipes[swipeId]);
+        assert.deepEqual(reloaded.extra.director, director);
+        assert.deepEqual(listChapters([reloaded]), [{ index: 0, number: 1, title: '生成后的章节' }]);
+    }
+
+    assert.equal(unmarkChapter(reloaded), true);
+    assert.equal(Object.hasOwn(reloaded.extra, 'director'), false);
+    assert.ok(reloaded.swipe_info.every(info => !Object.hasOwn(info.extra, 'director')));
+    reloaded = reloadJsonl(reloaded);
+    context.chat[0] = reloaded;
+    for (let swipeId = 0; swipeId <= newSwipeId; swipeId++) {
+        assert.equal(context.syncSwipeToMes(0, swipeId), true);
+        assert.equal(Object.hasOwn(reloaded.extra, 'director'), false);
+        assert.deepEqual(listChapters([reloaded]), []);
+    }
+    assert.ok(reloaded.swipe_info.every(info => !Object.hasOwn(info.extra, 'director')));
+    assert.deepEqual(reloaded.swipe_info.map(info => info.extra.model), ['first-model', 'second-model', 'new-model']);
 });
 
 test('loading confirm starts only past 500 messages and names the exact gap', () => {

@@ -1,14 +1,12 @@
-# M5 — chapter metadata survives swipes
+# M5 — chapter metadata survives swipes (including new swipe after mark)
 
-`markChapter` and `unmarkChapter` synchronize independent copies of `extra.director` into every existing `swipe_info[i].extra`, including missing slots for existing swipes. The chapter preset uses the same synchronization. Each swipe keeps its other extras. `MESSAGE_SWIPED` refreshes the chapter divider after the upstream DOM rebuild.
+`markChapter` / `unmarkChapter` synchronize independent copies of `extra.director` into every `swipe_info[i].extra`. Swipe regeneration preserves `extra.director` through `clearMessageData` + `saveReply(type='swipe')`.
 
-Upstream `syncSwipeToMes` restores the selected swipe's entire `extra`; all marked swipes now restore the same chapter. Swipe regeneration also preserves `extra.director`: `clearMessageData` removes specific generation/media fields, and `saveReply(type='swipe')` updates the existing extras before copying them into the new swipe.
+## Opus confirmation (pre-merge)
 
-Validation:
+1. **Mark → generate NEW swipe → switch to it → reload:** covered by node test `a chapter survives a newly regenerated swipe and reload, then unmark stays clear after reload` (executes real `saveReply` / `syncMesToSwipe` / `clearMessageData` / `syncSwipeToMes` from `public/script.js`) and browser check `chapterSurvivesNewSwipeGenerationAndDiskReload` (real `swipe()` regenerate after mark, then disk reload).
+2. **Unmark clears ALL swipes → reload still clear:** node same test; browser `unmarkClearsExistingSwipesAfterDiskReload` and `unmarkClearsGeneratedAndOriginalSwipesAfterDiskReload`.
 
-- `node --test tests/director-chapters.test.mjs`: 6 passed, including independent swipe metadata copies, a JSON roundtrip, and clearing every swipe on unmark.
-- `/tmp/pw-venv/bin/python tests/browser-director-lab.py --base ee771bb --output docs/reviews/2026-10-28-grok-quality/evidence/streaming-opt/m6/director.json`: passed. The browser creates two swipes, marks a chapter, uses the real `swipe()` function to switch away and back, reloads the chat from disk, and checks metadata and the `第1章 手动章节` divider. Unmark clears both swipe records.
+Also retained: pre-existing swipe away/back + reload (`chapterSurvivesSwipeAwayBackAndDiskReload`).
 
-The full redacted result is [director.json](../m6/director.json), specifically `chapterSurvivesSwipeAwayBackAndDiskReload` and `markUnmarkArbitraryMessagePersistsWithoutNumber`. The Director browser suite also retains its chapter preset, deletion/renumbering, and 2000-message chapter jump checks. Node coverage runs through `test:perf`; Playwright acceptance is local only.
-
-Files: `public/scripts/extensions/director/chapters.js`, `index.js`, `settings.html`; `tests/director-chapters.test.mjs`; `tests/browser-director-lab.py`; this README and the shared browser result.
+Validation this round: `node --test tests/director-chapters.test.mjs` 7/7; `/tmp/pw-venv/bin/python tests/browser-director-lab.py --base ee771bb --output …/m5/director.json` exit 0 (see director.json).

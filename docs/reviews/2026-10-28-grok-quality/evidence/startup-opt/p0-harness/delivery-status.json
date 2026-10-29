@@ -1,0 +1,13 @@
+{
+  "toolCommit": "962fa78cf871568673ce17152b235584e8cca4e5",
+  "selfCheck": "PASS",
+  "worktreeBranch": "opus-startup",
+  "worktreeBase": "c3a1b34",
+  "branchPlacement": "blocked: shared Git metadata mounted read-only",
+  "bundle": ".evidence/startup-p0.bundle",
+  "completionNote": ".evidence/p0-harness-done.txt",
+  "requestedExternalNote": "<parent>/opus-startup/p0-harness-done.txt is outside writable roots",
+  "push": "not attempted",
+  "baselineMatrix": "deferred to p0-baseline",
+  "nativeWindows": "not supported or measured yet; console supervision and Python path adaptation required"
+}

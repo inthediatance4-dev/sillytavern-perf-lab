@@ -1,0 +1,14 @@
+✔ startup probe retries an early context without emitting a page error, and APP_READY stays sticky (2.0483ms)
+✔ disabled trace adds no timers or files and preserves async results/errors (33.735655ms)
+✔ enabled trace records ordered high resolution events and one node timing snapshot (29.203793ms)
+✔ real asynchronous child spawning is observed without affecting its result (33.831996ms)
+✔ unwritable trace warns once and disables without throwing (25.309611ms)
+✔ data description uses file metadata and skips recycled files, symlinks and missing directories (5.09764ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 177.794737

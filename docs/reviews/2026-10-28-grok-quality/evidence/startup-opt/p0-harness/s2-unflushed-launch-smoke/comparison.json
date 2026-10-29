@@ -1,0 +1,30 @@
+{
+  "metrics": {
+    "httpMs": {
+      "summaries": {
+        "head": {
+          "median": 1295.113524,
+          "p95": 1295.113524,
+          "median_ci95": [
+            1295.113524,
+            1295.113524
+          ],
+          "p95_ci95": [
+            1295.113524,
+            1295.113524
+          ],
+          "samples": [
+            1295.113524
+          ]
+        }
+      }
+    }
+  },
+  "allCiIncludeZero": true,
+  "runsPerSide": 1,
+  "order": [
+    "01-head"
+  ],
+  "bootstrapSeed": "opus-round1.5",
+  "resamples": 2000
+}

@@ -59,29 +59,56 @@
         }
         return originalScrollTo.apply(this, args);
     };
-    probe.start = () => {
+    probe.start = (mode = 'send') => {
         probe.active = true;
+        previous = undefined;
+        probe.probeTimeOrigin = performance.timeOrigin;
+        probe.probeStartEpochMs = epoch();
+        probe.probeStartVisibility = document.visibilityState;
+        probe.probeStartFocused = document.hasFocus();
         window.__stStreamingPerf.records.length = 0;
         window.__stStreamingPerf.cursor = 0;
         const context = SillyTavern.getContext();
+        probe.targetMessageId = context.chat.length + (mode === 'continue' ? -1 : 1);
+        probe.chatId = context.getCurrentChatId();
+        context.eventSource.on(context.eventTypes.GENERATION_STARTED, (type, options, dryRun) => {
+            if (dryRun || probe.generationStartedEpochMs) return;
+            probe.generationStartedEpochMs = epoch();
+            probe.generationType = type;
+        });
+        context.eventSource.on(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, ({ dryRun }) => {
+            if (!dryRun) probe.promptReadyEpochMs = epoch();
+        });
         for (const type of ['MESSAGE_RECEIVED', 'CHARACTER_MESSAGE_RENDERED']) context.eventSource.on(context.eventTypes[type], id => {
             probe.events.push({ type, id, epochMs: epoch() });
-            if (type === 'CHARACTER_MESSAGE_RENDERED') afterPaint(t => { probe.finalPaintEpochMs = t; });
+            if (type === 'CHARACTER_MESSAGE_RENDERED' && Number(id) === probe.targetMessageId) afterPaint(t => {
+                probe.finalPaintEpochMs = t;
+                probe.finalPaintMessageId = Number(id);
+            });
         });
-        const initial = context.chat.at(-1)?.mes;
-        const initialVisible = document.querySelector('#chat .mes:last-child .mes_text')?.textContent;
+        const target = () => document.querySelector(`#chat .mes[mesid="${probe.targetMessageId}"]`);
+        const initial = context.chat[probe.targetMessageId]?.mes;
+        const initialVisible = target()?.querySelector('.mes_text')?.textContent;
         const observer = new MutationObserver(() => {
             if (probe.firstPaintEpochMs !== null || probe.firstPending) return;
-            const last = document.querySelector('#chat .mes:last-child');
+            if (context.getCurrentChatId() !== probe.chatId) { probe.chatChanged = true; return; }
+            const last = target();
             if (last?.getAttribute('is_user') === 'true') return;
-            const text = context.chat.at(-1)?.mes;
+            const text = context.chat[probe.targetMessageId]?.mes;
             const reasoningNode = last?.querySelector('.mes_reasoning');
             const reasoning = last?.querySelector('.mes_reasoning_details')?.open && reasoningNode?.getClientRects().length ? reasoningNode.textContent : '';
             const textNode = last?.querySelector('.mes_text');
             if ((textNode?.getClientRects().length && text?.trim() && text.trim() !== '...' && text !== initial && !['', '...', '…'].includes(textNode.textContent.trim()) && textNode.textContent !== initialVisible) || reasoning?.trim()) {
                 probe.firstPaintKind = reasoning?.trim() ? 'reasoning' : 'content';
+                probe.firstVisibleMutationEpochMs = epoch();
+                probe.firstPaintMessageId = Number(last.getAttribute('mesid'));
+                probe.firstVisibleMutationVisibility = document.visibilityState;
                 probe.firstPending = true;
-                afterPaint(t => { probe.firstPaintEpochMs = t; observer.disconnect(); });
+                afterPaint(t => {
+                    probe.firstPaintEpochMs = t;
+                    probe.firstPaintVisibility = document.visibilityState;
+                    observer.disconnect();
+                });
             }
         });
         observer.observe(document.querySelector('#chat .mes').closest('#chat'), { childList: true, subtree: true, characterData: true });

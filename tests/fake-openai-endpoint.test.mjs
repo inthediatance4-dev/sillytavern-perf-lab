@@ -43,3 +43,19 @@ test('provider records bodies for parent and HTTP, supports models, SSE and star
         assert.equal(fake.generations.length, 0);
     } finally { await fake.close(); }
 });
+
+test('HTTP fixture control fails exactly the next API request and keeps request records', async () => {
+    const fake = await createFakeOpenAI({ reply: 'Retry succeeds', rate: 10000 });
+    try {
+        const configured = await fetch(new URL('/__configure', fake.url), { method: 'POST', body: JSON.stringify({ nextStatus: 500 }) });
+        assert.equal(configured.status, 200);
+        const body = { model: 'synthetic', messages: [], stream: false };
+        const failed = await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify(body) });
+        assert.equal(failed.status, 500);
+        assert.match((await failed.json()).error.message, /Synthetic/);
+        const retry = await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify(body) });
+        assert.equal((await retry.json()).choices[0].message.content, 'Retry succeeds');
+        assert.equal(fake.requests.length, 2);
+        assert.equal(fake.generations[0].status, 500);
+    } finally { await fake.close(); }
+});

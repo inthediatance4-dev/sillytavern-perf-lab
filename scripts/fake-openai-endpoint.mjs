@@ -36,6 +36,7 @@ export function streamingFixture({ tokens = 3000, seed = 'opus-streaming-s0', ra
 
 export async function createFakeOpenAI(options = {}) {
     let fixture = streamingFixture(options);
+    let nextStatus = 0;
     const requests = [], generations = [];
     const server = http.createServer(async (request, response) => {
         response.setHeader('Access-Control-Allow-Origin', '*');
@@ -50,10 +51,28 @@ export async function createFakeOpenAI(options = {}) {
         for await (const chunk of request) body += chunk;
         let payload;
         try { payload = JSON.parse(body); } catch { response.writeHead(400).end('{}'); return; }
+        if (pathname === '/__configure') {
+            const { nextStatus: status = 0, ...fixtureOptions } = payload;
+            if (status !== 0 && (!Number.isInteger(status) || status < 400 || status > 599)) {
+                response.writeHead(400).end('{}'); return;
+            }
+            try {
+                if (Object.keys(fixtureOptions).length) fixture = streamingFixture(fixtureOptions);
+            } catch { response.writeHead(400).end('{}'); return; }
+            nextStatus = status;
+            response.end(JSON.stringify({ configured: true }));
+            return;
+        }
         requests.push(payload);
         if (!pathname.endsWith('/chat/completions')) { response.writeHead(404).end('{}'); return; }
         const generation = { receivedEpochMs, receivedNs: receivedNs.toString(), path: pathname, model: payload.model, messageCount: payload.messages?.length, chunks: [] };
         generations.push(generation);
+        if (nextStatus) {
+            generation.status = nextStatus;
+            nextStatus = 0;
+            response.writeHead(generation.status).end(JSON.stringify({ error: { message: 'Synthetic configured API failure' } }));
+            return;
+        }
         const active = fixture;
         if (!payload.stream) {
             generation.lastChunkEpochMs = performance.timeOrigin + performance.now();

@@ -42,14 +42,16 @@ def measure(browser, command):
                 smooth_streaming_speed:p.smooth_streaming_speed, stream_fade_in:p.stream_fade_in, show_thoughts:o.show_thoughts,
                 stream_openai:o.stream_openai, source:o.chat_completion_source, documentFocused:document.hasFocus(), reasoning_auto_expand:p.reasoning.auto_expand};
         }""")
-        page.evaluate('window.__streamingProbe.start()')
+        page.evaluate('(mode) => window.__streamingProbe.start(mode)', command['scenario']['mode'])
         if command['scenario']['mode'] == 'continue':
             page.evaluate("document.querySelector('#option_continue').click()")
         else:
             page.locator('#send_textarea:visible').fill('Continue the synthetic river story.')
             page.locator('#send_but:visible').click()
-        page.wait_for_function("window.__stStreamingPerf.records.some(r => r.kind === 'dom')", timeout=60000)
-        print('streaming worker: first DOM update', file=sys.stderr, flush=True)
+        # The prompt event precedes the request and guarantees the composer has
+        # been read. A DOM-hook wait can miss the smooth network window; typing
+        # before prompt assembly can accidentally change the measured request.
+        page.wait_for_function('window.__streamingProbe.promptReadyEpochMs !== undefined', timeout=60000)
         textarea = page.locator('#send_textarea:visible')
         textarea.focus()
         next_key = time.monotonic()

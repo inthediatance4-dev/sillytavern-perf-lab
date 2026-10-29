@@ -1,0 +1,28 @@
+# M4 smooth-streaming verification
+
+The historical [S1 smooth result](../s1-smooth/README.md) did not establish a product regression. Smooth streaming transforms provider chunks into delayed per-character updates, so visible content and final paint can occur after the provider has finished. The old harness restricted every required series to provider first-chunk..last-chunk and started keyboard sampling only after a DOM hook. A healthy backlog could leave typing or formatting/DOM samples outside that window. Its generic quantile exception did not identify the empty series. The failed run's raw file was not retained, so its exact empty series or a possible clock/navigation cause cannot now be proved; late first paint alone cannot empty the independent rAF sampler.
+
+The corrected harness keeps the original provider network window for non-smooth scenarios, preserving the main/short measurement definition. With smooth mode enabled, frame, typing, LoAF, formatting, DOM, reasoning, scroll-call and update-rate metrics use provider first-chunk through final visible paint, including the smooth backlog. First-token latency remains provider request receipt to first visible paint; finish latency remains last provider chunk to final visible paint. Every run records named sample counts for both the selected window and the network window, and records their exact bounds.
+
+The probe starts before generation and records document time origin, probe start, generation start, first visible mutation, and first/final paint. It observes the expected generated message ID, rather than whichever chat row was last during an unrelated mutation. Clock, target and navigation inconsistencies fail explicitly. Typing starts after the existing non-dry-run `CHAT_COMPLETION_PROMPT_READY` event, before content is required: this avoids both the old DOM-gated sampling gap and a race where typing changes the composer before generation reads it. Paint timestamps retain the same two-rAF convention on both products; smooth speed and all product delays are unchanged.
+
+`tests/streaming-measurement.test.mjs` runs in cross-platform `npm run test:perf`. Four tests verify the unchanged ordinary network window, a healthy late-visible smooth backlog with zero network typing/formatting samples, named missing-series/clock/target errors, and rejection of hooks belonging to a different message. Local Playwright suites and measurements below are separate from CI node tests.
+
+Smooth equivalence command: `python tests/browser-streaming-equivalence.py --base ee771bb --smooth --output docs/reviews/2026-10-28-grok-quality/evidence/streaming-opt/m4/equivalence.json`. This uses default smooth speed 50 and the existing delays.
+
+[equivalence.json](equivalence.json) passes normal, stop, continue, swipe regeneration, reasoning, group and impersonate against the archived base. Final `.mes_text` HTML equals direct formatting and base output; normalized memory/JSONL and stream-token count/order match. Message-received and character-rendered events occur once per message case; impersonate preserves chat and emits its own completion once. The tab sequence has only the intentional 🎬 entry. The default-speed suite took about 7 minutes 35 seconds including lab startup.
+
+A subsequent fixture-only correction seeds the existing empty Authors Note defaults into the initial chat header, preventing its asynchronous initialization/save from racing a fast first generation. No comparison fields were added to the ignore list. Final non-smooth ON and OFF suites pass with that seed; the normal-message JSONL digest remains identical to this earlier smooth result on both products (`025b8baf04315646cce1d7fba903ac280913ae3babaa8d7d43e78eed33715acd`).
+
+The allowed short smoke A/B used `node scripts/measure-streaming.mjs --base ee771bb --head WORKTREE --scenario short --smooth on --runs 1 --smoke --output docs/reviews/2026-10-28-grok-quality/evidence/streaming-opt/m4/ab-short-smoke`, under `nohup` with a retained waiting shell and file polling. It completed successfully and retained all four healthy samples: one discarded warmup and one measured run on each side. All record `smooth_streaming=true`, unchanged `smooth_streaming_speed=50`, and `streaming_fps=30`. This verifies measurement health with the existing smooth backlog. With only one measured run per side, it makes **no statistical performance acceptance claim**; the generated one-sample bootstrap intervals are not used for acceptance conclusions.
+
+The following cells show **network / selected render-window** samples; the JSON files also retain named LoAF, reasoning and scroll counts and exact epoch bounds.
+
+| Run | Window seconds | Frames | Typing keys | Format | DOM |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| [Warmup base](ab-short-smoke/short-warmup-base.json) | 2.47 / 59.06 | 129 / 3451 | 12 / 293 | 38 / 845 | 38 / 845 |
+| [Warmup head](ab-short-smoke/short-warmup-head.json) | 2.44 / 51.81 | 142 / 3093 | 12 / 258 | 39 / 815 | 39 / 815 |
+| [Measured base](ab-short-smoke/short-01-base.json) | 2.42 / 53.29 | 142 / 3108 | 12 / 262 | 37 / 804 | 37 / 804 |
+| [Measured head](ab-short-smoke/short-01-head.json) | 2.44 / 58.08 | 135 / 3391 | 12 / 288 | 41 / 892 | 41 / 892 |
+
+Every sample has `status=ok`, complete target/document/paint checks, and finite required metrics. Both head samples record zero stolen scrolls. Raw browser/provider records and source identities are retained beside the summaries. Both owned lab servers exited with code 0 and removed their data-root owner locks: [base shutdown](ab-short-smoke/shutdown-base.json), [head shutdown](ab-short-smoke/shutdown-head.json).

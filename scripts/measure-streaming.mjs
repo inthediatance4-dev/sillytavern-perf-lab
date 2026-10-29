@@ -12,10 +12,11 @@ import { createHash } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
 import yaml from 'yaml';
 import { createFakeOpenAI } from './fake-openai-endpoint.mjs';
+import { measureStreamingMetrics } from './streaming-measurement.mjs';
 import { labServerArguments } from './start-performance-lab.mjs';
 import { prepareTemporaryLab } from './longchat-lab-server.mjs';
 import { write as writeCard } from '../src/character-card-parser.js';
-import { medianDifference, summarize, percentile, bootstrapSeed, resamples } from './benchmark-statistics.mjs';
+import { medianDifference, summarize, bootstrapSeed, resamples } from './benchmark-statistics.mjs';
 
 if (process.platform === 'win32') throw new Error('Run this measurement orchestrator on Linux (archive extraction and graceful process-group shutdown); endpoint/unit tests support Windows.');
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -155,33 +156,6 @@ async function start(product) {
     }
     throw new Error('Lab readiness deadline exceeded');
 }
-const quantiles = values => {
-    if (!values.length) throw new Error('Required measurement has no samples');
-    return { p50: percentile(values, 0.5), p95: percentile(values, 0.95), p99: percentile(values, 0.99) };
-};
-function metrics(browser, generation) {
-    const first = generation.firstChunkEpochMs, last = generation.lastChunkEpochMs;
-    const frames = browser.frames.filter(r => r.epochMs >= first && r.epochMs <= last).map(r => r.ms);
-    const keys = browser.typing.filter(r => r.epochMs >= first && r.epochMs <= last).map(r => r.ms);
-    const hooks = browser.hooks.records.filter(r => r.start + browser.timeOrigin >= first && r.end + browser.timeOrigin <= last);
-    const durations = kind => hooks.filter(r => r.kind === kind).map(r => r.end - r.start);
-    const frame = quantiles(frames), typing = quantiles(keys), format = quantiles(durations('format')), dom = quantiles(durations('dom'));
-    const loaf = browser.loaf.filter(r => r.epochMs >= first && r.epochMs <= last);
-    const attributed = { messageFormatting: 0, DOMPurify: 0, keyboard: 0, other: 0 };
-    for (const entry of loaf) for (const script of entry.scripts) {
-        const name = script.sourceFunctionName + ' ' + script.sourceURL;
-        const category = /messageFormatting/.test(name) ? 'messageFormatting' : /purify|DOMPurify/i.test(name) ? 'DOMPurify' : /keyboard\.js/.test(name) ? 'keyboard' : 'other';
-        attributed[category] += script.duration;
-    }
-    return { frameP50Ms: frame.p50, frameP95Ms: frame.p95, frameP99Ms: frame.p99,
-        framesOver16_7Pct: frames.filter(t => t > 16.7).length / frames.length * 100, framesOver33Pct: frames.filter(t => t > 33).length / frames.length * 100,
-        loafCount: loaf.length, loafTotalMs: loaf.reduce((sum, r) => sum + r.ms, 0), ...Object.fromEntries(Object.entries(attributed).map(([key, value]) => [`loafScript${key}Ms`, value])),
-        formatP50Ms: format.p50, formatP95Ms: format.p95, domP50Ms: dom.p50, domP95Ms: dom.p95,
-        reasoningP95Ms: quantiles(durations('reasoning')).p95, scrollCallP95Ms: quantiles(durations('scroll')).p95,
-        updatesPerSecond: durations('dom').length / ((last - first) / 1000), firstTokenMs: browser.firstPaintEpochMs - generation.receivedEpochMs,
-        finishMs: browser.finalPaintEpochMs - last, typingP50Ms: typing.p50, typingP95Ms: typing.p95,
-        scrollStolen: browser.writes.filter(r => r.epochMs >= browser.scrollProbeEpochMs && r.epochMs <= browser.finalPaintEpochMs).length };
-}
 async function run(side, name, scenario, iteration, discarded = false) {
     const label = `${name}-${discarded ? 'warmup' : String(iteration).padStart(2, '0')}-${side}`;
     const product = products[side];
@@ -202,10 +176,13 @@ async function run(side, name, scenario, iteration, discarded = false) {
         if (!browser.loafSupported || browser.pageErrors.length || !browser.firstPaintEpochMs || !browser.finalPaintEpochMs) throw new Error('Missing paint/LoAF support or browser errors: ' + JSON.stringify({ first:browser.firstPaintEpochMs, final:browser.finalPaintEpochMs, loaf:browser.loafSupported, errors:browser.pageErrors }));
         if (browser.firstPaintEpochMs < generation.firstChunkEpochMs || browser.finalPaintEpochMs < generation.lastChunkEpochMs) throw new Error('Paint clocks out of order');
         const firstVisibleChunk = generation.chunks.find(c => c.field === browser.firstPaintKind);
-        if (!firstVisibleChunk || browser.firstPaintEpochMs < firstVisibleChunk.epochMs) throw new Error('First paint preceded the generated visible token');
+        if (!firstVisibleChunk || browser.firstVisibleMutationEpochMs < firstVisibleChunk.epochMs || browser.firstPaintEpochMs < firstVisibleChunk.epochMs) throw new Error('First visible mutation/paint preceded the generated visible token');
         if (browser.scrollProbe?.delta < 590) throw new Error('Scroll probe could not move up 600px');
         if (scenario.reasoning && !browser.finalReasoning) throw new Error('Reasoning was not parsed');
-        result.metrics = metrics(browser, generation);
+        const measured = measureStreamingMetrics(browser, generation, scenario);
+        result.metrics = measured.metrics;
+        result.measurementWindow = measured.window;
+        result.windowSamples = measured.samples;
         result.dom = browser.dom || null;
         result.samples = { frames: browser.frames.length, keys: browser.typing.length, hooks: browser.hooks.records.length };
         result.settings = browser.settings;
@@ -228,7 +205,7 @@ try {
     lines = createInterface({ input: worker.stdout })[Symbol.asyncIterator]();
     const ready = JSON.parse((await lines.next()).value);
     if (!ready.ready) throw new Error('Browser failed to launch');
-    const files = ['scripts/measure-streaming.mjs', 'scripts/fake-openai-endpoint.mjs', 'scripts/measure-streaming-browser.py', 'scripts/streaming-browser-probe.js', 'scripts/benchmark-statistics.mjs', 'tests/browser-longchat-perf.py', 'tests/lab_browser.py', 'public/script.js', 'public/scripts/reasoning.js', 'public/scripts/streaming-perf.js'];
+    const files = ['scripts/measure-streaming.mjs', 'scripts/fake-openai-endpoint.mjs', 'scripts/measure-streaming-browser.py', 'scripts/streaming-browser-probe.js', 'scripts/benchmark-statistics.mjs', 'scripts/streaming-measurement.mjs', 'tests/browser-longchat-perf.py', 'tests/lab_browser.py', 'public/script.js', 'public/scripts/reasoning.js', 'public/scripts/streaming-perf.js'];
     const hashes = {};
     for (const file of files) hashes[file] = createHash('sha256').update(await fs.readFile(path.join(repo, file))).digest('hex');
     await json('invocation.json', { args, scenarios, products: Object.fromEntries(Object.entries(products).map(([side, p]) => [side, { revision: p.revision, lab: p.lab }])), temporary,
@@ -264,7 +241,7 @@ try {
         '| Scenario | Side | Frame p95 ms | >33ms % | Typing p95 ms | First token ms | Finish ms | Updates/s | Scroll stolen |',
         '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'];
     for (const [name, table] of Object.entries(comparison.scenarios)) for (const side of Object.keys(products)) readme.push(`| ${name} | ${side} | ` + ['frameP95Ms', 'framesOver33Pct', 'typingP95Ms', 'firstTokenMs', 'finishMs', 'updatesPerSecond', 'scrollStolen'].map(key => table[key].summaries[side].median.toFixed(2)).join(' | ') + ' |');
-    readme.push('', 'Cells are medians of per-run metrics. All per-metric summaries and 95% median-difference CIs are in comparison.json; raw browser/endpoint samples are gzipped beside each run.', '');
+    readme.push('', 'Non-smooth frame/typing/hook metrics use the provider first-chunk..last-chunk window. Smooth metrics extend that window through final visible paint to include the existing per-character backlog; first-token and finish latency keep their provider-clock definitions. Each run records both window bounds and named network/render sample counts.', '', 'Cells are medians of per-run metrics. All per-metric summaries and 95% median-difference CIs are in comparison.json; raw browser/endpoint samples are gzipped beside each run.', '');
     if (args.base) readme.push(`All metric CIs include zero: **${comparison.allCiIncludeZero}**.`, '');
     const main = comparison.scenarios.main;
     if (main) {

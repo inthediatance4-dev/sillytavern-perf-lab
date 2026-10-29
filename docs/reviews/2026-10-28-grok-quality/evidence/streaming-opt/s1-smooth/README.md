@@ -3,7 +3,7 @@
 `--base ee771bb --head WORKTREE --scenario smooth --runs 7` started after S1 merge.
 Warmups completed on both sides; **smooth-01-base failed** with `Required measurement has no samples`.
 
-Cause (from the gzipped raw): the browser's first paint landed **after** the fake provider's last network chunk (`firstPaintEpochMs > lastChunkEpochMs`), so the first-chunk..last-chunk frame/typing filters were empty. Warmup on the same product had ~869 frames in-window. This is a lab timing flake under smooth streaming (network stream ~15s, smooth backlog ~5.5 min), not a product regression. The harness currently aborts the whole matrix on the first failed run.
+Correction during M4: the earlier explanation attributed this failure to first paint landing after the provider's last chunk. That ordering is expected when smooth streaming has a backlog. The rAF sampler starts before generation and is independent of first paint, so late first paint alone cannot empty its network-window samples. Keyboard sampling formerly waited for a DOM hook, while every metric was restricted to the network window; healthy delayed DOM/typing work could therefore leave those required series empty. Only the warmup raw files were retained here, so the exact empty series or clock/navigation cause of the failed run cannot be established from this historical evidence. The failure is not a valid product comparison. See the [M4 diagnosis, window definition, and rerun](../m4/README.md).
 
 ## Warmup medians (discarded, not acceptance)
 

@@ -1,4 +1,4 @@
-"""D1 acceptance on a temporary, isolated lab; retained for D3 to extend.
+"""Director acceptance on a temporary, isolated lab; retained for D3 to extend.
 
 Run with a Python environment containing Playwright. The S0 provider defaults to
 scripts/fake-openai-endpoint.mjs; --fake-endpoint can point at its unmerged copy.
@@ -98,7 +98,7 @@ def ready(page, origin):
     page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
 
 
-def select_sample(page, sample):
+def select_sample(page, sample, expected_messages=2):
     page.evaluate("""async (sample) => {
         const context = SillyTavern.getContext();
         await context.getCharacters();
@@ -106,7 +106,7 @@ def select_sample(page, sample):
         if (index < 0) throw new Error('Synthetic card not found');
         await context.selectCharacterById(String(index));
     }""", sample)
-    page.wait_for_function("SillyTavern.getContext().chat.length === 2 && document.querySelectorAll('#chat .mes').length === 2")
+    page.wait_for_function("count => SillyTavern.getContext().chat.length === count && document.querySelectorAll('#chat .mes').length === count", arg=expected_messages)
     page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
 
 
@@ -136,6 +136,39 @@ def normalize_message(value):
 
 def chat_count(page):
     return page.evaluate('SillyTavern.getContext().chat.length')
+
+
+def open_manager(page):
+    page.locator('#directorButton').click()
+    page.locator('#directorPopover').get_by_text('⚙ 管理预设', exact=True).click()
+    page.locator('#director_presets').wait_for(state='visible')
+    assert page.locator('#directorPopover').is_hidden()
+
+
+def presets_snapshot(page):
+    return page.evaluate("async () => structuredClone((await import('/scripts/extensions.js')).extension_settings.director.presets)")
+
+
+def wait_presets(page, expected):
+    deadline = time.monotonic() + 15
+    latest = None
+    while time.monotonic() < deadline:
+        latest = presets_snapshot(page)
+        if latest == expected:
+            return latest
+        page.wait_for_timeout(50)
+    raise AssertionError('Director presets did not reach the expected value: ' + json.dumps(latest, ensure_ascii=False))
+
+
+def wait_presets_saved(data_root, expected):
+    deadline = time.monotonic() + 15
+    settings_file = pathlib.Path(data_root) / 'default-user' / 'settings.json'
+    while time.monotonic() < deadline:
+        settings = json.loads(settings_file.read_text(encoding='utf-8'))
+        if settings.get('extension_settings', {}).get('director', {}).get('presets') == expected:
+            return
+        time.sleep(.05)
+    raise AssertionError('Debounced Director presets did not persist')
 
 
 def preset(page, preset_id, text=None, cancel=False, digit=None):
@@ -313,7 +346,7 @@ def run(args, temporary):
                 assert chat_count(page) == before and page.locator('dialog[open]').count() == 0
                 page.locator('#directorButton').click()
                 page.locator('#directorPopover').wait_for(state='visible')
-                page.screenshot(path=str(pathlib.Path(tempfile.gettempdir()) / 'director-d1-popover.png'))
+                page.screenshot(path=str(temp / 'director-popover.png'))
                 page.locator('#send_textarea').focus()
                 page.keyboard.press('2')
                 assert page.locator('#send_textarea').input_value() == '1232'
@@ -461,6 +494,179 @@ def run(args, temporary):
                 assert page.locator('#send_textarea').input_value() == 'Hotkey typing guard'
                 page.locator('#send_textarea').fill('')
                 result['checks']['configuredHotkeyWorksAndSkipsTyping'] = True
+
+                stage = 'custom preset manager fields and reload persistence'
+                open_manager(page)
+                assert page.locator('#director_presets .director_preset').count() == 8
+                page.locator('#director_preset_add').click()
+                custom = page.locator('#director_presets .director_preset').last
+                custom_id = custom.get_attribute('data-preset-id')
+                custom.locator('[data-field="icon"]').fill('🧪')
+                custom.locator('[data-field="name"]').fill('Synthetic Custom Name')
+                custom.locator('[data-field="mode"]').select_option('comment')
+                custom.locator('[data-field="template"]').fill('Custom {{input:first|saved}} / {{input:second|second default}}')
+                custom.locator('[data-field="isChapter"]').check()
+                custom.locator('[data-field="autoGenerate"]').check()
+                configured = presets_snapshot(page)
+                assert configured[-1] == {'id':custom_id, 'icon':'🧪', 'name':'Synthetic Custom Name', 'mode':'comment',
+                    'template':'Custom {{input:first|saved}} / {{input:second|second default}}',
+                    'isChapter':True, 'autoGenerate':True}
+                wait_presets_saved(lab['dataRoot'], configured)
+                ready(page, origin)
+                select_sample(page, sample, expected_messages=10)
+                assert presets_snapshot(page) == configured
+                open_manager(page)
+                custom = page.locator(f'#director_presets .director_preset[data-preset-id="{custom_id}"]')
+                assert custom.locator('[data-field="name"]').input_value() == 'Synthetic Custom Name'
+                assert custom.locator('[data-field="mode"]').input_value() == 'comment'
+                assert custom.locator('[data-field="isChapter"]').is_checked()
+                assert custom.locator('[data-field="autoGenerate"]').is_checked()
+                # Keep the remaining acceptance checks from generating extra replies.
+                custom.locator('[data-field="autoGenerate"]').uncheck()
+                result['checks']['customPresetAllFieldsPersistAcrossReload'] = True
+
+                stage = 'keyboard reorder updates digit mapping'
+                for _ in range(8):
+                    custom.locator('[data-action="up"]').focus()
+                    page.keyboard.press('Enter')
+                assert presets_snapshot(page)[0]['id'] == custom_id
+                custom.locator('[data-action="down"]').focus()
+                page.keyboard.press('Enter')
+                assert presets_snapshot(page)[1]['id'] == custom_id
+                custom.locator('[data-action="up"]').focus()
+                page.keyboard.press('Enter')
+                stage = 'drag reorder saves order'
+                custom.locator('.drag-handle').evaluate("node => node.scrollIntoView({ block:'start' })")
+                source = custom.locator('.drag-handle').bounding_box()
+                target = page.locator('#director_presets .director_preset').nth(1).bounding_box()
+                page.mouse.move(source['x'] + source['width'] / 2, source['y'] + source['height'] / 2)
+                page.mouse.down()
+                page.wait_for_timeout(page.evaluate("$('#director_presets').sortable('option', 'delay')") + 50)
+                page.mouse.move(target['x'] + target['width'] / 2, target['y'] + target['height'] * .7, steps=20)
+                page.mouse.up()
+                assert presets_snapshot(page)[1]['id'] == custom_id
+                custom.locator('[data-action="up"]').click()
+                assert presets_snapshot(page)[0]['id'] == custom_id
+                result['checks']['dragReorderUpdatesStoredOrder'] = True
+                page.locator('#extensions-settings-button .drawer-toggle').click()
+                page.locator('#directorButton').click()
+                first_item = page.locator('#directorPopover > button').first
+                assert first_item.get_attribute('data-preset-id') == custom_id
+                assert first_item.locator('kbd').inner_text() == '1'
+                page.keyboard.press('1')
+                dialog = page.locator('dialog[open]')
+                dialog.locator('#director-input-0').fill('Keyboard reorder proof')
+                # The message is visible before the command finishes saving. Wait for
+                # that save so the next /director call is not ignored as in-flight.
+                with page.expect_response(lambda response: '/api/chats/save' in response.url and response.status == 200) as saved:
+                    dialog.locator('.popup-button-ok').click()
+                dialog.wait_for(state='hidden')
+                saved.value.body()
+                page.wait_for_function("SillyTavern.getContext().chat.at(-1)?.mes === 'Custom Keyboard reorder proof / second default'")
+                page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+                assert chat_count(page) == 11
+                result['checks']['keyboardReorderUpdatesDigitMapping'] = True
+
+                stage = 'slash quoted names literal input remaining defaults'
+                slash_result = page.evaluate("SillyTavern.getContext().executeSlashCommandsWithOptions('/director \"Synthetic Custom Name\" literal=stuff')")
+                assert slash_result['pipe'] == ''
+                assert page.locator('dialog[open]').count() == 0
+                quoted_message = page.evaluate('SillyTavern.getContext().chat.at(-1).mes')
+                assert quoted_message == 'Custom literal=stuff / second default', quoted_message
+                assert chat_count(page) == 12
+                result['checks']['slashQuotedNameLiteralInputRemainingDefaultsEmptyPipe'] = True
+
+                stage = 'slash remaining required input and cancellation'
+                open_manager(page)
+                custom.locator('[data-field="template"]').fill('Custom {{input:first|saved}} / {{input:second|second default}} / {{input:remaining}}')
+                page.locator('#extensions-settings-button .drawer-toggle').click()
+                for cancel in (True, False):
+                    page.evaluate("() => { window.__directorSlash = SillyTavern.getContext().executeSlashCommandsWithOptions('/director 1 supplied'); }")
+                    dialog = page.locator('dialog[open]')
+                    dialog.locator('#director-input-0').wait_for(state='visible')
+                    assert dialog.locator('input[id^="director-input-"]').count() == 1
+                    assert 'remaining' in dialog.inner_text()
+                    dialog.locator('#director-input-0').fill('still needed')
+                    dialog.locator('.popup-button-cancel' if cancel else '.popup-button-ok').click()
+                    dialog.wait_for(state='hidden')
+                    assert page.evaluate('window.__directorSlash')['pipe'] == ''
+                    assert chat_count(page) == (12 if cancel else 13)
+                assert page.evaluate('SillyTavern.getContext().chat.at(-1).mes') == 'Custom supplied / second default / still needed'
+                result['checks']['slashPromptsOnlyRemainingRequiredInputsAndCancelIsAtomic'] = True
+
+                stage = 'export and invalid import atomicity'
+                open_manager(page)
+                exported_presets = presets_snapshot(page)
+                with page.expect_download() as download_event:
+                    page.locator('#director_export').click()
+                exported_path = temp / 'director-presets.json'
+                download_event.value.save_as(str(exported_path))
+                exported = json.loads(exported_path.read_text(encoding='utf-8'))
+                assert exported == {'version':1, 'presets':exported_presets}
+                page.evaluate('toastr.clear()')
+                invalid = {'version':1, 'presets':[exported_presets[1], {**exported_presets[0], 'template':42}]}
+                page.locator('#director_import_file').set_input_files({'name':'invalid-director.json',
+                    'mimeType':'application/json', 'buffer':json.dumps(invalid, ensure_ascii=False).encode()})
+                page.locator('.toast-error').wait_for(state='visible')
+                assert presets_snapshot(page) == exported_presets
+                assert page.locator('#director_presets .director_preset').count() == 9
+                page.evaluate('toastr.clear()')
+                result['checks']['exportVersionedJsonAndInvalidImportAtomicError'] = True
+
+                stage = 'delete and valid import round trip'
+                custom.locator('[data-action="delete"]').click()
+                assert page.locator('#director_presets .director_preset').count() == 8
+                page.locator('#director_import_file').set_input_files(str(exported_path))
+                imported = wait_presets(page, exported_presets)
+                assert [entry['id'] for entry in imported] == [entry['id'] for entry in exported_presets]
+                assert imported == exported_presets
+                assert page.locator('#director_presets .director_preset').count() == 9
+                result['checks']['deleteAndValidImportRoundTrip'] = True
+
+                stage = 'restore defaults requires confirmation'
+                page.locator('#director_restore_defaults').click()
+                dialog = page.locator('dialog[open]')
+                dialog.locator('.popup-button-cancel').click()
+                dialog.wait_for(state='hidden')
+                assert presets_snapshot(page) == exported_presets
+                page.locator('#director_restore_defaults').click()
+                dialog.locator('.popup-button-ok').click()
+                dialog.wait_for(state='hidden')
+                restored = presets_snapshot(page)
+                assert [entry['id'] for entry in restored] == ['time-skip','scene','narration','chapter','event','direct','advance','note']
+                assert all(not entry['autoGenerate'] for entry in restored)
+                assert page.locator('#director_presets .director_preset').count() == 8
+                wait_presets_saved(lab['dataRoot'], restored)
+                ready(page, origin)
+                select_sample(page, sample, expected_messages=13)
+                assert presets_snapshot(page) == restored
+                result['checks']['restoreDefaultsCancelAcceptAndReload'] = True
+
+                stage = 'slash index example inserts exact narrator'
+                slash_result = page.evaluate("SillyTavern.getContext().executeSlashCommandsWithOptions('/director 1 三天')")
+                assert slash_result['pipe'] == ''
+                inserted = page.evaluate('structuredClone(SillyTavern.getContext().chat.at(-1))')
+                assert inserted['mes'] == '——三天后——'
+                assert inserted['extra']['type'] == 'narrator' and inserted['extra']['director']['preset'] == 'time-skip'
+                assert page.locator('#chat .mes:last-child .mes_text').inner_text() == '——三天后——'
+                assert page.locator('dialog[open]').count() == 0
+                assert chat_count(page) == 14 and len(requests()) == 3
+                result['checks']['slashDirectorIndexTextExactNarrator'] = True
+
+                stage = 'actual Quick Reply execution'
+                quick_reply_pipe = page.evaluate("""async () => {
+                    const { QuickReplySet } = await import('/scripts/extensions/quick-reply/src/QuickReplySet.js');
+                    const { QuickReply } = await import('/scripts/extensions/quick-reply/src/QuickReply.js');
+                    const set = QuickReplySet.from({ name:'Synthetic Director acceptance' });
+                    const reply = QuickReply.from({ id:1, label:'Director synthetic', message:'/director 1 五天' });
+                    set.hookQuickReply(reply);
+                    return reply.execute();
+                }""")
+                assert quick_reply_pipe == ''
+                assert page.evaluate('SillyTavern.getContext().chat.at(-1).mes') == '——五天后——'
+                assert chat_count(page) == 15 and len(requests()) == 3
+                result['checks']['actualQuickReplyExecutionExactNarrator'] = True
+                print('D2 manager persistence, reorder, import/export, restore and slash command passed', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]
@@ -484,7 +690,7 @@ def main():
     parser.add_argument('--node', default=str(preferred_node) if preferred_node.is_file() else 'node')
     parser.add_argument('--fake-endpoint', default=str(ROOT / 'scripts' / 'fake-openai-endpoint.mjs'))
     parser.add_argument('--base', default='ffd5f4e')
-    parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d1' / 'results.json')
+    parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d2' / 'results.json')
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='director-lab-') as temporary:
         result = redact(run(args, temporary), temporary)

@@ -3,18 +3,13 @@ import { doNavbarIconClick } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
-import { renderDirectorTemplate } from './template.js';
-
-const defaultPresets = [
-    { id: 'time-skip', icon: '⏩', name: '时间跳跃', mode: 'narrator', template: '——{{input:过了多久？|一段时间}}后——' },
-    { id: 'scene', icon: '🎬', name: '场景切换', mode: 'narrator', template: '【场景：{{input:新的地点}}】' },
-    { id: 'narration', icon: '📖', name: '旁白', mode: 'narrator', template: '{{input:旁白内容}}' },
-    { id: 'chapter', icon: '🌙', name: '新章节', mode: 'narrator', template: '第{{chapter}}章　{{input:章节标题}}', isChapter: true },
-    { id: 'event', icon: '⚡', name: '突发事件', mode: 'narrator', template: '（突然，{{input:发生了什么}}）' },
-    { id: 'direct', icon: '🎭', name: '导演指令', mode: 'instruct', template: '[导演指令：{{input:你希望接下来怎么发展}}]' },
-    { id: 'advance', icon: '🔁', name: '推进剧情', mode: 'instruct', template: '[导演指令：推动剧情向前发展，引入一个新的变化，不要重复之前的情节。]' },
-    { id: 'note', icon: '📝', name: '备注', mode: 'comment', template: '{{input:写给自己的备注}}' },
-];
+import { SlashCommand } from '../../slash-commands/SlashCommand.js';
+import { ARGUMENT_TYPE, SlashCommandArgument } from '../../slash-commands/SlashCommandArgument.js';
+import { SlashCommandEnumValue } from '../../slash-commands/SlashCommandEnumValue.js';
+import { SlashCommandParser } from '../../slash-commands/SlashCommandParser.js';
+import { initPresetManager } from './manager.js';
+import { createDefaultPresets, presetForDigit, resolvePresetArgument } from './presets.js';
+import { collectPresetInputs, renderDirectorTemplate } from './template.js';
 
 let button;
 let popover;
@@ -69,8 +64,9 @@ async function collectInputs(inputs, name) {
         : null;
 }
 
-async function usePreset(preset) {
+async function usePreset(preset, inputText) {
     if (executing) return;
+    preset = { ...preset };
     const context = getContext();
     const revision = chatRevision;
     if (!context.groupId && context.characterId === undefined) {
@@ -85,8 +81,8 @@ async function usePreset(preset) {
         const text = await renderDirectorTemplate(preset.template, {
             chat: context.chat,
             substituteParams: context.substituteParams,
-            collectInputs: async inputs => {
-                values = await collectInputs(inputs, preset.name);
+            collectInputs: async () => {
+                values = await collectPresetInputs(preset.template, inputText, pending => collectInputs(pending, preset.name));
                 return values;
             },
         });
@@ -197,7 +193,7 @@ export async function init() {
     const settings = extension_settings.director ??= {};
     let seeded = false;
     if (!Array.isArray(settings.presets)) {
-        settings.presets = defaultPresets.map(preset => ({ isChapter: false, autoGenerate: false, ...preset }));
+        settings.presets = createDefaultPresets();
         seeded = true;
     }
     if (typeof settings.hotkey !== 'string') {
@@ -215,6 +211,29 @@ export async function init() {
         settings.hotkey = String($(this).val()).trim();
         context.saveSettingsDebounced();
     });
+    initPresetManager();
+    SlashCommandParser.addCommandObject(SlashCommand.fromProps({
+        name: 'director',
+        splitUnnamedArgument: true,
+        splitUnnamedArgumentCount: 1,
+        callback: async (_, value) => {
+            const resolved = resolvePresetArgument(settings.presets, value);
+            if (resolved) await usePreset(resolved.preset, resolved.text);
+            else toastr.error('找不到 Director 预设，请使用名称或从 1 开始的序号。');
+            return '';
+        },
+        unnamedArgumentList: [
+            SlashCommandArgument.fromProps({
+                description: '预设名称或序号（从 1 开始；含空格的名称请加引号）',
+                typeList: [ARGUMENT_TYPE.STRING],
+                isRequired: true,
+                enumProvider: () => settings.presets.map(preset => new SlashCommandEnumValue(preset.name, preset.mode)),
+            }),
+            SlashCommandArgument.fromProps({ description: '填入第一个输入框的文字', typeList: [ARGUMENT_TYPE.STRING] }),
+        ],
+        helpString: '<p>应用 Director 预设，可用于 Quick Reply。例如：<code>/director 1 三天</code> 插入「——三天后——」。文字填入第一个输入框，其余输入使用默认值；没有默认值的输入会弹出对话框。名称先精确匹配，再忽略大小写匹配。纯数字始终表示从 1 开始的序号；含空格的名称请加引号。</p>',
+        returns: '空字符串',
+    }));
 
     button = document.createElement('div');
     button.id = 'directorButton';
@@ -251,7 +270,7 @@ export async function init() {
             event.stopPropagation();
             closePopover(true);
         } else if (!event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && /^[1-9]$/.test(event.key)) {
-            const preset = settings.presets[Number(event.key) - 1];
+            const preset = presetForDigit(settings.presets, event.key);
             if (preset) {
                 event.preventDefault();
                 event.stopPropagation();

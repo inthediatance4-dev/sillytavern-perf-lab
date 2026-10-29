@@ -9,6 +9,44 @@
             <label for="director_hotkey">快捷键（默认关闭）</label>
             <input id="director_hotkey" class="text_pole" type="text" placeholder="Ctrl+Shift+D" autocomplete="off">
             <small>留空关闭。输入文字时不触发快捷键。预设输入可留空；取消对话框不会插入内容。</small>
+            <hr>
+            <p>预设顺序对应菜单中的数字 1–9。拖动手柄或使用上移、下移按钮排序，最多 50 个。</p>
+            <ol id="director_presets" aria-label="Director 预设"></ol>
+            <div class="director_manager_actions">
+                <button id="director_preset_add" type="button" class="menu_button">添加预设</button>
+                <button id="director_restore_defaults" type="button" class="menu_button">恢复默认</button>
+                <button id="director_import" type="button" class="menu_button">导入 JSON</button>
+                <button id="director_export" type="button" class="menu_button">导出 JSON</button>
+                <input id="director_import_file" type="file" accept=".json,application/json" hidden>
+            </div>
+            <small>导入会整份替换，校验失败则保持原样。文件须为 {"version":1,"presets":[…]}，不能是裸数组。每项只能包含 id、icon、name、mode、template、isChapter、autoGenerate，重复 id 会被拒绝。名称和 id 不可为空白，mode 只能是 narrator、comment、instruct。id / 图标 / 名称 / 模板长度上限分别为 128 / 64 / 200 / 20000 字符，最多 50 个预设。</small>
+            <p id="director_preset_status" role="status" aria-live="polite"></p>
+            <p><code>/director &lt;名称或序号&gt; [文字]</code> 可用于 Quick Reply。文字填入第一个输入框，其余输入使用默认值；没有默认值的输入会弹出对话框。名称先精确匹配，再忽略大小写。纯数字始终表示序号。含空格的名称请加引号。</p>
         </div>
     </div>
+    <template id="director_preset_template">
+        <li class="director_preset">
+            <div class="director_preset_toolbar">
+                <span class="drag-handle fa-solid fa-grip-vertical" title="拖动排序" aria-hidden="true"></span>
+                <strong class="director_preset_heading"></strong>
+                <button type="button" class="menu_button" data-action="up" aria-label="上移预设" title="上移">↑</button>
+                <button type="button" class="menu_button" data-action="down" aria-label="下移预设" title="下移">↓</button>
+                <button type="button" class="menu_button" data-action="delete" aria-label="删除预设" title="删除">×</button>
+            </div>
+            <div class="director_preset_fields">
+                <label>图标<input type="text" class="text_pole" data-field="icon"></label>
+                <label>名称<input type="text" class="text_pole" data-field="name" required></label>
+                <label>模式<select class="text_pole" data-field="mode">
+                    <option value="narrator">旁白（发送给模型）</option>
+                    <option value="comment">备注（仅自己可见）</option>
+                    <option value="instruct">指令（仅下次生成）</option>
+                </select></label>
+            </div>
+            <label>模板<textarea class="text_pole" rows="3" data-field="template"></textarea></label>
+            <div class="director_preset_flags">
+                <label class="checkbox_label"><input type="checkbox" data-field="isChapter">章节起点</label>
+                <label class="checkbox_label"><input type="checkbox" data-field="autoGenerate">插入后自动生成</label>
+            </div>
+        </li>
+    </template>
 </div>

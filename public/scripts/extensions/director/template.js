@@ -23,6 +23,31 @@ export function parseInputs(template) {
 }
 
 /**
+ * Slash text fills the first input. Later explicit defaults (including an empty
+ * default) are used directly; only remaining inputs without defaults are asked.
+ * @param {string} template Preset template
+ * @param {string | undefined} text Optional slash command input
+ * @param {(inputs: DirectorTemplateInput[]) => Promise<string[] | null> | string[] | null} collectInputs Input dialog callback
+ * @returns {Promise<string[] | null>} Complete values in template order, or cancellation
+ */
+export async function collectPresetInputs(template, text, collectInputs) {
+    const inputs = parseInputs(template);
+    if (!inputs.length) return [];
+    if (text === undefined) return collectInputs(inputs);
+    const values = inputs.map(input => input.defaultValue);
+    values[0] = text;
+    const remaining = Array.from(template.matchAll(INPUT_PATTERN))
+        .map((match, index) => ({ index, hasDefault: match[1].includes('|') }))
+        .filter(input => input.index > 0 && !input.hasDefault);
+    if (remaining.length) {
+        const result = await collectInputs(remaining.map(input => inputs[input.index]));
+        if (result === null) return null;
+        remaining.forEach((input, index) => { values[input.index] = result[index] ?? ''; });
+    }
+    return values;
+}
+
+/**
  * Counts chapter markers from the current chat, so deletions need no renumbering.
  * @param {object[]} chat Current messages
  * @returns {number} Number of marked chapters

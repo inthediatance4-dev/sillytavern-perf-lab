@@ -1,0 +1,317 @@
+{
+  "baseRevision": "f6c005331182c3f22c2f108bb120c884b1ccd76f",
+  "headRevision": "WORKTREE",
+  "sourceHashes": [
+    {
+      "file": "public/scripts/keyboard.js",
+      "baseSha256": "1e8f1af313ae95fd554bf9a6594b66b8b2c68932b512a0ad9d8d206b9bfa181c",
+      "headSha256": "01e9fdeb4272d387772ef0838ff92084f15b41599fcd15d271b118fd25f0a9d8"
+    },
+    {
+      "file": "tests/longchat-keyboard.test.mjs",
+      "baseSha256": null,
+      "headSha256": "5d4fb2bf5708beae7fafc8a49dde8c2f2eeeb64c91fdaa307b55cf0f192fced7"
+    },
+    {
+      "file": "tests/longchat-spread.test.mjs",
+      "baseSha256": "c2fcbef32bf27265ba080756c3303d7d8a89c587cd3564efd43bd852af83927b",
+      "headSha256": "99ac15542a7bcc82f7862f2bedcd8f4301f6be3f2a5ddf57ff3f407572f444b9"
+    },
+    {
+      "file": "tests/browser-longchat-perf.py",
+      "baseSha256": "6418ec7ca3d35273ee70c33e785681bc878b07eef9537307278d93dfcd341882",
+      "headSha256": "ca73df873f52537d5c8fd7552e8a3553e9a8213b9fb4e8f05802eedfb164eb65"
+    },
+    {
+      "file": "tests/LONGCHAT-PERF.md",
+      "baseSha256": "450912d0506fe261cd7165dc2215507dff02486df3bce22d0de835accb357259",
+      "headSha256": "c7e8128e0b1a30e48cb3c161ea282e68cbf95cde046622c101117951ea948fa3"
+    },
+    {
+      "file": "package.json",
+      "baseSha256": "efa8ee9256b75df63246ca777e8ac867aa6c1ab7bac2d1e5c051bb81a239544f",
+      "headSha256": "5a8ceeb88e24099c58e5d30a591a2b6e029d72cf47be94babfd7f03f4b0378d1"
+    }
+  ],
+  "ordinaryABRuns": 28,
+  "browserWorkflows": 39,
+  "labServers": 32,
+  "allRunsSuccessful": true,
+  "pageErrors": 0,
+  "forbiddenRequests": 0,
+  "equivalence": {
+    "dom": {
+      "open": {
+        "base": {
+          "sha256": "602c06b531676f06f97d22e2b2c4522c2cb90f0eb42598d5753cb19b069fc954",
+          "length": 1022397,
+          "file": "run-2000-100-0-dom-open.html.gz"
+        },
+        "head": {
+          "sha256": "602c06b531676f06f97d22e2b2c4522c2cb90f0eb42598d5753cb19b069fc954",
+          "length": 1022397,
+          "file": "run-2000-100-0-dom-open.html.gz"
+        },
+        "equal": true
+      },
+      "older": {
+        "base": {
+          "sha256": "7c7499336e861dc97228717123f2af6ecfe4abdfa35385bfa3f1cbfcf568ea8e",
+          "length": 2045078,
+          "file": "run-2000-100-0-dom-older.html.gz"
+        },
+        "head": {
+          "sha256": "7c7499336e861dc97228717123f2af6ecfe4abdfa35385bfa3f1cbfcf568ea8e",
+          "length": 2045078,
+          "file": "run-2000-100-0-dom-older.html.gz"
+        },
+        "equal": true
+      }
+    },
+    "tabs": {
+      "older": {
+        "baseCount": 565,
+        "headCount": 565,
+        "equal": true
+      },
+      "appended": {
+        "baseCount": 565,
+        "headCount": 565,
+        "equal": true
+      },
+      "class-added": {
+        "baseCount": 567,
+        "headCount": 567,
+        "equal": true
+      },
+      "ancestor-disabled": {
+        "baseCount": 566,
+        "headCount": 566,
+        "equal": true
+      },
+      "ancestor-enabled": {
+        "baseCount": 567,
+        "headCount": 567,
+        "equal": true
+      },
+      "popup-open": {
+        "baseCount": 4,
+        "headCount": 4,
+        "equal": true
+      },
+      "popup-closed": {
+        "baseCount": 567,
+        "headCount": 567,
+        "equal": true
+      }
+    }
+  },
+  "head3000LoadAll": {
+    "n": 5,
+    "successful": 5,
+    "openMs": {
+      "n": 5,
+      "median": 7861.60000000149,
+      "p95": 10089.099999997765
+    },
+    "sendMs": {
+      "n": 5,
+      "median": 3282.5984230003087,
+      "p95": 4758.834200998535
+    }
+  },
+  "cleanup": [
+    {
+      "file": "ab/2000-0-0-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-0-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-1-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-1-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-2-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-2-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-3-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-3-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-4-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-4-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-5-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-5-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-6-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-0-6-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-0-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-0-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-1-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-1-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-2-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-2-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-3-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-3-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-4-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-4-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-5-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-5-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-6-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "ab/2000-100-6-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "equivalence/2000-100-0-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "equivalence/2000-100-0-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "head-3000/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "file": "profiles/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    }
+  ]
+}

@@ -32,6 +32,7 @@ function harness(t, media = []) {
     const observations = { removed: 0, selectors: [] };
     let currentMedia = media;
     const context = vm.createContext({
+        olderMessagesInsertion: null,
         HTMLImageElement: ImageElement, HTMLMediaElement: MediaElement,
         Date, console: { debug() {} },
         setTimeout(callback, delay) {

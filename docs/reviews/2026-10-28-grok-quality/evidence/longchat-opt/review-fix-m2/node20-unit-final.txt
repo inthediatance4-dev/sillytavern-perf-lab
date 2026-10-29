@@ -1,0 +1,300 @@
+TAP version 13
+# Subtest: success preserves void return and terminal event order without scheduling small loads
+ok 1 - success preserves void return and terminal event order without scheduling small loads
+  ---
+  duration_ms: 22.381925
+  ...
+# Subtest: large visible text receives exactly one post-render task boundary
+ok 2 - large visible text receives exactly one post-render task boundary
+  ---
+  duration_ms: 11.964753
+  ...
+# Subtest: truncated history counts only visible text
+ok 3 - truncated history counts only visible text
+  ---
+  duration_ms: 14.09589
+  ...
+# Subtest: clear immediately invalidates the load suspended at unshallowCharacter
+ok 4 - clear immediately invalidates the load suspended at unshallowCharacter
+  ---
+  duration_ms: 22.724071
+  ...
+# Subtest: clear immediately invalidates the load suspended at fetch
+ok 5 - clear immediately invalidates the load suspended at fetch
+  ---
+  duration_ms: 8.032676
+  ...
+# Subtest: clear immediately invalidates the load suspended at loadItemizedPrompts
+ok 6 - clear immediately invalidates the load suspended at loadItemizedPrompts
+  ---
+  duration_ms: 8.28581
+  ...
+# Subtest: clear immediately invalidates the load suspended at printMessages
+ok 7 - clear immediately invalidates the load suspended at printMessages
+  ---
+  duration_ms: 14.379868
+  ...
+# Subtest: same-file reload supersedes late response without overwriting newer model
+ok 8 - same-file reload supersedes late response without overwriting newer model
+  ---
+  duration_ms: 3.981005
+  ...
+# Subtest: clear during task boundary suppresses menu terminal events and delayed focus
+ok 9 - clear during task boundary suppresses menu terminal events and delayed focus
+  ---
+  duration_ms: 8.080643
+  ...
+# Subtest: stale render rejection does not enter catch fallback
+ok 10 - stale render rejection does not enter catch fallback
+  ---
+  duration_ms: 8.074524
+  ...
+# Subtest: real fetch failure still renders fallback and logs error
+ok 11 - real fetch failure still renders fallback and logs error
+  ---
+  duration_ms: 8.009407
+  ...
+# Subtest: CHAT_CHANGED listener cancellation suppresses later first-message events and CHAT_LOADED
+ok 12 - CHAT_CHANGED listener cancellation suppresses later first-message events and CHAT_LOADED
+  ---
+  duration_ms: 9.226454
+  ...
+# Subtest: delayed textarea focus ignores a cleared successful load
+ok 13 - delayed textarea focus ignores a cleared successful load
+  ---
+  duration_ms: 8.36314
+  ...
+# Subtest: cancelled legacy open never persists character
+ok 14 - cancelled legacy open never persists character
+  ---
+  duration_ms: 5.044065
+  ...
+# Subtest: cancelled guarded open never persists character
+ok 15 - cancelled guarded open never persists character
+  ---
+  duration_ms: 11.386499
+  ...
+# Subtest: general redisplay remains atomic after the older-insertion entry barrier
+ok 16 - general redisplay remains atomic after the older-insertion entry barrier
+  ---
+  duration_ms: 0.412792
+  ...
+# Subtest: visible text threshold at 249999 characters
+ok 17 - visible text threshold at 249999 characters
+  ---
+  duration_ms: 7.585133
+  ...
+# Subtest: visible text threshold at 250000 characters
+ok 18 - visible text threshold at 250000 characters
+  ---
+  duration_ms: 7.696476
+  ...
+# Subtest: visible text threshold at 250001 characters
+ok 19 - visible text threshold at 250001 characters
+  ---
+  duration_ms: 3.516503
+  ...
+# Subtest: CHAT_LOADED synchronous navigation cancels outer persistence
+ok 20 - CHAT_LOADED synchronous navigation cancels outer persistence
+  ---
+  duration_ms: 12.841644
+  ...
+# Subtest: cancelled new chat does not save or delete the selected history
+ok 21 - cancelled new chat does not save or delete the selected history
+  ---
+  duration_ms: 7.632077
+  ...
+# Subtest: group identity change during response refuses model application
+ok 22 - group identity change during response refuses model application
+  ---
+  duration_ms: 10.935685
+  ...
+# Subtest: json response suspension cannot overwrite changed metadata
+ok 23 - json response suspension cannot overwrite changed metadata
+  ---
+  duration_ms: 3.839883
+  ...
+# Subtest: empty load preserves greeting save and event order
+ok 24 - empty load preserves greeting save and event order
+  ---
+  duration_ms: 11.580627
+  ...
+# Subtest: legitimate CHAT_CHANGED metadata update preserves successful terminal events
+ok 25 - legitimate CHAT_CHANGED metadata update preserves successful terminal events
+  ---
+  duration_ms: 7.630294
+  ...
+# Subtest: clear invalidates before its prompt persistence await completes
+ok 26 - clear invalidates before its prompt persistence await completes
+  ---
+  duration_ms: 9.589506
+  ...
+# Subtest: targeted default character selection propagates cancelled load
+ok 27 - targeted default character selection propagates cancelled load
+  ---
+  duration_ms: 3.759538
+  ...
+# Subtest: cancelled reload does not refresh swipe buttons for a newer chat
+ok 28 - cancelled reload does not refresh swipe buttons for a newer chat
+  ---
+  duration_ms: 7.562008
+  ...
+# Subtest: same-file reload during CHAT_CHANGED suppresses old terminal events even with restored metadata
+ok 29 - same-file reload during CHAT_CHANGED suppresses old terminal events even with restored metadata
+  ---
+  duration_ms: 7.525777
+  ...
+# Subtest: clear invalidates ownership before waiting for detached older preparation
+ok 30 - clear invalidates ownership before waiting for detached older preparation
+  ---
+  duration_ms: 7.430697
+  ...
+# Subtest: clear superseded while waiting for older preparation preserves the newer load
+ok 31 - clear superseded while waiting for older preparation preserves the newer load
+  ---
+  duration_ms: 7.423958
+  ...
+# Subtest: temporary measurement config isolates data and preserves retention defaults
+ok 32 - temporary measurement config isolates data and preserves retention defaults
+  ---
+  duration_ms: 65.581915
+  ...
+# Subtest: measurement config refuses workspace and invalid ports before writing
+ok 33 - measurement config refuses workspace and invalid ports before writing
+  ---
+  duration_ms: 1.424103
+  ...
+# Subtest: Windows console break forwards to graceful SIGINT handlers (Linux simulation)
+ok 34 - Windows console break forwards to graceful SIGINT handlers (Linux simulation)
+  ---
+  duration_ms: 0.225071
+  ...
+# Subtest: native Windows CTRL_BREAK reaches graceful SIGINT handler
+ok 35 - native Windows CTRL_BREAK reaches graceful SIGINT handler # SKIP Requires a native Windows console process group; forwarding is simulated above on other systems
+  ---
+  duration_ms: 0.063802
+  ...
+# Subtest: deterministic data, percentiles and CPU ancestor attribution
+ok 36 - deterministic data, percentiles and CPU ancestor attribution
+  ---
+  duration_ms: 692.942353
+  ...
+# Subtest: equivalence snapshots use deterministic gzip and verified content for diffs
+ok 37 - equivalence snapshots use deterministic gzip and verified content for diffs
+  ---
+  duration_ms: 110.024483
+  ...
+# Subtest: snapshot normalization removes only declared volatile fields and preserves behavior
+ok 38 - snapshot normalization removes only declared volatile fields and preserves behavior
+  ---
+  duration_ms: 18.925154
+  ...
+# Subtest: snapshot normalization sorts unordered tokens while preserving membership and ordered references
+ok 39 - snapshot normalization sorts unordered tokens while preserving membership and ordered references
+  ---
+  duration_ms: 3.170705
+  ...
+# Subtest: paired bootstrap uses the backend seeded method and preserves pairing
+ok 40 - paired bootstrap uses the backend seeded method and preserves pairing
+  ---
+  duration_ms: 57.197412
+  ...
+# Subtest: older preparation stays off-DOM, uses elapsed work and preserves order
+ok 41 - older preparation stays off-DOM, uses elapsed work and preserves order
+  ---
+  duration_ms: 3.635293
+  ...
+# Subtest: one live insertion corrects scroll only while the show-more button is in view
+ok 42 - one live insertion corrects scroll only while the show-more button is in view
+  ---
+  duration_ms: 1.860285
+  ...
+# Subtest: duplicate trigger is ignored and mutation waits; completion listeners can mutate
+ok 43 - duplicate trigger is ignored and mutation waits; completion listeners can mutate
+  ---
+  duration_ms: 0.907162
+  ...
+# Subtest: render failure releases mutation waiters and permits another load without completion event
+ok 44 - render failure releases mutation waiters and permits another load without completion event
+  ---
+  duration_ms: 10.236451
+  ...
+# Subtest: MessageChannel fallback yields a task and closes both ports
+ok 45 - MessageChannel fallback yields a task and closes both ports
+  ---
+  duration_ms: 0.791318
+  ...
+# Subtest: explicit older count and default truncation load exactly the requested IDs
+ok 46 - explicit older count and default truncation load exactly the requested IDs
+  ---
+  duration_ms: 5.392773
+  ...
+# Subtest: send already awaiting an attachment rechecks the insertion barrier before changing the model
+ok 47 - send already awaiting an attachment rechecks the insertion barrier before changing the model
+  ---
+  duration_ms: 1.487631
+  ...
+# Subtest: Tab recorder captures each Tab after dispatch and removes its listener
+ok 48 - Tab recorder captures each Tab after dispatch and removes its listener
+  ---
+  duration_ms: 11.670928
+  ...
+# Subtest: older-load queue covers structural mutations and not displayed-message edits
+ok 49 - older-load queue covers structural mutations and not displayed-message edits
+  ---
+  duration_ms: 1.457659
+  ...
+# Subtest: concurrent older scenario hooks preparation yield instead of a partial insertion
+ok 50 - concurrent older scenario hooks preparation yield instead of a partial insertion
+  ---
+  duration_ms: 5.942536
+  ...
+# Subtest: stale preparation discards its fragment after changing same-file reload serial
+ok 51 - stale preparation discards its fragment after changing same-file reload serial
+  ---
+  duration_ms: 0.904126
+  ...
+# Subtest: stale preparation discards its fragment after changing character
+ok 52 - stale preparation discards its fragment after changing character
+  ---
+  duration_ms: 0.623173
+  ...
+# Subtest: stale preparation discards its fragment after changing group
+ok 53 - stale preparation discards its fragment after changing group
+  ---
+  duration_ms: 5.252158
+  ...
+# Subtest: stale preparation discards its fragment after changing chat file
+ok 54 - stale preparation discards its fragment after changing chat file
+  ---
+  duration_ms: 0.720718
+  ...
+# Subtest: stale preparation discards its fragment after changing metadata owner
+ok 55 - stale preparation discards its fragment after changing metadata owner
+  ---
+  duration_ms: 0.693331
+  ...
+# Subtest: stale preparation discards its fragment after changing array replacement
+ok 56 - stale preparation discards its fragment after changing array replacement
+  ---
+  duration_ms: 3.308499
+  ...
+# Subtest: stale preparation discards its fragment after changing message count
+ok 57 - stale preparation discards its fragment after changing message count
+  ---
+  duration_ms: 1.446256
+  ...
+# Subtest: ownership is checked again after preparation resolves and before insertion
+ok 58 - ownership is checked again after preparation resolves and before insertion
+  ---
+  duration_ms: 0.733322
+  ...
+1..58
+# tests 58
+# suites 0
+# pass 57
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 1121.563288

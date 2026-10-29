@@ -1,0 +1,33 @@
+{
+  "swipe-fixed": {
+    "attempted": 2,
+    "ok": 2,
+    "errors": [],
+    "serverExitCode": 0,
+    "ownerLockRemoved": true
+  },
+  "regenerate-diagnostic": {
+    "attempted": 2,
+    "ok": 0,
+    "errors": [
+      "Error: Operation changed unrelated chat entries: [{\"path\":\"chat.298.extra.reasoning\",\"expected\":null,\"actual\":\"\"}]\n    at Module.preparationConcurrency (blob:http://<host>/8239a6ed-7e56-45b8-89b0-d7f1542f2058:480:23)",
+      "Error: Operation changed unrelated chat entries: [{\"path\":\"chat.298.extra.reasoning\",\"expected\":null,\"actual\":\"\"}]\n    at Module.preparationConcurrency (blob:http://<host>/384019af-eb16-435d-acd0-a03b2093875c:480:23)"
+    ],
+    "serverExitCode": 0,
+    "ownerLockRemoved": true
+  },
+  "regenerate-fixed": {
+    "attempted": 2,
+    "ok": 2,
+    "errors": [],
+    "serverExitCode": 0,
+    "ownerLockRemoved": true
+  },
+  "full-suite": {
+    "attempted": 14,
+    "ok": 14,
+    "errors": [],
+    "serverExitCode": 0,
+    "ownerLockRemoved": true
+  }
+}

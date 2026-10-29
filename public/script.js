@@ -1502,48 +1502,128 @@ export async function replaceCurrentChat() {
     }
 }
 
-export async function showMoreMessages(messagesToLoad = null) {
-    const firstDisplayedMesId = chatElement.children('.mes').first().attr('mesid');
-    let messageId = Number(firstDisplayedMesId);
-    let count = messagesToLoad || power_user.chat_truncation || Number.MAX_SAFE_INTEGER;
+// Re-entrant show-more is dropped. The insertion promise queues only mutations that can
+// change the hidden prefix or replace the message list while that prefix is prepared
+// off-DOM. Displayed-message edit, move and copy are not queued: they require a live
+// message element, so their ids are at or after the first displayed message and outside
+// the prepared range. Navigation invalidates the detached preparation instead of
+// placing old messages after the selection changes. Completion listeners may themselves
+// send or edit, so the promise is released before MORE_MESSAGES_LOADED.
+let olderMessagesLoading = false;
+let olderMessagesInsertion = null;
 
-    // If there are no messages displayed, or the message somehow has no mesid, we default to one higher than last message id,
-    // so the first "new" message being shown will be the last available message
-    if (isNaN(messageId)) {
-        messageId = getLastMessageId() + 1;
+/** One slice of off-DOM preparation. Variable message cost, so this is a time budget rather than a count. */
+const OLDER_SLICE_BUDGET_MS = 10;
+
+/** Yields a task even in hidden tabs, where animation frames can be suspended. */
+function yieldOlderMessages() {
+    if (globalThis.scheduler?.yield) {
+        return globalThis.scheduler.yield();
     }
-
-    console.debug('Inserting messages before', messageId, 'count', count, 'chat length', chat.length);
-    const prevHeight = chatElement.prop('scrollHeight');
-    const showMoreButton = $('#show_more_messages');
-    const isButtonInView = isElementInViewport(showMoreButton[0]);
-
-    const firstId = clamp(messageId - count, 0, Infinity);
-    const messageElements = [];
-    chat.slice(firstId, messageId).forEach((message, id) => {
-        messageElements.push(updateMessageElement(message, { messageId: firstId + id }));
+    return new Promise(resolve => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => {
+            channel.port1.close();
+            channel.port2.close();
+            resolve();
+        };
+        channel.port2.postMessage(null);
     });
-    // This could be faster: https://developer.mozilla.org/en-US/docs/Web/API/Element/insertAdjacentElement
-    // Fallback to chatElement if the button isn't where it's expected to be.
-    if (showMoreButton[0]) {
-        showMoreButton.after(messageElements);
-    } else {
-        chatElement.prepend(messageElements);
+}
+
+/**
+ * Builds one detached fragment for an older batch. Nothing is inserted and no layout is read.
+ * @param {number} firstId First message ID (inclusive)
+ * @param {number} endId Last message ID (exclusive)
+ * @param {function(): boolean} [isCurrent] Whether this preparation still owns the chat
+ * @returns {Promise<DocumentFragment|null>} Prepared messages in ascending ID order, or null when superseded
+ */
+async function prepareOlderMessageFragment(firstId, endId, isCurrent = () => true) {
+    const renderContext = createMessageRenderContext();
+    const fragment = document.createDocumentFragment();
+    let messageId = firstId;
+    while (messageId < endId) {
+        if (!isCurrent()) return null;
+        const start = performance.now();
+        do {
+            fragment.append(updateMessageElement(chat[messageId], { messageId, renderContext })[0]);
+            messageId++;
+        } while (messageId < endId && performance.now() - start < OLDER_SLICE_BUDGET_MS);
+        if (messageId < endId) await yieldOlderMessages();
     }
+    return fragment;
+}
 
-    refreshSwipeButtons();
-
-    if (firstId === 0) {
-        showMoreButton.remove();
+/**
+ * Inserts a prepared older fragment once, before the current first message.
+ * @param {HTMLElement} container Chat scroller
+ * @param {DocumentFragment} fragment Prepared messages
+ */
+function placeOlderFragment(container, fragment) {
+    const boundary = container.querySelector('.mes');
+    if (boundary) {
+        container.insertBefore(fragment, boundary);
+        return;
     }
+    const button = document.getElementById('show_more_messages');
+    if (button) button.after(fragment);
+    else container.prepend(fragment);
+}
 
-    if (isButtonInView) {
-        const newHeight = chatElement.prop('scrollHeight');
-        chatElement.scrollTop(newHeight - prevHeight);
+export async function showMoreMessages(messagesToLoad = null) {
+    if (olderMessagesLoading) return;
+    olderMessagesLoading = true;
+    let finishInsertion;
+    olderMessagesInsertion = new Promise(resolve => { finishInsertion = resolve; });
+    try {
+        const owner = {
+            serial: characterChatLoadSerial, character: this_chid, group: selected_group,
+            file: getCurrentChatId(), metadata: chat_metadata, messages: chat, length: chat.length,
+        };
+        const isCurrent = () => owner.serial === characterChatLoadSerial
+            && owner.character === this_chid && owner.group === selected_group
+            && owner.file === getCurrentChatId() && owner.metadata === chat_metadata
+            && owner.messages === chat && owner.length === chat.length;
+        const container = chatElement[0];
+        const firstMes = container.querySelector('.mes');
+        let messageId = Number(firstMes?.getAttribute('mesid'));
+        const count = messagesToLoad || power_user.chat_truncation || Number.MAX_SAFE_INTEGER;
+        if (!firstMes || isNaN(messageId)) {
+            messageId = getLastMessageId() + 1;
+        }
+
+        const firstId = clamp(messageId - count, 0, Infinity);
+        try {
+            // Preparation yields and does not touch layout. The scroll decision is the
+            // synchronous path's, taken immediately before the one insertion so a scroll
+            // during preparation is honored: scrollTop becomes the height delta only when
+            // #show_more_messages is fully in the window, and is left unchanged otherwise.
+            // A nonzero scrollTop with the button still fully visible is replaced by that
+            // delta, matching the old assignment. The write happens after swipe refresh
+            // and button removal, then style pins run.
+            const fragment = await prepareOlderMessageFragment(firstId, messageId, isCurrent);
+            if (!fragment || !isCurrent()) return;
+            const showMoreButton = document.getElementById('show_more_messages');
+            const buttonInView = isElementInViewport(showMoreButton);
+            const previousHeight = buttonInView ? container.scrollHeight : 0;
+            placeOlderFragment(container, fragment);
+            refreshSwipeButtons();
+            if (firstId === 0) $('#show_more_messages').remove();
+            if (buttonInView) {
+                container.scrollTop = container.scrollHeight - previousHeight;
+            }
+            applyStylePins();
+        } finally {
+            // Release before emitting: completion listeners can await mutations safely.
+            olderMessagesInsertion = null;
+            finishInsertion();
+        }
+        await eventSource.emit(event_types.MORE_MESSAGES_LOADED);
+    } finally {
+        olderMessagesInsertion = null;
+        finishInsertion();
+        olderMessagesLoading = false;
     }
-
-    applyStylePins();
-    await eventSource.emit(event_types.MORE_MESSAGES_LOADED);
 }
 
 export async function printMessages() {
@@ -1569,6 +1649,7 @@ export async function printMessages() {
  * @param {Boolean} [options.fade=true] When false, the swipe chevrons will not fade in.
  */
 export async function redisplayChat({ targetChat = chat, startIndex = 0, fade = true } = {}) {
+    if (olderMessagesInsertion) await olderMessagesInsertion;
     const messageElements = chatElement.find('.mes');
     messageElements.removeClass('last_mes');
 
@@ -1580,15 +1661,17 @@ export async function redisplayChat({ targetChat = chat, startIndex = 0, fade = 
     const messages = targetChat.slice(startIndex);
 
     if (messages.length > 0) {
-        const newMessageElements = messages.map((message, offset) => {
+        const renderContext = createMessageRenderContext();
+        const newMessageElements = document.createDocumentFragment();
+        messages.forEach((message, offset) => {
             const i = startIndex + offset;
-            const messageElement = updateMessageElement(message, { messageId: i });
+            const messageElement = updateMessageElement(message, { messageId: i, renderContext });
 
-            return messageElement[0];
+            newMessageElements.append(messageElement[0]);
         });
 
         //The last_mes has been removed, add it to the new last message.
-        newMessageElements.at(-1).classList.add('last_mes');
+        newMessageElements.lastElementChild.classList.add('last_mes');
 
         //Append to chat in one DOM update.
         chatElement.append(newMessageElements);
@@ -1630,7 +1713,10 @@ export function cancelDebouncedChatSave() {
  * @param {boolean} [options.clearData=false] Optionally clear the chat array's contents.
  */
 export async function clearChat({ clearData = false } = {}) {
+    // Invalidate detached older messages before waiting for their preparation to stop.
     const clearSerial = ++characterChatLoadSerial;
+    if (olderMessagesInsertion) await olderMessagesInsertion;
+    if (clearSerial !== characterChatLoadSerial) return;
     const promptClear = cancelItemizedPromptsLoad();
     mediaLoadScrollHandler.cancel();
     cancelDebouncedChatSave();
@@ -1653,6 +1739,7 @@ export async function clearChat({ clearData = false } = {}) {
 }
 
 export async function deleteLastMessage() {
+    if (olderMessagesInsertion) await olderMessagesInsertion;
     deleteItemizedPromptForMessage(chat.length - 1);
     chat.length = chat.length - 1;
     chatElement.children('.mes').last().remove();
@@ -1685,6 +1772,7 @@ function getMessageDeletionStartId(id, deleteToolCalls = true) {
  * @param {boolean} [deleteToolCalls=true] Whether to delete preceding tool-call messages.
  */
 export async function deleteMessage(id, swipeDeletionIndex = undefined, askConfirmation = false, deleteToolCalls = true) {
+    if (olderMessagesInsertion) await olderMessagesInsertion;
     const canDeleteSwipe = swipeDeletionIndex !== undefined && swipeDeletionIndex !== null;
     if (canDeleteSwipe) {
         if (swipeDeletionIndex < 0) {
@@ -1714,6 +1802,7 @@ export async function deleteMessage(id, swipeDeletionIndex = undefined, askConfi
         if (!result) {
             return;
         }
+        if (olderMessagesInsertion) await olderMessagesInsertion;
         deleteOnlySwipe = canDeleteSwipe && result === POPUP_RESULT.AFFIRMATIVE; // Default button, not the custom one
     }
 
@@ -2675,36 +2764,31 @@ export function addOneMessage(mes, { type = undefined, insertAfter = null, scrol
 }
 
 /**
+ * Captures values shared by a synchronous message-rendering batch.
+ * @returns {{userAvatar: string, characterAvatar: string, timestampModelIcon: boolean}} Batch values
+ */
+function createMessageRenderContext() {
+    const character = characters[this_chid];
+    return {
+        userAvatar: getThumbnailUrl('persona', user_avatar),
+        characterAvatar: this_chid === undefined ? system_avatar
+            : character && character.avatar !== 'none' ? getThumbnailUrl('avatar', character.avatar) : default_avatar,
+        timestampModelIcon: power_user.timestamp_model_icon,
+    };
+}
+
+/**
  * Creates the element of a single message as if it were the last message or at forceMesId
  * @param {ChatMessage} mes Message object
  * @param {object} [options] Options
  * @param {number} [options.messageId=chat.length - 1] Force the message ID
  * @param {JQuery<HTMLElement>} [options.messageElement=messageTemplate.clone()] This message element will be updated with the ChatMessage object.
  * @param {SCROLL_BEHAVIOR} [options.adjustMediaScroll=SCROLL_BEHAVIOR.NONE] Scroll behavior option passed to appendMediaToMessage.
+ * @param {ReturnType<typeof createMessageRenderContext>} [options.renderContext] Values shared by an internal synchronous batch.
  * @returns {JQuery<HTMLElement>} Rendered HTMLElement.
  */
-export function updateMessageElement(mes, { messageId = chat.length - 1, messageElement = messageTemplate.clone(), adjustMediaScroll = SCROLL_BEHAVIOR.NONE } = {}) {
-    let avatarImg = getThumbnailUrl('persona', user_avatar);
-
-    //for non-user messages
-    if (!mes.is_user) {
-        if (mes.force_avatar) {
-            avatarImg = mes.force_avatar;
-        } else if (this_chid === undefined) {
-            avatarImg = system_avatar;
-        } else if (characters[this_chid] && characters[this_chid].avatar !== 'none') {
-            avatarImg = getThumbnailUrl('avatar', characters[this_chid].avatar);
-        } else {
-            avatarImg = default_avatar;
-        }
-        //old processing:
-        //if message is from system, use the name provided in the message JSONL to proceed,
-        //if not system message, use name2 (char's name) to proceed
-        //characterName = mes.is_system || mes.force_avatar ? mes.name : name2;
-    } else if (mes.is_user && mes.force_avatar) {
-        // Special case for persona images.
-        avatarImg = mes.force_avatar;
-    }
+export function updateMessageElement(mes, { messageId = chat.length - 1, messageElement = messageTemplate.clone(), adjustMediaScroll = SCROLL_BEHAVIOR.NONE, renderContext = createMessageRenderContext() } = {}) {
+    const avatarImg = mes.force_avatar || (mes.is_user ? renderContext.userAvatar : renderContext.characterAvatar);
     const momentDate = timestampToMoment(mes.send_date);
     const timestamp = momentDate.isValid() ? momentDate.format('LL LT') : '';
     const messageHTML = getMessageTextHTML(mes, { messageId });
@@ -2741,7 +2825,7 @@ export function updateMessageElement(mes, { messageId = chat.length - 1, message
 
     updateReasoningUI(messageElement);
 
-    if (power_user.timestamp_model_icon && mes.extra?.api) {
+    if (renderContext.timestampModelIcon && mes.extra?.api) {
         insertSVGIcon(messageElement, mes.extra);
     }
 
@@ -3841,8 +3925,8 @@ class StreamingProcessor {
             };
             const swipeInfoArray = Array(this.swipes.length).fill().map(() => structuredClone(swipeInfo));
             parseReasoningInSwipes(this.swipes, swipeInfoArray, message.extra?.reasoning_duration);
-            message.swipes.push(...this.swipes);
-            message.swipe_info.push(...swipeInfoArray);
+            for (const swipe of [...this.swipes]) message.swipes.push(swipe);
+            for (const swipeInfo of swipeInfoArray) message.swipe_info.push(swipeInfo);
         }
 
         syncMesToSwipe(messageId);
@@ -4356,6 +4440,7 @@ function removeLastMessage() {
  * @returns {Promise<any>} Returns a promise that resolves when the text is done generating.
  */
 export async function Generate(type, { automatic_trigger, force_name2, quiet_prompt, quietToLoud, skipWIAN, force_chid, signal, quietImage, quietName, jsonSchema = null, depth = 0 } = {}, dryRun = false) {
+    if (olderMessagesInsertion) await olderMessagesInsertion;
     console.log('Generate entered');
     setGenerationProgress(0);
     generation_started = new Date();
@@ -5940,6 +6025,7 @@ export function removeMacros(str) {
  * @returns {Promise<any>} A promise that resolves to the message when it is inserted.
  */
 export async function sendMessageAsUser(messageText, messageBias, insertAt = null, compact = false, name = name1, avatar = user_avatar) {
+    if (olderMessagesInsertion) await olderMessagesInsertion;
     messageText = getRegexedString(messageText, regex_placement.USER_INPUT);
 
     const message = {
@@ -5968,6 +6054,7 @@ export async function sendMessageAsUser(messageText, messageBias, insertAt = nul
     }
 
     await populateFileAttachment(message);
+    if (olderMessagesInsertion) await olderMessagesInsertion;
     statMesProcess(message, 'user', characters, this_chid, '');
 
     chat_metadata.tainted = true;
@@ -6893,8 +6980,8 @@ export async function saveReply({ type, getMessage, fromStreaming = false, title
         };
         const swipeInfoArray = Array(swipes.length).fill().map(() => structuredClone(swipeInfo));
         parseReasoningInSwipes(swipes, swipeInfoArray, item.extra?.reasoning_duration);
-        item.swipes.push(...swipes);
-        item.swipe_info.push(...swipeInfoArray);
+        for (const swipe of [...swipes]) item.swipes.push(swipe);
+        for (const swipeInfo of swipeInfoArray) item.swipe_info.push(swipeInfo);
     }
 
     statMesProcess(item, type, characters, this_chid, oldMessage);
@@ -7835,7 +7922,8 @@ export async function getChat() {
             /** @type {ChatHeader} */
             const chatHeader = data.shift();
             chat_metadata = chatHeader?.chat_metadata ?? {};
-            chat.splice(0, chat.length, ...data);
+            chat.splice(0, chat.length);
+            for (const message of data) chat.push(message);
             chat.forEach(ensureMessageMediaIsArray);
         } else {
             // An empty/corrupted chat file
@@ -8455,7 +8543,7 @@ function openMessageDelete(fromSlashCommand, deleteToolCalls = true) {
     is_delete_mode = true;
 }
 
-function messageEditAuto(div) {
+async function messageEditAuto(div) {
     const { mesBlock, text, mes, bias } = updateMessage(div);
 
     mesBlock.find('.mes_text').val('');
@@ -9513,7 +9601,10 @@ export function refreshSwipeButtons(updateCounters = false, fade = true) {
 
     const firstDisplayedMesId = Number(messageElements.first().attr('mesid'));
 
-    //Group each message.
+    const visiblePickers = [];
+    const hiddenPickers = [];
+
+    // Apply classes before reading picker styles: jQuery show() reads computed display.
     messageElements.each((index, div) => {
         //This assumes the messages are in order and their Id's are accurate.
         const messageId = firstDisplayedMesId + index;
@@ -9544,16 +9635,25 @@ export function refreshSwipeButtons(updateCounters = false, fade = true) {
 
             //If there's only one swipe, the left arrow should not be shown.
             div.classList.toggle('swipes_visible', hasSwipes || pristineGreeting);
-            swipePickerButton.toggle(canOpenSwipePicker);
+            for (const picker of swipePickerButton) {
+                (canOpenSwipePicker ? visiblePickers : hiddenPickers).push(picker);
+            }
 
             //updateSwipeCounter does not need to be awaited, It can run a bit later.
             if (updateCounters) updateSwipeCounter(messageId, { message, messageElement: $(div) });
         } else {
             //Hide all messages that are not swipeable.
             div.classList.remove('swipes_visible', 'last_swipe');
-            $(div).find('.mes_swipe_picker').toggle(canOpenSwipePickerForMessage(messageId));
+            const swipePickerButton = $(div).find('.mes_swipe_picker');
+            const pickers = canOpenSwipePickerForMessage(messageId) ? visiblePickers : hiddenPickers;
+            for (const picker of swipePickerButton) {
+                pickers.push(picker);
+            }
         }
     });
+    // Hide first, then perform the style reads for all visible pickers together.
+    $(hiddenPickers).toggle(false);
+    $(visiblePickers).toggle(true);
 }
 /**
  * This function is misleadingly named. It allows generation then refreshes the swipe buttons and counters.
@@ -9729,7 +9829,7 @@ export function updateViewMessageIds(startIndex = null) {
 
 export function getFirstDisplayedMessageId() {
     const allIds = Array.from(document.querySelectorAll('#chat .mes')).map(el => Number(el.getAttribute('mesid'))).filter(x => !isNaN(x));
-    const minId = Math.min(...allIds);
+    const minId = allIds.reduce((min, id) => Math.min(min, id), Infinity);
     return minId;
 }
 
@@ -11972,6 +12072,7 @@ jQuery(async function () {
 
     //confirms message deletion with the "ok" button
     $('#dialogue_del_mes_ok').on('click', async function () {
+        if (olderMessagesInsertion) await olderMessagesInsertion;
         $('#dialogue_del_mes').css('display', 'none');
         $('#send_form').css('display', css_send_form_display);
         $('.del_checkbox').each(function () {

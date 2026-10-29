@@ -1,0 +1,86 @@
+{
+  "newTests": {
+    "file": "tests/longchat-spread.test.mjs",
+    "node20": {
+      "tests": 6,
+      "pass": 6,
+      "fail": 0
+    },
+    "node22": {
+      "tests": 6,
+      "pass": 6,
+      "fail": 0
+    },
+    "node24": {
+      "tests": 6,
+      "pass": 6,
+      "fail": 0
+    }
+  },
+  "existingNarrowTests": {
+    "files": [
+      "tests/longchat-measurement.test.mjs",
+      "tests/chat-load-ownership.test.mjs",
+      "tests/group-history-path.test.mjs",
+      "tests/expression-mode-flow.test.mjs"
+    ],
+    "node22": {
+      "tests": 58,
+      "pass": 57,
+      "skip": 1,
+      "fail": 0
+    },
+    "skip": "native Windows console test on Linux"
+  },
+  "extensionSourceChecks": {
+    "pass": 15,
+    "file": "extension-source-checks.json",
+    "intermediateDiagnostics": [
+      "extension-source-check-initial.json",
+      "extension-source-check-intermediate.json"
+    ]
+  },
+  "eslint": {
+    "javascriptFiles": 9,
+    "typescriptFiles": 2,
+    "exitCode": 0,
+    "typescriptParser": "Temporary ESLint parseForESLint adapter using installed @typescript-eslint/typescript-estree, visitor-keys and scope-manager; --no-ignore overrides the root third-party exclusion. No parser adapter or dependencies added to product/CI.",
+    "adapterSource": "const { parse } = require('<repo>/node_modules/@typescript-eslint/typescript-estree');\nconst { visitorKeys } = require('<repo>/node_modules/@typescript-eslint/visitor-keys');\nconst { analyze } = require('<repo>/node_modules/@typescript-eslint/scope-manager');\nexports.parseForESLint = (code, options) => {\n    const ast = parse(code, { ...options, loc: true, range: true, tokens: true, comment: true });\n    return { ast, visitorKeys, scopeManager: analyze(ast, { sourceType: 'module' }) };\n};\n"
+  },
+  "logs": {
+    "new-tests-node20": {
+      "exitCode": 0,
+      "stdout": "TAP version 13\n# Subtest: variadic keyboard wrapper preserves order, custom classes and tabindex state\nok 1 - variadic keyboard wrapper preserves order, custom classes and tabindex state\n  ---\n  duration_ms: 2.77597\n  ...\n# Subtest: keyboard initialization and extension registration iterate 300k controls without argument spread\nok 2 - keyboard initialization and extension registration iterate 300k controls without argument spread\n  ---\n  duration_ms: 199.474285\n  ...\n# Subtest: displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics\nok 3 - displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics\n  ---\n  duration_ms: 277.513308\n  ...\n# Subtest: neutral chat restoration keeps array identity and message order for 300k messages\nok 4 - neutral chat restoration keeps array identity and message order for 300k messages\n  ---\n  duration_ms: 393.980512\n  ...\n# Subtest: reply swipe append preserves aliased input, array identity and render event arguments\nok 5 - reply swipe append preserves aliased input, array identity and render event arguments\n  ---\n  duration_ms: 5.826518\n  ...\n# Subtest: message flattening and API chat assembly retain order and fields for 300k messages\nok 6 - message flattening and API chat assembly retain order and fields for 300k messages\n  ---\n  duration_ms: 250.091054\n  ...\n1..6\n# tests 6\n# suites 0\n# pass 6\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 1213.220295\n"
+    },
+    "new-tests-node22": {
+      "exitCode": 0,
+      "stdout": "✔ variadic keyboard wrapper preserves order, custom classes and tabindex state (3.896315ms)\n✔ keyboard initialization and extension registration iterate 300k controls without argument spread (184.915012ms)\n✔ displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics (219.76303ms)\n✔ neutral chat restoration keeps array identity and message order for 300k messages (371.791546ms)\n✔ reply swipe append preserves aliased input, array identity and render event arguments (3.936412ms)\n✔ message flattening and API chat assembly retain order and fields for 300k messages (237.720889ms)\nℹ tests 6\nℹ suites 0\nℹ pass 6\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1141.716304\n"
+    },
+    "new-tests-node24": {
+      "exitCode": 0,
+      "stdout": "✔ variadic keyboard wrapper preserves order, custom classes and tabindex state (3.752064ms)\n✔ keyboard initialization and extension registration iterate 300k controls without argument spread (193.589657ms)\n✔ displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics (264.263533ms)\n✔ neutral chat restoration keeps array identity and message order for 300k messages (421.458134ms)\n✔ reply swipe append preserves aliased input, array identity and render event arguments (7.760126ms)\n✔ message flattening and API chat assembly retain order and fields for 300k messages (227.791349ms)\nℹ tests 6\nℹ suites 0\nℹ pass 6\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1243.088117\n"
+    },
+    "narrow-existing-node22": {
+      "exitCode": 0,
+      "stdout": "✔ success preserves void return and terminal event order without scheduling small loads (7.811683ms)\n✔ large visible text receives exactly one post-render task boundary (4.049964ms)\n✔ truncated history counts only visible text (5.462142ms)\n✔ clear immediately invalidates the load suspended at unshallowCharacter (13.748199ms)\n✔ clear immediately invalidates the load suspended at fetch (6.964582ms)\n✔ clear immediately invalidates the load suspended at loadItemizedPrompts (4.525126ms)\n✔ clear immediately invalidates the load suspended at printMessages (4.154316ms)\n✔ same-file reload supersedes late response without overwriting newer model (4.533347ms)\n✔ clear during task boundary suppresses menu terminal events and delayed focus (5.554947ms)\n✔ stale render rejection does not enter catch fallback (4.985661ms)\n✔ real fetch failure still renders fallback and logs error (4.019373ms)\n✔ CHAT_CHANGED listener cancellation suppresses later first-message events and CHAT_LOADED (3.706924ms)\n✔ delayed textarea focus ignores a cleared successful load (4.280859ms)\n✔ cancelled legacy open never persists character (4.703011ms)\n✔ cancelled guarded open never persists character (3.815984ms)\n✔ general redisplay remains atomic without task scheduling (0.358273ms)\n✔ visible text threshold at 249999 characters (3.892758ms)\n✔ visible text threshold at 250000 characters (3.913199ms)\n✔ visible text threshold at 250001 characters (5.022609ms)\n✔ CHAT_LOADED synchronous navigation cancels outer persistence (3.869073ms)\n✔ cancelled new chat does not save or delete the selected history (4.865921ms)\n✔ group identity change during response refuses model application (8.51512ms)\n✔ json response suspension cannot overwrite changed metadata (5.173395ms)\n✔ empty load preserves greeting save and event order (3.975781ms)\n✔ legitimate CHAT_CHANGED metadata update preserves successful terminal events (3.813126ms)\n✔ clear invalidates before its prompt persistence await completes (4.819293ms)\n✔ targeted default character selection propagates cancelled load (3.780994ms)\n✔ cancelled reload does not refresh swipe buttons for a newer chat (3.616516ms)\n✔ same-file reload during CHAT_CHANGED suppresses old terminal events even with restored metadata (3.802288ms)\n✔ stable normal mode performs no VN visibility geometry read (15.166782ms)\n✔ stable VN mode performs no VN visibility geometry read (2.230838ms)\n✔ stable VN retains sprites and drag geometry with no layout boxes (synthetic :visible=false) (2.425418ms)\n✔ leaving VN resets once despite no layout boxes (synthetic :visible=false) (2.929635ms)\n✔ stable VN retains sprites and drag geometry with CSS-hidden ancestor (1.755508ms)\n✔ leaving VN resets once despite CSS-hidden ancestor (3.70651ms)\n✔ initial normal mode preserves dragged holder while enforcing wrapper display every time (3.740015ms)\n✔ external VN display changes do not invent a normal-mode transition (1.74365ms)\n✔ desktop/mobile and group/single mode changes reset exactly once each (3.686877ms)\n✔ home returns before applying mode and same-mode reopen keeps drag positions (2.991182ms)\n✔ home followed by different mode resets once on reopen (1.447807ms)\n✔ explicit lastMessage invalidation refreshes stable VN without resetting geometry (1.525639ms)\n✔ newChat refresh remains independent from stable-mode invalidation (8.610696ms)\n✔ actual CHAT_CHANGED handler still clears sprites and invalidates the message independently (1.759267ms)\n✔ applied state advances before first async sprite validation (1.854287ms)\n✔ offline connectivity visibility predicate and reconnect refresh remain intact (2.20855ms)\n✔ no sprites/defaults still skips expression rendering (4.784373ms)\n✔ normal geometry terminal behavior independently matches immutable base (normal) (19.140078ms)\n✔ normal geometry terminal behavior independently matches immutable base (VN) (4.482198ms)\n✔ group IDs cannot traverse to another user or silently alias sanitized names (24.107286ms)\n✔ direct group endpoints reject malformed IDs and info refuses aliases and retirement (209.300699ms)\n✔ temporary measurement config isolates data and preserves retention defaults (77.126752ms)\n✔ measurement config refuses workspace and invalid ports before writing (2.034794ms)\n✔ Windows console break forwards to graceful SIGINT handlers (Linux simulation) (0.286823ms)\n﹣ native Windows CTRL_BREAK reaches graceful SIGINT handler (0.0716ms) # Requires a native Windows console process group; forwarding is simulated above on other systems\n✔ deterministic data, percentiles and CPU ancestor attribution (467.262083ms)\n✔ equivalence snapshots use deterministic gzip and verified content for diffs (54.122923ms)\n✔ snapshot normalization removes only declared volatile fields and preserves behavior (9.738295ms)\n✔ paired bootstrap uses the backend seeded method and preserves pairing (32.533087ms)\nℹ tests 58\nℹ suites 0\nℹ pass 57\nℹ fail 0\nℹ cancelled 0\nℹ skipped 1\nℹ todo 0\nℹ duration_ms 817.603788\n"
+    },
+    "post-swipe-edit-node22": {
+      "exitCode": 0,
+      "stdout": "✔ success preserves void return and terminal event order without scheduling small loads (14.73768ms)\n✔ large visible text receives exactly one post-render task boundary (7.794389ms)\n✔ truncated history counts only visible text (8.949189ms)\n✔ clear immediately invalidates the load suspended at unshallowCharacter (19.028614ms)\n✔ clear immediately invalidates the load suspended at fetch (10.8425ms)\n✔ clear immediately invalidates the load suspended at loadItemizedPrompts (15.101824ms)\n✔ clear immediately invalidates the load suspended at printMessages (4.439201ms)\n✔ same-file reload supersedes late response without overwriting newer model (8.407359ms)\n✔ clear during task boundary suppresses menu terminal events and delayed focus (9.518398ms)\n✔ stale render rejection does not enter catch fallback (8.011411ms)\n✔ real fetch failure still renders fallback and logs error (9.212636ms)\n✔ CHAT_CHANGED listener cancellation suppresses later first-message events and CHAT_LOADED (7.9051ms)\n✔ delayed textarea focus ignores a cleared successful load (8.647625ms)\n✔ cancelled legacy open never persists character (7.986494ms)\n✔ cancelled guarded open never persists character (7.610123ms)\n✔ general redisplay remains atomic without task scheduling (0.382944ms)\n✔ visible text threshold at 249999 characters (5.682408ms)\n✔ visible text threshold at 250000 characters (9.478344ms)\n✔ visible text threshold at 250001 characters (8.301941ms)\n✔ CHAT_LOADED synchronous navigation cancels outer persistence (7.641825ms)\n✔ cancelled new chat does not save or delete the selected history (7.722008ms)\n✔ group identity change during response refuses model application (9.211944ms)\n✔ json response suspension cannot overwrite changed metadata (8.353227ms)\n✔ empty load preserves greeting save and event order (6.784256ms)\n✔ legitimate CHAT_CHANGED metadata update preserves successful terminal events (7.635883ms)\n✔ clear invalidates before its prompt persistence await completes (10.579749ms)\n✔ targeted default character selection propagates cancelled load (8.976261ms)\n✔ cancelled reload does not refresh swipe buttons for a newer chat (6.571497ms)\n✔ same-file reload during CHAT_CHANGED suppresses old terminal events even with restored metadata (7.718715ms)\n✔ variadic keyboard wrapper preserves order, custom classes and tabindex state (4.245872ms)\n✔ keyboard initialization and extension registration iterate 300k controls without argument spread (383.146784ms)\n✔ displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics (295.705535ms)\n✔ neutral chat restoration keeps array identity and message order for 300k messages (397.886816ms)\n✔ message flattening and API chat assembly retain order and fields for 300k messages (229.411383ms)\nℹ tests 34\nℹ suites 0\nℹ pass 34\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1456.641984\n"
+    },
+    "eslint-javascript": {
+      "exitCode": 0,
+      "stdout": ""
+    },
+    "eslint-typescript": {
+      "exitCode": 0,
+      "stdout": ""
+    }
+  },
+  "notRun": [
+    "full test:perf suite (outside focused scope)",
+    "native Windows tests / six-job remote CI (no push allowed)",
+    "Windows real-chat browser manual check",
+    "CPU profiles (not required for this step)"
+  ]
+}

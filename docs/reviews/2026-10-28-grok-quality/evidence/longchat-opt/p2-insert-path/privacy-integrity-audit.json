@@ -1,0 +1,41 @@
+{
+  "filesScanned": 207,
+  "violations": [],
+  "snapshotsVerified": [
+    {
+      "file": "equivalence/2000-100-0-base/run-2000-100-0-dom-open.html.gz",
+      "sha256": "602c06b531676f06f97d22e2b2c4522c2cb90f0eb42598d5753cb19b069fc954",
+      "length": 1022397
+    },
+    {
+      "file": "equivalence/2000-100-0-base/run-2000-100-0-dom-older.html.gz",
+      "sha256": "7c7499336e861dc97228717123f2af6ecfe4abdfa35385bfa3f1cbfcf568ea8e",
+      "length": 2045078
+    },
+    {
+      "file": "equivalence/2000-100-0-head/run-2000-100-0-dom-open.html.gz",
+      "sha256": "602c06b531676f06f97d22e2b2c4522c2cb90f0eb42598d5753cb19b069fc954",
+      "length": 1022397
+    },
+    {
+      "file": "equivalence/2000-100-0-head/run-2000-100-0-dom-older.html.gz",
+      "sha256": "7c7499336e861dc97228717123f2af6ecfe4abdfa35385bfa3f1cbfcf568ea8e",
+      "length": 2045078
+    }
+  ],
+  "profilesVerified": [
+    {
+      "file": "head-profile/2000-0-1-open.cpuprofile.gz",
+      "samples": 31053
+    },
+    {
+      "file": "preprofile/2000-0-1-open.cpuprofile.gz",
+      "samples": 33861
+    },
+    {
+      "file": "preprofile/2000-100-1-open.cpuprofile.gz",
+      "samples": 5437
+    }
+  ],
+  "headScriptHashMatchesSummary": true
+}

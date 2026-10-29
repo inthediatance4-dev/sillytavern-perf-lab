@@ -1,0 +1,551 @@
+{
+  "size": 2000,
+  "truncation": 100,
+  "iteration": 0,
+  "status": "ok",
+  "profiled": false,
+  "onboarding": [
+    "Welcome to SillyTavern!\nLanguage:\nEnglish\nعربي (Arabic)\n简体中文 (Chinese) (Simplified)\n繁體中文 (Chinese) (Taiwan)\nNederlands (Dutch)\nDeutsch (German)\nFrançais (French)\níslenska (Icelandic)\nItaliano (Italian)\n日本語 (Japanese)\n한국어 (Korean)\nPortuguês (Portuguese brazil)\nРусский (Russian)\nEspañol (Spanish)\nУкраїнська (Ukrainian)\nTiếng Việt (Vietnamese)\nไทย (Thai)\nSillyTavern is aimed at advanced users.\nRead the Official Documentation.\nType /help in chat for commands and macros.\nJoin the Discord server for info and announcements.\nLooking for AI characters?\nImport\n from supported sources or view \nSample characters\nYour Persona\nBefore you get started, you must select a persona name.\nThis can be changed at any time via the  icon.\nPersona Name:\nSave"
+  ],
+  "open": {
+    "ms": 1091.0999999940395,
+    "tasks": [
+      {
+        "start": 2766.5,
+        "duration": 389
+      },
+      {
+        "start": 3156.7999999970198,
+        "duration": 63
+      }
+    ],
+    "loadedTruncationBeforeOverride": 100,
+    "settings": {
+      "charListGrid": false,
+      "tokenizer": 99,
+      "token_padding": 64,
+      "collapse_newlines": false,
+      "pin_examples": false,
+      "strip_examples": false,
+      "trim_sentences": false,
+      "always_force_name2": true,
+      "user_prompt_bias": "",
+      "show_user_prompt_bias": true,
+      "auto_continue": {
+        "enabled": false,
+        "allow_chat_completions": false,
+        "target_length": 400
+      },
+      "markdown_escape_strings": "",
+      "chat_truncation": 100,
+      "streaming_fps": 30,
+      "smooth_streaming": false,
+      "smooth_streaming_no_think": false,
+      "smooth_streaming_speed": 50,
+      "stream_fade_in": false,
+      "fast_ui_mode": true,
+      "avatar_style": 0,
+      "chat_display": 0,
+      "toastr_position": "toast-top-center",
+      "chat_width": 50,
+      "never_resize_avatars": false,
+      "show_card_avatar_urls": false,
+      "play_message_sound": false,
+      "play_sound_unfocused": true,
+      "auto_save_msg_edits": false,
+      "confirm_message_delete": true,
+      "sort_field": "name",
+      "sort_order": "asc",
+      "sort_rule": null,
+      "font_scale": 1,
+      "blur_strength": 10,
+      "shadow_width": 2,
+      "main_text_color": "rgba(220, 220, 210, 1)",
+      "italics_text_color": "rgba(145, 145, 145, 1)",
+      "underline_text_color": "rgba(188, 231, 207, 1)",
+      "quote_text_color": "rgba(225, 138, 36, 1)",
+      "blur_tint_color": "rgba(23, 23, 23, 1)",
+      "chat_tint_color": "rgba(23, 23, 23, 1)",
+      "user_mes_blur_tint_color": "rgba(30, 30, 30, 0.9)",
+      "bot_mes_blur_tint_color": "rgba(30, 30, 30, 0.9)",
+      "shadow_color": "rgba(0, 0, 0, 1)",
+      "border_color": "rgba(0, 0, 0, 0.5)",
+      "custom_css": "",
+      "waifuMode": false,
+      "movingUI": false,
+      "movingUIState": {},
+      "movingUIPreset": "Default",
+      "noShadows": true,
+      "theme": "Dark Lite",
+      "gestures": true,
+      "auto_swipe": false,
+      "auto_swipe_minimum_length": 0,
+      "auto_swipe_blacklist": [],
+      "auto_swipe_blacklist_threshold": 2,
+      "auto_scroll_chat_to_bottom": true,
+      "auto_fix_generated_markdown": false,
+      "send_on_enter": 0,
+      "console_log_prompts": false,
+      "request_token_probabilities": false,
+      "show_group_chat_queue": false,
+      "allow_name1_display": false,
+      "allow_name2_display": false,
+      "hotswap_enabled": true,
+      "timer_enabled": false,
+      "timestamps_enabled": true,
+      "timestamp_model_icon": true,
+      "mesIDDisplay_enabled": false,
+      "hideChatAvatars_enabled": false,
+      "max_context_unlocked": false,
+      "message_token_count_enabled": false,
+      "expand_message_actions": false,
+      "enableZenSliders": false,
+      "enableLabMode": false,
+      "prefer_character_prompt": true,
+      "prefer_character_jailbreak": true,
+      "quick_continue": false,
+      "quick_impersonate": false,
+      "continue_on_send": false,
+      "trim_spaces": true,
+      "relaxed_api_urls": false,
+      "world_import_dialog": true,
+      "enable_auto_select_input": false,
+      "enable_md_hotkeys": false,
+      "tag_import_setting": 1,
+      "tag_sort_mode": "manual",
+      "disable_group_trimming": false,
+      "single_line": false,
+      "instruct": {
+        "enabled": false,
+        "preset": "Alpaca",
+        "input_sequence": "### Instruction:",
+        "output_sequence": "### Response:",
+        "last_output_sequence": "",
+        "system_sequence": "### Input:",
+        "stop_sequence": "",
+        "wrap": true,
+        "macro": true,
+        "names_behavior": "force",
+        "activation_regex": "",
+        "first_output_sequence": "",
+        "skip_examples": false,
+        "output_suffix": "\n\n",
+        "input_suffix": "\n\n",
+        "system_suffix": "\n\n",
+        "user_alignment_message": "",
+        "system_same_as_user": false,
+        "last_system_sequence": "",
+        "first_input_sequence": "",
+        "last_input_sequence": "",
+        "sequences_as_stop_strings": true,
+        "story_string_prefix": "",
+        "story_string_suffix": ""
+      },
+      "context": {
+        "preset": "Default",
+        "story_string": "{{#if anchorBefore}}{{anchorBefore}}\n{{/if}}{{#if system}}{{system}}\n{{/if}}{{#if wiBefore}}{{wiBefore}}\n{{/if}}{{#if description}}{{description}}\n{{/if}}{{#if personality}}{{char}}'s personality: {{personality}}\n{{/if}}{{#if scenario}}Scenario: {{scenario}}\n{{/if}}{{#if wiAfter}}{{wiAfter}}\n{{/if}}{{#if persona}}{{persona}}\n{{/if}}{{#if anchorAfter}}{{anchorAfter}}\n{{/if}}",
+        "chat_start": "***",
+        "example_separator": "***",
+        "use_stop_strings": true,
+        "names_as_stop_strings": true,
+        "story_string_position": 0,
+        "story_string_depth": 1,
+        "story_string_role": 0
+      },
+      "instruct_derived": false,
+      "context_derived": false,
+      "context_size_derived": false,
+      "model_templates_mappings": {},
+      "chat_template_hash": "",
+      "sysprompt": {
+        "enabled": true,
+        "name": "Neutral - Chat",
+        "content": "Write {{char}}'s next reply in a fictional chat between {{char}} and {{user}}."
+      },
+      "reasoning": {
+        "name": "Think XML",
+        "auto_parse": false,
+        "add_to_prompts": false,
+        "auto_expand": false,
+        "show_hidden": false,
+        "prefix": "<think>",
+        "suffix": "</think>",
+        "separator": "\n",
+        "max_additions": 1
+      },
+      "personas": {
+        "user-default.png": "User"
+      },
+      "default_persona": null,
+      "persona_descriptions": {
+        "user-default.png": {
+          "description": "",
+          "position": 0
+        }
+      },
+      "persona_description": "",
+      "persona_description_position": 0,
+      "persona_description_role": 0,
+      "persona_description_depth": 2,
+      "persona_description_lorebook": "",
+      "persona_show_notifications": true,
+      "persona_sort_order": "asc",
+      "custom_stopping_strings": "",
+      "custom_stopping_strings_macro": true,
+      "fuzzy_search": true,
+      "encode_tags": false,
+      "experimental_macro_engine": true,
+      "servers": [],
+      "bogus_folders": false,
+      "zoomed_avatar_magnification": false,
+      "show_tag_filters": false,
+      "aux_field": "character_version",
+      "stscript": {
+        "parser": {
+          "flags": {
+            "1": true,
+            "2": true
+          }
+        },
+        "autocomplete": {
+          "state": 2,
+          "autoHide": false,
+          "style": "theme",
+          "font": {
+            "scale": 0.8
+          },
+          "width": {
+            "left": 1,
+            "right": 1
+          },
+          "select": 3,
+          "showInAllMacroFields": false
+        }
+      },
+      "restore_user_input": true,
+      "reduced_motion": false,
+      "compact_input_area": true,
+      "show_swipe_num_all_messages": false,
+      "auto_connect": false,
+      "auto_load_chat": false,
+      "forbid_external_media": true,
+      "external_media_allowed_overrides": [],
+      "external_media_forbidden_overrides": [],
+      "pin_styles": true,
+      "click_to_edit": false,
+      "media_display": "list",
+      "image_overswipe": "generate",
+      "ui_mode": 1
+    },
+    "longTasks": {
+      "count": 2,
+      "totalMs": 452,
+      "maxMs": 389
+    }
+  },
+  "afterOpen": {
+    "usedSize": 20505076,
+    "totalSize": 21352448,
+    "embedderHeapUsedSize": 19560008,
+    "backingStorageSize": 7146424,
+    "nodes": 14034,
+    "messages": 100
+  },
+  "scroll": {
+    "frames": [],
+    "batches": [
+      {
+        "ms": 412,
+        "added": 100,
+        "firstId": 1800,
+        "lastId": 1999,
+        "count": 200,
+        "orderCorrect": true,
+        "anchorId": 1900,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 4710.89999999851,
+            "duration": 179
+          }
+        ]
+      },
+      {
+        "ms": 350.1000000014901,
+        "added": 100,
+        "firstId": 1700,
+        "lastId": 1999,
+        "count": 300,
+        "orderCorrect": true,
+        "anchorId": 1800,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 6227,
+            "duration": 172
+          }
+        ]
+      },
+      {
+        "ms": 407.5,
+        "added": 100,
+        "firstId": 1600,
+        "lastId": 1999,
+        "count": 400,
+        "orderCorrect": true,
+        "anchorId": 1700,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 8074,
+            "duration": 216
+          }
+        ]
+      },
+      {
+        "ms": 429.69999999552965,
+        "added": 100,
+        "firstId": 1500,
+        "lastId": 1999,
+        "count": 500,
+        "orderCorrect": true,
+        "anchorId": 1600,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 9666.70000000298,
+            "duration": 244
+          }
+        ]
+      },
+      {
+        "ms": 479.1000000014901,
+        "added": 100,
+        "firstId": 1400,
+        "lastId": 1999,
+        "count": 600,
+        "orderCorrect": true,
+        "anchorId": 1500,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 11346.89999999851,
+            "duration": 286
+          }
+        ]
+      },
+      {
+        "ms": 520.2999999970198,
+        "added": 100,
+        "firstId": 1300,
+        "lastId": 1999,
+        "count": 700,
+        "orderCorrect": true,
+        "anchorId": 1400,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 13064.60000000149,
+            "duration": 333
+          }
+        ]
+      },
+      {
+        "ms": 449.80000000447035,
+        "added": 100,
+        "firstId": 1200,
+        "lastId": 1999,
+        "count": 800,
+        "orderCorrect": true,
+        "anchorId": 1300,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 15052.10000000149,
+            "duration": 265
+          }
+        ]
+      },
+      {
+        "ms": 536.7999999970198,
+        "added": 100,
+        "firstId": 1100,
+        "lastId": 1999,
+        "count": 900,
+        "orderCorrect": true,
+        "anchorId": 1200,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 16874,
+            "duration": 308
+          }
+        ]
+      },
+      {
+        "ms": 480.70000000298023,
+        "added": 100,
+        "firstId": 1000,
+        "lastId": 1999,
+        "count": 1000,
+        "orderCorrect": true,
+        "anchorId": 1100,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 18820.29999999702,
+            "duration": 307
+          }
+        ]
+      },
+      {
+        "ms": 475.5,
+        "added": 100,
+        "firstId": 900,
+        "lastId": 1999,
+        "count": 1100,
+        "orderCorrect": true,
+        "anchorId": 1000,
+        "anchorDriftPx": 0,
+        "anchorSamples": 2,
+        "tasks": [
+          {
+            "start": 20831.10000000149,
+            "duration": 306
+          }
+        ]
+      }
+    ],
+    "olderMessagesRemain": true,
+    "tasks": [
+      {
+        "start": 4710.89999999851,
+        "duration": 179
+      },
+      {
+        "start": 6227,
+        "duration": 172
+      },
+      {
+        "start": 8074,
+        "duration": 216
+      },
+      {
+        "start": 9666.70000000298,
+        "duration": 244
+      },
+      {
+        "start": 11346.89999999851,
+        "duration": 286
+      },
+      {
+        "start": 13064.60000000149,
+        "duration": 333
+      },
+      {
+        "start": 15052.10000000149,
+        "duration": 265
+      },
+      {
+        "start": 16874,
+        "duration": 308
+      },
+      {
+        "start": 18820.29999999702,
+        "duration": 307
+      },
+      {
+        "start": 20831.10000000149,
+        "duration": 306
+      }
+    ],
+    "frameMs": {
+      "n": 0,
+      "median": null,
+      "p95": null
+    },
+    "over16_7Percent": 0,
+    "over50Percent": 0,
+    "longTasks": {
+      "count": 10,
+      "totalMs": 2616,
+      "maxMs": 333
+    }
+  },
+  "afterScroll": {
+    "usedSize": 21884384,
+    "totalSize": 23187456,
+    "embedderHeapUsedSize": 110656232,
+    "backingStorageSize": 7163310,
+    "nodes": 87857,
+    "messages": 1100
+  },
+  "send": {
+    "ms": 1988.7202009995235,
+    "fillMs": 164.1665369970724,
+    "tasks": [
+      {
+        "start": 23450.79999999702,
+        "duration": 452
+      },
+      {
+        "start": 23986.79999999702,
+        "duration": 89
+      },
+      {
+        "start": 24076.70000000298,
+        "duration": 57
+      },
+      {
+        "start": 24534.89999999851,
+        "duration": 170
+      },
+      {
+        "start": 24705.10000000149,
+        "duration": 355
+      }
+    ],
+    "longTasks": {
+      "count": 5,
+      "totalMs": 1123,
+      "maxMs": 452
+    },
+    "payloadBytes": 2736997,
+    "responseWaitMs": 99.547,
+    "requestToResponseEndMs": 491.27500000000003,
+    "serverTiming": null,
+    "serverMs": 98.642,
+    "timing": {
+      "startTime": 1793240669611.389,
+      "domainLookupStart": -1,
+      "domainLookupEnd": -1,
+      "connectStart": -1,
+      "secureConnectionStart": -1,
+      "connectEnd": -1,
+      "requestStart": 0.537,
+      "responseStart": 100.084,
+      "responseEnd": 491.812
+    }
+  },
+  "afterSend": {
+    "usedSize": 23777296,
+    "totalSize": 24829952,
+    "embedderHeapUsedSize": 114748136,
+    "backingStorageSize": 7164940,
+    "nodes": 87923,
+    "messages": 1101
+  },
+  "dialogs": [],
+  "pageErrorStacks": [],
+  "pageErrors": [],
+  "forbiddenRequests": []
+}

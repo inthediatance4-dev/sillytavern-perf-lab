@@ -350,7 +350,7 @@ export async function visualNovelUpdateLayers(container) {
 
     if (totalWidth > containerWidth) {
         let totalOverlap = totalWidth - containerWidth;
-        let totalWidthWithoutWidest = imagesWidth.reduce((a, b) => a + b, 0) - Math.max(...imagesWidth);
+        let totalWidthWithoutWidest = imagesWidth.reduce((a, b) => a + b, 0) - imagesWidth.reduce((max, width) => Math.max(max, width), -Infinity);
         let overlaps = imagesWidth.map(width => (width / totalWidthWithoutWidest) * totalOverlap);
         imagesWidth = imagesWidth.map((width, index) => width - overlaps[index]);
         currentPosition = 0; // Reset the initial position to 0

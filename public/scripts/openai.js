@@ -3895,7 +3895,7 @@ class MessageCollection {
     flatten() {
         return this.collection.reduce((acc, message) => {
             if (message instanceof MessageCollection) {
-                acc.push(...message.flatten());
+                for (const item of message.flatten()) acc.push(item);
             } else {
                 acc.push(message);
             }
@@ -4121,7 +4121,7 @@ export class ChatCompletion {
         const chat = [];
         for (let item of this.messages.collection) {
             if (item instanceof MessageCollection) {
-                chat.push(...item.getChat());
+                for (const message of item.getChat()) chat.push(message);
             } else if (item instanceof Message && (item.content || item.tool_calls)) {
                 const message = {
                     role: item.role,

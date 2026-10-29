@@ -318,7 +318,8 @@ export async function getGroupChat(groupId, reload = false) {
         }
         await saveGroupChat(groupId, false);
     } else if (Array.isArray(data) && data.length) {
-        chat.splice(0, chat.length, ...data);
+        chat.splice(0, chat.length);
+        for (const message of data) chat.push(message);
         chat.forEach(ensureMessageMediaIsArray);
         chatElement.find('.mes').remove();
         await printMessages();

@@ -1,0 +1,93 @@
+{
+  "records": [
+    {
+      "source": "longchat-baseline/supplement/run-2000-0-0.json",
+      "status": "timeout",
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n    - locator resolved to <div autofocus=\"\" tabindex=\"0\" role=\"button\" data-i18n=\"OK\" data-result=\"1\" class=\"popup-button-ok menu_button result-control menu_button_default interactable\">OK</div>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    - waiting for element to be visible, enabled and stable\n    - element is not visible\n  - retrying click action\n    - waiting 100ms\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/supplement/run-2000-0-1.json",
+      "status": "ok",
+      "error": null,
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/supplement/run-2000-0-2.json",
+      "status": "timeout",
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n    - locator resolved to <div autofocus=\"\" tabindex=\"0\" role=\"button\" data-i18n=\"OK\" data-result=\"1\" class=\"popup-button-ok menu_button result-control menu_button_default interactable\">OK</div>\n  - attempting click action\n    - waiting for element to be visible, enabled and stable\n    - element is not visible\n  - retrying click action\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/supplement/run-2000-100-0.json",
+      "status": "timeout",
+      "error": "Page.wait_for_function: Timeout 118380.23369799885ms exceeded.",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/supplement/run-2000-100-1.json",
+      "status": "timeout",
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n    - locator resolved to <div autofocus=\"\" tabindex=\"0\" role=\"button\" data-i18n=\"OK\" data-result=\"1\" class=\"popup-button-ok menu_button result-control menu_button_default interactable\">OK</div>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/supplement/run-2000-100-2.json",
+      "status": "timeout",
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n    - locator resolved to <div autofocus=\"\" tabindex=\"0\" role=\"button\" data-i18n=\"OK\" data-result=\"1\" class=\"popup-button-ok menu_button result-control menu_button_default interactable\">OK</div>\n  - attempting click action\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/ready-check/run-2000-0-0.json",
+      "status": "ok",
+      "error": null,
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/ready-check/run-2000-0-1.json",
+      "status": "timeout",
+      "error": "Locator.inner_text: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\")\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/ready-check/run-2000-0-2.json",
+      "status": "timeout",
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n    - locator resolved to <div autofocus=\"\" tabindex=\"0\" role=\"button\" data-i18n=\"OK\" data-result=\"1\" class=\"popup-button-ok menu_button result-control menu_button_default interactable\">OK</div>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not visible\n    - retrying click action\n    - waiting 20ms\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/ready-check/run-2000-100-0.json",
+      "status": "ok",
+      "error": null,
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/ready-check/run-2000-100-1.json",
+      "status": "timeout",
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    },
+    {
+      "source": "longchat-baseline/ready-check/run-2000-100-2.json",
+      "status": "timeout",
+      "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n    - locator resolved to <div autofocus=\"\" tabindex=\"0\" role=\"button\" data-i18n=\"OK\" data-result=\"1\" class=\"popup-button-ok menu_button result-control menu_button_default interactable\">OK</div>\n  - attempting click action\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n",
+      "dialogsAtFailure": [],
+      "pageErrors": []
+    }
+  ],
+  "sourceFacts": {
+    "APP_READY": "public/script.js:791, after awaited getSettings; sticky replay in public/lib/eventemitter.js:on",
+    "onboarding": "getSettings awaits doOnboarding when settings.firstRun; public/script.js:8277-8282",
+    "failureMechanism": "Cross-task dialog locators outlive transient dialog visibility/attachment. Waiting for APP_READY before dismissing an awaited onboarding dialog blocks startup. Sticky APP_READY itself is not a missed-event race."
+  }
+}

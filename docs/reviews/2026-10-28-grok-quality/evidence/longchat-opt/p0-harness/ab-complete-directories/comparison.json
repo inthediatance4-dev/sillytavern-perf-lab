@@ -1,0 +1,326 @@
+{
+  "revisions": {
+    "base": "37a48181fc55f7d2c45bae05f1a68c26a4c76d5d",
+    "head": "WORKTREE"
+  },
+  "order": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 1,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 1,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 2,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 2,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 3,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 3,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 4,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 4,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 5,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 5,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 6,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 6,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 1,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 1,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 2,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 2,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 3,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 3,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 4,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 4,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 5,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 5,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 6,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "iteration": 6,
+      "side": "head",
+      "exitCode": 0
+    }
+  ],
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 825.6999999992549,
+            "p95": 866.8000000007451,
+            "median_ci95": [
+              807.9000000003725,
+              849.7000000011176
+            ],
+            "p95_ci95": [
+              848.6999999992549,
+              866.8000000007451
+            ],
+            "samples": [
+              807.9000000003725,
+              825.6999999992549,
+              848.6999999992549,
+              805.6999999992549,
+              810.1999999992549,
+              866.8000000007451,
+              849.7000000011176
+            ]
+          },
+          "head": {
+            "median": 811.9000000003725,
+            "p95": 900.3000000007451,
+            "median_ci95": [
+              807.8000000007451,
+              871.2999999988824
+            ],
+            "p95_ci95": [
+              832.1999999992549,
+              900.3000000007451
+            ],
+            "samples": [
+              832.1999999992549,
+              805.1000000014901,
+              807.8000000007451,
+              871.2999999988824,
+              810.5,
+              900.3000000007451,
+              811.9000000003725
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -13.799999998882413,
+            "ci95": [
+              -40.899999998509884,
+              63.399999998509884
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": []
+    },
+    {
+      "size": 3000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 843.2999999988824,
+            "p95": 854.5999999996275,
+            "median_ci95": [
+              826.8000000007451,
+              852.4000000003725
+            ],
+            "p95_ci95": [
+              850.6999999992549,
+              854.5999999996275
+            ],
+            "samples": [
+              828.2000000011176,
+              826.8000000007451,
+              854.5999999996275,
+              852.4000000003725,
+              843.2999999988824,
+              850.6999999992549,
+              820.8000000007451
+            ]
+          },
+          "head": {
+            "median": 825.7999999988824,
+            "p95": 865,
+            "median_ci95": [
+              822.1000000014901,
+              834.6000000014901
+            ],
+            "p95_ci95": [
+              834.1000000014901,
+              865
+            ],
+            "samples": [
+              865,
+              825.7999999988824,
+              834.6000000014901,
+              834.1000000014901,
+              825.2000000011176,
+              808.3000000007451,
+              822.1000000014901
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -17.5,
+            "ci95": [
+              -28.599999997764826,
+              6.400000000372529
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": []
+    }
+  ]
+}

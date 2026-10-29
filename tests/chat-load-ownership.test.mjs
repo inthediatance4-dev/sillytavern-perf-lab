@@ -14,6 +14,7 @@ function harness(messages = [{ mes: 'hello' }, { mes: 'world' }]) {
     const seen = { renders: 0, menus: 0, events: [], focus: 0, saves: 0, yields: 0, logs: 0 };
     const timers = [];
     const c = vm.createContext({
+        olderMessagesInsertion: null,
         characters: [{ name: 'Synthetic', avatar: 'synthetic.png', chat: 'history' }], this_chid: 0,
         selected_group: null, chat_metadata: {}, chat: [], name2: '', power_user: { chat_truncation: 100 },
         console: { log() { seen.logs++; }, debug() {} }, unshallowCharacter: async () => {},
@@ -94,8 +95,9 @@ for (const guarded of [false, true]) {
         assert.equal(h.seen.saves, 0);
     });
 }
-test('general redisplay remains atomic without task scheduling', () => {
-    assert.doesNotMatch(fn('redisplayChat'), /await |delay\(|yield/);
+test('general redisplay remains atomic after the older-insertion entry barrier', () => {
+    const render = fn('redisplayChat').replace('if (olderMessagesInsertion) await olderMessagesInsertion;', '');
+    assert.doesNotMatch(render, /await |delay\(|yield/);
 });
 
 for (const length of [249999, 250000, 250001]) {
@@ -167,4 +169,29 @@ test('same-file reload during CHAT_CHANGED suppresses old terminal events even w
     };
     assert.equal(await h.c.getChat(), false);
     assert.deepEqual(h.seen.events, ['CHAT_CHANGED', 'CHAT_CHANGED', 'CHAT_LOADED']);
+});
+
+test('clear invalidates ownership before waiting for detached older preparation', async () => {
+    const h = harness();
+    const gate = deferred();
+    h.c.olderMessagesInsertion = gate.promise;
+    const before = vm.runInContext('characterChatLoadSerial', h.c);
+    const clearing = h.c.clearChat({ clearData: true });
+    assert.equal(vm.runInContext('characterChatLoadSerial', h.c), before + 1);
+    gate.resolve();
+    await clearing;
+    assert.equal(h.c.chat.length, 0);
+});
+
+test('clear superseded while waiting for older preparation preserves the newer load', async () => {
+    const h = harness();
+    const gate = deferred();
+    h.c.olderMessagesInsertion = gate.promise;
+    const clearing = h.c.clearChat({ clearData: true });
+    // A newer load may update the model before its redisplay reaches the barrier.
+    await h.c.getChat();
+    gate.resolve();
+    await clearing;
+    assert.equal(h.c.chat.length, 2);
+    assert.equal(h.c.chat[0].mes, 'hello');
 });

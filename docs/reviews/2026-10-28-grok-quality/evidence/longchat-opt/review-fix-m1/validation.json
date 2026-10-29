@@ -1,0 +1,84 @@
+{
+    "step": "review-fix-m1",
+    "headBeforeChanges": "8fff4fb0677e8073bed5c3ce849cf11e164f2abf",
+    "branch": "opus-longchat",
+    "node": "v24.22.1",
+    "eslint": "v8.57.1",
+    "restoredSources": [
+        {
+            "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/chat_message.ts",
+            "sha256": "7400499e36f664a55fe5a2a55cc77cda49c968ea5af982f6ed28e1001d6ef43f",
+            "matches37a4818": true,
+            "matchesF6c0053Parent": true
+        },
+        {
+            "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/variables.ts",
+            "sha256": "49b161facd0c83917b29bdc97e189e33ee35a16643eac56a6cb8489dd8421f45",
+            "matches37a4818": true,
+            "matchesF6c0053Parent": true
+        }
+    ],
+    "dist": {
+        "manifestJs": "dist/index.js",
+        "tree": "222bd4570dc333dff9364ea3e7df32da74138bd5",
+        "trackedFilesCompared": 3,
+        "matchesHeadAnd37a4818ByteForByte": true
+    },
+    "otherPublicProductFilesUnchangedFromHead": true,
+    "spreadTestFileUnchangedFromHead": true,
+    "extensionSourceVmChecksInCurrentTestFile": 0,
+    "historicalExtensionSourceEvidence": "Superseded for current acceptance; see ../p1-1-spread-fix/README.md notice. Historical artifacts retained without rerunning.",
+    "typescriptLint": {
+        "reason": "Root config ignores third-party sources and default Espree parser cannot parse TS. Use --no-ignore with the same installed typescript-estree adapter approach recorded in P1-1; no dependencies or repository config changed.",
+        "temporaryParser": "<tmp>",
+        "adapterSource": "const { createRequire } = require('node:module');\nconst requireFromRepo = createRequire(`${process.cwd()}/package.json`);\nconst { parse } = requireFromRepo('@typescript-eslint/typescript-estree');\nconst { visitorKeys } = requireFromRepo('@typescript-eslint/visitor-keys');\nconst { analyze } = requireFromRepo('@typescript-eslint/scope-manager');\nexports.parseForESLint = (code, options) => {\n    const ast = parse(code, { ...options, loc: true, range: true, tokens: true, comment: true });\n    return { ast, visitorKeys, scopeManager: analyze(ast, { sourceType: 'module' }) };\n};\n"
+    },
+    "runs": [
+        {
+            "name": "eslint-typescript",
+            "command": [
+                "node",
+                "node_modules/eslint/bin/eslint.js",
+                "--no-ignore",
+                "--parser",
+                "<tmp>",
+                "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/chat_message.ts",
+                "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/variables.ts"
+            ],
+            "exitCode": 0,
+            "log": "eslint-typescript.txt"
+        },
+        {
+            "name": "eslint-tests",
+            "command": [
+                "node",
+                "node_modules/eslint/bin/eslint.js",
+                "tests/longchat-spread.test.mjs"
+            ],
+            "exitCode": 0,
+            "log": "eslint-tests.txt"
+        },
+        {
+            "name": "longchat-spread",
+            "command": [
+                "node",
+                "--test",
+                "--test-reporter=tap",
+                "tests/longchat-spread.test.mjs"
+            ],
+            "exitCode": 0,
+            "log": "longchat-spread.txt",
+            "counts": {
+                "tests": 6,
+                "pass": 6,
+                "fail": 0,
+                "cancelled": 0,
+                "skipped": 0,
+                "todo": 0
+            }
+        }
+    ],
+    "performanceMeasurements": "None; exact source/dist equality and narrow tests suffice for this source-only revert.",
+    "attemptsPerCommand": 1,
+    "labsOrBrowsersStarted": 0
+}

@@ -1,0 +1,139 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import vm from 'node:vm';
+import test from 'node:test';
+
+const source = await fs.readFile(new URL('../public/script.js', import.meta.url), 'utf8');
+const functionSource = name => {
+    const start = source.indexOf(`function ${name}(`);
+    return source.slice(start, source.indexOf('\n}', start) + 2);
+};
+
+function fixture(length, truncation = 100, { button = true, editId, focusedId } = {}) {
+    const messages = [];
+    const container = {
+        scrollTop: 20000,
+        querySelectorAll: () => messages.slice(),
+        prepend(value) { button = value; },
+    };
+    for (let i = 0; i < length; i++) {
+        const node = {
+            id: i,
+            height: 10 + i % 4,
+            getAttribute: () => String(i),
+            getBoundingClientRect: () => ({ top: (button ? 24 : 0) + messages.slice(0, messages.indexOf(node)).reduce((sum, mes) => sum + mes.height, 0) - container.scrollTop }),
+            querySelector: () => null,
+            contains: active => active === i,
+        };
+        messages.push(node);
+    }
+    const chat = Array.from({ length }, (_, id) => ({ mes: String(id) }));
+    let arrows = 0;
+    const context = vm.createContext({
+        power_user: { chat_truncation: truncation }, chatElement: { 0: container }, chat,
+        this_edit_mes_id: editId,
+        document: { activeElement: focusedId, getElementById: () => button, createElement: () => ({}) },
+        $: node => ({ remove: () => messages.splice(messages.indexOf(node), 1) }),
+        updateEditArrowClasses: () => arrows++,
+    });
+    vm.runInContext(functionSource('trimMessageDom'), context);
+    return { context, messages, chat, container, trim: () => context.trimMessageDom(), get button() { return button; }, get arrows() { return arrows; } };
+}
+
+test('cap is five truncation batches; zero keeps load-all and the threshold is inclusive', () => {
+    for (const [count, truncation, expected] of [[1100, 100, 500], [501, 100, 500], [500, 100, 500], [400, 100, 400], [100, 1, 5], [1100, 0, 1100]]) {
+        const f = fixture(count, truncation);
+        const original = JSON.stringify(f.chat);
+        f.trim();
+        assert.equal(f.messages.length, expected);
+        assert.deepEqual(f.messages.map(node => node.id), Array.from({ length: expected }, (_, i) => count - expected + i));
+        assert.equal(JSON.stringify(f.chat), original);
+        assert.equal(f.arrows, count > expected ? 1 : 0);
+    }
+});
+
+test('trim explicitly preserves first kept anchor geometry and restores one history button', () => {
+    for (const button of [true, false]) {
+        const f = fixture(1100, 100, { button });
+        const anchor = f.messages[600];
+        const top = anchor.getBoundingClientRect().top;
+        f.trim();
+        assert.equal(anchor.getBoundingClientRect().top, top);
+        assert.ok(f.button);
+        const restored = f.button;
+        f.trim();
+        assert.equal(f.button, restored);
+    }
+});
+
+test('an editor, textarea or focused extension control in the removed prefix pins it until safe', () => {
+    for (const options of [{ editId: 599 }, { focusedId: 0 }, { textarea: true }]) {
+        const f = fixture(1100, 100, options);
+        if (options.textarea) f.messages[0].querySelector = () => ({});
+        f.trim();
+        assert.equal(f.messages.length, 1100);
+        assert.equal(f.arrows, 0);
+        f.context.this_edit_mes_id = undefined;
+        f.context.document.activeElement = undefined;
+        f.messages[0].querySelector = () => null;
+        f.trim();
+        assert.equal(f.messages.length, 500);
+    }
+    const f = fixture(1100, 100, { editId: 600 });
+    f.trim();
+    assert.equal(f.messages[0].id, 600);
+});
+
+function boundaryFixture() {
+    const chat = Array.from({ length: 12 }, (_, id) => ({ mes: String(id), is_user: true }));
+    const nodes = [7, 8, 9, 10, 11].map(id => ({ id }));
+    const events = [];
+    const context = vm.createContext({
+        chat, olderMessagesInsertion: null, this_edit_mes_id: undefined,
+        chat_metadata: {}, console: { warn() {}, error() {} }, is_send_press: false,
+        getFirstDisplayedMessageId: () => nodes[0].id,
+        chatElement: { find(selector) {
+            const id = Number(selector.match(/mesid="(\d+)"/)[1]);
+            const node = nodes.find(node => node.id === id);
+            return { length: node ? 1 : 0, remove() { if (node) nodes.splice(nodes.indexOf(node), 1); } };
+        } },
+        deleteItemizedPromptForMessage() {}, saveChatDebounced() {}, refreshSwipeButtons() {},
+        updateViewMessageIds(start) { nodes.forEach((node, index) => { node.id = (start ?? nodes[0].id) + index; }); },
+        eventSource: { emit: async (...args) => events.push(args) }, event_types: { MESSAGE_DELETED: 'deleted' },
+    });
+    for (const name of ['messageEdit', 'messageEditMove', 'getMessageDeletionStartId', 'deleteMessage']) {
+        vm.runInContext(`${['messageEdit', 'messageEditMove', 'deleteMessage'].includes(name) ? 'async ' : ''}${functionSource(name)}`, context);
+    }
+    return { context, chat, nodes, events };
+}
+
+test('edit/delete/move against trimmed IDs safely leave the array, DOM and events alone', async () => {
+    const f = boundaryFixture();
+    const before = JSON.stringify(f.chat);
+    await f.context.messageEdit(6);
+    await f.context.deleteMessage(6);
+    assert.equal(await f.context.messageEditMove(7, 6), false);
+    assert.equal(JSON.stringify(f.chat), before);
+    assert.deepEqual(f.nodes.map(node => node.id), [7, 8, 9, 10, 11]);
+    assert.deepEqual(f.events, []);
+});
+
+test('delete at first kept message renumbers only survivors and emits the existing event', async () => {
+    const f = boundaryFixture();
+    await f.context.deleteMessage(7);
+    assert.equal(f.chat.length, 11);
+    assert.deepEqual(f.chat.map(mes => mes.mes), ['0', '1', '2', '3', '4', '5', '6', '8', '9', '10', '11']);
+    assert.deepEqual(f.nodes.map(node => node.id), [7, 8, 9, 10]);
+    assert.deepEqual(f.events, [['deleted', 11]]);
+});
+
+test('tool-call deletion crossing trim boundary leaves contiguous survivor IDs', async () => {
+    const f = boundaryFixture();
+    f.chat[7].is_user = false;
+    f.chat[6] = { is_system: true, extra: { tool_invocations: [{}] } };
+    await f.context.deleteMessage(7);
+    assert.equal(f.chat.length, 10);
+    assert.deepEqual(f.nodes.map(node => node.id), [6, 7, 8, 9]);
+    assert.equal(f.chat[6].mes, '8');
+    assert.deepEqual(f.events, [['deleted', 10]]);
+});

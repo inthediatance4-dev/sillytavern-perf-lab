@@ -33,6 +33,7 @@ function harness(functions = []) {
     const observations = { reloads: 0, redraws: 0, groupEdits: 0, cacheWrites: 0 };
     let response = { ok: false, status: 409, statusText: 'Conflict', json: async () => lifecycleError };
     const context = vm.createContext({
+        olderMessagesInsertion: null,
         console: { warn() {}, error() {}, debug() {} },
         t: (parts, ...values) => parts.reduce((text, part, i) => text + part + (values[i] ?? ''), ''),
         POPUP_RESULT: { AFFIRMATIVE: 1, NEGATIVE: 0, CANCELLED: null },

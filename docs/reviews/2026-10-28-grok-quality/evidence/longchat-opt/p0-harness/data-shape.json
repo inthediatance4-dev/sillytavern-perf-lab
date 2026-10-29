@@ -1,0 +1,50 @@
+[
+  {
+    "shape": "legacy",
+    "size": 2000,
+    "last100": {
+      "swipeMessages": 10,
+      "assistantSwipeMessages": 10,
+      "swipeAlternatives": 26,
+      "messageCharacters": 89885,
+      "fencedCodeMessages": 14,
+      "over2KiBMessages": 24
+    }
+  },
+  {
+    "shape": "legacy",
+    "size": 3000,
+    "last100": {
+      "swipeMessages": 10,
+      "assistantSwipeMessages": 10,
+      "swipeAlternatives": 24,
+      "messageCharacters": 77617,
+      "fencedCodeMessages": 14,
+      "over2KiBMessages": 20
+    }
+  },
+  {
+    "shape": "end-relative-100",
+    "size": 2000,
+    "last100": {
+      "swipeMessages": 10,
+      "assistantSwipeMessages": 10,
+      "swipeAlternatives": 25,
+      "messageCharacters": 90455,
+      "fencedCodeMessages": 15,
+      "over2KiBMessages": 25
+    }
+  },
+  {
+    "shape": "end-relative-100",
+    "size": 3000,
+    "last100": {
+      "swipeMessages": 10,
+      "assistantSwipeMessages": 10,
+      "swipeAlternatives": 25,
+      "messageCharacters": 90455,
+      "fencedCodeMessages": 15,
+      "over2KiBMessages": 25
+    }
+  }
+]

@@ -1,0 +1,158 @@
+{
+  "base": "b1cf0e956105d2da7a3edeca4e3e5d84b8c147b4",
+  "head": "WORKTREE",
+  "environment": {
+    "node": "v24.22.1",
+    "browser": "Chromium 156.0.8078.4 headless",
+    "platform": "Linux",
+    "viewport": [
+      1440,
+      1000
+    ],
+    "seed": 20261028,
+    "dataShape": "end-relative-100",
+    "extensions": false
+  },
+  "groups": {
+    "base-3000": {
+      "attempted": 2,
+      "success": 2,
+      "pageErrors": [
+        [],
+        []
+      ],
+      "openMs": {
+        "n": 2,
+        "median": 9863.649999999441,
+        "p95": 9918.39999999851
+      },
+      "sendMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "sourceRecords": [
+        "base-3000/run-3000-0-0.json",
+        "base-3000/run-3000-0-1.json"
+      ]
+    },
+    "head-3000": {
+      "attempted": 5,
+      "success": 5,
+      "pageErrors": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "openMs": {
+        "n": 5,
+        "median": 9672.400000000373,
+        "p95": 9752.800000000745
+      },
+      "sendMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "sourceRecords": [
+        "head-3000/run-3000-0-0.json",
+        "head-3000/run-3000-0-1.json",
+        "head-3000/run-3000-0-2.json",
+        "head-3000/run-3000-0-3.json",
+        "head-3000/run-3000-0-4.json"
+      ]
+    },
+    "head-3000-workflow": {
+      "attempted": 5,
+      "success": 5,
+      "pageErrors": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "openMs": {
+        "n": 5,
+        "median": 9712.900000000373,
+        "p95": 10601.199999999255
+      },
+      "sendMs": {
+        "n": 5,
+        "median": 8026.705346001108,
+        "p95": 8850.28895600044
+      },
+      "sourceRecords": [
+        "head-3000-workflow/run-3000-0-0.json",
+        "head-3000-workflow/run-3000-0-1.json",
+        "head-3000-workflow/run-3000-0-2.json",
+        "head-3000-workflow/run-3000-0-3.json",
+        "head-3000-workflow/run-3000-0-4.json"
+      ]
+    }
+  },
+  "shutdown": [
+    {
+      "metadata": "base-3000/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "metadata": "equivalence/2000-100-0-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "metadata": "equivalence/2000-100-0-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "metadata": "head-3000/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "metadata": "head-3000-workflow/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    }
+  ],
+  "equivalence": [
+    {
+      "iteration": 0,
+      "status": "equal",
+      "equal": true,
+      "differences": {}
+    }
+  ],
+  "timingLimits": "Open-only base n=2 and head n=5 are an unpaired diagnostic, not a seven-pair performance experiment. The one-pair equivalence timing has no statistical power. Some independent head/equivalence jobs overlapped; no speedup claim or CI is justified. No base send measurement was taken.",
+  "baseFailureReproduction": "Not reproduced in the two requested 3000/0 base open-only attempts. Do not label them failures. The separate browser-free 300k-control diagnostic reproduces the argument-limit defect on base.",
+  "sourceOnlyExtensionFixes": "The final two TypeScript source files are not loaded by the browser matrix (extensions disabled); no generated/minified bundle was edited. They have separate VM/lodash equivalence and large-input checks.",
+  "sourceHashes": {
+    "package.json": "efa8ee9256b75df63246ca777e8ac867aa6c1ab7bac2d1e5c051bb81a239544f",
+    "public/script.js": "5c387ea3600ed8f5a9c1c895711367ac8f682c998bbe51c45629d6b26f29286a",
+    "public/scripts/chats.js": "982b0b9f9dd480e5235a2460f8717c496e5e4174bc9bb8b5c5d54efd5d04b1fe",
+    "public/scripts/extensions/expressions/index.js": "6fe8e0ed2ec0b21c5eefcabb331298b8f24a385fc87e5906701ad302cd168bd5",
+    "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/chat_message.ts": "667254a1440c38a25d9ab4fef7579732cb1f525e1afa354959be402ff620dac4",
+    "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/variables.ts": "70f7c145f3f86cfbd4a917207e23df845812f4c2d2bdd932488d358d745f8abe",
+    "public/scripts/group-chats.js": "5bb12d6b533e7a7d32d0d8763b03dacb1306e518710c6e8f759b99ad493e7162",
+    "public/scripts/keyboard.js": "1e8f1af313ae95fd554bf9a6594b66b8b2c68932b512a0ad9d8d206b9bfa181c",
+    "public/scripts/openai.js": "85a8dfbcceb4a80f9e5a3f363dbf59b7bb6f0679cbbfd2c2f74021ce41938fc4",
+    "public/scripts/power-user.js": "e27c1b47942b3e61d254d2c0b4653b2569b018251867f0a5716485ff839c28cb",
+    "public/scripts/swipe-picker.js": "f61617b352192902f76c51117d1efe90525afd67558038eba039aa984e11dd22",
+    "tests/longchat-spread.test.mjs": "c2fcbef32bf27265ba080756c3303d7d8a89c587cd3564efd43bd852af83927b"
+  }
+}

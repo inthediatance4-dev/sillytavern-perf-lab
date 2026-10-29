@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 5,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 16.8,
+    "framesOver16_7Pct": 5.916473317865429,
+    "framesOver33Pct": 0.6960556844547563,
+    "loafCount": 6,
+    "loafTotalMs": 566.3999999994412,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 27.5,
+    "loafScriptotherMs": 350.7999999988824,
+    "formatP50Ms": 1.400000000372529,
+    "formatP95Ms": 2,
+    "domP50Ms": 0.20000000018626451,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.20000000018626451,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 22.314761440230736,
+    "firstTokenMs": 103.912353515625,
+    "finishMs": 225.970703125,
+    "typingP50Ms": 33.60009765625,
+    "typingP95Ms": 39.10009765625,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 902,
+    "keys": 74,
+    "hooks": 1006
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282505285.3877,
+    "receivedNs": "8224217353383",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793282505293.1658,
+    "lastChunkEpochMs": 1793282519902.3293,
+    "doneEpochMs": 1793282519902.3577,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

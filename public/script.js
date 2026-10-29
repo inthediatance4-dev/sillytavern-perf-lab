@@ -1,4 +1,4 @@
-import { streamingPerfEnabled, recordStreamingPerf } from './scripts/streaming-perf.js';
+import { streamingPerfEnabled, recordStreamingPerf, recordStreamingDomMode, recordStreamingDomFrame } from './scripts/streaming-perf.js';
 import {
     showdown,
     moment,
@@ -3678,6 +3678,43 @@ export function isStreamingEnabled() {
         || (main_api == 'textgenerationwebui' && textgen_settings.streaming));
 }
 
+/**
+ * Writes sanitized message HTML.
+ * Incremental mode keeps the equal top-level prefix and replaces only the tail.
+ * A difference at the first node assigns innerHTML, same as a full rewrite.
+ * @param {HTMLElement} element Target node, usually `.mes_text` or `.mes_reasoning`
+ * @param {string} html Sanitized HTML from messageFormatting
+ * @param {boolean} incremental Tail-patch when the prefix matches
+ * @returns {'incremental'|'full'} Which write ran
+ */
+export function replaceStreamingHtml(element, html, incremental) {
+    if (!incremental) {
+        element.innerHTML = html;
+        return 'full';
+    }
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const nextNodes = template.content.childNodes;
+    const currentNodes = element.childNodes;
+    let index = 0;
+    const shared = Math.min(nextNodes.length, currentNodes.length);
+    while (index < shared && currentNodes[index].isEqualNode(nextNodes[index])) {
+        index++;
+    }
+    if (index === 0) {
+        element.innerHTML = html;
+        return 'full';
+    }
+    while (element.childNodes.length > index) {
+        element.lastChild.remove();
+    }
+    // nextNodes is live; appending shifts the following node into `index`.
+    while (nextNodes.length > index) {
+        element.appendChild(nextNodes[index]);
+    }
+    return 'incremental';
+}
+
 function showStopButton() {
     $('#mes_stop').css({ 'display': 'flex' });
 }
@@ -3691,6 +3728,25 @@ function hideStopButton() {
 }
 
 class StreamingProcessor {
+    /** @type {boolean} DOM writes wait for an animation frame instead of running inside the stopwatch tick. */
+    #coalesceStreamingDom = false;
+    /** @type {number} Non-zero while onProgressStreaming is still mutating chat data. */
+    #streamingDomHold = 0;
+    /** @type {number} requestAnimationFrame id, or 0. */
+    #streamingDomRaf = 0;
+    /** @type {number} Bumped to invalidate a frame callback that lost the race with the final paint. */
+    #streamingDomGeneration = 0;
+    /** @type {number|null} Message whose latest text should be painted. */
+    #pendingStreamMessageId = null;
+    /** @type {number} performance.now() of the last coalesced paint. */
+    #lastStreamDomFrameAt = -Infinity;
+    /** @type {number[]} Recent messageFormatting durations used to skip frames. */
+    #recentFormatMs = [];
+    /** @type {boolean} A post-frame paint task is already queued. */
+    #streamingDomTaskQueued = false;
+    /** @type {MessagePort|null} Receives the paint task after the animation frame. */
+    #streamingDomPort = null;
+
     /**
      * Creates a new streaming processor.
      * @param {string} type Generation type
@@ -3793,9 +3849,187 @@ class StreamingProcessor {
         return messageId;
     }
 
+    /**
+     * Stream fade-in and impersonation keep today's synchronous DOM writes.
+     * Everything else is gated by requestAnimationFrame and streaming_fps, then
+     * painted in a task after that frame so the callback itself stays short.
+     */
+    #beginStreamingDomCoalesce() {
+        if (this.type === 'impersonate' || power_user.stream_fade_in) {
+            this.#coalesceStreamingDom = false;
+            return;
+        }
+        this.#coalesceStreamingDom = true;
+        this.#ensureStreamingDomChannel();
+        // Token listeners can observe .mes_text up to two frames behind.
+        this.reasoningHandler.setStreamDomScheduler(messageId => this.#scheduleStreamingDom(messageId));
+    }
+
+    #ensureStreamingDomChannel() {
+        if (this.#streamingDomPort) return;
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => this.#onStreamingDomTask();
+        this.#streamingDomPort = channel.port2;
+    }
+
+    #endStreamingDomCoalesce() {
+        this.#coalesceStreamingDom = false;
+        this.reasoningHandler.setStreamDomScheduler(null);
+    }
+
+    #noteFormatDuration(ms) {
+        if (!Number.isFinite(ms) || ms < 0) return;
+        this.#recentFormatMs.push(ms);
+        if (this.#recentFormatMs.length > 6) this.#recentFormatMs.shift();
+    }
+
+    /** @returns {number} 1, or 2–3 when recent formatting exceeds 8ms / 16ms. */
+    #adaptiveFrameGap() {
+        if (!this.#recentFormatMs.length) return 1;
+        const average = this.#recentFormatMs.reduce((sum, ms) => sum + ms, 0) / this.#recentFormatMs.length;
+        if (average > 16) return 3;
+        if (average > 8) return 2;
+        return 1;
+    }
+
+    #scheduleStreamingDom(messageId) {
+        this.#pendingStreamMessageId = messageId;
+        if (this.#streamingDomHold > 0 || this.#streamingDomRaf || this.#streamingDomTaskQueued) return;
+        this.#armStreamingDomFrame();
+    }
+
+    #armStreamingDomFrame() {
+        const generation = this.#streamingDomGeneration;
+        this.#streamingDomRaf = requestAnimationFrame(timestamp => this.#onStreamingFrame(timestamp, 0, generation));
+    }
+
+    /**
+     * The animation callback only decides whether this frame should paint.
+     * Formatting and the DOM write run after the frame, in a message task.
+     * @param {number} timestamp
+     * @param {number} waited Frames already skipped for the adaptive gap
+     * @param {number} generation
+     */
+    #onStreamingFrame(timestamp, waited, generation) {
+        this.#streamingDomRaf = 0;
+        if (generation !== this.#streamingDomGeneration || this.#pendingStreamMessageId == null) return;
+        if (this.#streamingDomHold > 0) return;
+        const gap = this.#adaptiveFrameGap();
+        const elapsed = timestamp - this.#lastStreamDomFrameAt;
+        if (elapsed < (gap - 1) * 14 && waited + 1 < gap) {
+            this.#streamingDomRaf = requestAnimationFrame(next => this.#onStreamingFrame(next, waited + 1, generation));
+            return;
+        }
+        this.#queueStreamingDomTask();
+    }
+
+    #queueStreamingDomTask() {
+        if (this.#streamingDomTaskQueued || this.#pendingStreamMessageId == null) return;
+        this.#ensureStreamingDomChannel();
+        this.#streamingDomTaskQueued = true;
+        // Queued during the animation frame, so it runs after style, layout, and paint.
+        this.#streamingDomPort.postMessage(0);
+    }
+
+    #onStreamingDomTask() {
+        this.#streamingDomTaskQueued = false;
+        if (this.#pendingStreamMessageId == null || this.#streamingDomHold > 0) return;
+        const messageId = this.#pendingStreamMessageId;
+        this.#pendingStreamMessageId = null;
+        this.#lastStreamDomFrameAt = performance.now();
+        this.#flushStreamingDom(messageId);
+    }
+
+    #cancelScheduledStreamingDom() {
+        this.#streamingDomGeneration++;
+        if (this.#streamingDomRaf) {
+            cancelAnimationFrame(this.#streamingDomRaf);
+            this.#streamingDomRaf = 0;
+        }
+        this.#pendingStreamMessageId = null;
+    }
+
+    /**
+     * @param {number} messageId
+     * @param {{ incremental: boolean, fade: boolean, tokenCount: number }} options
+     * @returns {number} messageFormatting duration
+     */
+    #renderStreamingMessage(messageId, { incremental, fade, tokenCount }) {
+        const formatStart = performance.now();
+        const formattedText = messageFormatting(
+            chat[messageId].mes,
+            chat[messageId].name,
+            chat[messageId].is_system,
+            chat[messageId].is_user,
+            messageId,
+            {},
+            false,
+        );
+        const formatMs = performance.now() - formatStart;
+        if (streamingPerfEnabled) recordStreamingPerf('format', formatStart, messageId);
+        const domStart = streamingPerfEnabled ? performance.now() : 0;
+        if (this.messageTextDom instanceof HTMLElement) {
+            if (fade) {
+                applyStreamFadeIn(this.messageTextDom, formattedText);
+                recordStreamingDomMode('fade');
+            } else {
+                recordStreamingDomMode(replaceStreamingHtml(this.messageTextDom, formattedText, incremental));
+            }
+        }
+        if (streamingPerfEnabled) recordStreamingPerf('dom', domStart, messageId);
+        const finished = chat[messageId]?.gen_finished;
+        if (finished && this.messageTimerDom instanceof HTMLElement) {
+            const timePassed = formatGenerationTimer(this.timeStarted, finished, tokenCount, this.reasoningHandler.getDuration(), this.timeToFirstToken);
+            this.messageTimerDom.textContent = timePassed.timerValue;
+            this.messageTimerDom.title = timePassed.timerTitle;
+        }
+        return formatMs;
+    }
+
+    #scrollStreaming(messageId, waitForFrame) {
+        if (streamingPerfEnabled) {
+            const start = performance.now();
+            scrollChatToBottom({ waitForFrame });
+            recordStreamingPerf('scroll', start, messageId);
+        } else {
+            scrollChatToBottom({ waitForFrame });
+        }
+    }
+
+    #flushStreamingDom(messageId) {
+        if (!chat[messageId] || !(this.messageTextDom instanceof HTMLElement)) return;
+        recordStreamingDomFrame();
+        const fade = !!power_user.stream_fade_in;
+        const reasoningMs = this.reasoningHandler.applyStreamingDom(messageId, { incremental: !fade });
+        const messageMs = this.#renderStreamingMessage(messageId, { incremental: !fade, fade, tokenCount: 0 });
+        this.#noteFormatDuration(reasoningMs + messageMs);
+        // Same deferred scroll as the uncoalesced path. The read stays on the
+        // next frame; doing it here would force layout inside this paint task.
+        if (!scrollLock) this.#scrollStreaming(messageId, true);
+    }
+
+    /** Error/abort path: paint the stopwatch tick that has not reached a frame yet. */
+    #flushStreamingDomSync() {
+        if (this.#pendingStreamMessageId == null) return;
+        const messageId = this.#pendingStreamMessageId;
+        this.#cancelScheduledStreamingDom();
+        if (this.type === 'impersonate' || !chat[messageId] || !(this.messageTextDom instanceof HTMLElement)) return;
+        const fade = !!power_user.stream_fade_in;
+        const reasoningMs = this.reasoningHandler.applyStreamingDom(messageId, { incremental: false });
+        const messageMs = this.#renderStreamingMessage(messageId, { incremental: false, fade, tokenCount: 0 });
+        this.#noteFormatDuration(reasoningMs + messageMs);
+        if (!scrollLock) this.#scrollStreaming(messageId, true);
+    }
+
     async onProgressStreaming(messageId, text, isFinal) {
         const isImpersonate = this.type == 'impersonate';
         const isContinue = this.type == 'continue';
+
+        // The final paint is synchronous and not incremental, and it must beat any queued frame.
+        if (!isImpersonate && (isFinal || power_user.stream_fade_in)) {
+            this.#cancelScheduledStreamingDom();
+            if (isFinal) this.#endStreamingDomCoalesce();
+        }
 
         if (!isImpersonate && !isContinue && Array.isArray(this.swipes) && this.swipes.length > 0) {
             for (let i = 0; i < this.swipes.length; i++) {
@@ -3829,84 +4063,75 @@ class StreamingProcessor {
             this.sendTextarea.value = processedText;
             this.sendTextarea.dispatchEvent(new Event('input', { bubbles: true }));
         } else {
-            const mesChanged = chat[messageId].mes !== processedText;
-            await this.#checkDomElements(messageId);
-            this.#updateMessageBlockVisibility();
-            const currentTime = new Date();
-            chat[messageId].mes = processedText;
-            chat[messageId].gen_started = this.timeStarted;
-            chat[messageId].gen_finished = currentTime;
-            if (!chat[messageId].extra) {
-                chat[messageId].extra = {};
-            }
-            chat[messageId].extra.time_to_first_token = this.timeToFirstToken;
-
-            // Update reasoning
-            await this.reasoningHandler.process(messageId, mesChanged, this.promptReasoning);
-            processedText = chat[messageId].mes;
-
-            // Token count update.
-            const tokenCountText = this.reasoningHandler.reasoning + processedText;
-            const currentTokenCount = isFinal && power_user.message_token_count_enabled ? await getTokenCountAsync(tokenCountText, 0) : 0;
-            if (currentTokenCount) {
-                chat[messageId].extra.token_count = currentTokenCount;
-                if (this.messageTokenCounterDom instanceof HTMLElement) {
-                    this.messageTokenCounterDom.textContent = `${currentTokenCount}t`;
+            const coalesce = this.#coalesceStreamingDom && !isFinal && !power_user.stream_fade_in;
+            if (coalesce) this.#streamingDomHold++;
+            // A failed tick must not paint ahead of the last successful one.
+            let committed = false;
+            try {
+                const mesChanged = chat[messageId].mes !== processedText;
+                await this.#checkDomElements(messageId);
+                this.#updateMessageBlockVisibility();
+                const currentTime = new Date();
+                chat[messageId].mes = processedText;
+                chat[messageId].gen_started = this.timeStarted;
+                chat[messageId].gen_finished = currentTime;
+                if (!chat[messageId].extra) {
+                    chat[messageId].extra = {};
                 }
-            }
+                chat[messageId].extra.time_to_first_token = this.timeToFirstToken;
 
-            if ((this.type == 'swipe' || this.type === 'continue') && Array.isArray(chat[messageId].swipes)) {
-                chat[messageId].swipes[chat[messageId].swipe_id] = processedText;
-                chat[messageId].swipe_info[chat[messageId].swipe_id] = {
-                    'send_date': chat[messageId].send_date,
-                    'gen_started': chat[messageId].gen_started,
-                    'gen_finished': chat[messageId].gen_finished,
-                    'extra': structuredClone(chat[messageId].extra),
-                };
-            }
+                // Update reasoning. process() may rewrite mes and must stay ahead of the paint.
+                await this.reasoningHandler.process(messageId, mesChanged, this.promptReasoning);
+                processedText = chat[messageId].mes;
 
-            let perfStart;
-            if (streamingPerfEnabled) perfStart = performance.now();
-            const formattedText = messageFormatting(
-                processedText,
-                chat[messageId].name,
-                chat[messageId].is_system,
-                chat[messageId].is_user,
-                messageId,
-                {},
-                false,
-            );
-            if (streamingPerfEnabled) {
-                recordStreamingPerf('format', perfStart, messageId);
-                perfStart = performance.now();
-            }
-            if (this.messageTextDom instanceof HTMLElement) {
-                if (power_user.stream_fade_in) {
-                    applyStreamFadeIn(this.messageTextDom, formattedText);
+                // Token count update.
+                const tokenCountText = this.reasoningHandler.reasoning + processedText;
+                const currentTokenCount = isFinal && power_user.message_token_count_enabled ? await getTokenCountAsync(tokenCountText, 0) : 0;
+                if (currentTokenCount) {
+                    chat[messageId].extra.token_count = currentTokenCount;
+                    if (this.messageTokenCounterDom instanceof HTMLElement) {
+                        this.messageTokenCounterDom.textContent = `${currentTokenCount}t`;
+                    }
+                }
+
+                if ((this.type == 'swipe' || this.type === 'continue') && Array.isArray(chat[messageId].swipes)) {
+                    chat[messageId].swipes[chat[messageId].swipe_id] = processedText;
+                    chat[messageId].swipe_info[chat[messageId].swipe_id] = {
+                        'send_date': chat[messageId].send_date,
+                        'gen_started': chat[messageId].gen_started,
+                        'gen_finished': chat[messageId].gen_finished,
+                        'extra': structuredClone(chat[messageId].extra),
+                    };
+                }
+
+                if (coalesce) {
+                    this.#pendingStreamMessageId = messageId;
                 } else {
-                    this.messageTextDom.innerHTML = formattedText;
+                    // Final refresh is a full innerHTML write. Fade-in keeps its own synchronous morph.
+                    this.#noteFormatDuration(this.#renderStreamingMessage(messageId, {
+                        incremental: false,
+                        fade: !!power_user.stream_fade_in,
+                        tokenCount: currentTokenCount,
+                    }));
+                }
+
+                this.setFirstSwipe(messageId);
+                committed = true;
+            } catch (error) {
+                if (coalesce && !committed) this.#cancelScheduledStreamingDom();
+                throw error;
+            } finally {
+                if (coalesce) {
+                    this.#streamingDomHold--;
+                    if (committed && this.#streamingDomHold === 0 && this.#pendingStreamMessageId != null && this.#streamingDomRaf === 0 && !this.#streamingDomTaskQueued) {
+                        this.#armStreamingDomFrame();
+                    }
                 }
             }
-
-            if (streamingPerfEnabled) recordStreamingPerf('dom', perfStart, messageId);
-
-            const timePassed = formatGenerationTimer(this.timeStarted, currentTime, currentTokenCount, this.reasoningHandler.getDuration(), this.timeToFirstToken);
-            if (this.messageTimerDom instanceof HTMLElement) {
-                this.messageTimerDom.textContent = timePassed.timerValue;
-                this.messageTimerDom.title = timePassed.timerTitle;
-            }
-
-            this.setFirstSwipe(messageId);
         }
 
-        if (!scrollLock) {
-            if (streamingPerfEnabled) {
-                const start = performance.now();
-                scrollChatToBottom({ waitForFrame: true });
-                recordStreamingPerf('scroll', start, messageId);
-            } else {
-                scrollChatToBottom({ waitForFrame: true });
-            }
+        if (!(!isImpersonate && this.#coalesceStreamingDom && !isFinal && !power_user.stream_fade_in) && !scrollLock) {
+            this.#scrollStreaming(messageId, true);
         }
     }
 
@@ -4036,9 +4261,10 @@ class StreamingProcessor {
         const isContinue = this.type == 'continue';
         this.stoppingStrings = getStoppingStrings(isImpersonate, isContinue, main_api);
 
+        const sw = new Stopwatch(1000 / power_user.streaming_fps);
+        const timestamps = [];
+        this.#beginStreamingDomCoalesce();
         try {
-            const sw = new Stopwatch(1000 / power_user.streaming_fps);
-            const timestamps = [];
             for await (const { text, swipes, logprobs, toolCalls, state } of this.generator()) {
                 const now = Date.now();
                 timestamps.push(now);
@@ -4067,10 +4293,13 @@ class StreamingProcessor {
         } catch (err) {
             // in the case of a self-inflicted abort, we have already cleaned up
             if (!this.isFinished) {
+                this.#flushStreamingDomSync();
                 console.error(err);
                 this.onErrorStreaming();
             }
             return this.result;
+        } finally {
+            this.#endStreamingDomCoalesce();
         }
 
         this.isFinished = true;

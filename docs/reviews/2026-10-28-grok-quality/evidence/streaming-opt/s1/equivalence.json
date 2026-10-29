@@ -1,0 +1,267 @@
+{
+  "baseRevision": "ffd5f4e",
+  "head": "WORKTREE",
+  "ignoredFields": [
+    "gen_started",
+    "gen_finished",
+    "send_date",
+    "create_date",
+    "date_last_chat",
+    "time_to_first_token",
+    "reasoning_duration",
+    "integrity",
+    "gen_id"
+  ],
+  "ignoredFieldReasons": {
+    "gen_started": "Wall-clock start of this generation.",
+    "gen_finished": "Wall-clock end of this generation.",
+    "send_date": "Message timestamp assigned when the row is created.",
+    "create_date": "Chat-file header timestamp. Message bodies are compared instead.",
+    "date_last_chat": "Character or group recency timestamp, not message text.",
+    "time_to_first_token": "Latency from generation start to the first token.",
+    "reasoning_duration": "Wall-clock reasoning duration. The header \"Thought for \u2026\" and data-duration are derived from it; .mes_reasoning HTML is compared exactly.",
+    "integrity": "Random UUID assigned on save (uuidv4), not a hash of the message text.",
+    "gen_id": "Group batch id. Greeting uses Date.now()*Math.random(); a reply uses Date.now()."
+  },
+  "note": "Extensions reading .mes_text inside STREAM_TOKEN_RECEIVED may see the DOM up to two frames behind. The write waits for the next animation frame and runs after that frame paints. Slow formatting can skip one or two more frames. Finish still paints immediately.",
+  "pass": true,
+  "cases": {
+    "domPatch": {
+      "pass": true,
+      "patch": {
+        "extended": "incremental",
+        "extendedText": [
+          "one",
+          "two",
+          "FOUR",
+          "five"
+        ],
+        "shrunk": "incremental",
+        "shrunkCount": 1,
+        "replaced": "full",
+        "replacedName": "DIV",
+        "forced": "full",
+        "forcedText": "other"
+      }
+    },
+    "normal": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 87,
+        "head": 87
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 10,
+        "full": 7,
+        "fade": 0,
+        "frames": 11
+      }
+    },
+    "stop": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 8,
+        "head": 8
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "ffce5bd1ed31eb41f8717dc2cf1c4fadddeb6acaa84c70233a1820174e7c5f56",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 0,
+        "full": 5,
+        "fade": 0,
+        "frames": 0
+      }
+    },
+    "continue": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 87,
+        "head": 87
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "a66ed1a651b8b9015a91a795811e41ad5cfeb7e990ca0e15f67e64b63a33ab91",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 11,
+        "full": 5,
+        "fade": 0,
+        "frames": 11
+      }
+    },
+    "swipe": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 87,
+        "head": 87
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 9,
+        "full": 7,
+        "fade": 0,
+        "frames": 10
+      }
+    },
+    "reasoning": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 238,
+        "head": 238
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 10,
+        "full": 49,
+        "fade": 0,
+        "frames": 32
+      }
+    },
+    "group": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 87,
+        "head": 87
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 10,
+        "full": 7,
+        "fade": 0,
+        "frames": 11
+      }
+    },
+    "impersonate": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 87,
+        "head": 87
+      },
+      "received": {
+        "base": 0,
+        "head": 0
+      },
+      "rendered": {
+        "base": 0,
+        "head": 0
+      },
+      "mesTextSha256": null,
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 1,
+        "head": 1
+      },
+      "headDom": {
+        "incremental": 0,
+        "full": 0,
+        "fade": 0,
+        "frames": 0
+      },
+      "textareaSha256": "f2798f6ee8e2db3f00a2687781fbb75a0dba28a5479498d0b3b096300dd45dff"
+    }
+  },
+  "tabOrderEqual": true
+}

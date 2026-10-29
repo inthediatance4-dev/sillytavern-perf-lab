@@ -79,7 +79,7 @@ def measure(browser, command):
             const probe = window.__streamingProbe;
             probe.active = false;
             const context = SillyTavern.getContext();
-            return {...probe, hooks:window.__stStreamingPerf, timeOrigin:performance.timeOrigin,
+            return {...probe, hooks:window.__stStreamingPerf, dom:window.__stStreamingDom || null, timeOrigin:performance.timeOrigin,
                 finalText:context.chat.at(-1).mes, finalReasoning:context.chat.at(-1).extra?.reasoning || '',
                 messageCount:context.chat.length};
         }""")

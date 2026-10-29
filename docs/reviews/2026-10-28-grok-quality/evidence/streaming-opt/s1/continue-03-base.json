@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 3,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 12.690355329949238,
+    "framesOver33Pct": 8.50253807106599,
+    "loafCount": 5,
+    "loafTotalMs": 641.9000000003725,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 65.30000000074506,
+    "loafScriptotherMs": 418.3000000026077,
+    "formatP50Ms": 1.900000000372529,
+    "formatP95Ms": 6.599999999627471,
+    "domP50Ms": 0.2999999988824129,
+    "domP95Ms": 0.6000000014901161,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 20.117865841192387,
+    "firstTokenMs": 149.11376953125,
+    "finishMs": 323.662109375,
+    "typingP50Ms": 33.199951171875,
+    "typingP95Ms": 47.900146484375,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 822,
+    "keys": 74,
+    "hooks": 912
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283546191.3862,
+    "receivedNs": "9265123341909",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793283546200.1477,
+    "lastChunkEpochMs": 1793283560913.438,
+    "doneEpochMs": 1793283560913.454,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

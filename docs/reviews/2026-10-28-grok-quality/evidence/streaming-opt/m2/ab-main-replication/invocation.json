@@ -1,0 +1,67 @@
+{
+  "args": {
+    "scenario": "main",
+    "runs": 10,
+    "output": "docs/reviews/2026-10-28-grok-quality/evidence/streaming-opt/m2/ab-main-replication",
+    "node": "/usr/local/lib/nodejs/node",
+    "python": "/tmp/pw-venv/bin/python",
+    "rate": 200,
+    "seed": "opus-streaming-s0",
+    "jitter": 0.25,
+    "base": "ee771bb",
+    "head": "WORKTREE"
+  },
+  "scenarios": [
+    [
+      "main",
+      {
+        "messages": 2000,
+        "tokens": 3000,
+        "smooth": false,
+        "reasoning": false,
+        "mode": "send"
+      }
+    ]
+  ],
+  "products": {
+    "base": {
+      "revision": "ee771bb9cd104fa126cc2c748d90100f8a67d9af",
+      "lab": {
+        "dataRoot": "<tmp>/base/data",
+        "configPath": "<tmp>/base/config.yaml",
+        "port": 44883
+      }
+    },
+    "head": {
+      "revision": "WORKTREE",
+      "lab": {
+        "dataRoot": "<tmp>/head/data",
+        "configPath": "<tmp>/head/config.yaml",
+        "port": 37511
+      }
+    }
+  },
+  "temporary": "<tmp>",
+  "timingOverlaySha256": null,
+  "toolCommit": "89c9051308dc1d5608aedd37e9ceffd22603a9a8",
+  "sourceSha256": {
+    "scripts/measure-streaming.mjs": "03576035c82c0e68c0ae79c67b05175c326c4d203610b329f406af98ac4e805b",
+    "scripts/fake-openai-endpoint.mjs": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+    "scripts/measure-streaming-browser.py": "6732eaec0593d0cc6537445d4e56cbc7853a8adc5f560f431720986a1c5debd2",
+    "scripts/streaming-browser-probe.js": "f06ec9a09b0c9606d3a2ece39b37f917461a744cd5f814d4ca017530e6889f39",
+    "scripts/benchmark-statistics.mjs": "2e29a4aefce1f04a2a2990641dfc1baed6ea521e979b86ce4ff1585ca1c38945",
+    "scripts/streaming-measurement.mjs": "07d9c85d04e01973ff81dff866cd78bd4c243a6d1cc8248c70f96dc5e1a4d89e",
+    "tests/browser-longchat-perf.py": "c6b9772a9ddf270697ba887afdab9511914557f926e834a01be332c5ba01a095",
+    "tests/lab_browser.py": "6b942d461c94f78fb8d498e2dd40858fed18d7fe8b261a91aae099b8e3755fc0",
+    "public/script.js": "91859823b765212e5ded9d699727f1d5af70eef4a1be5e4a52ea1ad6d718b62e",
+    "public/scripts/reasoning.js": "7e1fae2cf1616adeab8e9c0d14d62e06878900b33425be21d97bc478b770edcf",
+    "public/scripts/streaming-perf.js": "851bc4d31efbc8d892c137e70842a28800609300a3f96d24641e8c494174184e"
+  },
+  "chromium": "156.0.8078.4",
+  "node": "v24.22.1",
+  "platform": "linux",
+  "cpus": 8,
+  "cpu": "Intel(R) Xeon(R) Processor",
+  "bootstrapSeed": "opus-round1.5",
+  "resamples": 2000
+}

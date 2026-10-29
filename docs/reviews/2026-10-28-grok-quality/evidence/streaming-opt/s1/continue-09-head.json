@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 9,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 33.4,
+    "framesOver16_7Pct": 8.254716981132075,
+    "framesOver33Pct": 2.8301886792452833,
+    "loafCount": 4,
+    "loafTotalMs": 336.2000000011176,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 9,
+    "loafScriptotherMs": 163.40000000409782,
+    "formatP50Ms": 2,
+    "formatP95Ms": 6.5,
+    "domP50Ms": 0.2000000011175871,
+    "domP95Ms": 0.599999999627471,
+    "reasoningP95Ms": 0.09999999962747097,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 22.759373391228387,
+    "firstTokenMs": 107.3154296875,
+    "finishMs": 313.726318359375,
+    "typingP50Ms": 19.699951171875,
+    "typingP95Ms": 32.699951171875,
+    "scrollStolen": 0
+  },
+  "dom": {
+    "incremental": 334,
+    "full": 107,
+    "fade": 0,
+    "frames": 334
+  },
+  "samples": {
+    "frames": 882,
+    "keys": 74,
+    "hooks": 1032
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283813097.0845,
+    "receivedNs": "9532029036963",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793283813105.9014,
+    "lastChunkEpochMs": 1793283827781.1736,
+    "doneEpochMs": 1793283827781.19,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

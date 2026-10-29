@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 8,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 11.36919315403423,
+    "framesOver33Pct": 5.50122249388753,
+    "loafCount": 5,
+    "loafTotalMs": 484.19999999925494,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 27.300000000745058,
+    "loafScriptotherMs": 263.09999999962747,
+    "formatP50Ms": 1.400000000372529,
+    "formatP95Ms": 4.799999998882413,
+    "domP50Ms": 0.2000000011175871,
+    "domP95Ms": 0.40000000037252903,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 21.270970617778648,
+    "firstTokenMs": 167.267333984375,
+    "finishMs": 288.744384765625,
+    "typingP50Ms": 23.2998046875,
+    "typingP95Ms": 43.89990234375,
+    "scrollStolen": 20
+  },
+  "dom": null,
+  "samples": {
+    "frames": 863,
+    "keys": 73,
+    "hooks": 1251
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793289343639.9326,
+    "receivedNs": "14985272452246",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793289343647.6902,
+    "lastChunkEpochMs": 1793289358268.5557,
+    "doneEpochMs": 1793289358268.577,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

@@ -1,3 +1,4 @@
+import { streamingPerfEnabled, recordStreamingPerf, recordStreamingDomMode, recordStreamingDomFrame } from './scripts/streaming-perf.js';
 import {
     showdown,
     moment,
@@ -2726,6 +2727,7 @@ export function addOneMessage(mes, { type = undefined, insertAfter = null, scrol
 
     let messageElement;
 
+    readChatScrollPosition();
     if (type === 'swipe') {
         // Forbidden black magic
         // This allows to use "continue" on user messages
@@ -2760,6 +2762,8 @@ export function addOneMessage(mes, { type = undefined, insertAfter = null, scrol
 
     applyCharacterTagsToMessageDivs({ mesIds: messageId });
     updateEditArrowClasses();
+    // Moving last_mes can change the old tail's height and trigger native anchoring.
+    markChatScrollPosition();
     return messageElement;
 }
 
@@ -2916,6 +2920,107 @@ function formatGenerationTimer(gen_started, gen_finished, tokenCount, reasoningD
 }
 
 let requestId = null;
+let lastChatScrollTop = 0;
+let lastChatMaxScrollTop = 0;
+let programmaticChatScrollTop = null;
+let streamingScrollActive = false;
+let streamingContentPending = false;
+let chatScrollMovingUp = false;
+/** @type {HTMLButtonElement|null} */
+let chatNewContentButton = null;
+
+function cancelChatScroll() {
+    if (requestId !== null) cancelAnimationFrame(requestId);
+    requestId = null;
+}
+
+/**
+ * Marks our scroll writes so their delayed/coalesced events cannot change user intent.
+ * @param {number} position Desired chat scroll position
+ * @param {object} [options] Options
+ * @param {boolean} [options.fromResize=false] A composer resize should preserve a paused reader's position
+ */
+export function setChatScrollTop(position, { fromResize = false } = {}) {
+    const container = chatElement[0];
+    // A native/user scroll may not have dispatched its event yet.
+    if (Math.abs(container.scrollTop - lastChatScrollTop) > 1 && container.scrollTop !== programmaticChatScrollTop) readChatScrollPosition();
+    if (fromResize && (!power_user.auto_scroll_chat_to_bottom || ((streamingScrollActive || streamingContentPending) && scrollLock))) return;
+    container.scrollTop = position;
+    markChatScrollPosition();
+}
+
+/** Record an application write, including native anchoring from message insertion. */
+function markChatScrollPosition() {
+    const container = chatElement[0];
+    programmaticChatScrollTop = container.scrollTop;
+    lastChatScrollTop = container.scrollTop;
+    lastChatMaxScrollTop = container.scrollHeight - container.clientHeight;
+}
+
+function updateChatNewContentButton() {
+    if (!chatNewContentButton && streamingContentPending) {
+        chatNewContentButton = document.createElement('button');
+        chatNewContentButton.id = 'chat_new_content';
+        chatNewContentButton.type = 'button';
+        chatNewContentButton.className = 'menu_button';
+        chatNewContentButton.textContent = '↓ 新内容';
+        chatNewContentButton.setAttribute('aria-label', '滚动到底部并跟随新内容');
+        chatNewContentButton.addEventListener('click', () => {
+            cancelChatScroll();
+            setChatScrollTop(chatElement[0].scrollHeight);
+            scrollLock = false;
+            chatScrollMovingUp = false;
+            streamingContentPending = false;
+            updateChatNewContentButton();
+        });
+        document.getElementById('form_sheld').append(chatNewContentButton);
+    }
+    if (chatNewContentButton) chatNewContentButton.hidden = !streamingContentPending;
+}
+
+function pauseChatFollowing() {
+    scrollLock = true;
+    chatScrollMovingUp = true;
+    programmaticChatScrollTop = null;
+    cancelChatScroll();
+    if (streamingScrollActive) {
+        streamingContentPending = true;
+        updateChatNewContentButton();
+    }
+}
+
+/** Read the old geometry before streaming changes message/reasoning DOM. */
+function readChatScrollPosition() {
+    const container = chatElement[0];
+    const top = container.scrollTop;
+    const maxTop = container.scrollHeight - container.clientHeight;
+    const atBottom = maxTop - top <= 40;
+    const programmatic = programmaticChatScrollTop !== null && Math.abs(top - programmaticChatScrollTop) < 1;
+    // A scrollbar drag can precede its scroll event and an already queued paint.
+    // Layout shrink/clamping (including the composer resizing) is not user input.
+    const layoutTop = lastChatScrollTop + Math.min(0, maxTop - lastChatMaxScrollTop);
+    const layoutClamped = maxTop < lastChatMaxScrollTop && atBottom && !chatScrollMovingUp;
+    if (!programmatic && !layoutClamped && top < layoutTop - 1) pauseChatFollowing();
+    if (!programmatic && top > lastChatScrollTop + 1) {
+        chatScrollMovingUp = false;
+        if (atBottom && !power_user.waifuMode) {
+            scrollLock = false;
+            streamingContentPending = false;
+            updateChatNewContentButton();
+        }
+    }
+    lastChatScrollTop = top;
+    lastChatMaxScrollTop = maxTop;
+    return { atBottom, programmatic };
+}
+
+function prepareStreamingScroll() {
+    readChatScrollPosition();
+    if (streamingScrollActive && (scrollLock || !power_user.auto_scroll_chat_to_bottom)) {
+        streamingContentPending = true;
+        updateChatNewContentButton();
+    }
+}
 
 /**
  * Scrolls the chat to the bottom if configured to do so.
@@ -2927,7 +3032,17 @@ export function scrollChatToBottom({ waitForFrame } = {}) {
         return;
     }
 
+    const respectScrollLock = streamingScrollActive || streamingContentPending;
     const doScroll = () => {
+        requestId = null;
+        // User input or a setting change may have arrived since this was queued.
+        readChatScrollPosition();
+        if (!power_user.auto_scroll_chat_to_bottom) return;
+        if ((respectScrollLock || streamingScrollActive || streamingContentPending) && scrollLock) {
+            streamingContentPending = true;
+            updateChatNewContentButton();
+            return;
+        }
         let position = chatElement[0].scrollHeight;
 
         if (power_user.waifuMode) {
@@ -2938,14 +3053,11 @@ export function scrollChatToBottom({ waitForFrame } = {}) {
             }
         }
 
-        chatElement.scrollTop(position);
-        requestId = null;
+        setChatScrollTop(position);
     };
 
     // Do not check truthiness. requestId can loop to zero.
-    if (requestId !== null) {
-        cancelAnimationFrame(requestId);
-    }
+    cancelChatScroll();
 
     if (!waitForFrame) {
         doScroll();
@@ -3677,6 +3789,43 @@ export function isStreamingEnabled() {
         || (main_api == 'textgenerationwebui' && textgen_settings.streaming));
 }
 
+/**
+ * Writes sanitized message HTML.
+ * Incremental mode keeps the equal top-level prefix and replaces only the tail.
+ * A difference at the first node assigns innerHTML, same as a full rewrite.
+ * @param {HTMLElement} element Target node, usually `.mes_text` or `.mes_reasoning`
+ * @param {string} html Sanitized HTML from messageFormatting
+ * @param {boolean} incremental Tail-patch when the prefix matches
+ * @returns {'incremental'|'full'} Which write ran
+ */
+export function replaceStreamingHtml(element, html, incremental) {
+    if (!incremental) {
+        element.innerHTML = html;
+        return 'full';
+    }
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    const nextNodes = template.content.childNodes;
+    const currentNodes = element.childNodes;
+    let index = 0;
+    const shared = Math.min(nextNodes.length, currentNodes.length);
+    while (index < shared && currentNodes[index].isEqualNode(nextNodes[index])) {
+        index++;
+    }
+    if (index === 0) {
+        element.innerHTML = html;
+        return 'full';
+    }
+    while (element.childNodes.length > index) {
+        element.lastChild.remove();
+    }
+    // nextNodes is live; appending shifts the following node into `index`.
+    while (nextNodes.length > index) {
+        element.appendChild(nextNodes[index]);
+    }
+    return 'incremental';
+}
+
 function showStopButton() {
     $('#mes_stop').css({ 'display': 'flex' });
 }
@@ -3690,6 +3839,30 @@ function hideStopButton() {
 }
 
 class StreamingProcessor {
+    /** @type {boolean} DOM writes wait for an animation frame instead of running inside the stopwatch tick. */
+    #coalesceStreamingDom = false;
+    /** @type {number} Non-zero while onProgressStreaming is still mutating chat data. */
+    #streamingDomHold = 0;
+    /** @type {number} requestAnimationFrame id, or 0. */
+    #streamingDomRaf = 0;
+    /** @type {number} Session token for both frame callbacks and post-frame tasks. */
+    #streamingDomGeneration = 0;
+    /** @type {boolean} The chat or active swipe no longer belongs to this stream. */
+    #streamingDomAbandoned = false;
+    /** @type {boolean} First visible content/reasoning bypass the frame gate independently. */
+    #hasStreamContentPaint = false;
+    #hasStreamReasoningPaint = false;
+    /** @type {number|null} Message whose latest text should be painted. */
+    #pendingStreamMessageId = null;
+    /** @type {number} performance.now() of the last coalesced paint. */
+    #lastStreamDomFrameAt = -Infinity;
+    /** @type {number[]} Recent messageFormatting durations used to skip frames. */
+    #recentFormatMs = [];
+    /** @type {boolean} A post-frame paint task is already queued. */
+    #streamingDomTaskQueued = false;
+    /** @type {MessagePort|null} Receives the paint task after the animation frame. */
+    #streamingDomPort = null;
+
     /**
      * Creates a new streaming processor.
      * @param {string} type Generation type
@@ -3767,10 +3940,15 @@ class StreamingProcessor {
     }
 
     markUIGenStopped() {
+        if (this.type !== 'impersonate') streamingScrollActive = false;
         unblockGeneration();
     }
 
     async onStartStreaming(text) {
+        if (this.type !== 'impersonate') {
+            readChatScrollPosition();
+            streamingScrollActive = true;
+        }
         const continueOnReasoning = !!(this.type === 'continue' && this.promptReasoning.prefixReasoning);
         if (continueOnReasoning) {
             this.reasoningHandler.initContinue(this.promptReasoning);
@@ -3792,9 +3970,201 @@ class StreamingProcessor {
         return messageId;
     }
 
+    /**
+     * Stream fade-in and impersonation keep today's synchronous DOM writes.
+     * Everything else is gated by requestAnimationFrame and streaming_fps, then
+     * painted in a task after that frame so the callback itself stays short.
+     */
+    #beginStreamingDomCoalesce() {
+        if (this.type === 'impersonate' || power_user.stream_fade_in || !power_user.optimized_streaming) {
+            this.#coalesceStreamingDom = false;
+            return;
+        }
+        this.#coalesceStreamingDom = true;
+        this.#ensureStreamingDomChannel();
+        // Token listeners can observe .mes_text up to two frames behind.
+        this.reasoningHandler.setStreamDomScheduler(messageId => this.#scheduleStreamingDom(messageId));
+    }
+
+    #ensureStreamingDomChannel() {
+        if (this.#streamingDomPort) return;
+        const channel = new MessageChannel();
+        channel.port1.onmessage = event => this.#onStreamingDomTask(event.data);
+        this.#streamingDomPort = channel.port2;
+    }
+
+    #endStreamingDomCoalesce() {
+        this.#coalesceStreamingDom = false;
+        this.reasoningHandler.setStreamDomScheduler(null);
+    }
+
+    #noteFormatDuration(ms) {
+        if (!Number.isFinite(ms) || ms < 0) return;
+        this.#recentFormatMs.push(ms);
+        if (this.#recentFormatMs.length > 6) this.#recentFormatMs.shift();
+    }
+
+    /** @returns {number} 1, or 2–3 when recent formatting exceeds 8ms / 16ms. */
+    #adaptiveFrameGap() {
+        if (!this.#recentFormatMs.length) return 1;
+        const average = this.#recentFormatMs.reduce((sum, ms) => sum + ms, 0) / this.#recentFormatMs.length;
+        if (average > 16) return 3;
+        if (average > 8) return 2;
+        return 1;
+    }
+
+    #scheduleStreamingDom(messageId) {
+        if (this.#streamingDomAbandoned) return;
+        this.#pendingStreamMessageId = messageId;
+        if (this.#streamingDomHold > 0 || this.#streamingDomRaf || this.#streamingDomTaskQueued) return;
+        this.#armStreamingDomFrame();
+    }
+
+    #armStreamingDomFrame() {
+        const generation = this.#streamingDomGeneration;
+        this.#streamingDomRaf = requestAnimationFrame(timestamp => this.#onStreamingFrame(timestamp, 0, generation));
+    }
+
+    /**
+     * The animation callback only decides whether this frame should paint.
+     * Formatting and the DOM write run after the frame, in a message task.
+     * @param {number} timestamp
+     * @param {number} waited Frames already skipped for the adaptive gap
+     * @param {number} generation
+     */
+    #onStreamingFrame(timestamp, waited, generation) {
+        if (generation !== this.#streamingDomGeneration || this.#pendingStreamMessageId == null) return;
+        this.#streamingDomRaf = 0;
+        if (this.#streamingDomHold > 0) return;
+        const gap = this.#adaptiveFrameGap();
+        const elapsed = timestamp - this.#lastStreamDomFrameAt;
+        if (elapsed < (gap - 1) * 14 && waited + 1 < gap) {
+            this.#streamingDomRaf = requestAnimationFrame(next => this.#onStreamingFrame(next, waited + 1, generation));
+            return;
+        }
+        this.#queueStreamingDomTask();
+    }
+
+    #queueStreamingDomTask() {
+        if (this.#streamingDomTaskQueued || this.#pendingStreamMessageId == null) return;
+        this.#ensureStreamingDomChannel();
+        this.#streamingDomTaskQueued = true;
+        // Queued during the animation frame, so it runs after style, layout, and paint.
+        this.#streamingDomPort.postMessage(this.#streamingDomGeneration);
+    }
+
+    #onStreamingDomTask(generation) {
+        if (generation !== this.#streamingDomGeneration) return;
+        this.#streamingDomTaskQueued = false;
+        if (this.#pendingStreamMessageId == null || this.#streamingDomHold > 0) return;
+        const messageId = this.#pendingStreamMessageId;
+        this.#pendingStreamMessageId = null;
+        this.#lastStreamDomFrameAt = performance.now();
+        this.#flushStreamingDom(messageId);
+    }
+
+    #cancelScheduledStreamingDom() {
+        this.#streamingDomGeneration++;
+        if (this.#streamingDomRaf) {
+            cancelAnimationFrame(this.#streamingDomRaf);
+            this.#streamingDomRaf = 0;
+        }
+        this.#pendingStreamMessageId = null;
+        this.#streamingDomTaskQueued = false;
+    }
+
+    /** Abandon queued writes without touching the newly selected chat or swipe. */
+    abandonStreamingDom() {
+        this.#streamingDomAbandoned = true;
+        this.#cancelScheduledStreamingDom();
+        this.#endStreamingDomCoalesce();
+    }
+
+    /**
+     * @param {number} messageId
+     * @param {{ incremental: boolean, fade: boolean, tokenCount: number }} options
+     * @returns {number} messageFormatting duration
+     */
+    #renderStreamingMessage(messageId, { incremental, fade, tokenCount }) {
+        const formatStart = performance.now();
+        const formattedText = messageFormatting(
+            chat[messageId].mes,
+            chat[messageId].name,
+            chat[messageId].is_system,
+            chat[messageId].is_user,
+            messageId,
+            {},
+            false,
+        );
+        const formatMs = performance.now() - formatStart;
+        if (streamingPerfEnabled) recordStreamingPerf('format', formatStart, messageId);
+        const domStart = streamingPerfEnabled ? performance.now() : 0;
+        if (this.messageTextDom instanceof HTMLElement) {
+            if (fade) {
+                applyStreamFadeIn(this.messageTextDom, formattedText);
+                recordStreamingDomMode('fade');
+            } else {
+                recordStreamingDomMode(replaceStreamingHtml(this.messageTextDom, formattedText, incremental));
+            }
+        }
+        if (streamingPerfEnabled) recordStreamingPerf('dom', domStart, messageId);
+        const finished = chat[messageId]?.gen_finished;
+        if (finished && this.messageTimerDom instanceof HTMLElement) {
+            const timePassed = formatGenerationTimer(this.timeStarted, finished, tokenCount, this.reasoningHandler.getDuration(), this.timeToFirstToken);
+            this.messageTimerDom.textContent = timePassed.timerValue;
+            this.messageTimerDom.title = timePassed.timerTitle;
+        }
+        return formatMs;
+    }
+
+    #scrollStreaming(messageId, waitForFrame) {
+        if (streamingPerfEnabled) {
+            const start = performance.now();
+            scrollChatToBottom({ waitForFrame });
+            recordStreamingPerf('scroll', start, messageId);
+        } else {
+            scrollChatToBottom({ waitForFrame });
+        }
+    }
+
+    #flushStreamingDom(messageId) {
+        if (!chat[messageId] || !(this.messageTextDom instanceof HTMLElement)) return;
+        prepareStreamingScroll();
+        recordStreamingDomFrame();
+        const fade = !!power_user.stream_fade_in;
+        const reasoningMs = this.reasoningHandler.applyStreamingDom(messageId, { incremental: !fade });
+        const messageMs = this.#renderStreamingMessage(messageId, { incremental: !fade, fade, tokenCount: 0 });
+        this.#noteFormatDuration(reasoningMs + messageMs);
+        // Keep the write deferred; the follow decision uses the pre-write geometry.
+        if (!scrollLock) this.#scrollStreaming(messageId, true);
+    }
+
+    /** Error/abort path: paint the stopwatch tick that has not reached a frame yet. */
+    #flushStreamingDomSync() {
+        const messageId = this.#pendingStreamMessageId;
+        this.#cancelScheduledStreamingDom();
+        if (messageId == null || this.#streamingDomAbandoned) return;
+        if (this.type === 'impersonate' || !chat[messageId] || !(this.messageTextDom instanceof HTMLElement)) return;
+        prepareStreamingScroll();
+        const fade = !!power_user.stream_fade_in;
+        const reasoningMs = this.reasoningHandler.applyStreamingDom(messageId, { incremental: false });
+        const messageMs = this.#renderStreamingMessage(messageId, { incremental: false, fade, tokenCount: 0 });
+        this.#noteFormatDuration(reasoningMs + messageMs);
+        if (!scrollLock) this.#scrollStreaming(messageId, true);
+    }
+
     async onProgressStreaming(messageId, text, isFinal) {
+        if (this.#streamingDomAbandoned) return;
         const isImpersonate = this.type == 'impersonate';
         const isContinue = this.type == 'continue';
+        let deferredDom = false;
+
+        // The final paint is synchronous and not incremental, and it must beat any queued frame.
+        if (!isImpersonate && (isFinal || power_user.stream_fade_in || !power_user.optimized_streaming)) {
+            this.#cancelScheduledStreamingDom();
+            if (isFinal || !power_user.optimized_streaming) this.#endStreamingDomCoalesce();
+        }
+        const generation = this.#streamingDomGeneration;
 
         if (!isImpersonate && !isContinue && Array.isArray(this.swipes) && this.swipes.length > 0) {
             for (let i = 0; i < this.swipes.length; i++) {
@@ -3828,70 +4198,90 @@ class StreamingProcessor {
             this.sendTextarea.value = processedText;
             this.sendTextarea.dispatchEvent(new Event('input', { bubbles: true }));
         } else {
-            const mesChanged = chat[messageId].mes !== processedText;
-            await this.#checkDomElements(messageId);
-            this.#updateMessageBlockVisibility();
-            const currentTime = new Date();
-            chat[messageId].mes = processedText;
-            chat[messageId].gen_started = this.timeStarted;
-            chat[messageId].gen_finished = currentTime;
-            if (!chat[messageId].extra) {
-                chat[messageId].extra = {};
-            }
-            chat[messageId].extra.time_to_first_token = this.timeToFirstToken;
-
-            // Update reasoning
-            await this.reasoningHandler.process(messageId, mesChanged, this.promptReasoning);
-            processedText = chat[messageId].mes;
-
-            // Token count update.
-            const tokenCountText = this.reasoningHandler.reasoning + processedText;
-            const currentTokenCount = isFinal && power_user.message_token_count_enabled ? await getTokenCountAsync(tokenCountText, 0) : 0;
-            if (currentTokenCount) {
-                chat[messageId].extra.token_count = currentTokenCount;
-                if (this.messageTokenCounterDom instanceof HTMLElement) {
-                    this.messageTokenCounterDom.textContent = `${currentTokenCount}t`;
+            const coalesce = this.#coalesceStreamingDom && !isFinal && !power_user.stream_fade_in;
+            if (coalesce) this.#streamingDomHold++;
+            // A failed tick must not paint ahead of the last successful one.
+            let committed = false;
+            try {
+                prepareStreamingScroll();
+                const mesChanged = chat[messageId].mes !== processedText;
+                await this.#checkDomElements(messageId);
+                if (generation !== this.#streamingDomGeneration) return;
+                this.#updateMessageBlockVisibility();
+                const currentTime = new Date();
+                chat[messageId].mes = processedText;
+                chat[messageId].gen_started = this.timeStarted;
+                chat[messageId].gen_finished = currentTime;
+                if (!chat[messageId].extra) {
+                    chat[messageId].extra = {};
                 }
-            }
+                chat[messageId].extra.time_to_first_token = this.timeToFirstToken;
 
-            if ((this.type == 'swipe' || this.type === 'continue') && Array.isArray(chat[messageId].swipes)) {
-                chat[messageId].swipes[chat[messageId].swipe_id] = processedText;
-                chat[messageId].swipe_info[chat[messageId].swipe_id] = {
-                    'send_date': chat[messageId].send_date,
-                    'gen_started': chat[messageId].gen_started,
-                    'gen_finished': chat[messageId].gen_finished,
-                    'extra': structuredClone(chat[messageId].extra),
-                };
-            }
+                // Update reasoning. process() may rewrite mes and must stay ahead of the paint.
+                await this.reasoningHandler.process(messageId, mesChanged, this.promptReasoning);
+                if (generation !== this.#streamingDomGeneration) return;
+                processedText = chat[messageId].mes;
 
-            const formattedText = messageFormatting(
-                processedText,
-                chat[messageId].name,
-                chat[messageId].is_system,
-                chat[messageId].is_user,
-                messageId,
-                {},
-                false,
-            );
-            if (this.messageTextDom instanceof HTMLElement) {
-                if (power_user.stream_fade_in) {
-                    applyStreamFadeIn(this.messageTextDom, formattedText);
+                // Token count update.
+                const tokenCountText = this.reasoningHandler.reasoning + processedText;
+                const currentTokenCount = isFinal && power_user.message_token_count_enabled ? await getTokenCountAsync(tokenCountText, 0) : 0;
+                if (generation !== this.#streamingDomGeneration) return;
+                if (currentTokenCount) {
+                    chat[messageId].extra.token_count = currentTokenCount;
+                    if (this.messageTokenCounterDom instanceof HTMLElement) {
+                        this.messageTokenCounterDom.textContent = `${currentTokenCount}t`;
+                    }
+                }
+
+                if ((this.type == 'swipe' || this.type === 'continue') && Array.isArray(chat[messageId].swipes)) {
+                    chat[messageId].swipes[chat[messageId].swipe_id] = processedText;
+                    chat[messageId].swipe_info[chat[messageId].swipe_id] = {
+                        'send_date': chat[messageId].send_date,
+                        'gen_started': chat[messageId].gen_started,
+                        'gen_finished': chat[messageId].gen_finished,
+                        'extra': structuredClone(chat[messageId].extra),
+                    };
+                }
+
+                const hasContent = Boolean(processedText.trim());
+                const hasReasoning = Boolean((this.reasoningHandler.reasoningDisplayText ?? this.reasoningHandler.reasoning).trim());
+                const firstVisible = (hasContent && !this.#hasStreamContentPaint) || (hasReasoning && !this.#hasStreamReasoningPaint);
+                if (coalesce && !firstVisible) {
+                    this.#pendingStreamMessageId = messageId;
+                    deferredDom = true;
                 } else {
-                    this.messageTextDom.innerHTML = formattedText;
+                    if (coalesce) {
+                        // First visible text must not wait for rAF plus a post-frame task.
+                        this.#cancelScheduledStreamingDom();
+                        this.reasoningHandler.applyStreamingDom(messageId, { incremental: false });
+                    }
+                    // Final refresh is a full innerHTML write. Fade-in keeps its own synchronous morph.
+                    this.#noteFormatDuration(this.#renderStreamingMessage(messageId, {
+                        incremental: false,
+                        fade: !!power_user.stream_fade_in,
+                        tokenCount: currentTokenCount,
+                    }));
+                    this.#hasStreamContentPaint ||= hasContent;
+                    this.#hasStreamReasoningPaint ||= hasReasoning;
+                }
+
+                this.setFirstSwipe(messageId);
+                committed = true;
+            } catch (error) {
+                if (coalesce && !committed) this.#cancelScheduledStreamingDom();
+                throw error;
+            } finally {
+                if (coalesce) {
+                    this.#streamingDomHold--;
+                    if (committed && this.#streamingDomHold === 0 && this.#pendingStreamMessageId != null && this.#streamingDomRaf === 0 && !this.#streamingDomTaskQueued) {
+                        this.#armStreamingDomFrame();
+                    }
                 }
             }
-
-            const timePassed = formatGenerationTimer(this.timeStarted, currentTime, currentTokenCount, this.reasoningHandler.getDuration(), this.timeToFirstToken);
-            if (this.messageTimerDom instanceof HTMLElement) {
-                this.messageTimerDom.textContent = timePassed.timerValue;
-                this.messageTimerDom.title = timePassed.timerTitle;
-            }
-
-            this.setFirstSwipe(messageId);
         }
 
-        if (!scrollLock) {
-            scrollChatToBottom({ waitForFrame: true });
+        if (!deferredDom && !scrollLock) {
+            this.#scrollStreaming(messageId, true);
         }
     }
 
@@ -3905,7 +4295,9 @@ class StreamingProcessor {
      * @param {boolean} options.unlockUI - Whether to unlock the generation UI.
      */
     async finalizeIntermediaryMessage(messageId, text, { unlockUI = true }) {
+        if (this.#streamingDomAbandoned) return;
         await this.onProgressStreaming(messageId, text, true);
+        if (this.#streamingDomAbandoned) return;
         const messageElement = chatElement.find(`.mes[mesid="${messageId}"]`);
         const message = chat[messageId];
         addCopyToCodeBlocks(messageElement);
@@ -3970,6 +4362,8 @@ class StreamingProcessor {
     }
 
     onErrorStreaming() {
+        this.#flushStreamingDomSync();
+        this.#endStreamingDomCoalesce();
         this.abortController.abort();
         this.isStopped = true;
 
@@ -3997,6 +4391,8 @@ class StreamingProcessor {
     }
 
     onStopStreaming() {
+        this.#flushStreamingDomSync();
+        this.#endStreamingDomCoalesce();
         this.abortController.abort();
         this.isFinished = true;
     }
@@ -4012,7 +4408,6 @@ class StreamingProcessor {
         if (this.messageId == -1) {
             this.messageId = await this.onStartStreaming(this.firstMessageText);
             await delay(1); // delay for message to be rendered
-            scrollLock = false;
         }
 
         // Stopping strings are expensive to calculate, especially with macros enabled. To remove stopping strings
@@ -4021,9 +4416,10 @@ class StreamingProcessor {
         const isContinue = this.type == 'continue';
         this.stoppingStrings = getStoppingStrings(isImpersonate, isContinue, main_api);
 
+        const sw = new Stopwatch(1000 / power_user.streaming_fps);
+        const timestamps = [];
+        this.#beginStreamingDomCoalesce();
         try {
-            const sw = new Stopwatch(1000 / power_user.streaming_fps);
-            const timestamps = [];
             for await (const { text, swipes, logprobs, toolCalls, state } of this.generator()) {
                 const now = Date.now();
                 timestamps.push(now);
@@ -4045,7 +4441,13 @@ class StreamingProcessor {
                 this.images = state?.images ?? [];
                 this.reasoningSignature = state?.signature ?? null;
                 await eventSource.emit(event_types.STREAM_TOKEN_RECEIVED, text);
-                await sw.tick(async () => await this.onProgressStreaming(this.messageId, this.continueMessage + text));
+                const firstVisible = (!this.#hasStreamContentPaint && text.trim()) || (!this.#hasStreamReasoningPaint && this.reasoningHandler.reasoning.trim());
+                if (this.#coalesceStreamingDom && firstVisible) {
+                    await this.onProgressStreaming(this.messageId, this.continueMessage + text);
+                    sw.lastAction = Date.now();
+                } else {
+                    await sw.tick(async () => await this.onProgressStreaming(this.messageId, this.continueMessage + text));
+                }
             }
             const seconds = (timestamps[timestamps.length - 1] - timestamps[0]) / 1000;
             console.warn(`Stream stats: ${timestamps.length} tokens, ${seconds.toFixed(2)} seconds, rate: ${Number(timestamps.length / seconds).toFixed(2)} TPS`);
@@ -4056,6 +4458,8 @@ class StreamingProcessor {
                 this.onErrorStreaming();
             }
             return this.result;
+        } finally {
+            this.#endStreamingDomCoalesce();
         }
 
         this.isFinished = true;
@@ -5474,6 +5878,19 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
         return Promise.resolve();
     }
 
+    const generationMetadata = chat_metadata;
+    const generationChatId = getCurrentChatId();
+    const generationSignal = abortController.signal;
+    // Unlike GENERATION_ENDED (UI unlock), this event means an API generation
+    // completed successfully. Director instructions survive errors and stops.
+    const notifyGenerationCompleted = async () => {
+        if (!generationSignal.aborted) {
+            await eventSource.emit(event_types.GENERATION_COMPLETED, {
+                type, data: generate_data, chatMetadata: generationMetadata, chatId: generationChatId,
+            });
+        }
+    };
+
     /**
      * Saves itemized prompt bits and calls streaming or non-streaming generation API.
      * @returns {Promise<void|*|Awaited<*>|String|{fromStream}|string|undefined|Object>}
@@ -5590,7 +6007,9 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             }
 
             if (isStreamFinished) {
+                const completedStream = streamingProcessor;
                 await streamingProcessor.onFinishStreaming(streamingProcessor.messageId, getMessage);
+                if (!completedStream.abortController.signal.aborted) await notifyGenerationCompleted();
                 streamingProcessor = null;
                 triggerAutoContinue(messageChunk, isImpersonate);
                 return Object.defineProperties(new String(getMessage), {
@@ -5632,7 +6051,9 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
 
         if (jsonSchema) {
             unblockGeneration(type);
-            return extractJsonFromData(data, { returnInvalidJson: jsonSchema.returnInvalid ?? false });
+            const json = extractJsonFromData(data, { returnInvalidJson: jsonSchema.returnInvalid ?? false });
+            await notifyGenerationCompleted();
+            return json;
         }
 
         //const getData = await response.json();
@@ -5678,6 +6099,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             await eventSource.emit(event_types.IMPERSONATE_READY, getMessage);
         } else if (type == 'quiet') {
             unblockGeneration(type);
+            await notifyGenerationCompleted();
             return getMessage;
         } else {
             // Without streaming we'll be having a full message on continuation. Treat it as a last chunk.
@@ -5724,6 +6146,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
 
         console.debug('/api/chats/save called by /Generate');
         await saveChatConditional();
+        await notifyGenerationCompleted();
         unblockGeneration(type);
         streamingProcessor = null;
 
@@ -11585,24 +12008,59 @@ jQuery(async function () {
 
     const chatElementScroll = document.getElementById('chat');
     const chatScrollHandler = function () {
+        const { atBottom, programmatic } = readChatScrollPosition();
+        programmaticChatScrollTop = null;
+        if (programmatic) return;
         if (power_user.waifuMode) {
             scrollLock = true;
             return;
         }
-
-        const scrollIsAtBottom = Math.abs(chatElementScroll.scrollHeight - chatElementScroll.clientHeight - chatElementScroll.scrollTop) < 5;
-
-        // Resume autoscroll if the user scrolls to the bottom
-        if (scrollLock && scrollIsAtBottom) {
+        if (atBottom && !chatScrollMovingUp) {
             scrollLock = false;
-        }
-
-        // Cancel autoscroll if the user scrolls up
-        if (!scrollLock && !scrollIsAtBottom) {
-            scrollLock = true;
+            streamingContentPending = false;
+            updateChatNewContentButton();
         }
     };
     chatElementScroll.addEventListener('scroll', chatScrollHandler, { passive: true });
+    chatElementScroll.addEventListener('wheel', event => {
+        if (event.deltaY < 0) pauseChatFollowing();
+    }, { passive: true });
+    chatElementScroll.addEventListener('keydown', event => {
+        if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (['PageUp', 'ArrowUp', 'Home'].includes(event.key)) pauseChatFollowing();
+    });
+    let chatTouch = null;
+    chatElementScroll.addEventListener('touchstart', event => {
+        const touch = event.touches.length === 1 ? event.touches[0] : null;
+        chatTouch = touch ? { id: touch.identifier, x: touch.clientX, y: touch.clientY } : null;
+    }, { passive: true });
+    chatElementScroll.addEventListener('touchmove', event => {
+        if (event.touches.length !== 1) chatTouch = null;
+        if (!chatTouch) return;
+        const touch = event.touches[0];
+        if (touch.identifier !== chatTouch.id) return;
+        const dx = touch.clientX - chatTouch.x;
+        const dy = touch.clientY - chatTouch.y;
+        // Finger down moves the content down. Taps, lateral gestures and pinch do not.
+        if (dy > 5 && dy > Math.abs(dx)) pauseChatFollowing();
+    }, { passive: true });
+    const clearChatTouch = () => { chatTouch = null; };
+    chatElementScroll.addEventListener('touchend', clearChatTouch, { passive: true });
+    chatElementScroll.addEventListener('touchcancel', clearChatTouch, { passive: true });
+    eventSource.makeFirst(event_types.MESSAGE_SWIPED, messageId => {
+        if (streamingProcessor?.messageId === messageId) streamingProcessor.abandonStreamingDom();
+    });
+    eventSource.makeFirst(event_types.CHAT_CHANGED, () => {
+        streamingProcessor?.abandonStreamingDom();
+        streamingScrollActive = false;
+        streamingContentPending = false;
+        scrollLock = false;
+        chatScrollMovingUp = false;
+        programmaticChatScrollTop = null;
+        lastChatScrollTop = chatElementScroll.scrollTop;
+        lastChatMaxScrollTop = chatElementScroll.scrollHeight - chatElementScroll.clientHeight;
+        updateChatNewContentButton();
+    });
 
     $(document).on('click', '.mes', function () {
         //when a 'delete message' parent div is clicked

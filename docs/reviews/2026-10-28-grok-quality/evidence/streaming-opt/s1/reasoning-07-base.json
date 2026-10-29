@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "reasoning",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": true,
+    "mode": "send"
+  },
+  "iteration": 7,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 10.432852386237514,
+    "framesOver33Pct": 6.326304106548279,
+    "loafCount": 8,
+    "loafTotalMs": 618,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 10.900000000372529,
+    "loafScriptotherMs": 335.80000000074506,
+    "formatP50Ms": 1.299999998882413,
+    "formatP95Ms": 5.299999998882413,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.900000000372529,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 20.444111069046148,
+    "firstTokenMs": 1524.94677734375,
+    "finishMs": 352.826171875,
+    "typingP50Ms": 34.099853515625,
+    "typingP95Ms": 47.800048828125,
+    "scrollStolen": 1
+  },
+  "dom": null,
+  "samples": {
+    "frames": 948,
+    "keys": 82,
+    "hooks": 1024
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283241568.1533,
+    "receivedNs": "8960500105685",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1620,
+    "firstChunkEpochMs": 1793283241577.0647,
+    "lastChunkEpochMs": 1793283257865.3738,
+    "doneEpochMs": 1793283257865.3894,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

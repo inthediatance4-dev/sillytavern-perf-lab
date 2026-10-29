@@ -1,0 +1,48 @@
+{
+  "base": "ffd5f4e",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "816d7231f212535a9244f96283d6e5f702558b2e182c7634e036c37198058fd3",
+      "focusCount": 2
+    },
+    "buttonAdjacentAndIntentionalFocusEntry": true,
+    "digitsScopedTextareaSafeEscOutsideClose": true,
+    "cancelInsertsNothing": true,
+    "manageFooterOpensSettingsDefaultHotkeyOff": true,
+    "chatChangedCancelsPendingInput": true,
+    "narratorByteAndRenderedHtmlExactToSys": true,
+    "commentAndDirectorMetadataSaved": true,
+    "instructAddsNoChatMessage": true,
+    "promptNarratorIncludedCommentExcludedInstructOnce": true,
+    "autoGenerateOptIn": true,
+    "defaultChapterTitleAndLiveNumber": true,
+    "nextChapterCountComputedLive": true,
+    "configuredHotkeyWorksAndSkipsTyping": true,
+    "customPresetAllFieldsPersistAcrossReload": true,
+    "dragReorderUpdatesStoredOrder": true,
+    "keyboardReorderUpdatesDigitMapping": true,
+    "slashQuotedNameLiteralInputRemainingDefaultsEmptyPipe": true,
+    "slashPromptsOnlyRemainingRequiredInputsAndCancelIsAtomic": true,
+    "exportVersionedJsonAndInvalidImportAtomicError": true,
+    "deleteAndValidImportRoundTrip": true,
+    "restoreDefaultsCancelAcceptAndReload": true,
+    "slashDirectorIndexTextExactNarrator": true,
+    "actualQuickReplyExecutionExactNarrator": true
+  },
+  "pageErrors": [],
+  "generationRequests": 3,
+  "chromium": "156.0.8078.4",
+  "sourceSha256": {
+    "public/scripts/extensions/director/index.js": "1c5cdfd36ea107d8eda01a323f874b367c39df4afb9acc732d78c4378234ce8a",
+    "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+    "public/scripts/extensions/director/manifest.json": "3360a76afd7fa911dc3b7bb0ebc05fbcf6aed536acde892dec00d066169c57f9",
+    "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+    "public/scripts/extensions/director/settings.html": "63157ebfbf061edd7bb8efcbba8351e4740b3faf521fd161e34e5f9e9a9a0374",
+    "public/scripts/extensions/director/style.css": "1ed6fb24b73a4d03d2ab015e5442915a491bd4f2ca63aadbab5f5f6241538e0b",
+    "public/scripts/extensions/director/template.js": "22ffca1e37ccac6e18bf522be080ac0ca047891c469c54b5a4e4940c5ba22380",
+    "tests/browser-director-lab.py": "829a487d27d6324bc182e913db366f1dd6a41ad3f157845c22135abd539b9859"
+  },
+  "fakeEndpointSha256": "956d65379872e9c0e62932bc20295256bd7681c22699fb488f21c2feaa39bbb0",
+  "node": "v24.22.1"
+}

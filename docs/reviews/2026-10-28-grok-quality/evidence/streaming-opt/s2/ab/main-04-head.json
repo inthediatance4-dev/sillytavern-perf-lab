@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 4,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 100,
+    "framesOver16_7Pct": 12.727272727272727,
+    "framesOver33Pct": 7.792207792207792,
+    "loafCount": 15,
+    "loafTotalMs": 1514.0999999977648,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 26.40000000037253,
+    "loafScriptotherMs": 935.5000000018626,
+    "formatP50Ms": 1.699999999254942,
+    "formatP95Ms": 6.599999999627471,
+    "domP50Ms": 0.2000000011175871,
+    "domP95Ms": 0.40000000037252903,
+    "reasoningP95Ms": 0,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 20.658993639186026,
+    "firstTokenMs": 180.75732421875,
+    "finishMs": 205.97802734375,
+    "typingP50Ms": 21.300048828125,
+    "typingP95Ms": 40.300048828125,
+    "scrollStolen": 0
+  },
+  "dom": {
+    "incremental": 305,
+    "full": 109,
+    "fade": 0,
+    "frames": 306
+  },
+  "samples": {
+    "frames": 819,
+    "keys": 74,
+    "hooks": 945
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793289150244.1428,
+    "receivedNs": "14791876677765",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793289150252.6711,
+    "lastChunkEpochMs": 1793289165064.622,
+    "doneEpochMs": 1793289165064.6423,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

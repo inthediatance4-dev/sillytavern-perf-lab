@@ -20,6 +20,7 @@ import {
     sendTextareaMessage,
     doNavbarIconClick,
     isSwipingAllowed,
+    setChatScrollTop,
 } from '../script.js';
 
 import {
@@ -683,7 +684,7 @@ function autoFitSendTextArea() {
     sendTextArea.style.height = `${newHeight}px`;
 
     if (!isFirefox) {
-        chatBlock.scrollTop = chatBlock.scrollHeight - (chatBlock.offsetHeight + originalScrollBottom);
+        setChatScrollTop(chatBlock.scrollHeight - (chatBlock.offsetHeight + originalScrollBottom), { fromResize: true });
     }
 }
 export const autoFitSendTextAreaDebounced = debounce(autoFitSendTextArea, debounce_timeout.short);
@@ -876,7 +877,7 @@ export function initRossMods() {
                 const isScrollAtBottom = Math.abs(chatBlock.scrollHeight - chatBlock.scrollTop - newHeight) <= threshold;
 
                 if (!isScrollAtBottom && Math.abs(deltaHeight) > threshold) {
-                    chatBlock.scrollTop -= deltaHeight;
+                    setChatScrollTop(chatBlock.scrollTop - deltaHeight, { fromResize: true });
                 }
                 lastHeight = newHeight;
             }

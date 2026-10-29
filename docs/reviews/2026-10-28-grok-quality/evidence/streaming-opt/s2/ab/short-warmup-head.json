@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 0,
+  "discarded": true,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 16.8,
+    "framesOver16_7Pct": 5.673758865248227,
+    "framesOver33Pct": 0.7092198581560284,
+    "loafCount": 2,
+    "loafTotalMs": 213.69999999925494,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 27.199999999254942,
+    "loafScriptotherMs": 147.2999999988824,
+    "formatP50Ms": 1,
+    "formatP95Ms": 1.300000000745058,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.09999999962747097,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 22.866139903667456,
+    "firstTokenMs": 119.941650390625,
+    "finishMs": 171.954833984375,
+    "typingP50Ms": 18.699951171875,
+    "typingP95Ms": 29.300048828125,
+    "scrollStolen": 0
+  },
+  "dom": {
+    "incremental": 54,
+    "full": 109,
+    "fade": 0,
+    "frames": 55
+  },
+  "samples": {
+    "frames": 176,
+    "keys": 13,
+    "hooks": 196
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793289450547.9585,
+    "receivedNs": "15092180478290",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793289450559.9421,
+    "lastChunkEpochMs": 1793289452965.2454,
+    "doneEpochMs": 1793289452965.2688,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

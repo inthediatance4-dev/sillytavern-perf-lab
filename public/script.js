@@ -2727,6 +2727,7 @@ export function addOneMessage(mes, { type = undefined, insertAfter = null, scrol
 
     let messageElement;
 
+    readChatScrollPosition();
     if (type === 'swipe') {
         // Forbidden black magic
         // This allows to use "continue" on user messages
@@ -2761,6 +2762,8 @@ export function addOneMessage(mes, { type = undefined, insertAfter = null, scrol
 
     applyCharacterTagsToMessageDivs({ mesIds: messageId });
     updateEditArrowClasses();
+    // Moving last_mes can change the old tail's height and trigger native anchoring.
+    markChatScrollPosition();
     return messageElement;
 }
 
@@ -2917,6 +2920,107 @@ function formatGenerationTimer(gen_started, gen_finished, tokenCount, reasoningD
 }
 
 let requestId = null;
+let lastChatScrollTop = 0;
+let lastChatMaxScrollTop = 0;
+let programmaticChatScrollTop = null;
+let streamingScrollActive = false;
+let streamingContentPending = false;
+let chatScrollMovingUp = false;
+/** @type {HTMLButtonElement|null} */
+let chatNewContentButton = null;
+
+function cancelChatScroll() {
+    if (requestId !== null) cancelAnimationFrame(requestId);
+    requestId = null;
+}
+
+/**
+ * Marks our scroll writes so their delayed/coalesced events cannot change user intent.
+ * @param {number} position Desired chat scroll position
+ * @param {object} [options] Options
+ * @param {boolean} [options.fromResize=false] A composer resize should preserve a paused reader's position
+ */
+export function setChatScrollTop(position, { fromResize = false } = {}) {
+    const container = chatElement[0];
+    // A native/user scroll may not have dispatched its event yet.
+    if (Math.abs(container.scrollTop - lastChatScrollTop) > 1 && container.scrollTop !== programmaticChatScrollTop) readChatScrollPosition();
+    if (fromResize && (!power_user.auto_scroll_chat_to_bottom || ((streamingScrollActive || streamingContentPending) && scrollLock))) return;
+    container.scrollTop = position;
+    markChatScrollPosition();
+}
+
+/** Record an application write, including native anchoring from message insertion. */
+function markChatScrollPosition() {
+    const container = chatElement[0];
+    programmaticChatScrollTop = container.scrollTop;
+    lastChatScrollTop = container.scrollTop;
+    lastChatMaxScrollTop = container.scrollHeight - container.clientHeight;
+}
+
+function updateChatNewContentButton() {
+    if (!chatNewContentButton && streamingContentPending) {
+        chatNewContentButton = document.createElement('button');
+        chatNewContentButton.id = 'chat_new_content';
+        chatNewContentButton.type = 'button';
+        chatNewContentButton.className = 'menu_button';
+        chatNewContentButton.textContent = '↓ 新内容';
+        chatNewContentButton.setAttribute('aria-label', '滚动到底部并跟随新内容');
+        chatNewContentButton.addEventListener('click', () => {
+            cancelChatScroll();
+            setChatScrollTop(chatElement[0].scrollHeight);
+            scrollLock = false;
+            chatScrollMovingUp = false;
+            streamingContentPending = false;
+            updateChatNewContentButton();
+        });
+        document.getElementById('form_sheld').append(chatNewContentButton);
+    }
+    if (chatNewContentButton) chatNewContentButton.hidden = !streamingContentPending;
+}
+
+function pauseChatFollowing() {
+    scrollLock = true;
+    chatScrollMovingUp = true;
+    programmaticChatScrollTop = null;
+    cancelChatScroll();
+    if (streamingScrollActive) {
+        streamingContentPending = true;
+        updateChatNewContentButton();
+    }
+}
+
+/** Read the old geometry before streaming changes message/reasoning DOM. */
+function readChatScrollPosition() {
+    const container = chatElement[0];
+    const top = container.scrollTop;
+    const maxTop = container.scrollHeight - container.clientHeight;
+    const atBottom = maxTop - top <= 40;
+    const programmatic = programmaticChatScrollTop !== null && Math.abs(top - programmaticChatScrollTop) < 1;
+    // A scrollbar drag can precede its scroll event and an already queued paint.
+    // Layout shrink/clamping (including the composer resizing) is not user input.
+    const layoutTop = lastChatScrollTop + Math.min(0, maxTop - lastChatMaxScrollTop);
+    const layoutClamped = maxTop < lastChatMaxScrollTop && atBottom && !chatScrollMovingUp;
+    if (!programmatic && !layoutClamped && top < layoutTop - 1) pauseChatFollowing();
+    if (!programmatic && top > lastChatScrollTop + 1) {
+        chatScrollMovingUp = false;
+        if (atBottom && !power_user.waifuMode) {
+            scrollLock = false;
+            streamingContentPending = false;
+            updateChatNewContentButton();
+        }
+    }
+    lastChatScrollTop = top;
+    lastChatMaxScrollTop = maxTop;
+    return { atBottom, programmatic };
+}
+
+function prepareStreamingScroll() {
+    readChatScrollPosition();
+    if (streamingScrollActive && (scrollLock || !power_user.auto_scroll_chat_to_bottom)) {
+        streamingContentPending = true;
+        updateChatNewContentButton();
+    }
+}
 
 /**
  * Scrolls the chat to the bottom if configured to do so.
@@ -2928,7 +3032,17 @@ export function scrollChatToBottom({ waitForFrame } = {}) {
         return;
     }
 
+    const respectScrollLock = streamingScrollActive || streamingContentPending;
     const doScroll = () => {
+        requestId = null;
+        // User input or a setting change may have arrived since this was queued.
+        readChatScrollPosition();
+        if (!power_user.auto_scroll_chat_to_bottom) return;
+        if ((respectScrollLock || streamingScrollActive || streamingContentPending) && scrollLock) {
+            streamingContentPending = true;
+            updateChatNewContentButton();
+            return;
+        }
         let position = chatElement[0].scrollHeight;
 
         if (power_user.waifuMode) {
@@ -2939,14 +3053,11 @@ export function scrollChatToBottom({ waitForFrame } = {}) {
             }
         }
 
-        chatElement.scrollTop(position);
-        requestId = null;
+        setChatScrollTop(position);
     };
 
     // Do not check truthiness. requestId can loop to zero.
-    if (requestId !== null) {
-        cancelAnimationFrame(requestId);
-    }
+    cancelChatScroll();
 
     if (!waitForFrame) {
         doScroll();
@@ -3824,10 +3935,15 @@ class StreamingProcessor {
     }
 
     markUIGenStopped() {
+        if (this.type !== 'impersonate') streamingScrollActive = false;
         unblockGeneration();
     }
 
     async onStartStreaming(text) {
+        if (this.type !== 'impersonate') {
+            readChatScrollPosition();
+            streamingScrollActive = true;
+        }
         const continueOnReasoning = !!(this.type === 'continue' && this.promptReasoning.prefixReasoning);
         if (continueOnReasoning) {
             this.reasoningHandler.initContinue(this.promptReasoning);
@@ -3998,13 +4114,13 @@ class StreamingProcessor {
 
     #flushStreamingDom(messageId) {
         if (!chat[messageId] || !(this.messageTextDom instanceof HTMLElement)) return;
+        prepareStreamingScroll();
         recordStreamingDomFrame();
         const fade = !!power_user.stream_fade_in;
         const reasoningMs = this.reasoningHandler.applyStreamingDom(messageId, { incremental: !fade });
         const messageMs = this.#renderStreamingMessage(messageId, { incremental: !fade, fade, tokenCount: 0 });
         this.#noteFormatDuration(reasoningMs + messageMs);
-        // Same deferred scroll as the uncoalesced path. The read stays on the
-        // next frame; doing it here would force layout inside this paint task.
+        // Keep the write deferred; the follow decision uses the pre-write geometry.
         if (!scrollLock) this.#scrollStreaming(messageId, true);
     }
 
@@ -4014,6 +4130,7 @@ class StreamingProcessor {
         const messageId = this.#pendingStreamMessageId;
         this.#cancelScheduledStreamingDom();
         if (this.type === 'impersonate' || !chat[messageId] || !(this.messageTextDom instanceof HTMLElement)) return;
+        prepareStreamingScroll();
         const fade = !!power_user.stream_fade_in;
         const reasoningMs = this.reasoningHandler.applyStreamingDom(messageId, { incremental: false });
         const messageMs = this.#renderStreamingMessage(messageId, { incremental: false, fade, tokenCount: 0 });
@@ -4068,6 +4185,7 @@ class StreamingProcessor {
             // A failed tick must not paint ahead of the last successful one.
             let committed = false;
             try {
+                prepareStreamingScroll();
                 const mesChanged = chat[messageId].mes !== processedText;
                 await this.#checkDomElements(messageId);
                 this.#updateMessageBlockVisibility();
@@ -4252,7 +4370,6 @@ class StreamingProcessor {
         if (this.messageId == -1) {
             this.messageId = await this.onStartStreaming(this.firstMessageText);
             await delay(1); // delay for message to be rendered
-            scrollLock = false;
         }
 
         // Stopping strings are expensive to calculate, especially with macros enabled. To remove stopping strings
@@ -11829,24 +11946,55 @@ jQuery(async function () {
 
     const chatElementScroll = document.getElementById('chat');
     const chatScrollHandler = function () {
+        const { atBottom, programmatic } = readChatScrollPosition();
+        programmaticChatScrollTop = null;
+        if (programmatic) return;
         if (power_user.waifuMode) {
             scrollLock = true;
             return;
         }
-
-        const scrollIsAtBottom = Math.abs(chatElementScroll.scrollHeight - chatElementScroll.clientHeight - chatElementScroll.scrollTop) < 5;
-
-        // Resume autoscroll if the user scrolls to the bottom
-        if (scrollLock && scrollIsAtBottom) {
+        if (atBottom && !chatScrollMovingUp) {
             scrollLock = false;
-        }
-
-        // Cancel autoscroll if the user scrolls up
-        if (!scrollLock && !scrollIsAtBottom) {
-            scrollLock = true;
+            streamingContentPending = false;
+            updateChatNewContentButton();
         }
     };
     chatElementScroll.addEventListener('scroll', chatScrollHandler, { passive: true });
+    chatElementScroll.addEventListener('wheel', event => {
+        if (event.deltaY < 0) pauseChatFollowing();
+    }, { passive: true });
+    chatElementScroll.addEventListener('keydown', event => {
+        if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (['PageUp', 'ArrowUp', 'Home'].includes(event.key)) pauseChatFollowing();
+    });
+    let chatTouch = null;
+    chatElementScroll.addEventListener('touchstart', event => {
+        const touch = event.touches.length === 1 ? event.touches[0] : null;
+        chatTouch = touch ? { id: touch.identifier, x: touch.clientX, y: touch.clientY } : null;
+    }, { passive: true });
+    chatElementScroll.addEventListener('touchmove', event => {
+        if (event.touches.length !== 1) chatTouch = null;
+        if (!chatTouch) return;
+        const touch = event.touches[0];
+        if (touch.identifier !== chatTouch.id) return;
+        const dx = touch.clientX - chatTouch.x;
+        const dy = touch.clientY - chatTouch.y;
+        // Finger down moves the content down. Taps, lateral gestures and pinch do not.
+        if (dy > 5 && dy > Math.abs(dx)) pauseChatFollowing();
+    }, { passive: true });
+    const clearChatTouch = () => { chatTouch = null; };
+    chatElementScroll.addEventListener('touchend', clearChatTouch, { passive: true });
+    chatElementScroll.addEventListener('touchcancel', clearChatTouch, { passive: true });
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        streamingScrollActive = false;
+        streamingContentPending = false;
+        scrollLock = false;
+        chatScrollMovingUp = false;
+        programmaticChatScrollTop = null;
+        lastChatScrollTop = chatElementScroll.scrollTop;
+        lastChatMaxScrollTop = chatElementScroll.scrollHeight - chatElementScroll.clientHeight;
+        updateChatNewContentButton();
+    });
 
     $(document).on('click', '.mes', function () {
         //when a 'delete message' parent div is clicked

@@ -1,4 +1,4 @@
-import { streamingPerfEnabled, recordStreamingPerf, recordStreamingDomMode, recordStreamingDomFrame } from './scripts/streaming-perf.js';
+import { streamingPerfEnabled, recordStreamingPerf, recordStreamingDomMode, recordStreamingDomFrame, streamingFormatDelayMs } from './scripts/streaming-perf.js';
 import {
     showdown,
     moment,
@@ -4096,7 +4096,12 @@ class StreamingProcessor {
             {},
             false,
         );
-        const formatMs = performance.now() - formatStart;
+        let formatMs = performance.now() - formatStart;
+        // Lab query only. Absent or 0 skips the rest: no second clock read and no spin.
+        // typeof keeps extracted-class tests that never set the binding on the real path.
+        if (typeof streamingFormatDelayMs !== 'undefined' && streamingFormatDelayMs && formatMs < streamingFormatDelayMs) {
+            formatMs = streamingFormatDelayMs;
+        }
         if (streamingPerfEnabled) recordStreamingPerf('format', formatStart, messageId);
         const domStart = streamingPerfEnabled ? performance.now() : 0;
         if (this.messageTextDom instanceof HTMLElement) {

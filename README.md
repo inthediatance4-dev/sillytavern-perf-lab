@@ -137,3 +137,53 @@ SillyTavern: LLM Frontend for Power Users
 ## License
 
 AGPL-3.0
+
+## Director button
+
+### Opening it
+
+Click the 🎬 button (`directorButton`) beside the message box. With the preset panel focused, 1–9 runs one of the first nine presets and Escape closes it. `/director <name or 1-based index> [text]` runs a preset from STscript, including Quick Replies, and STscript expands that argument before the preset runs. The hotkey field in the 🎬 Director drawer starts empty, and a global shortcut exists only after you set one.
+
+### Modes
+
+| Mode | Saved in the chat | Visible to the model | Upstream path |
+| --- | --- | --- | --- |
+| narrator | yes | yes | `/sys` (`sendNarratorMessage`) |
+| comment | yes | no | `/comment` (`sendCommentMessage`) |
+| instruct | no | yes, on the lifecycle below | `/inject` while pending; `setExtensionPrompt` while bound |
+
+Narrator and comment go through those registered callbacks. A pending instruct calls `/inject` with ephemeral false, position chat, depth 0, role system, and scan false, and is stored on `chat_metadata.script_injects` with `directorEphemeral`. The generate interceptor `director_rebind_interceptor` copies a bound instruct through `setExtensionPrompt` as `script_inject_director-bound` at that same position, and that copy stays out of `script_injects`, so completing the generation keeps the binding.
+
+### Presets
+
+Eight presets ship in this order: 时间跳跃, 场景切换, 旁白, 新章节, 突发事件, 导演指令, 推进剧情, 备注. ⚙ 管理预设 opens the 🎬 Director drawer under Extensions, where you can reorder, add, delete, import or export version-1 JSON, or restore the defaults, up to 50 presets. `autoGenerate`（插入后自动生成）stays off until you enable it.
+
+### Templates
+
+`{{input:label|default}}` opens a popup; the first `|` is the default, Cancel inserts nothing, and `/director` text fills only the first input. `{{chapter}}` is one plus the number of chapter titles already in the chat. `substituteParams` runs only on the template's own text, so popup text such as `{{char}}` is copied through unchanged. STscript can still expand the `/director` argument itself. A saved narrator or comment `mes` stays literal on disk, but `PromptManager.preparePrompt` still runs `substituteParams` on saved chat messages in a later generation; instruct text in the request body keeps the typed macros.
+
+### Chapters
+
+A chapter marker lives on the message `extra.director` (`id`, `preset`, `chapter.title`) and is copied onto every swipe. The displayed number is counted from those titles when the chat is shown. 📖 章节 lists them, and a jump asks first when the target sits more than 500 messages before the loaded range. The message action 设为章节起点 marks or clears any message.
+
+### Instruction lifecycle
+
+A pending instruct becomes `chat_metadata.director.boundInstruct` only after `GENERATION_COMPLETED` when the request contains its text; a failed or stopped run keeps the pending instruct, and `quiet` or `impersonate` can consume one without storing a binding. Swipe, `regenerate`, and `continue` send the bound text again when they still target that message, and that copy is not consumed; a pending instruct is the only one sent when one exists, and a successful consume replaces the binding. An ordinary send, impersonate, quiet, and any `normal` run, including the next group member and group regenerate, do not reuse it. The binding clears on `MESSAGE_SENT` (a user message, and also narrator or comment, because those emit it), on `MESSAGE_RECEIVED` after `slotIndex`, on `MESSAGE_DELETED` when the chat no longer reaches the previous message, the fingerprint of `is_user`, `name`, and `mes` no longer matches, or the bound message itself was removed (the temporary delete at the start of `regenerate` does not), when swipe, regenerate, or continue matches the slot but the fingerprint does not, when a new pending instruct is consumed, or from ✕ or 清除 on `#director_instruct_chip` (the label opens a view with 关闭 and 清除, and there is no editor). With no instruction that button is hidden; pending is orange (`#c45c12`, 🎭 待生效) and bound is gray-blue (`#5c6b80`, 🎭 重生沿用), the label keeps 16 Unicode code points with an ellipsis only when the text is longer, `title` and `aria-label` hold the full text, and switching chats leaves each chat's binding in place.
+
+```text
+pending → completed generation whose request contains the text → bound → cleared
+```
+
+## Streaming
+
+### Optimized streaming
+
+With `optimized_streaming` on, DOM updates coalesce to one paint per frame, run after that frame, and stay under `streaming_fps` (Streaming FPS in User Settings → Chat/Message Handling, default 30). The first visible chunk, including visible reasoning, is painted immediately, and later chunks replace only the changed tail (`isEqualNode`). Scrolling up stops following and shows ↓ 新内容 (`chat_new_content`); it stays, including after generation ends, until you are back within 40px of the bottom. `auto_scroll_chat_to_bottom` (Auto-scroll Chat) off never scrolls on its own, and that button is how you return to the bottom. `STREAM_TOKEN_RECEIVED` still fires once per chunk, before the DOM write.
+
+### Fallback switch
+
+The checkbox 使用优化的流式渲染 (`optimized_streaming`, `power_user.optimized_streaming`) is under User Settings → Miscellaneous and defaults to on. Off uses the original synchronous streaming path. Turn it off when an extension's streaming display is wrong, especially if it reads the bubble from `STREAM_TOKEN_RECEIVED` and expects every token to be on screen already. Impersonate and Stream Fade-In (`stream_fade_in`) stay synchronous even while the switch is on. The Director button does not depend on this switch.
+
+### Known limits
+
+A frame-time p95 of 16.8ms sits on the 60Hz floor, which is as fast as that trace can report. The older goal, cutting the share of frames over 33ms by at least half, came out to about a 27% drop on the later measurement, and the confidence interval includes 0. A `STREAM_TOKEN_RECEIVED` listener can read DOM a frame behind the text it was given, and further behind when formatting skips extra frames. Format-time refresh is already on this path: the average of the last six format samples skips one extra frame above 8ms and another above 16ms, while the final, stop, and error paints stay immediate and the first visible token stays synchronous. That rule shipped with the coalesced renderer; a separate follow-up was not opened, because the main-scenario frame p95 was already 16.8ms and formatting was not the main long task.

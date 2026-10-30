@@ -11,11 +11,14 @@ import {
     cancelPendingInstruct,
     clearTemporaryInstruct,
     createBoundInstruct,
+    discardDirectorPromptMask,
     initInstructLifecycle,
     instructChipLabel,
     instructPreview,
+    maskDirectorPrompts,
     messageFingerprint,
     readBoundInstruct,
+    restoreDirectorPrompts,
     shouldClearBoundForFingerprint,
     shouldReinject,
 } from '../public/scripts/extensions/director/instruct.js';
@@ -241,16 +244,17 @@ test('a completed pending instruction becomes bound, reinject does not consume i
     const quietData = { prompt: 'quiet only' };
     await quiet.prompt(quietData);
     await quiet.complete(quietData, 'quiet');
-    assert.equal(quiet.metadata.script_injects.director, undefined);
+    assert.equal(quiet.metadata.script_injects.director.value, 'quiet only');
     assert.equal(readBoundInstruct(quiet.metadata).text, 'keep-me');
-    assert.equal(quiet.saves, 1);
+    assert.equal(quiet.saves, 0);
 
     const impersonated = harness({ injects: { director: { ...inject, value: 'impersonate only' } } });
     const impersonatedData = { prompt: 'impersonate only' };
     await impersonated.prompt(impersonatedData);
     await impersonated.complete(impersonatedData, 'impersonate');
-    assert.equal(impersonated.metadata.script_injects.director, undefined);
+    assert.equal(impersonated.metadata.script_injects.director.value, 'impersonate only');
     assert.equal(impersonated.metadata.director, undefined);
+    assert.equal(impersonated.saves, 0);
 
     const replaced = harness({ chat: [user, reply, user, reply] });
     replaced.metadata.director = { boundInstruct: { ...bound, text: 'old-bound' } };
@@ -281,4 +285,73 @@ test('a completed pending instruction becomes bound, reinject does not consume i
     assert.equal(legacy.metadata.director, undefined);
     assert.equal(legacy.saves, 1);
     assert.equal(legacy.prompts[0][0], 'script_inject_director');
+});
+
+test('quiet and impersonate mask director prompts, skip consumption, and restore the literal', async () => {
+    const inject = {
+        value: 'masked {{char}}',
+        directorEphemeral: true,
+        position: 1,
+        depth: 0,
+        scan: false,
+        role: 0,
+    };
+    const lab = harness({
+        injects: { 'director-1': inject, ordinary: { value: 'leave-me', directorEphemeral: false } },
+        chat: [user, reply],
+    });
+    lab.metadata.director = { boundInstruct: { ...bindingFrom(user), text: 'keep-me' } };
+    lab.context.setExtensionPrompt('script_inject_director-1', 'directorliteral0xtoken', 1, 0, false, 0);
+    lab.context.setExtensionPrompt('script_inject_ordinary', 'leave-me', 1, 4, false, 0);
+    lab.context.setExtensionPrompt(BOUND_INSTRUCT_PROMPT_KEY, 'keep-me', 1, 0, false, 0);
+    maskDirectorPrompts(lab.context);
+    assert.equal(lab.context.extensionPrompts['script_inject_director-1'], undefined);
+    assert.equal(lab.context.extensionPrompts[BOUND_INSTRUCT_PROMPT_KEY], undefined);
+    assert.equal(lab.context.extensionPrompts.script_inject_ordinary.value, 'leave-me');
+    assert.equal(lab.metadata.script_injects['director-1'], inject);
+    assert.equal(readBoundInstruct(lab.metadata).text, 'keep-me');
+
+    const hidden = { prompt: 'directorliteral0xtoken masked {{char}} keep-me' };
+    await lab.prompt(hidden);
+    await lab.complete(hidden, 'quiet');
+    assert.equal(lab.metadata.script_injects['director-1'], inject);
+    assert.equal(readBoundInstruct(lab.metadata).text, 'keep-me');
+    assert.equal(lab.saves, 0);
+    assert.equal(restoreDirectorPrompts(lab.context), true);
+    assert.equal(lab.context.extensionPrompts['script_inject_director-1'].value, 'masked {{char}}');
+    assert.equal(lab.context.extensionPrompts[BOUND_INSTRUCT_PROMPT_KEY].value, 'keep-me');
+    assert.equal(restoreDirectorPrompts(lab.context), false);
+
+    maskDirectorPrompts(lab.context);
+    const other = {
+        chatId: 'chat-b',
+        chatMetadata: { script_injects: {} },
+        extensionPrompts: {},
+        setExtensionPrompt(key, value) {
+            this.extensionPrompts[key] = { value };
+        },
+    };
+    assert.equal(restoreDirectorPrompts(other), false);
+    assert.equal(other.extensionPrompts['script_inject_director-1'], undefined);
+    assert.equal(restoreDirectorPrompts(lab.context), false);
+    assert.equal(lab.context.extensionPrompts['script_inject_director-1'], undefined);
+    discardDirectorPromptMask();
+
+    const impersonated = harness({ injects: { 'director-2': { ...inject, value: 'face only' } } });
+    impersonated.context.setExtensionPrompt('script_inject_director-2', 'face only', 1, 0, false, 0);
+    maskDirectorPrompts(impersonated.context);
+    const face = { prompt: 'face only' };
+    await impersonated.prompt(face);
+    await impersonated.complete(face, 'impersonate');
+    assert.equal(impersonated.metadata.script_injects['director-2'].value, 'face only');
+    assert.equal(impersonated.saves, 0);
+    assert.equal(restoreDirectorPrompts(impersonated.context), true);
+    assert.equal(impersonated.context.extensionPrompts['script_inject_director-2'].value, 'face only');
+    const sent = { prompt: 'face only' };
+    await impersonated.prompt(sent);
+    await impersonated.complete(sent, 'normal');
+    assert.equal(impersonated.metadata.script_injects['director-2'], undefined);
+    assert.equal(readBoundInstruct(impersonated.metadata).text, 'face only');
+    assert.equal(impersonated.saves, 1);
+    discardDirectorPromptMask();
 });

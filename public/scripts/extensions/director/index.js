@@ -28,8 +28,11 @@ import {
     applyUserSentClear,
     cancelPendingInstruct,
     clearTemporaryInstruct,
+    discardDirectorPromptMask,
     initInstructLifecycle,
     instructStatusText,
+    maskDirectorPrompts,
+    restoreDirectorPrompts,
     shieldDirectorPromptValues,
 } from './instruct.js';
 import { createDefaultPresets, presetForDigit, resolvePresetArgument } from './presets.js';
@@ -509,6 +512,13 @@ export async function init() {
         skipNextBoundDelete = false;
         try {
             const current = getContext();
+            // Quiet and impersonate must not send or consume a pending instruct,
+            // and they must not copy boundInstruct back into the prompt.
+            if (type === 'quiet' || type === 'impersonate') {
+                clearTemporaryInstruct(current);
+                maskDirectorPrompts(current);
+                return;
+            }
             const result = applyBoundReinject(current, type);
             // Pending prompts were shielded at generation start. Bound text is
             // copied into the extension prompt here, so shield it before assembly.
@@ -631,6 +641,8 @@ export async function init() {
     ]) context.eventSource.on(type, refreshChapters);
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         chatRevision++;
+        // processChatSlashCommands already rebuilt script_inject_* for the new chat.
+        discardDirectorPromptMask();
         closePopover();
         refreshChapters();
         try {
@@ -640,8 +652,28 @@ export async function init() {
         }
         refreshInstructChip();
     });
+    const restoreMaskedInstruct = () => {
+        try {
+            restoreDirectorPrompts(getContext());
+        } catch (error) {
+            console.error('Director failed to restore a masked instruction', error);
+        }
+    };
+    // hideStopButton emits GENERATION_ENDED without awaiting. First listener runs
+    // before that call returns, so a quiet 500 restores before the error settles.
+    context.eventSource.on(context.eventTypes.GENERATION_ENDED, restoreMaskedInstruct);
+    context.eventSource.makeFirst(context.eventTypes.GENERATION_ENDED, restoreMaskedInstruct);
+    context.eventSource.on(context.eventTypes.GENERATION_STOPPED, restoreMaskedInstruct);
+    context.eventSource.makeFirst(context.eventTypes.GENERATION_STOPPED, restoreMaskedInstruct);
     // GENERATION_STARTED is before Generate deletes the last AI message for regenerate.
     context.eventSource.on(context.eventTypes.GENERATION_STARTED, (generationType, _params, dryRun) => {
+        try {
+            // A quiet or impersonate run can return before the stop button exists,
+            // so GENERATION_ENDED never fires. Restore before this run shields.
+            restoreDirectorPrompts(getContext());
+        } catch (error) {
+            console.error('Director failed to restore a masked instruction', error);
+        }
         try {
             clearTemporaryInstruct(getContext());
         } catch (error) {

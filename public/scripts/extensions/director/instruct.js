@@ -306,6 +306,9 @@ export function unshieldGenerateData(metadata, data) {
 
 /**
  * Restore extension prompt values so later reads see the literal again.
+ * Tokens stay in the shield map for this page session. A quiet generation can
+ * reach this handler while another generation has already copied a token into
+ * its request, and clearing the map here would send that token.
  * @param {object} context
  */
 export function restoreShieldedPromptValues(context) {
@@ -320,7 +323,84 @@ export function restoreShieldedPromptValues(context) {
     const binding = readBoundInstruct(metadata);
     const bound = prompts[BOUND_INSTRUCT_PROMPT_KEY];
     if (bound && binding) bound.value = binding.text;
-    shields.clear();
+}
+
+/** Prompt keys hidden for one quiet or impersonate generation. */
+let directorPromptMask = null;
+
+/**
+ * @param {object} [context]
+ * @returns {boolean}
+ */
+export function directorPromptsAreMasked(context) {
+    const mask = directorPromptMask;
+    if (!mask) return false;
+    if (!context) return true;
+    return context.chatMetadata === mask.metadata && context.chatId === mask.chatId;
+}
+
+/**
+ * Drop a mask without writing prompts back. Chat switch rebuilds script_inject_*
+ * from the new chat before Director's CHAT_CHANGED listener runs.
+ */
+export function discardDirectorPromptMask() {
+    directorPromptMask = null;
+}
+
+/**
+ * Hide pending director prompts and the bound copy so this generation cannot
+ * include them. script_injects and boundInstruct stay. The saved prompt value
+ * may already be a shield token; restore reads the literal from metadata.
+ * @param {object} context
+ */
+export function maskDirectorPrompts(context) {
+    const prompts = context?.extensionPrompts;
+    const metadata = context?.chatMetadata;
+    /** @type {string[]} */
+    const keys = [];
+    if (prompts && metadata) {
+        for (const [id] of listPendingInstructs(metadata)) {
+            const key = `script_inject_${id}`;
+            if (Object.prototype.hasOwnProperty.call(prompts, key)) {
+                keys.push(key);
+                delete prompts[key];
+            }
+        }
+        if (Object.prototype.hasOwnProperty.call(prompts, BOUND_INSTRUCT_PROMPT_KEY)) {
+            keys.push(BOUND_INSTRUCT_PROMPT_KEY);
+            delete prompts[BOUND_INSTRUCT_PROMPT_KEY];
+        }
+    }
+    directorPromptMask = { metadata, chatId: context?.chatId, keys };
+}
+
+/**
+ * Put masked prompts back. Values come from script_injects and boundInstruct,
+ * not from the object removed at mask time. A different chat discards the mask.
+ * @param {object} context
+ * @returns {boolean} Whether prompts were written back
+ */
+export function restoreDirectorPrompts(context) {
+    const mask = directorPromptMask;
+    if (!mask) return false;
+    directorPromptMask = null;
+    if (!context || context.chatMetadata !== mask.metadata || context.chatId !== mask.chatId) return false;
+    if (typeof context.setExtensionPrompt !== 'function') return false;
+    const metadata = context.chatMetadata;
+    for (const key of mask.keys) {
+        if (key === BOUND_INSTRUCT_PROMPT_KEY) {
+            const binding = readBoundInstruct(metadata);
+            if (!binding) continue;
+            context.setExtensionPrompt(key, binding.text, IN_CHAT, 0, false, SYSTEM_ROLE);
+            continue;
+        }
+        if (!key.startsWith('script_inject_')) continue;
+        const id = key.slice('script_inject_'.length);
+        const inject = metadata?.script_injects?.[id];
+        if (!inject || inject.directorEphemeral !== true || typeof inject.value !== 'string') continue;
+        context.setExtensionPrompt(key, inject.value, inject.position, inject.depth, inject.scan, inject.role);
+    }
+    return true;
 }
 
 /**
@@ -411,8 +491,9 @@ export function instructChipLabel(state, text) {
  * Consume only Director-owned instructions included in a completed request.
  * Upstream /inject ephemeral=true keeps its existing end/stop lifecycle.
  * A consumed instruction becomes chat_metadata.director.boundInstruct when the
- * generation type produces an AI chat message. Quiet and impersonate still
- * consume, and they do not write a binding.
+ * generation type produces an AI chat message. Quiet and impersonate never
+ * consume: the interceptor removes their prompts, and this handler ignores
+ * those types even if the text was still in the request.
  * @param {() => object} getContext Current extension context
  * @param {() => void} [onChange] Called after a consumption save
  */
@@ -425,7 +506,7 @@ export function initInstructLifecycle(getContext, onChange = () => {}) {
         // literal back before the inclusion check, including on dry runs.
         unshieldGenerateData(context.chatMetadata, data);
         restoreShieldedPromptValues(context);
-        if (dryRun) return;
+        if (dryRun || directorPromptsAreMasked(context)) return;
         const injects = Object.entries(context.chatMetadata.script_injects ?? {}).filter(([, inject]) =>
             inject.directorEphemeral === true && includesInstruction(data.prompt ?? data.input, inject.value));
         if (injects.length) requests.set(data, { metadata: context.chatMetadata, chatId: context.chatId, injects });
@@ -433,6 +514,8 @@ export function initInstructLifecycle(getContext, onChange = () => {}) {
     eventSource.on(eventTypes.GENERATION_COMPLETED, async ({ data, chatMetadata, chatId, type }) => {
         const request = requests.get(data);
         requests.delete(data);
+        // Quiet and impersonate do not bind and must not delete the pending inject.
+        if (type === 'quiet' || type === 'impersonate') return;
         const context = getContext();
         if (!request || request.metadata !== chatMetadata || request.chatId !== chatId
             || context.chatMetadata !== chatMetadata || context.chatId !== chatId) return;

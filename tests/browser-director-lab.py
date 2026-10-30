@@ -1681,6 +1681,86 @@ def run(args, temporary):
                 assert '{{random::a,b}}' in body
                 result['checks']['userInputMacrosStayLiteral'] = True
                 print('User input macros stay literal in JSONL and the instruct request', flush=True)
+
+                stage = 'quiet and impersonate keep a pending instruct'
+
+                def director_prompts():
+                    return page.evaluate("""() => {
+                        const context = SillyTavern.getContext();
+                        return Object.entries(context.chatMetadata.script_injects || {})
+                            .filter(([, inject]) => inject && inject.directorEphemeral === true)
+                            .map(([id, inject]) => {
+                                const prompt = context.extensionPrompts['script_inject_' + id];
+                                return { id, value: inject.value, promptValue: prompt ? prompt.value : null, hasPrompt: !!prompt };
+                            });
+                    }""")
+
+                def assert_pending(token):
+                    state = chip_state()
+                    assert state and state['hidden'] is False and state['state'] == 'pending', state
+                    assert token in state['title'] and '待生效' in state['label'], state
+                    color = page.evaluate("""() => getComputedStyle(document.querySelector('#director_instruct_chip')).color""")
+                    assert color == 'rgb(196, 92, 18)', color
+                    found = [item for item in director_prompts() if token in item['value']]
+                    assert len(found) == 1 and found[0]['hasPrompt'] and found[0]['promptValue'] == found[0]['value'], found
+
+                quiet_token = 'QUIETMASKUNIQUE10'
+                preset(page, 'direct', text=quiet_token)
+                assert_pending(quiet_token)
+                before = len(requests())
+                quiet = page.evaluate("""async () => {
+                    try {
+                        const text = await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet probe only.' });
+                        return { failed: false, text: String(text ?? '') };
+                    } catch (error) {
+                        return { failed: true, error: String(error && error.message || error) };
+                    }
+                }""")
+                assert quiet['failed'] is False, quiet
+                quiet_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+                assert quiet_token not in quiet_body, quiet_body
+                assert 'Quiet probe only.' in quiet_body
+                assert_pending(quiet_token)
+
+                before = len(requests())
+                slash('/impersonate await=true')
+                impersonate_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+                assert quiet_token not in impersonate_body, impersonate_body
+                assert_pending(quiet_token)
+                page.evaluate("""() => {
+                    const box = document.querySelector('#send_textarea');
+                    box.value = '';
+                    box.dispatchEvent(new Event('input', { bubbles: true }));
+                }""")
+
+                before = len(requests())
+                slash('/trigger await=true')
+                sent_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+                assert quiet_token in sent_body, sent_body
+                assert_bound(quiet_token)
+                assert not any(quiet_token in item['value'] for item in director_prompts())
+
+                stage = 'quiet 500 restores the extension prompt'
+                fail_token = 'QUIETFAILUNIQUE11'
+                preset(page, 'direct', text=fail_token)
+                assert_pending(fail_token)
+                configure_provider({'nextStatus': 500})
+                before = len(requests())
+                failed = page.evaluate("""async () => {
+                    try {
+                        await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet failure probe.' });
+                        return { failed: false };
+                    } catch (error) {
+                        return { failed: true, error: String(error && error.message || error) };
+                    }
+                }""")
+                assert failed['failed'] is True, failed
+                failed_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+                assert fail_token not in failed_body, failed_body
+                assert_pending(fail_token)
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                result['checks']['quietAndImpersonateDoNotConsumePending'] = True
+                print('Quiet and impersonate leave pending instructs in place', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

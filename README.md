@@ -160,7 +160,7 @@ Eight presets ship in this order: 时间跳跃, 场景切换, 旁白, 新章节,
 
 ### Templates
 
-`{{input:label|default}}` opens a popup; the first `|` is the default, Cancel inserts nothing, and `/director` text fills only the first input. `{{chapter}}` is one plus the number of chapter titles already in the chat. `substituteParams` runs only on the template's own text, so popup text such as `{{char}}` is copied through unchanged. STscript can still expand the `/director` argument itself. A saved narrator or comment `mes` stays literal on disk, but `PromptManager.preparePrompt` still runs `substituteParams` on saved chat messages in a later generation; instruct text in the request body keeps the typed macros.
+`{{input:label|default}}` opens a popup; the first `|` is the default, Cancel inserts nothing, and `/director` text fills only the first input. `{{chapter}}` is one plus the number of chapter titles already in the chat. `substituteParams` runs only on the template's own text, so popup text such as `{{char}}` is copied through unchanged. STscript can still expand the `/director` argument itself. A saved narrator or comment `mes` stays literal on disk, but `PromptManager.preparePrompt` still runs `substituteParams` on saved chat messages in a later generation. `{{setvar}}`, `{{roll}}`, and `{{random}}` are evaluated again on every generation, so leave them out of narrator and comment text. Instruct text in the request body keeps the typed macros.
 
 ### Chapters
 
@@ -173,6 +173,11 @@ A pending instruct becomes `chat_metadata.director.boundInstruct` only after `GE
 ```text
 pending → completed generation whose request contains the text → bound → cleared
 ```
+
+### Known limits
+
+- Group regenerate is an upstream `normal` generation, as is the next group member's turn. Neither reuses a bound instruct.
+- `{{setvar}}`, `{{roll}}`, and `{{random}}` in a narrator or comment are evaluated again whenever a later generation builds the prompt. Do not put them in those messages.
 
 ## Streaming
 

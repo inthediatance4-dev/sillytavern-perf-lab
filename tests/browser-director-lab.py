@@ -1869,6 +1869,91 @@ def run(args, temporary):
                 assert_hidden_chip()
                 result['checks']['regenerateDeleteSkipDoesNotStick'] = True
                 print('Regenerate delete skip resets after failure, stop, and success', flush=True)
+
+                stage = 'first message narration keeps literal macros'
+                # messageFormatting rewrites message 0. The sample chat is never
+                # empty, so open a chat with one placeholder and delete it first.
+                macro_chat = 'DirectorMacroZero-' + uuid.uuid4().hex[:10]
+                page.evaluate("""async ({sample, chatName}) => {
+                    const context = SillyTavern.getContext();
+                    const response = await fetch('/api/chats/save', {
+                        method: 'POST',
+                        headers: context.getRequestHeaders(),
+                        body: JSON.stringify({
+                            ch_name: 'Director Synthetic',
+                            file_name: chatName,
+                            avatar_url: sample.avatar,
+                            force: true,
+                            chat: [
+                                { user_name: 'Synthetic Tester', character_name: 'Director Synthetic', chat_metadata: { integrity: 'macro-zero' } },
+                                { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-03-01T00:00:00.000Z', mes: 'placeholder', extra: {} },
+                            ],
+                        }),
+                    });
+                    if (!response.ok) throw new Error('macro chat save failed ' + response.status);
+                    if (await context.openCharacterChat(chatName) === false) throw new Error('macro chat did not open');
+                }""", {'sample': sample, 'chatName': macro_chat})
+                page.wait_for_function("""name => {
+                    const context = SillyTavern.getContext();
+                    return context.chatId === name && context.chat.length === 1 && context.chat[0].mes === 'placeholder';
+                }""", arg=macro_chat, timeout=30000)
+                page.evaluate("""async () => { await SillyTavern.getContext().deleteMessage(0); }""")
+                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 0 && document.querySelectorAll('#chat .mes').length === 0""")
+                literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
+                expected_mes = '【Director Synthetic】' + literal_input
+
+                def visible_text(mesid):
+                    return page.evaluate("""id => {
+                        const node = document.querySelector('#chat .mes[mesid="' + id + '"] .mes_text');
+                        return node ? node.textContent : '';
+                    }""", mesid)
+
+                def assert_literal_message(mesid, preset_id):
+                    memory = page.evaluate("""id => SillyTavern.getContext().chat[id]""", mesid)
+                    assert memory['mes'] == expected_mes, memory['mes']
+                    assert memory['extra']['director']['preset'] == preset_id
+                    shown = visible_text(mesid)
+                    assert expected_mes in shown, shown
+                    assert '{{random::a,b}}' in shown
+
+                preset(page, 'macro-narrator', text=literal_input)
+                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 1""")
+                assert_literal_message(0, 'macro-narrator')
+                preset(page, 'macro-comment', text=literal_input)
+                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2""")
+                assert_literal_message(1, 'macro-comment')
+                page.evaluate("""async () => {
+                    const extensions = await import('/scripts/extensions.js');
+                    extensions.cancelDebouncedMetadataSave();
+                    await SillyTavern.getContext().saveChat();
+                    await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Literal macro probe.' });
+                }""")
+                assert page.evaluate("""() => SillyTavern.getContext().chat[0].mes""") == expected_mes
+                page.evaluate("""async () => { await SillyTavern.getContext().reloadCurrentChat(); }""")
+                page.wait_for_function("""expected => {
+                    const context = SillyTavern.getContext();
+                    const narrator = context.chat[0];
+                    const comment = context.chat[1];
+                    return narrator && narrator.mes === expected && comment && comment.mes === expected
+                        && document.querySelectorAll('#chat .mes').length === 2;
+                }""", arg=expected_mes, timeout=30000)
+                assert_literal_message(0, 'macro-narrator')
+                assert_literal_message(1, 'macro-comment')
+                stored = page.evaluate("""async (chatName) => {
+                    const context = SillyTavern.getContext();
+                    const response = await fetch('/api/chats/get', {
+                        method: 'POST',
+                        headers: context.getRequestHeaders(),
+                        body: JSON.stringify({ avatar_url: context.characters[context.characterId].avatar, file_name: chatName }),
+                    });
+                    if (!response.ok) throw new Error('macro JSONL read failed');
+                    return response.json();
+                }""", macro_chat)
+                assert stored[1]['mes'] == expected_mes, stored[1].get('mes')
+                assert stored[2]['mes'] == expected_mes, stored[2].get('mes')
+                assert '{{random::a,b}}' in stored[1]['mes'] and '{{random::a,b}}' in stored[2]['mes']
+                result['checks']['firstMessageNarrationKeepsLiteralMacros'] = True
+                print('First narration and comment keep literal macros after reload', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

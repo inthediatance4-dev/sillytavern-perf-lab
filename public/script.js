@@ -1962,7 +1962,9 @@ export function messageFormatting(mes, ch_name, isSystem, isUser, messageId, san
         return '';
     }
 
-    if (Number(messageId) === 0 && !isSystem && !isUser && !isReasoning) {
+    // Greeting rewrite. Director messages already store the typed macros, so
+    // this pass must not expand them into the saved text or the bubble.
+    if (Number(messageId) === 0 && !isSystem && !isUser && !isReasoning && !chat[messageId]?.extra?.director) {
         const mesBeforeReplace = mes;
         const chatMessage = chat[messageId];
         mes = substituteParams(mes, undefined, ch_name);

@@ -75,8 +75,8 @@ def wait_http(origin, child):
     raise AssertionError('Lab HTTP readiness exceeded 120 seconds')
 
 
-def ready(page, origin):
-    page.goto(origin, wait_until='domcontentloaded', timeout=60000)
+def ready(page, origin, query=''):
+    page.goto(origin + query, wait_until='domcontentloaded', timeout=60000)
     page.wait_for_function("""() => {
         if (!window.__directorReadyHooked && window.SillyTavern?.getContext) {
             try {

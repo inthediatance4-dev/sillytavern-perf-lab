@@ -176,8 +176,8 @@ pending → completed generation whose request contains the text → bound → c
 
 ### Known limits
 
-- Group regenerate is an upstream `normal` generation, as is the next group member's turn. Neither reuses a bound instruct.
-- `{{setvar}}`, `{{roll}}`, and `{{random}}` in a narrator or comment are evaluated again whenever a later generation builds the prompt. Do not put them in those messages.
+- Group-chat `regenerate` does not reuse a bound Director instruction (known limitation): upstream treats it as a `normal` generation, as it does the next group member's turn.
+- Template macros with side effects or randomness, such as `{{random}}`, `{{roll}}`, and counter macros such as `{{setvar}}`, are evaluated again on every generation, including `swipe` and `regenerate`. Narrator and comment text containing these macros is also evaluated again when a later generation builds the prompt; avoid these macros in those messages.
 
 ## Streaming
 

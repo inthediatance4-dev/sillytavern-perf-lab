@@ -1,5 +1,17 @@
 const INPUT_PATTERN = /{{input:([^{}]*?)}}/g;
 const TOKEN_PATTERN = /{{input:([^{}]*?)}}|{{chapter}}/g;
+// Host macro triggers. The legacy engine also accepts <USER>, <BOT>, <CHAR>, <GROUP>, <CHARIFNOTGROUP>.
+const EXPANDABLE_MACRO = /{{|<(?:user|bot|char|group|charifnotgroup)>/i;
+
+/**
+ * Whether a second substituteParams pass would be able to rewrite this text.
+ * Macro-free text is left on the upstream path unchanged.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function containsExpandableMacro(text) {
+    return EXPANDABLE_MACRO.test(String(text ?? ''));
+}
 
 /**
  * @typedef {object} DirectorTemplateInput
@@ -59,14 +71,15 @@ export function countChapters(chat = []) {
 }
 
 /**
- * Resolves all inputs in one call, then expands the host application's macros.
+ * Expands macros in template literals only. User input is copied through, and
+ * {{chapter}} becomes the live chapter number. A macro cannot span those tokens.
  * A null input result cancels the whole template. Explicit empty input values
  * are allowed, including fields with no default; they remain empty strings.
  * @param {string} template Preset template
  * @param {object} options Rendering dependencies
  * @param {(inputs: DirectorTemplateInput[]) => Promise<string[] | null> | string[] | null} [options.collectInputs] Collect all input values once
  * @param {object[]} [options.chat] Live chat array for chapter counting
- * @param {(text: string) => string} [options.substituteParams] Standard macro expansion
+ * @param {(text: string) => string} [options.substituteParams] Standard macro expansion, applied to each literal fragment
  * @returns {Promise<string | null>} Resolved template, or null on cancellation
  */
 export async function renderDirectorTemplate(template, { collectInputs, chat = [], substituteParams = text => text } = {}) {
@@ -79,15 +92,21 @@ export async function renderDirectorTemplate(template, { collectInputs, chat = [
         }
     }
 
-    const nextChapter = countChapters(chat) + 1;
+    const nextChapter = String(countChapters(chat) + 1);
     let inputIndex = 0;
-    // Replace template tokens in one pass so input text is never parsed again.
-    const text = template.replace(TOKEN_PATTERN, (match, input) => {
-        if (input === undefined) {
-            return String(nextChapter);
+    let cursor = 0;
+    let rendered = '';
+    const expandLiteral = text => (text ? substituteParams(text) : '');
+    for (const match of template.matchAll(TOKEN_PATTERN)) {
+        rendered += expandLiteral(template.slice(cursor, match.index));
+        if (match[0] === '{{chapter}}') {
+            rendered += nextChapter;
+        } else {
+            const index = inputIndex++;
+            rendered += values[index] ?? inputs[index].defaultValue;
         }
-        const index = inputIndex++;
-        return values[index] ?? inputs[index].defaultValue;
-    });
-    return substituteParams(text);
+        cursor = match.index + match[0].length;
+    }
+    rendered += expandLiteral(template.slice(cursor));
+    return rendered;
 }

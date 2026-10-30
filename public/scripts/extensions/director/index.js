@@ -30,9 +30,10 @@ import {
     clearTemporaryInstruct,
     initInstructLifecycle,
     instructStatusText,
+    shieldDirectorPromptValues,
 } from './instruct.js';
 import { createDefaultPresets, presetForDigit, resolvePresetArgument } from './presets.js';
-import { collectPresetInputs, renderDirectorTemplate } from './template.js';
+import { collectPresetInputs, containsExpandableMacro, renderDirectorTemplate } from './template.js';
 
 let button;
 let popover;
@@ -170,6 +171,34 @@ async function collectInputs(inputs, name) {
         : null;
 }
 
+/**
+ * /sys and /comment run substituteParams, then emit MESSAGE_SENT, then render
+ * and save. Literals were already expanded. Restore during that event so the
+ * upstream save stores the rendered text. Macro-free text is left untouched,
+ * which keeps the saved message identical to the slash command.
+ * @param {'narrator'|'comment'} mode
+ * @param {string} text Rendered template
+ */
+async function insertLiteralMessage(mode, text) {
+    const context = getContext();
+    const insertAt = context.chat.length;
+    const literal = String(text ?? '').trim();
+    const restore = messageId => {
+        if (messageId !== insertAt) return;
+        const message = getContext().chat[messageId];
+        if (!message || message.mes === literal || !containsExpandableMacro(literal)) return;
+        message.mes = literal;
+    };
+    context.eventSource.on(context.eventTypes.MESSAGE_SENT, restore);
+    try {
+        const commands = context.SlashCommandParser.commands;
+        const command = mode === 'comment' ? commands.comment : commands.sys;
+        await command.callback({}, text);
+    } finally {
+        context.eventSource.removeListener(context.eventTypes.MESSAGE_SENT, restore);
+    }
+}
+
 async function usePreset(preset, inputText) {
     if (executing) return;
     preset = { ...preset };
@@ -228,8 +257,7 @@ async function usePreset(preset, inputText) {
             // MESSAGE_SENT runs before rendering and the command's JSONL save.
             context.eventSource.makeFirst(context.eventTypes.MESSAGE_SENT, attachMetadata);
             try {
-                const command = preset.mode === 'comment' ? commands.comment : commands.sys;
-                await command.callback({}, text);
+                await insertLiteralMessage(preset.mode === 'comment' ? 'comment' : 'narrator', text);
             } finally {
                 context.eventSource.removeListener(context.eventTypes.MESSAGE_SENT, attachMetadata);
             }
@@ -482,6 +510,9 @@ export async function init() {
         try {
             const current = getContext();
             const result = applyBoundReinject(current, type);
+            // Pending prompts were shielded at generation start. Bound text is
+            // copied into the extension prompt here, so shield it before assembly.
+            shieldDirectorPromptValues(current);
             if (result.cleared) {
                 refreshInstructChip();
                 await current.saveMetadata();
@@ -615,6 +646,11 @@ export async function init() {
             clearTemporaryInstruct(getContext());
         } catch (error) {
             console.error('Director failed to clear a temporary instruction', error);
+        }
+        try {
+            shieldDirectorPromptValues(getContext());
+        } catch (error) {
+            console.error('Director failed to shield an instruction from macro expansion', error);
         }
         skipNextBoundDelete = !dryRun && generationType === 'regenerate';
     });

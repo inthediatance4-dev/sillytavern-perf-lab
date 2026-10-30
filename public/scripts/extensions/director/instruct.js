@@ -1,3 +1,5 @@
+import { containsExpandableMacro } from './template.js';
+
 /**
  * Whether the assembled request contains an injection's literal text.
  * Chat completion prompts may contain multimodal content arrays.
@@ -192,6 +194,135 @@ export function clearTemporaryInstruct(context) {
     }
 }
 
+/** Per-chat token → literal, so prompt assembly never sees the user's macros. */
+const promptShields = new WeakMap();
+
+/**
+ * @param {object} metadata
+ * @returns {Map<string, string>}
+ */
+function shieldsFor(metadata) {
+    let shields = promptShields.get(metadata);
+    if (!shields) {
+        shields = new Map();
+        promptShields.set(metadata, shields);
+    }
+    return shields;
+}
+
+/**
+ * @param {Map<string, string>} shields
+ * @param {string} literal
+ * @returns {string}
+ */
+function tokenFor(shields, literal) {
+    for (const [token, value] of shields) {
+        if (value === literal) return token;
+    }
+    let token = '';
+    const collides = () => {
+        if (!token || literal.includes(token)) return true;
+        for (const [existing, value] of shields) {
+            if (existing.includes(token) || token.includes(existing) || value.includes(token)) return true;
+        }
+        return false;
+    };
+    do {
+        token = `directorliteral${shields.size}x${Math.random().toString(16).slice(2)}`;
+    } while (collides());
+    shields.set(token, literal);
+    return token;
+}
+
+/**
+ * getExtensionPrompt always runs substituteParams. Director text that still
+ * contains macros is swapped for a macro-free token until the request exists.
+ * script_injects and boundInstruct keep the literal; macro-free text is untouched.
+ * @param {object} context
+ */
+export function shieldDirectorPromptValues(context) {
+    const metadata = context?.chatMetadata;
+    const prompts = context?.extensionPrompts;
+    if (!metadata || !prompts) return;
+    /** @type {[object, string][]} */
+    const replacements = [];
+    for (const [id, inject] of listPendingInstructs(metadata)) {
+        const prompt = prompts[`script_inject_${id}`];
+        if (!prompt || !containsExpandableMacro(inject.value)) continue;
+        replacements.push([prompt, inject.value]);
+    }
+    const binding = readBoundInstruct(metadata);
+    const bound = prompts[BOUND_INSTRUCT_PROMPT_KEY];
+    if (bound && binding && containsExpandableMacro(binding.text)) {
+        replacements.push([bound, binding.text]);
+    }
+    // Macro-free instructions stay on the upstream prompt object untouched.
+    if (!replacements.length) return;
+    const shields = shieldsFor(metadata);
+    for (const [prompt, literal] of replacements) {
+        prompt.value = tokenFor(shields, literal);
+    }
+}
+
+/**
+ * @param {Map<string, string>} shields
+ * @param {any} value
+ * @param {WeakSet<object>} seen
+ * @returns {any}
+ */
+function unshieldValue(shields, value, seen) {
+    if (typeof value === 'string') {
+        const entries = [...shields.entries()].sort((left, right) => right[0].length - left[0].length);
+        let result = value;
+        for (const [token, literal] of entries) {
+            if (result.includes(token)) result = result.split(token).join(literal);
+        }
+        return result;
+    }
+    if (!value || typeof value !== 'object') return value;
+    if (seen.has(value)) return value;
+    seen.add(value);
+    if (Array.isArray(value)) {
+        for (let index = 0; index < value.length; index++) value[index] = unshieldValue(shields, value[index], seen);
+        return value;
+    }
+    for (const key of Object.keys(value)) value[key] = unshieldValue(shields, value[key], seen);
+    return value;
+}
+
+/**
+ * Put shielded literals back into the assembled request before it is sent.
+ * @param {object} metadata
+ * @param {object} data Generate data
+ */
+export function unshieldGenerateData(metadata, data) {
+    if (!metadata || !data) return;
+    const shields = promptShields.get(metadata);
+    if (!shields || shields.size === 0) return;
+    const seen = new WeakSet();
+    if (Object.prototype.hasOwnProperty.call(data, 'prompt')) data.prompt = unshieldValue(shields, data.prompt, seen);
+    if (Object.prototype.hasOwnProperty.call(data, 'input')) data.input = unshieldValue(shields, data.input, seen);
+}
+
+/**
+ * Restore extension prompt values so later reads see the literal again.
+ * @param {object} context
+ */
+export function restoreShieldedPromptValues(context) {
+    const metadata = context?.chatMetadata;
+    const prompts = context?.extensionPrompts;
+    const shields = metadata ? promptShields.get(metadata) : null;
+    if (!prompts || !shields) return;
+    for (const [id, inject] of listPendingInstructs(metadata)) {
+        const prompt = prompts[`script_inject_${id}`];
+        if (prompt && typeof inject.value === 'string') prompt.value = inject.value;
+    }
+    const binding = readBoundInstruct(metadata);
+    const bound = prompts[BOUND_INSTRUCT_PROMPT_KEY];
+    if (bound && binding) bound.value = binding.text;
+    shields.clear();
+}
+
 /**
  * Copy binding.text through the same in-chat system prompt /inject uses.
  * The copy is not written to script_injects.
@@ -289,8 +420,12 @@ export function initInstructLifecycle(getContext, onChange = () => {}) {
     const requests = new WeakMap();
     const { eventSource, eventTypes } = getContext();
     eventSource.on(eventTypes.GENERATE_AFTER_DATA, (data, dryRun) => {
-        if (dryRun) return;
         const context = getContext();
+        // Tokens stand in for user macros while getExtensionPrompt runs. Put the
+        // literal back before the inclusion check, including on dry runs.
+        unshieldGenerateData(context.chatMetadata, data);
+        restoreShieldedPromptValues(context);
+        if (dryRun) return;
         const injects = Object.entries(context.chatMetadata.script_injects ?? {}).filter(([, inject]) =>
             inject.directorEphemeral === true && includesInstruction(data.prompt ?? data.input, inject.value));
         if (injects.length) requests.set(data, { metadata: context.chatMetadata, chatId: context.chatId, injects });

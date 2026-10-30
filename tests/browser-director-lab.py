@@ -1621,6 +1621,66 @@ def run(args, temporary):
                 assert_hidden_chip()
                 result['checks']['instructRebindSwipeRegenerateContinueAndChatScope'] = True
                 print('Director instruct rebind passed', flush=True)
+
+                stage = 'user input macros stay literal'
+                # The group stage leaves a group open. Select the character before
+                # opening its chat. Popup input is not an STscript argument, so
+                # {{char}} reaches the template raw.
+                page.evaluate("""async (sample) => {
+                    const context = SillyTavern.getContext();
+                    const index = context.characters.findIndex(card => card.avatar === sample.avatar);
+                    await context.selectCharacterById(String(index));
+                    await SillyTavern.getContext().openCharacterChat(sample.chatName);
+                }""", sample)
+                page.wait_for_function("""name => {
+                    const context = SillyTavern.getContext();
+                    return !context.groupId && context.chatId === name && context.name2 === 'Director Synthetic';
+                }""", arg=sample['chatName'], timeout=30000)
+                literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
+                expected_mes = '【Director Synthetic】' + literal_input
+                page.evaluate("""async () => {
+                    const { extension_settings } = await import('/scripts/extensions.js');
+                    const template = '【{{char}}】{{input:说什么}}';
+                    const fields = { template, isChapter: false, autoGenerate: false };
+                    extension_settings.director.presets.push(
+                        { ...fields, id: 'macro-narrator', icon: '⏩', name: '宏旁白', mode: 'narrator' },
+                        { ...fields, id: 'macro-comment', icon: '📝', name: '宏备注', mode: 'comment' },
+                        { ...fields, id: 'macro-instruct', icon: '🎭', name: '宏指令', mode: 'instruct' },
+                    );
+                }""")
+
+                def saved_message():
+                    return page.evaluate("""async (sample) => {
+                        const context = SillyTavern.getContext();
+                        const response = await fetch('/api/chats/get', { method: 'POST', headers: context.getRequestHeaders(),
+                            body: JSON.stringify({ avatar_url: sample.avatar, file_name: sample.chatName }) });
+                        if (!response.ok) throw new Error('Saved JSONL read failed');
+                        const saved = await response.json();
+                        return saved[saved.length - 1];
+                    }""", sample)
+
+                for preset_id in ('macro-narrator', 'macro-comment'):
+                    preset(page, preset_id, text=literal_input)
+                    memory = page.evaluate('() => SillyTavern.getContext().chat.at(-1)')
+                    assert memory['mes'] == expected_mes, memory['mes']
+                    assert memory['extra']['director']['preset'] == preset_id
+                    saved = saved_message()
+                    assert saved['mes'] == expected_mes, saved.get('mes')
+                    assert '{{random::a,b}}' in saved['mes']
+                    assert saved['extra']['director']['preset'] == preset_id
+                chat_before = page.evaluate('() => SillyTavern.getContext().chat.length')
+                preset(page, 'macro-instruct', text=literal_input)
+                assert page.evaluate('() => SillyTavern.getContext().chat.length') == chat_before
+                before = len(requests())
+                slash('/trigger await=true')
+                latest = wait_count(before + 1, timeout=30)
+                body = json.dumps(latest[-1], ensure_ascii=False)
+                # Prompt assembly still expands macros inside saved chat messages.
+                # The injection itself is the system content that keeps the typed text.
+                assert expected_mes in body, body
+                assert '{{random::a,b}}' in body
+                result['checks']['userInputMacrosStayLiteral'] = True
+                print('User input macros stay literal in JSONL and the instruct request', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

@@ -1168,6 +1168,459 @@ def run(args, temporary):
                 assert page.evaluate("() => !SillyTavern.getContext().chatMetadata.script_injects?.['ordinary-stop-check']")
                 result['checks']['ordinaryEphemeralInjectStillClearsOnStop'] = True
                 print('Director failure, stop, retry and ordinary inject lifecycle passed', flush=True)
+
+                stage = 'director instruct rebind'
+                # The stop stage leaves streaming on and a slow fixture. Rebind checks
+                # non-streaming requests except for the explicit mid-stop swipe.
+                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+
+                def chip_state():
+                    return page.evaluate("""() => {
+                        const chip = document.querySelector('#director_instruct_chip');
+                        if (!chip) return null;
+                        const style = getComputedStyle(chip);
+                        return {
+                            hidden: chip.hidden,
+                            display: style.display,
+                            state: chip.dataset.state || '',
+                            title: chip.title || '',
+                            label: chip.textContent || '',
+                            aria: chip.getAttribute('aria-label') || '',
+                        };
+                    }""")
+
+                def count_needle(payload, needle):
+                    return json.dumps(payload, ensure_ascii=False).count(needle)
+
+                def wait_count(count, timeout=20):
+                    deadline = time.monotonic() + timeout
+                    latest = requests()
+                    while len(latest) < count and time.monotonic() < deadline:
+                        page.wait_for_timeout(50)
+                        latest = requests()
+                    assert len(latest) >= count, len(latest)
+                    return latest
+
+                def slash(command):
+                    outcome = page.evaluate("""async (command) => {
+                        try {
+                            await SillyTavern.getContext().executeSlashCommandsWithOptions(command);
+                            return { ok: true };
+                        } catch (error) {
+                            return { ok: false, error: String(error && error.message || error) };
+                        }
+                    }""", command)
+                    assert outcome['ok'], outcome
+                    return outcome
+
+                def click_generation(option_id):
+                    page.evaluate("""async (optionId) => {
+                        const main = await import('/script.js');
+                        const stamp = () => SillyTavern.getContext().chat.at(-1)?.gen_finished ?? null;
+                        const beforeStamp = stamp();
+                        document.getElementById(optionId).click();
+                        const started = Date.now();
+                        let saw = main.is_send_press || main.is_group_generating;
+                        while (Date.now() - started < 30000) {
+                            if (main.is_send_press || main.is_group_generating) saw = true;
+                            const idle = !main.is_send_press && !main.is_group_generating;
+                            if (idle && (saw || stamp() !== beforeStamp)) return;
+                            await new Promise(resolve => setTimeout(resolve, 30));
+                        }
+                        throw new Error('Timed out after clicking ' + optionId);
+                    }""", option_id)
+
+                def send_and_generate(text):
+                    page.evaluate("""async (text) => {
+                        const main = await import('/script.js');
+                        const box = document.querySelector('#send_textarea');
+                        box.value = text;
+                        box.dispatchEvent(new Event('input', { bubbles: true }));
+                        document.querySelector('#send_but').click();
+                        const started = Date.now();
+                        let saw = main.is_send_press || main.is_group_generating;
+                        while (Date.now() - started < 30000) {
+                            if (main.is_send_press || main.is_group_generating) saw = true;
+                            if (saw && !main.is_send_press && !main.is_group_generating) return;
+                            await new Promise(resolve => setTimeout(resolve, 30));
+                        }
+                        throw new Error('Timed out sending a user message');
+                    }""", text)
+
+                def assert_latest(needle, present):
+                    body = json.dumps(requests()[-1], ensure_ascii=False)
+                    found = body.count(needle)
+                    assert found == (1 if present else 0), found
+
+                def assert_bound(token):
+                    state = chip_state()
+                    assert state and state['hidden'] is False and state['display'] != 'none', state
+                    assert state['state'] == 'bound' and token in state['title'] and '重生沿用' in state['label'], state
+                    assert token in state['aria'] and '✕' in state['label']
+
+                def assert_hidden_chip():
+                    state = chip_state()
+                    assert state and state['hidden'] is True and state['display'] == 'none', state
+                    assert 'director_instruct_chip' not in snapshot(page)['focus']
+
+                alpha = 'REBINDALPHAUNIQUE01'
+                stage = 'director instruct chip idle and pending focus'
+                idle_focus = snapshot(page)['focus']
+                assert 'director_instruct_chip' not in idle_focus
+                assert_hidden_chip()
+                preset(page, 'direct', text=alpha)
+                pending = chip_state()
+                assert pending['state'] == 'pending' and pending['hidden'] is False, pending
+                assert alpha in pending['title'] and '[导演指令：' in pending['title'], pending
+                assert '待生效' in pending['label'] and '…' in pending['label'] and '✕' in pending['label'], pending
+                assert alpha not in pending['label']
+                shown_focus = snapshot(page)['focus']
+                # Intentional tab-order change while an instruction is visible: only #director_instruct_chip.
+                assert [item for item in shown_focus if item != 'director_instruct_chip'] == idle_focus
+                assert shown_focus.count('director_instruct_chip') == 1
+                result['checks']['instructChipIntentionalFocusEntry'] = True
+                page.locator('#director_instruct_chip .director_instruct_text').click()
+                dialog = page.locator('dialog[open]')
+                dialog.wait_for(state='visible')
+                assert alpha in dialog.inner_text()
+                # TEXT popups keep a hidden template input. The instruction view has no visible field.
+                assert dialog.locator('input, textarea').locator('visible=true').count() == 0
+                assert dialog.locator('.popup-button-ok').count() == 0 or not dialog.locator('.popup-button-ok').is_visible()
+                assert dialog.get_by_text('关闭', exact=True).is_visible()
+                assert dialog.get_by_text('清除', exact=True).is_visible()
+                dialog.get_by_text('关闭', exact=True).click()
+                dialog.wait_for(state='hidden')
+                assert chip_state()['state'] == 'pending'
+
+                stage = 'director instruct consume binds the producing message'
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                stored = page.evaluate("""() => {
+                    const context = SillyTavern.getContext();
+                    const bound = context.chatMetadata.director.boundInstruct;
+                    const message = context.chat[bound.slotIndex];
+                    return {
+                        slot: bound.slotIndex,
+                        last: context.chat.length - 1,
+                        extraDirector: message?.extra?.director ?? null,
+                        own: Object.hasOwn(message, 'boundInstruct'),
+                        swipeInfo: (message.swipe_info || []).some(info => info && (info.boundInstruct || info.extra?.boundInstruct)),
+                    };
+                }""")
+                assert stored['slot'] == stored['last'] and stored['extraDirector'] is None, stored
+                assert stored['own'] is False and stored['swipeInfo'] is False, stored
+
+                stage = 'pending dismiss restores the previous binding'
+                zeta = 'REBINDZETACANCEL02'
+                preset(page, 'direct', text=zeta)
+                assert chip_state()['state'] == 'pending' and zeta in chip_state()['title']
+                page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+                assert page.locator('dialog[open]').count() == 0
+                page.wait_for_function("""token => {
+                    const chip = document.querySelector('#director_instruct_chip');
+                    return chip && !chip.hidden && chip.dataset.state === 'bound' && chip.title.includes(token);
+                }""", arg=alpha)
+                assert_bound(alpha)
+                assert zeta not in chip_state()['title']
+
+                stage = 'swipe regenerate and continue reinject the bound instruction'
+                for command in ('/swipe await=true', '/swipe await=true'):
+                    before = len(requests())
+                    slash(command)
+                    wait_count(before + 1)
+                    assert_latest(alpha, True)
+                    assert_bound(alpha)
+                before = len(requests())
+                click_generation('option_regenerate')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                before = len(requests())
+                click_generation('option_continue')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+
+                stage = 'optimized streaming off still reinjects'
+                page.evaluate("""async (enabled) => {
+                    (await import('/scripts/power-user.js')).power_user.optimized_streaming = enabled;
+                }""", False)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                page.evaluate("""async () => {
+                    (await import('/scripts/power-user.js')).power_user.optimized_streaming = true;
+                }""")
+                assert_bound(alpha)
+
+                stage = 'failed and stopped reinject keep the binding'
+                before = len(requests())
+                configure_provider({'nextStatus': 500})
+                # /swipe observes Generate only after the swipe animation. A fast 500
+                # rejects first, and Playwright records that as a page error even though
+                # endSwipe catches it. generate('swipe') is the same interceptor type and
+                # attaches the rejection handler immediately, matching the M6 failure test.
+                failed_swipe = page.evaluate("""async () => {
+                    try { await SillyTavern.getContext().generate('swipe'); return { failed: false }; }
+                    catch (error) { return { failed: true, error: String(error && error.message || error) }; }
+                }""")
+                assert failed_swipe['failed'], failed_swipe
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
+                before = len(requests())
+                page.evaluate("""async () => {
+                    (await import('/scripts/openai.js')).oai_settings.stream_openai = true;
+                    window.__directorPendingGeneration = SillyTavern.getContext().executeSlashCommandsWithOptions('/swipe await=true').catch(error => String(error));
+                }""")
+                page.wait_for_function("""() => (SillyTavern.getContext().streamingProcessor?.result?.length || 0) > 10""", timeout=30000)
+                page.evaluate('SillyTavern.getContext().stopGeneration()')
+                page.evaluate('window.__directorPendingGeneration')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+
+                stage = 'a new pending instruction replaces the binding'
+                beta = 'REBINDBETAUNIQUE03'
+                preset(page, 'direct', text=beta)
+                assert chip_state()['state'] == 'pending' and beta in chip_state()['title']
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(beta, True)
+                assert count_needle(requests()[-1], alpha) == 0
+                assert_bound(beta)
+
+                stage = 'refresh keeps the bound instruction'
+                ready(page, origin)
+                connect_api(page)
+                page.evaluate("""async (sample) => {
+                    const context = SillyTavern.getContext();
+                    await context.getCharacters();
+                    const index = context.characters.findIndex(card => card.avatar === sample.avatar);
+                    if (index < 0) throw new Error('Synthetic card missing after reload');
+                    await context.selectCharacterById(String(index));
+                    const current = SillyTavern.getContext();
+                    if (current.chatId !== sample.chatName) await current.openCharacterChat(sample.chatName);
+                }""", sample)
+                page.wait_for_function("""token => {
+                    const chip = document.querySelector('#director_instruct_chip');
+                    return chip && !chip.hidden && chip.title.includes(token);
+                }""", arg=beta, timeout=30000)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(beta, True)
+                assert_bound(beta)
+
+                stage = 'a new user message drops the binding'
+                before = len(requests())
+                send_and_generate('SyntheticUserFollowsBound')
+                wait_count(before + 1)
+                assert_latest(beta, False)
+                assert_hidden_chip()
+
+                stage = 'editing the previous message drops the binding'
+                edit_token = 'REBINDEDITUNIQUE04'
+                slash('/send RebindEditUserLine')
+                assert page.evaluate("""() => {
+                    const message = SillyTavern.getContext().chat.at(-1);
+                    return message.is_user === true && message.mes === 'RebindEditUserLine';
+                }""")
+                preset(page, 'direct', text=edit_token)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(edit_token, True)
+                assert_bound(edit_token)
+                page.evaluate("""async () => {
+                    const context = SillyTavern.getContext();
+                    const slot = context.chatMetadata.director.boundInstruct.slotIndex;
+                    context.chat[slot - 1].mes += ' fingerprint-edit';
+                    await context.saveChat();
+                }""")
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(edit_token, False)
+                assert_hidden_chip()
+
+                stage = 'deleting the bound message drops the binding'
+                gamma = 'REBINDGAMMADELETE05'
+                preset(page, 'direct', text=gamma)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(gamma, True)
+                assert_bound(gamma)
+                removed = page.evaluate("""async () => {
+                    const context = SillyTavern.getContext();
+                    const slot = context.chatMetadata.director.boundInstruct.slotIndex;
+                    const before = context.chat.length;
+                    await context.deleteMessage(slot);
+                    return { before, after: SillyTavern.getContext().chat.length, slot };
+                }""")
+                assert removed['after'] < removed['before'], removed
+                assert_hidden_chip()
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(gamma, False)
+                assert_hidden_chip()
+
+                stage = 'impersonate and quiet leave the binding'
+                delta = 'REBINDDELTAQUIET06'
+                preset(page, 'direct', text=delta)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_bound(delta)
+                before = len(requests())
+                slash('/impersonate await=true')
+                wait_count(before + 1)
+                assert_latest(delta, False)
+                assert_bound(delta)
+                before = len(requests())
+                slash('/gen QuietProbe')
+                wait_count(before + 1)
+                assert_latest(delta, False)
+                assert_bound(delta)
+                page.evaluate("""() => {
+                    const box = document.querySelector('#send_textarea');
+                    box.value = '';
+                    box.dispatchEvent(new Event('input', { bubbles: true }));
+                }""")
+
+                stage = 'chip dismiss clears pending and bound'
+                page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+                assert page.locator('dialog[open]').count() == 0
+                page.wait_for_function("""() => document.querySelector('#director_instruct_chip')?.hidden""")
+                assert_hidden_chip()
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(delta, False)
+                epsilon = 'REBINDEPSILONCLEAR07'
+                preset(page, 'direct', text=epsilon)
+                assert chip_state()['state'] == 'pending'
+                page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+                page.wait_for_function("""() => document.querySelector('#director_instruct_chip')?.hidden""")
+                assert_hidden_chip()
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(epsilon, False)
+
+                stage = 'each chat keeps its own binding'
+                chat_token = 'REBINDZETACHAT08'
+                preset(page, 'direct', text=chat_token)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_bound(chat_token)
+                other_chat = page.evaluate("""async (sample) => {
+                    const token = (await (await fetch('/csrf-token')).json()).token;
+                    const post = async (url, body) => {
+                        const response = await fetch(url, { method: 'POST', headers: { 'X-CSRF-Token': token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(url + ' ' + response.status + ' ' + JSON.stringify(data));
+                        return data;
+                    };
+                    const context = SillyTavern.getContext();
+                    const card = context.characters.find(item => item.avatar === sample.avatar);
+                    const file = 'DirectorRebindB-' + sample.suffix;
+                    await post('/api/chats/save', { avatar_url: sample.avatar, file_name: file, chat: [
+                        { user_name: 'Synthetic Tester', character_name: card.name, chat_metadata: { integrity: 'rebind-b-' + sample.suffix } },
+                        { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-02-01T00:00:00.000Z', mes: 'Chat B greeting', extra: {} },
+                        { name: card.name, is_user: false, is_system: false, send_date: '2026-02-01T00:00:01.000Z', mes: 'Chat B ready', extra: {} },
+                    ] });
+                    await context.openCharacterChat(file);
+                    return file;
+                }""", {**sample, 'suffix': uuid.uuid4().hex[:10]})
+                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2 && document.querySelector('#director_instruct_chip')?.hidden""")
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(chat_token, False)
+                assert_hidden_chip()
+                page.evaluate("""async (name) => { await SillyTavern.getContext().openCharacterChat(name); }""", sample['chatName'])
+                page.wait_for_function("""token => {
+                    const chip = document.querySelector('#director_instruct_chip');
+                    return chip && !chip.hidden && chip.title.includes(token) && SillyTavern.getContext().chat.length > 2;
+                }""", arg=chat_token, timeout=30000)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(chat_token, True)
+                assert_bound(chat_token)
+                assert other_chat
+
+                stage = 'group swipe reinjects and the next member clears it'
+                eta = 'REBINDETAGROUP09'
+                page.evaluate("""async (sample) => {
+                    const token = (await (await fetch('/csrf-token')).json()).token;
+                    const post = async (url, body) => {
+                        const response = await fetch(url, { method: 'POST', headers: { 'X-CSRF-Token': token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(url + ' ' + response.status + ' ' + JSON.stringify(data));
+                        return data;
+                    };
+                    const form = new FormData();
+                    form.set('ch_name', 'Director Synthetic Two');
+                    form.set('file_name', 'DirectorSyntheticTwo-' + sample.suffix);
+                    form.set('description', 'Second synthetic group member.');
+                    form.set('first_mes', 'Second ready');
+                    const created = await fetch('/api/characters/create', { method: 'POST', headers: { 'X-CSRF-Token': token }, body: form });
+                    if (!created.ok) throw new Error('Second synthetic create failed');
+                    const avatar = await created.text();
+                    const chatId = 'DirectorRebindGroup-' + sample.suffix;
+                    const group = await post('/api/groups/create', { name: 'Synthetic Rebind Group', members: [sample.avatar, avatar],
+                        chat_id: chatId, chats: [chatId], activation_strategy: 1, generation_mode: 0 });
+                    await post('/api/chats/group/save', { id: chatId, chat: [
+                        { user_name: 'Synthetic Tester', character_name: 'Group', chat_metadata: { integrity: 'rebind-group-' + sample.suffix } },
+                        { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-03-01T00:00:00.000Z', mes: 'Group rebind start', extra: {} },
+                    ] });
+                    const groupModule = await import('/scripts/group-chats.js');
+                    await groupModule.getGroups();
+                    if (!await groupModule.openGroupById(group.id)) throw new Error('Rebind group did not open');
+                }""", {**sample, 'suffix': uuid.uuid4().hex[:10]})
+                page.wait_for_function("""() => !!SillyTavern.getContext().groupId && SillyTavern.getContext().chat.length === 1""", timeout=30000)
+                preset(page, 'direct', text=eta)
+                before = len(requests())
+                slash('/trigger await=true 0')
+                wait_count(before + 1)
+                assert_latest(eta, True)
+                assert_bound(eta)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(eta, True)
+                assert_bound(eta)
+                before = len(requests())
+                slash('/trigger await=true 1')
+                wait_count(before + 1)
+                assert_latest(eta, False)
+                assert_hidden_chip()
+                result['checks']['instructRebindSwipeRegenerateContinueAndChatScope'] = True
+                print('Director instruct rebind passed', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

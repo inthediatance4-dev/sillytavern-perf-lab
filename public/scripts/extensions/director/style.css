@@ -145,3 +145,59 @@
     font-weight: 600;
     white-space: nowrap;
 }
+
+/* Keep the chip in the icon row. A squeezed chip would paint its dismiss control under the textarea. */
+#leftSendForm:has(#director_instruct_chip:not([hidden])) {
+    flex: 0 0 auto;
+}
+
+#director_instruct_chip {
+    order: 4;
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 18em;
+    margin: 0 2px;
+    padding: 0 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 999px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font: inherit;
+    font-size: 0.85em;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+#director_instruct_chip .director_instruct_text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#director_instruct_chip[hidden] {
+    display: none;
+}
+
+#director_instruct_chip[data-state="pending"] {
+    color: #c45c12;
+    border-color: #c45c12;
+}
+
+#director_instruct_chip[data-state="bound"] {
+    color: #5c6b80;
+    border-color: #6a7c93;
+}
+
+#director_instruct_chip .director_instruct_dismiss {
+    flex: 0 0 auto;
+    padding: 0 2px;
+}
+
+.director_instruct_full {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

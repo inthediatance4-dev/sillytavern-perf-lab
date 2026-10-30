@@ -32,6 +32,8 @@ import {
     initInstructLifecycle,
     instructStatusText,
     maskDirectorPrompts,
+    matchesRegenerateDelete,
+    readBoundInstruct,
     restoreDirectorPrompts,
     shieldDirectorPromptValues,
 } from './instruct.js';
@@ -44,7 +46,31 @@ let popper;
 let instructChip;
 let executing = false;
 let chatRevision = 0;
-let skipNextBoundDelete = false;
+/** One regenerate's pre-interceptor delete. Not a sticky boolean. */
+let boundDeleteSkip = null;
+
+function clearBoundDeleteSkip() {
+    boundDeleteSkip = null;
+}
+
+/**
+ * Arm the skip only for this chat's current binding. The next generation,
+ * a chat switch, or generation end/stop drops it if the delete never came.
+ * @param {string} generationType
+ * @param {boolean} dryRun
+ */
+function armBoundDeleteSkip(generationType, dryRun) {
+    clearBoundDeleteSkip();
+    if (dryRun || generationType !== 'regenerate') return;
+    const context = getContext();
+    const binding = readBoundInstruct(context.chatMetadata);
+    if (!binding) return;
+    boundDeleteSkip = {
+        chatId: context.chatId,
+        metadata: context.chatMetadata,
+        slotIndex: binding.slotIndex,
+    };
+}
 
 function closePopover(restoreFocus = false) {
     popover.hidden = true;
@@ -509,7 +535,8 @@ export async function init() {
     // The interceptor argument is a filtered copy. Swipe pops the target from
     // that copy before this runs, so reinject reads getContext().chat instead.
     globalThis.director_rebind_interceptor = async function director_rebind_interceptor(_chat, _contextSize, _abort, type) {
-        skipNextBoundDelete = false;
+        // The regenerate delete already ran. Drop a skip that never matched.
+        clearBoundDeleteSkip();
         try {
             const current = getContext();
             // Quiet and impersonate must not send or consume a pending instruct,
@@ -641,6 +668,7 @@ export async function init() {
     ]) context.eventSource.on(type, refreshChapters);
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         chatRevision++;
+        clearBoundDeleteSkip();
         // processChatSlashCommands already rebuilt script_inject_* for the new chat.
         discardDirectorPromptMask();
         closePopover();
@@ -661,10 +689,13 @@ export async function init() {
     };
     // hideStopButton emits GENERATION_ENDED without awaiting. First listener runs
     // before that call returns, so a quiet 500 restores before the error settles.
+    const releaseRegenerateDeleteSkip = () => clearBoundDeleteSkip();
     context.eventSource.on(context.eventTypes.GENERATION_ENDED, restoreMaskedInstruct);
     context.eventSource.makeFirst(context.eventTypes.GENERATION_ENDED, restoreMaskedInstruct);
+    context.eventSource.on(context.eventTypes.GENERATION_ENDED, releaseRegenerateDeleteSkip);
     context.eventSource.on(context.eventTypes.GENERATION_STOPPED, restoreMaskedInstruct);
     context.eventSource.makeFirst(context.eventTypes.GENERATION_STOPPED, restoreMaskedInstruct);
+    context.eventSource.on(context.eventTypes.GENERATION_STOPPED, releaseRegenerateDeleteSkip);
     // GENERATION_STARTED is before Generate deletes the last AI message for regenerate.
     context.eventSource.on(context.eventTypes.GENERATION_STARTED, (generationType, _params, dryRun) => {
         try {
@@ -684,7 +715,7 @@ export async function init() {
         } catch (error) {
             console.error('Director failed to shield an instruction from macro expansion', error);
         }
-        skipNextBoundDelete = !dryRun && generationType === 'regenerate';
+        armBoundDeleteSkip(generationType, dryRun);
     });
     context.eventSource.on(context.eventTypes.GENERATE_AFTER_DATA, () => {
         try {
@@ -708,9 +739,9 @@ export async function init() {
         current.saveMetadataDebounced();
     });
     context.eventSource.on(context.eventTypes.MESSAGE_DELETED, async () => {
-        const duringRegenerate = skipNextBoundDelete;
-        skipNextBoundDelete = false;
         const current = getContext();
+        const duringRegenerate = matchesRegenerateDelete(boundDeleteSkip, current);
+        clearBoundDeleteSkip();
         if (!applyDeletionClear(current.chatMetadata, current.chat, duringRegenerate)) return;
         refreshInstructChip();
         await current.saveMetadata();

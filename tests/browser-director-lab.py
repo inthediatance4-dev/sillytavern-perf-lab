@@ -1761,6 +1761,114 @@ def run(args, temporary):
                 configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
                 result['checks']['quietAndImpersonateDoNotConsumePending'] = True
                 print('Quiet and impersonate leave pending instructs in place', flush=True)
+
+                stage = 'regenerate delete skip does not stick'
+
+                def dismiss_pending():
+                    if chip_state()['state'] != 'pending':
+                        return
+                    page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+                    page.wait_for_function("""() => {
+                        const chip = document.querySelector('#director_instruct_chip');
+                        return !chip || chip.hidden || chip.dataset.state !== 'pending';
+                    }""")
+
+                def bind_instruct(token):
+                    dismiss_pending()
+                    preset(page, 'direct', text=token)
+                    before_bind = len(requests())
+                    slash('/trigger await=true')
+                    wait_count(before_bind + 1)
+                    assert_bound(token)
+
+                def delete_bound_message():
+                    return page.evaluate("""async () => {
+                        const context = SillyTavern.getContext();
+                        const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
+                        if (!bound) return { cleared: false, reason: 'no binding' };
+                        await context.deleteMessage(bound.slotIndex);
+                        const after = SillyTavern.getContext();
+                        const still = after.chatMetadata.director && after.chatMetadata.director.boundInstruct;
+                        return { cleared: !still, text: still && still.text || '' };
+                    }""")
+
+                regen_fail = 'REGENFAILUNIQUE12'
+                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+                bind_instruct(regen_fail)
+                # A non-streaming 500 deletes the bound message before the request
+                # and does not put it back. Another extension may also save that
+                # shorter chat, so a reload cannot restore the row. Put the same
+                # message back without a delete event, then delete it for real.
+                bound_message = page.evaluate("""() => {
+                    const context = SillyTavern.getContext();
+                    const bound = context.chatMetadata.director.boundInstruct;
+                    return structuredClone(context.chat[bound.slotIndex]);
+                }""")
+                configure_provider({'nextStatus': 500})
+                before = len(requests())
+                failed_regen = page.evaluate("""async () => {
+                    try {
+                        await SillyTavern.getContext().generate('regenerate');
+                        return { failed: false };
+                    } catch (error) {
+                        return { failed: true, error: String(error && error.message || error) };
+                    }
+                }""")
+                assert failed_regen['failed'] is True, failed_regen
+                assert regen_fail in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+                assert_bound(regen_fail)
+                page.evaluate("""(message) => {
+                    const context = SillyTavern.getContext();
+                    const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
+                    if (!bound || context.chat[bound.slotIndex]) return;
+                    context.chat.push(message);
+                    context.addOneMessage(context.chat.at(-1));
+                }""", bound_message)
+                deleted = delete_bound_message()
+                assert deleted['cleared'] is True, deleted
+                assert_hidden_chip()
+
+                stage = 'stopped regenerate delete skip does not stick'
+                regen_stop = 'REGENSTOPUNIQUE13'
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                bind_instruct(regen_stop)
+                configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
+                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }""")
+                before = len(requests())
+                page.evaluate("""() => {
+                    window.__directorPendingGeneration = SillyTavern.getContext().generate('regenerate').catch(() => null);
+                }""")
+                page.wait_for_function("""() => SillyTavern.getContext().streamingProcessor?.result?.length > 20""", timeout=30000)
+                page.evaluate("SillyTavern.getContext().stopGeneration()")
+                page.evaluate("window.__directorPendingGeneration")
+                wait_count(before + 1)
+                assert_bound(regen_stop)
+                deleted = delete_bound_message()
+                assert deleted['cleared'] is True, deleted
+                assert_hidden_chip()
+
+                stage = 'successful regenerate delete skip does not stick'
+                regen_ok = 'REGENOKUNIQUE14'
+                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                bind_instruct(regen_ok)
+                before = len(requests())
+                ok_regen = page.evaluate("""async () => {
+                    try {
+                        await SillyTavern.getContext().generate('regenerate');
+                        return { failed: false };
+                    } catch (error) {
+                        return { failed: true, error: String(error && error.message || error) };
+                    }
+                }""")
+                assert ok_regen['failed'] is False, ok_regen
+                wait_count(before + 1)
+                assert_bound(regen_ok)
+                deleted = delete_bound_message()
+                assert deleted['cleared'] is True, deleted
+                assert_hidden_chip()
+                result['checks']['regenerateDeleteSkipDoesNotStick'] = True
+                print('Regenerate delete skip resets after failure, stop, and success', flush=True)
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

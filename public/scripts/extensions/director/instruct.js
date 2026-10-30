@@ -147,6 +147,22 @@ export function applyDeletionClear(metadata, chat, duringRegenerate) {
 }
 
 /**
+ * True only for the delete Generate('regenerate') performs before the interceptor.
+ * That delete leaves chat.length === slotIndex. A later delete of the same message
+ * has no skip, or a different chat, and must still clear.
+ * @param {{chatId: string, metadata: object, slotIndex: number}|null} skip
+ * @param {object} context
+ * @returns {boolean}
+ */
+export function matchesRegenerateDelete(skip, context) {
+    if (!skip || !context) return false;
+    if (skip.chatId !== context.chatId || skip.metadata !== context.chatMetadata) return false;
+    const binding = readBoundInstruct(context.chatMetadata);
+    if (!binding || binding.slotIndex !== skip.slotIndex) return false;
+    return Array.isArray(context.chat) && context.chat.length === binding.slotIndex;
+}
+
+/**
  * @param {string} type
  * @param {object[]} chat
  * @param {number} slotIndex

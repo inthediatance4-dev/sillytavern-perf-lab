@@ -16,6 +16,7 @@ import {
     instructChipLabel,
     instructPreview,
     maskDirectorPrompts,
+    matchesRegenerateDelete,
     messageFingerprint,
     readBoundInstruct,
     restoreDirectorPrompts,
@@ -354,4 +355,15 @@ test('quiet and impersonate mask director prompts, skip consumption, and restore
     assert.equal(readBoundInstruct(impersonated.metadata).text, 'face only');
     assert.equal(impersonated.saves, 1);
     discardDirectorPromptMask();
+});
+
+test('a regenerate delete skip matches only that chat, binding, and post-delete length', () => {
+    const metadata = withBinding();
+    const skip = { chatId: 'chat-a', metadata, slotIndex: 1 };
+    assert.equal(matchesRegenerateDelete(skip, { chatId: 'chat-a', chatMetadata: metadata, chat: [user] }), true);
+    assert.equal(matchesRegenerateDelete(skip, { chatId: 'chat-a', chatMetadata: metadata, chat: [user, reply] }), false);
+    assert.equal(matchesRegenerateDelete(skip, { chatId: 'chat-b', chatMetadata: metadata, chat: [user] }), false);
+    assert.equal(matchesRegenerateDelete({ ...skip, slotIndex: 2 }, { chatId: 'chat-a', chatMetadata: metadata, chat: [user] }), false);
+    assert.equal(matchesRegenerateDelete(skip, { chatId: 'chat-a', chatMetadata: { director: {} }, chat: [user] }), false);
+    assert.equal(matchesRegenerateDelete(null, { chatId: 'chat-a', chatMetadata: metadata, chat: [user] }), false);
 });

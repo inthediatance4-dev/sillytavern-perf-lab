@@ -10,6 +10,7 @@ this script stops is its own child.
 """
 import argparse
 import contextlib
+import gzip
 import hashlib
 import json
 import os
@@ -28,6 +29,7 @@ from playwright.sync_api import sync_playwright
 from lab_browser import assert_lab_page, launch_chromium
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+RUNNER_ROOT = ROOT
 
 
 def redact(value, temporary=''):
@@ -190,11 +192,15 @@ def open_chapter_menu(page, mesid):
 
 
 def swipe_message(page, mesid, swipe_id):
-    page.evaluate("""async ({mesid, swipeId}) => {
+    return page.evaluate("""async ({mesid, swipeId}) => {
         const main = await import('/script.js');
+        const snapshot = () => ({ busy:main.is_send_press, length:main.chat.length,
+            swipeId:main.chat[mesid]?.swipe_id, swipes:main.chat[mesid]?.swipes?.length });
+        const before = snapshot();
         const { SWIPE_DIRECTION, SWIPE_SOURCE } = await import('/scripts/constants.js');
         await main.swipe(null, SWIPE_DIRECTION.RIGHT, { source:SWIPE_SOURCE.SLASH_COMMAND,
             forceMesId:mesid, forceSwipeId:swipeId, forceDuration:0 });
+        return { before, after:snapshot() };
     }""", {'mesid': mesid, 'swipeId': swipe_id})
 
 
@@ -683,10 +689,62 @@ def run_review_checks(page, sample, fake_url, result):
     assert_bound(dry_token)
     result['checks']['dryRunPreservesRegenerateDeleteToken'] = True
 
+    run_first_message_checks(page, sample, requests, wait_count, result)
+
+
+def run_first_message_checks(page, sample, requests, wait_count, result):
+    """The same F3/R2 assertions, usable with third-party extensions enabled."""
+    connect_api(page)
+    page.evaluate("""async () => {
+        const { extension_settings } = await import('/scripts/extensions.js');
+        const fields = { template:'【{{char}}】{{input:说什么}}', isChapter:false, autoGenerate:false };
+        for (const [id,mode] of [['macro-narrator','narrator'],['macro-comment','comment']]) {
+            if (!extension_settings.director.presets.some(preset => preset.id === id)) {
+                extension_settings.director.presets.push({ ...fields,id,mode,icon:'M',name:id });
+            }
+        }
+    }""")
     stage = 'first message narration keeps literal macros'
     # messageFormatting rewrites message 0. The sample chat is never
     # empty, so open a chat with one placeholder and delete it first.
     macro_chat = 'DirectorMacroZero-' + uuid.uuid4().hex[:10]
+    audit = {'saveRequests':[], 'saveCallers':[], 'snapshots':[]}
+    result['f3Audit'] = audit
+    phase = {'name':'create-fixture'}
+
+    def saved_request(request):
+        if urllib.parse.urlparse(request.url).path != '/api/chats/save' or request.method != 'POST':
+            return
+        try:
+            raw = request.post_data_buffer or b''
+            if raw.startswith(b'\x1f\x8b'):
+                raw = gzip.decompress(raw)
+            payload = json.loads(raw)
+            if payload.get('file_name') != macro_chat:
+                return
+            rows = payload.get('chat', [])
+            audit['saveRequests'].append({'phase':phase['name'], 'at':time.time(),
+                'firstMessages':[row.get('mes') for row in rows[1:3]], 'rows':len(rows)})
+        except (ValueError, OSError) as error:
+            audit['saveRequests'].append({'phase':phase['name'], 'decodeError':type(error).__name__})
+
+    # DevTools observes callers without replacing fetch or changing save bodies.
+    cdp = page.context.new_cdp_session(page)
+    cdp.send('Network.enable')
+
+    def save_caller(event):
+        if urllib.parse.urlparse(event['request']['url']).path != '/api/chats/save':
+            return
+        frames = []
+        stack = event.get('initiator', {}).get('stack')
+        while stack and len(frames) < 20:
+            frames.extend({key:frame.get(key) for key in ('functionName','url','lineNumber','columnNumber')}
+                          for frame in stack.get('callFrames', []))
+            stack = stack.get('parent')
+        audit['saveCallers'].append({'phase':phase['name'], 'at':event.get('wallTime'), 'frames':frames[:20]})
+
+    page.on('request', saved_request)
+    cdp.on('Network.requestWillBeSent', save_caller)
     page.evaluate("""async ({sample, chatName}) => {
         const context = SillyTavern.getContext();
         const response = await fetch('/api/chats/save', {
@@ -735,6 +793,7 @@ def run_review_checks(page, sample, fake_url, result):
     preset(page, 'macro-comment', text=literal_input)
     page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2""")
     assert_literal_message(1, 'macro-comment')
+    phase['name'] = 'save-then-quiet'
     page.evaluate("""async () => {
         const extensions = await import('/scripts/extensions.js');
         extensions.cancelDebouncedMetadataSave();
@@ -742,6 +801,8 @@ def run_review_checks(page, sample, fake_url, result):
         await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Literal macro probe.' });
     }""")
     assert page.evaluate("""() => SillyTavern.getContext().chat[0].mes""") == expected_mes
+    audit['snapshots'].append({'phase':'after-quiet', 'firstMes':page.evaluate('SillyTavern.getContext().chat[0].mes')})
+    phase['name'] = 'reload-after-quiet'
     page.evaluate("""async () => { await SillyTavern.getContext().reloadCurrentChat(); }""")
     page.wait_for_function("""expected => {
         const context = SillyTavern.getContext();
@@ -769,6 +830,7 @@ def run_review_checks(page, sample, fake_url, result):
     print('First narration and comment keep literal macros after reload', flush=True)
 
     stage = 'ordinary generation auto-saves literal first narration'
+    phase['name'] = 'ordinary-generation'
     before = len(requests())
     page.locator('#send_textarea').fill('Ordinary generation after literal narration.')
     # Generate(normal) sends the user message and awaits its own
@@ -789,20 +851,73 @@ def run_review_checks(page, sample, fake_url, result):
     assert stored[1]['mes'] == expected_mes, stored[1]
     assert stored[2]['mes'] == expected_mes, stored[2]
     assert stored[-1]['mes'] == 'Synthetic Director reply.', stored[-1]
+    audit['snapshots'].append({'phase':'after-ordinary-save', 'firstMes':stored[1]['mes']})
+    phase['name'] = 'reload-after-ordinary'
     page.evaluate("async () => { await SillyTavern.getContext().reloadCurrentChat(); }")
     page.wait_for_function("() => SillyTavern.getContext().chat.length === 4")
     assert_literal_message(0, 'macro-narrator')
     assert_literal_message(1, 'macro-comment')
     result['checks']['ordinaryGenerationSavesLiteralFirstNarration'] = True
+    page.remove_listener('request', saved_request)
+    cdp.detach()
+
+
+def run_chapter_swipe_check(page, requests, result):
+    """Run the default chapter swipe request-count check on either product tree."""
+    existing = chapter_snapshot(page)
+    stage = 'generate a new swipe after marking a chapter'
+    connect_api(page)
+    before_generation = chat_count(page)
+    page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+    mesid = before_generation
+    assert chat_count(page) == before_generation + 1
+    message = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id])', mesid)
+    assert not message['is_user'] and not message.get('is_system')
+    assert not message['extra'].get('director')
+    swipe_count = len(message['swipes'])
+    assert swipe_count == 1
+    row, menu_button = open_chapter_menu(page, mesid)
+    menu_button.click()
+    dialog = page.locator('dialog[open]')
+    dialog.locator('textarea').fill('新 swipe 章节')
+    with page.expect_response(is_saved_chat) as marked_save:
+        dialog.locator('.popup-button-ok').click()
+    dialog.wait_for(state='hidden')
+    marked_save.value.finished()
+    director = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id].extra.director)', mesid)
+    label = f"第{len(existing) + 1}章 新 swipe 章节"
+    assert_chapter_swipes(page, mesid, swipe_count, director, label)
+    request_baseline = len(requests())
+    # The out-of-range target enters swipe()'s regenerate branch and
+    # saveReply(type='swipe'); no new swipe is seeded by the fixture.
+    observation = swipe_message(page, mesid, swipe_count)
+    result['chapterSwipeAudit'] = { **observation, 'requestsBefore':request_baseline, 'requestsAfter':len(requests()) }
+    assert len(requests()) == request_baseline + 1, result['chapterSwipeAudit']
+    assert chat_count(page) == before_generation + 1
+    assert page.evaluate('id => SillyTavern.getContext().chat[id].swipe_id', mesid) == swipe_count
+    assert row.locator('.mes_block > .director-chapter-divider').text_content() == label
+    assert_chapter_swipes(page, mesid, swipe_count + 1, director, label)
+    page.evaluate("""async () => {
+        const context = SillyTavern.getContext();
+        await context.saveChat();
+        await context.reloadCurrentChat();
+    }""")
+    assert_chapter_swipes(page, mesid, swipe_count + 1, director, label)
+    result['checks']['chapterSurvivesNewSwipeGenerationAndDiskReload'] = {
+        'swipesBeforeMark': swipe_count, 'newSwipeId': swipe_count,
+        'checkedSwipeIdsAfterReload': list(range(swipe_count + 1)),
+    }
+
 
 
 def finish_report(result, errors, requests, browser, node, provider):
     assert not errors, errors
     result.update({'pass':True, 'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
-    source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]
+    source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*'))
     result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
         for source in source_paths if source.is_file()}
     result['fakeEndpointSha256'] = hashlib.sha256(provider.read_bytes()).hexdigest()
+    result['testRunnerSha256'] = hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()
     result['node'] = subprocess.check_output([node, '--version'], text=True).strip()
     return result
 
@@ -815,7 +930,10 @@ def run(args, temporary):
     node = args.node
     fake = server = None
     log_path = temp / 'server.log'
-    result = {'base': args.base, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'checks': {}}
+    result = {'base': args.base, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+              'runnerHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=RUNNER_ROOT,text=True).strip(),
+              'mode':'f3-only' if args.f3_only else 'chapter-only' if args.chapter_only else 'review-only' if args.review_only else 'full',
+              'thirdPartyEnabled':args.enable_third_party, 'checks': {}}
     stage = 'start isolated lab'
     try:
         fake_source = """const { createFakeOpenAI } = await import(process.argv[1]);
@@ -833,7 +951,7 @@ def run(args, temporary):
         prepare_source = """import fs from 'node:fs/promises';
             import path from 'node:path';
             import { createRequire } from 'node:module';
-            const [repo,directory,port,fakeUrl] = process.argv.slice(1);
+            const [repo,directory,port,fakeUrl,thirdParty] = process.argv.slice(1);
             const require = createRequire(path.join(repo,'package.json'));
             const yaml = require('yaml');
             const { pathToFileURL } = await import('node:url');
@@ -848,12 +966,12 @@ def run(args, temporary):
                 custom_model:'startup-synthetic',stream_openai:false });
             settings.power_user.auto_connect = false;
             settings.extension_settings.disabledExtensions = ['director',
-                ...(await fs.readdir(path.join(repo,'public/scripts/extensions/third-party'))).map(name => 'third-party/' + name)];
+                ...(thirdParty === 'on' ? [] : (await fs.readdir(path.join(repo,'public/scripts/extensions/third-party'))).map(name => 'third-party/' + name))];
             await fs.mkdir(path.join(lab.dataRoot,'default-user'),{ recursive:true });
             await fs.writeFile(path.join(lab.dataRoot,'default-user','settings.json'),JSON.stringify(settings));
             console.log(JSON.stringify(lab));"""
         lab = json.loads(subprocess.check_output([node, '--input-type=module', '-e', prepare_source,
-            str(ROOT), str(lab_dir), str(port), fake_url], cwd=ROOT, text=True))
+            str(ROOT), str(lab_dir), str(port), fake_url, 'on' if args.enable_third_party else 'off'], cwd=ROOT, text=True))
         env = {key: value for key, value in os.environ.items() if not key.upper().startswith('SILLYTAVERN_')}
         with log_path.open('w', encoding='utf-8') as logs:
             server = subprocess.Popen([node, 'server.js', '--configPath', lab['configPath'], '--dataRoot', lab['dataRoot'],
@@ -876,6 +994,9 @@ def run(args, temporary):
                 errors = []
                 page = context.new_page()
                 page.on('pageerror', lambda error: errors.append(str(error)))
+                loaded_scripts = set()
+                page.on('response', lambda response: loaded_scripts.add(urllib.parse.urlparse(response.url).path)
+                        if response.status == 200 and '/scripts/extensions/third-party/' in response.url else None)
                 ready(page, origin)
                 result['disabledThirdPartyExtensions'] = page.evaluate("""async () =>
                     (await import('/scripts/extensions.js')).extension_settings.disabledExtensions.filter(id => id.startsWith('third-party/'))
@@ -942,6 +1063,34 @@ def run(args, temporary):
                 ready(page, origin)
                 select_sample(page, sample)
                 page.locator('#directorButton').wait_for(state='visible')
+                result['thirdPartyRuntime'] = {
+                    'loadedEntrypoints':sorted(path for path in loaded_scripts if path.endswith(('/dist/index.js','st-memory-enhancement/index.js'))),
+                    'tavernHelperAvailable':page.evaluate("typeof globalThis.TavernHelper === 'object'"),
+                }
+                if args.enable_third_party:
+                    assert not result['disabledThirdPartyExtensions'], result['disabledThirdPartyExtensions']
+                    assert result['thirdPartyRuntime']['tavernHelperAvailable'], result['thirdPartyRuntime']
+                    assert any(path.endswith('/st-memory-enhancement/index.js') for path in loaded_scripts), loaded_scripts
+                if args.f3_only or args.chapter_only:
+                    def requests():
+                        with urllib.request.urlopen(fake_url.removesuffix('/v1') + '/__requests', timeout=5) as response:
+                            return json.load(response)
+                    def wait_count(count, timeout=20):
+                        deadline = time.monotonic() + timeout
+                        while len(requests()) < count and time.monotonic() < deadline:
+                            page.wait_for_timeout(50)
+                        latest = requests()
+                        assert len(latest) >= count, len(latest)
+                        return latest
+                    if args.f3_only:
+                        stage = 'standalone F3 with third-party configuration recorded'
+                        run_first_message_checks(page, sample, requests, wait_count, result)
+                    else:
+                        stage = 'standalone chapter swipe request-count comparison'
+                        run_chapter_swipe_check(page, requests, result)
+                    finish_report(result, errors, requests, browser, node, provider)
+                    browser.close()
+                    return result
                 if args.review_only:
                     stage = 'isolated Director review scenarios'
                     run_review_checks(page, sample, fake_url, result)
@@ -1408,8 +1557,9 @@ def run(args, temporary):
                 request_baseline = len(requests())
                 # The out-of-range target enters swipe()'s regenerate branch and
                 # saveReply(type='swipe'); no new swipe is seeded by the fixture.
-                swipe_message(page, mesid, swipe_count)
-                assert len(requests()) == request_baseline + 1
+                observation = swipe_message(page, mesid, swipe_count)
+                result['chapterSwipeAudit'] = { **observation, 'requestsBefore':request_baseline, 'requestsAfter':len(requests()) }
+                assert len(requests()) == request_baseline + 1, result['chapterSwipeAudit']
                 assert chat_count(page) == before_generation + 1
                 assert page.evaluate('id => SillyTavern.getContext().chat[id].swipe_id', mesid) == swipe_count
                 assert row.locator('.mes_block > .director-chapter-divider').text_content() == label
@@ -2155,6 +2305,9 @@ def run(args, temporary):
         return result
     except Exception as error:
         tail = log_path.read_text(encoding='utf-8', errors='replace')[-4000:] if log_path.exists() else ''
+        failure = redact({**result, 'pass':False, 'stage':stage, 'error':str(error), 'serverLogTail':tail}, temporary)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_bytes((json.dumps(failure, indent=2, ensure_ascii=False) + '\n').encode('utf-8'))
         raise AssertionError(json.dumps(redact({'stage':stage, 'error':str(error), 'serverLogTail':tail}, temporary), ensure_ascii=False)) from error
     finally:
         stop(server)
@@ -2162,14 +2315,24 @@ def run(args, temporary):
 
 
 def main():
+    global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     preferred_node = pathlib.Path('/tmp/node-v24.22.1-linux-x64/bin/node')
     parser.add_argument('--node', default=str(preferred_node) if preferred_node.is_file() else 'node')
     parser.add_argument('--fake-endpoint', default=str(ROOT / 'scripts' / 'fake-openai-endpoint.mjs'))
     parser.add_argument('--base', default='ffd5f4e')
-    parser.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')
+    modes.add_argument('--f3-only', action='store_true', help='Run the exact first-message/reload and ordinary-save checks only')
+    modes.add_argument('--chapter-only', action='store_true', help='Run the same chapter swipe request-count check against a product tree')
+    parser.add_argument('--enable-third-party', action='store_true', help='Enable the bundled third-party extensions in the synthetic fixture')
+    parser.add_argument('--product-root', type=pathlib.Path, help='Read-only product checkout to test with this same runner')
     parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d2' / 'results.json')
     args = parser.parse_args()
+    if args.product_root:
+        ROOT = args.product_root.resolve()
+        if not (ROOT / 'server.js').is_file():
+            parser.error('product-root must contain server.js')
     # Preserve synthetic artifacts for diagnosis instead of permanently deleting
     # them on success or failure. Only this script's child processes are stopped.
     temporary = tempfile.mkdtemp(prefix='director-lab-')

@@ -4,7 +4,7 @@ This is the director browser suite. tests/browser-lifecycle-lab.py --director
 runs this same file. The default lifecycle command is unchanged.
 
 Run with a Python environment containing Playwright. The S0 provider is
-scripts/fake-openai-endpoint.mjs. Only summary hashes are retained. Data, logs,
+scripts/fake-openai-endpoint.mjs. Synthetic message excerpts and source hashes are retained. Data, logs,
 base assets and Chromium state live in a temporary directory, and every process
 this script stops is its own child.
 """
@@ -705,7 +705,7 @@ def run_first_message_checks(page, sample, requests, wait_count, result):
         }
     }""")
     stage = 'first message narration keeps literal macros'
-    # messageFormatting rewrites message 0. The sample chat is never
+    # Exercise the first-message greeting path. The sample chat is never
     # empty, so open a chat with one placeholder and delete it first.
     macro_chat = 'DirectorMacroZero-' + uuid.uuid4().hex[:10]
     audit = {'saveRequests':[], 'saveCallers':[], 'snapshots':[]}
@@ -834,8 +834,11 @@ def run_first_message_checks(page, sample, requests, wait_count, result):
             }
             finally { context.eventSource.removeListener(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, saveDuringPrompt); }
             if (!observed) throw new Error('dry-run save probe did not run');
+            if (typeof observed.storedFirstMes !== 'string') throw new Error('dry-run save probe did not finish');
             return observed;
         }""", macro_chat)
+        assert audit['dryRunSaveProbe']['firstMes'] == expected_mes, audit['dryRunSaveProbe']
+        assert audit['dryRunSaveProbe']['storedFirstMes'] == expected_mes, audit['dryRunSaveProbe']
     phase['name'] = 'save-then-quiet'
     page.evaluate("""async () => {
         const extensions = await import('/scripts/extensions.js');
@@ -907,6 +910,186 @@ def run_first_message_checks(page, sample, requests, wait_count, result):
     polluted = [save for save in audit['saveRequests'] if any(
         message != 'placeholder' and message != expected_mes for message in save.get('firstMessages', []))]
     assert not polluted, {'expandedFirstMessageSaves':polluted}
+    result['checks']['everyFirstMessageSaveStaysLiteral'] = True
+    run_first_message_interleavings(page, expected_mes, result)
+
+
+def run_first_message_interleavings(page, expected_mes, result):
+    """Real dry runs, saves, clones, edits and chat switches; no mocked Generate."""
+    chat_name = page.evaluate('SillyTavern.getContext().chatId')
+    observations = {}
+    result['f3Interleavings'] = observations
+
+    def save_and_read(clone=False, name=chat_name):
+        return page.evaluate("""async ({clone, name}) => {
+            const main = await import('/script.js');
+            const context = SillyTavern.getContext();
+            const saved = await main.saveChat(clone ? {chatData:structuredClone(context.chat)} : {});
+            if (saved === false) throw new Error('interleaving save failed');
+            const response = await fetch('/api/chats/get', {
+                method:'POST', headers:context.getRequestHeaders(),
+                body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,file_name:name}),
+            });
+            if (!response.ok) throw new Error('interleaving JSONL read failed');
+            return (await response.json())[1].mes;
+        }""", {'clone':clone, 'name':name})
+
+    page.evaluate("""async () => {
+        const main = await import('/script.js');
+        const {eventSource,eventTypes} = SillyTavern.getContext();
+        const state = window.__f3Overlap = {gates:[], afterData:0, pending:[], enabled:true};
+        state.onReady = data => {
+            if (!data.dryRun || !state.enabled) return;
+            return new Promise(resolve => state.gates.push(resolve));
+        };
+        state.onAfter = (_data, dryRun) => { if (dryRun) state.afterData++; };
+        eventSource.on(eventTypes.CHAT_COMPLETION_PROMPT_READY, state.onReady);
+        eventSource.on(eventTypes.GENERATE_AFTER_DATA, state.onAfter);
+        state.start = () => state.pending.push(main.Generate('normal', {}, true));
+        state.releaseAll = () => { for (const release of state.gates.splice(0)) release(); };
+        state.finish = async () => {
+            state.enabled = false;
+            eventSource.removeListener(eventTypes.CHAT_COMPLETION_PROMPT_READY, state.onReady);
+            state.releaseAll();
+            await Promise.all(state.pending);
+            eventSource.removeListener(eventTypes.GENERATE_AFTER_DATA, state.onAfter);
+        };
+        state.start();
+    }""")
+    try:
+        page.wait_for_function('window.__f3Overlap.gates.length >= 1')
+        page.evaluate('window.__f3Overlap.start()')
+        page.wait_for_function('window.__f3Overlap.gates.length >= 2')
+        observations['twoRunsPaused'] = save_and_read()
+        observations['clonedSnapshotWhilePaused'] = save_and_read(clone=True)
+        assert observations['twoRunsPaused'] == observations['clonedSnapshotWhilePaused'] == expected_mes
+        page.evaluate("""() => {
+            const state = window.__f3Overlap;
+            state.beforeRelease = state.afterData;
+            state.gates.shift()();
+        }""")
+        page.wait_for_function('window.__f3Overlap.afterData > window.__f3Overlap.beforeRelease')
+        assert page.evaluate('window.__f3Overlap.gates.length') >= 1
+        observations['oneRunFinished'] = save_and_read()
+        assert observations['oneRunFinished'] == expected_mes
+        edited = 'Intentional API edit while a dry run is paused.'
+        observations['editor'] = page.evaluate("""async text => {
+            if (globalThis.TavernHelper?.setChatMessages) {
+                await TavernHelper.setChatMessages([{message_id:0,message:text}], {refresh:'none'});
+                return 'TavernHelper.setChatMessages';
+            }
+            // The isolated full suite disables TavernHelper; keep the same
+            // no-MESSAGE_EDITED write/save order through the public core API.
+            SillyTavern.getContext().chat[0].mes = text;
+            await (await import('/script.js')).saveChat();
+            return 'direct write and saveChat';
+        }""", edited)
+        assert save_and_read() == edited
+    finally:
+        page.evaluate('window.__f3Overlap.finish()')
+    assert page.evaluate('SillyTavern.getContext().chat[0].mes') == edited
+    observations['editedTextAfterBothRuns'] = save_and_read()
+    assert observations['editedTextAfterBothRuns'] == edited
+    edited = 'Intentional API edit before host prompt assembly.'
+    observations['beforeAssemblyEdit'] = page.evaluate("""async ({original, edited}) => {
+        const main = await import('/script.js');
+        const context = SillyTavern.getContext();
+        context.chat[0].mes = original;
+        let changed = false;
+        const editAtStart = async (_type, _params, dryRun) => {
+            if (!dryRun || changed) return;
+            changed = true;
+            if (globalThis.TavernHelper?.setChatMessages) {
+                await TavernHelper.setChatMessages([{message_id:0,message:edited}], {refresh:'none'});
+            } else {
+                context.chat[0].mes = edited;
+                await main.saveChat();
+            }
+        };
+        context.eventSource.on(context.eventTypes.GENERATION_STARTED, editAtStart);
+        try { await main.Generate('normal', {}, true); }
+        finally { context.eventSource.removeListener(context.eventTypes.GENERATION_STARTED, editAtStart); }
+        if (!changed) throw new Error('before-assembly edit did not run');
+        return context.chat[0].mes;
+    }""", {'original':expected_mes, 'edited':edited})
+    assert observations['beforeAssemblyEdit'] == save_and_read() == edited
+    result['checks']['overlappingDryRunsPreserveSavesClonesAndApiEdits'] = True
+
+    # Pause another real dry run, change chat, and only then let it finish.
+    page.evaluate("""() => {
+        const state = window.__f3Overlap;
+        const {eventSource,eventTypes} = SillyTavern.getContext();
+        state.enabled = true;
+        eventSource.on(eventTypes.CHAT_COMPLETION_PROMPT_READY, state.onReady);
+        state.start();
+    }""")
+    page.wait_for_function('window.__f3Overlap.gates.length >= 1')
+    switched_name = 'DirectorSwitch-' + uuid.uuid4().hex[:10]
+    switched_text = 'New chat literal {{char}} / {{user}} / {{random::a,b}}'
+    try:
+        page.evaluate("""async ({name,text}) => {
+            const context = SillyTavern.getContext();
+            const first = structuredClone(context.chat[0]);
+            first.mes = text;
+            first.extra.director.id = 'switched-director-first';
+            const response = await fetch('/api/chats/save', {
+                method:'POST', headers:context.getRequestHeaders(),
+                body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,
+                    file_name:name,force:true,chat:[
+                        {user_name:context.name1,character_name:context.name2,chat_metadata:{integrity:name}},first,
+                    ]}),
+            });
+            if (!response.ok) throw new Error('switched chat fixture failed');
+            if (await context.openCharacterChat(name) === false) throw new Error('switched chat did not open');
+        }""", {'name':switched_name, 'text':switched_text})
+        page.wait_for_function('name => SillyTavern.getContext().chatId === name', arg=switched_name)
+    finally:
+        page.evaluate('window.__f3Overlap.finish()')
+    assert page.evaluate('SillyTavern.getContext().chat[0].mes') == switched_text
+    observations['switchedChat'] = save_and_read(clone=True, name=switched_name)
+    assert observations['switchedChat'] == switched_text
+    # Read the old chat without saving the new one over its name.
+    old_text = page.evaluate("""async name => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/get', {
+            method:'POST',headers:context.getRequestHeaders(),
+            body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,file_name:name}),
+        });
+        if (!response.ok) throw new Error('old chat read failed');
+        return (await response.json())[1].mes;
+    }""", chat_name)
+    assert old_text == edited
+    result['checks']['chatSwitchDuringDryRunPreservesBothChats'] = True
+
+    greetings = page.evaluate("""async () => {
+        const main = await import('/script.js');
+        const context = SillyTavern.getContext();
+        context.chat[0] = {name:context.name2,is_user:false,is_system:false,
+            send_date:'2026-03-01T00:00:00.000Z',mes:'Hello {{char}} / {{user}}',extra:{}};
+        await main.Generate('normal', {}, true);
+        const ordinary = context.chat[0].mes;
+        const {markChapter} = await import('/scripts/extensions/director/chapters.js');
+        context.chat[0].mes = 'Chapter literal {{char}} / {{random::a,b}}';
+        markChapter(context.chat[0], 'Manual first chapter', 'manual-first-chapter');
+        await main.Generate('normal', {}, true);
+        return {ordinary, expectedOrdinary:'Hello ' + context.name2 + ' / ' + context.name1,
+            chapter:context.chat[0].mes};
+    }""")
+    assert greetings['ordinary'] == greetings['expectedOrdinary']
+    assert greetings['chapter'] == 'Chapter literal {{char}} / {{random::a,b}}'
+    assert save_and_read(name=switched_name) == greetings['chapter']
+    observations['greetings'] = greetings
+    result['checks']['ordinaryGreetingStillExpandsAndManualChapterStaysLiteral'] = True
+
+    page.evaluate("async () => { await SillyTavern.getContext().deleteMessage(0); }")
+    page.wait_for_function('SillyTavern.getContext().chat.length === 0')
+    preset(page, 'macro-comment', text='{{char}} 和 {{user}} {{random::a,b}}')
+    page.evaluate("async () => { await (await import('/script.js')).Generate('normal', {}, true); }")
+    assert save_and_read(clone=True, name=switched_name) == expected_mes
+    page.evaluate('async () => { await SillyTavern.getContext().reloadCurrentChat(); }')
+    assert page.evaluate('SillyTavern.getContext().chat[0].mes') == expected_mes
+    result['checks']['firstCommentSurvivesDryRunCloneSaveAndReload'] = True
+    print('First-message overlap, API edit, chat switch, greeting and comment regressions passed', flush=True)
 
 
 def run_chapter_swipe_check(page, requests, result):
@@ -930,7 +1113,7 @@ def run_chapter_swipe_check(page, requests, result):
     with page.expect_response(is_saved_chat) as marked_save:
         dialog.locator('.popup-button-ok').click()
     dialog.wait_for(state='hidden')
-    marked_save.value.finished()
+    marked_save.value.body()
     director = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id].extra.director)', mesid)
     label = f"第{len(existing) + 1}章 新 swipe 章节"
     assert_chapter_swipes(page, mesid, swipe_count, director, label)
@@ -1532,7 +1715,7 @@ def run(args, temporary):
                 with page.expect_response(is_saved_chat) as marked_save:
                     dialog.locator('.popup-button-ok').click()
                 dialog.wait_for(state='hidden')
-                marked_save.value.finished()
+                marked_save.value.body()
                 page.wait_for_function("""() => document.querySelector('#chat .mes[mesid="0"] .director-chapter-divider')?.textContent === '第1章 手动章节'""")
                 assert target.locator('.mes_text').inner_html() == html_before
                 assert target.locator('.mes_text .director-chapter-divider').count() == 0
@@ -1568,7 +1751,7 @@ def run(args, temporary):
                 row, menu_button = open_chapter_menu(page, 0)
                 with page.expect_response(is_saved_chat) as unmarked_save:
                     menu_button.click()
-                unmarked_save.value.finished()
+                unmarked_save.value.body()
                 page.wait_for_function("""() => !document.querySelector('#chat .mes[mesid="0"]').classList.contains('director-chapter')""")
                 assert page.evaluate("() => SillyTavern.getContext().chat[0].extra.director") is None
                 assert page.evaluate("() => SillyTavern.getContext().chat[0].swipe_info.every(info => !info.extra.director)")
@@ -1601,7 +1784,7 @@ def run(args, temporary):
                 with page.expect_response(is_saved_chat) as marked_save:
                     dialog.locator('.popup-button-ok').click()
                 dialog.wait_for(state='hidden')
-                marked_save.value.finished()
+                marked_save.value.body()
                 director = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id].extra.director)', mesid)
                 label = f"第{len(existing) + 1}章 新 swipe 章节"
                 assert_chapter_swipes(page, mesid, swipe_count, director, label)
@@ -1630,7 +1813,7 @@ def run(args, temporary):
                 row, menu_button = open_chapter_menu(page, mesid)
                 with page.expect_response(is_saved_chat) as unmarked_save:
                     menu_button.click()
-                unmarked_save.value.finished()
+                unmarked_save.value.body()
                 assert_chapter_swipes(page, mesid, swipe_count + 1, None)
                 page.evaluate('async () => { await SillyTavern.getContext().reloadCurrentChat(); }')
                 assert_chapter_swipes(page, mesid, swipe_count + 1, None)

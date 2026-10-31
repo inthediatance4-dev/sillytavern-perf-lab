@@ -5049,8 +5049,9 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
         setExtensionPrompt(inject_ids.DEPTH_PROMPT, depthPromptText, extension_prompt_types.IN_CHAT, depthPromptDepth, extension_settings.note.allowWIScan, depthPromptRole);
     }
 
-    // First message in fresh 1-on-1 chat reacts to user/character settings changes
-    if (chat.length) {
+    // Ordinary greetings react to user/character settings changes. Director
+    // text is already rendered; mutating it here can leak into a concurrent save.
+    if (chat.length && !chat[0].extra?.director) {
         chat[0].mes = substituteParams(chat[0].mes);
     }
 

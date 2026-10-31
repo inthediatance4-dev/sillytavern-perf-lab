@@ -48,28 +48,6 @@ let executing = false;
 let chatRevision = 0;
 /** One regenerate's pre-interceptor delete. Not a sticky boolean. */
 let boundDeleteSkip = null;
-/** Literal chat[0] while Generate substitutes that message for the prompt. */
-let firstDirectorMessage = null;
-
-function snapshotFirstDirectorMessage() {
-    firstDirectorMessage = null;
-    const context = getContext();
-    const message = context.chat?.[0];
-    if (!message?.extra?.director || typeof message.mes !== 'string' || !containsExpandableMacro(message.mes)) return;
-    firstDirectorMessage = { message, text: message.mes, chatId: context.chatId };
-}
-
-function restoreFirstDirectorMessage() {
-    const snap = firstDirectorMessage;
-    if (!snap) return;
-    firstDirectorMessage = null;
-    const context = getContext();
-    // Generate writes substituteParams(chat[0].mes) back onto the message.
-    // The prompt may already contain that expansion. Storage stays literal.
-    if (context.chatId !== snap.chatId || context.chat?.[0] !== snap.message) return;
-    if (snap.message.mes !== snap.text) snap.message.mes = snap.text;
-}
-
 function clearBoundDeleteSkip() {
     boundDeleteSkip = null;
 }
@@ -694,7 +672,6 @@ export async function init() {
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         chatRevision++;
         clearBoundDeleteSkip();
-        restoreFirstDirectorMessage();
         // processChatSlashCommands already rebuilt script_inject_* for the new chat.
         discardDirectorPromptMask();
         closePopover();
@@ -724,13 +701,6 @@ export async function init() {
     context.eventSource.on(context.eventTypes.GENERATION_STOPPED, releaseRegenerateDeleteSkip);
     // GENERATION_STARTED is before Generate deletes the last AI message for regenerate.
     context.eventSource.on(context.eventTypes.GENERATION_STARTED, (generationType, _params, dryRun) => {
-        // A run can return before GENERATE_AFTER_DATA. Put the previous literal back.
-        try {
-            restoreFirstDirectorMessage();
-            snapshotFirstDirectorMessage();
-        } catch (error) {
-            console.error('Director failed to keep the first message literal', error);
-        }
         // Token-count dry runs must not unmask or reset a real generation.
         if (dryRun) return;
         try {
@@ -754,18 +724,11 @@ export async function init() {
     });
     context.eventSource.on(context.eventTypes.GENERATE_AFTER_DATA, () => {
         try {
-            restoreFirstDirectorMessage();
-        } catch (error) {
-            console.error('Director failed to keep the first message literal', error);
-        }
-        try {
             clearTemporaryInstruct(getContext());
         } catch (error) {
             console.error('Director failed to clear a temporary instruction', error);
         }
     });
-    context.eventSource.on(context.eventTypes.GENERATION_ENDED, restoreFirstDirectorMessage);
-    context.eventSource.on(context.eventTypes.GENERATION_STOPPED, restoreFirstDirectorMessage);
     context.eventSource.on(context.eventTypes.MESSAGE_SENT, async () => {
         clearBoundDeleteSkip();
         const current = getContext();

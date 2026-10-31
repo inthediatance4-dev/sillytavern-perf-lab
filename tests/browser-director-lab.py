@@ -334,7 +334,8 @@ def run(args, temporary):
             Object.assign(settings.oai_settings,{ chat_completion_source:'custom',custom_url:fakeUrl,
                 custom_model:'startup-synthetic',stream_openai:false });
             settings.power_user.auto_connect = false;
-            settings.extension_settings.disabledExtensions = ['director'];
+            settings.extension_settings.disabledExtensions = ['director',
+                ...(await fs.readdir(path.join(repo,'public/scripts/extensions/third-party'))).map(name => 'third-party/' + name)];
             await fs.mkdir(path.join(lab.dataRoot,'default-user'),{ recursive:true });
             await fs.writeFile(path.join(lab.dataRoot,'default-user','settings.json'),JSON.stringify(settings));
             console.log(JSON.stringify(lab));"""
@@ -363,6 +364,9 @@ def run(args, temporary):
                 page = context.new_page()
                 page.on('pageerror', lambda error: errors.append(str(error)))
                 ready(page, origin)
+                result['disabledThirdPartyExtensions'] = page.evaluate("""async () =>
+                    (await import('/scripts/extensions.js')).extension_settings.disabledExtensions.filter(id => id.startsWith('third-party/'))
+                """)
                 print('Director lab ready; creating synthetic fixture', flush=True)
                 sample = page.evaluate("""async (suffix) => {
                     const token = (await (await fetch('/csrf-token')).json()).token;

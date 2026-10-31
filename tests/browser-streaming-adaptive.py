@@ -38,10 +38,11 @@ SCHEDULER = r"""
   const NativeChannel = MessageChannel;
   const probe = window.__adaptive = {
     active: false, frames: new Map(), sequence: 0, taskStart: null, frame: 0,
-    taskCount: 0, waitFrame: () => new Promise(resolve => nativeFrame(resolve)),
+    taskCount: 0, deliveries: 0, waitFrame: () => new Promise(resolve => nativeFrame(resolve)),
     step() {
       const callbacks = [...this.frames.values()];
       this.frames.clear();
+      this.deliveries += callbacks.length;
       this.frame++;
       const stamp = this.taskStart === null ? performance.now() : this.taskStart + this.frame * 4;
       for (const callback of callbacks) callback(stamp);
@@ -87,18 +88,54 @@ SCHEDULER = r"""
 
 
 INSTALL_GATE = r"""
-({ hold }) => {
+({ hold, firstPaint }) => {
   const probe = window.__adaptive;
   const ctx = SillyTavern.getContext();
+  const previousProcessor = probe.processor;
   probe.tokens = 0;
-  ctx.eventSource.on(ctx.eventTypes.STREAM_TOKEN_RECEIVED, async text => {
+  probe.ready = false;
+  probe.ended = false;
+  probe.firstPaint = null;
+  probe.taskStart = null;
+  probe.frame = 0;
+  probe.taskCount = 0;
+  probe.deliveries = 0;
+  probe.active = false;
+  const listener = async text => {
     probe.processor = SillyTavern.getContext().streamingProcessor;
     if (!hold) return;
-    if (++probe.tokens < 8 || probe.ready) return;
+    probe.tokens++;
+    if (firstPaint && probe.tokens === 1) {
+      const processor = probe.processor;
+      const progress = processor.onProgressStreaming.bind(processor);
+      probe.active = true;
+      // Hold the real product call immediately AFTER its first progress return.
+      // No streaming rAF is delivered before these assertions.
+      processor.onProgressStreaming = async (...args) => {
+        const result = await progress(...args);
+        if (!probe.firstPaint) {
+          const shown = processor.messageTextDom.textContent.trim();
+          if (!shown || shown !== String(text).trim()) throw new Error('First token is not visible synchronously');
+          if (probe.deliveries || probe.frames.size || probe.taskCount) throw new Error('First token waited for a frame or task');
+          if (processor === previousProcessor) throw new Error('A second generation reused its processor');
+          probe.firstPaint = { synchronous: true, framesDelivered: 0, taskPosts: 0, freshProcessor: true };
+          probe.ready = true;
+          await new Promise(resolve => { probe.release = resolve; });
+        }
+        return result;
+      };
+      return;
+    }
+    if (firstPaint) return;
+    if (probe.tokens < 8 || probe.ready) return;
     probe.ready = true;
     await new Promise(resolve => { probe.release = resolve; });
+  };
+  ctx.eventSource.on(ctx.eventTypes.STREAM_TOKEN_RECEIVED, listener);
+  ctx.eventSource.once(ctx.eventTypes.GENERATION_ENDED, () => {
+    probe.ended = true;
+    ctx.eventSource.removeListener(ctx.eventTypes.STREAM_TOKEN_RECEIVED, listener);
   });
-  ctx.eventSource.once(ctx.eventTypes.GENERATION_ENDED, () => { probe.ended = true; });
 }
 """
 
@@ -138,7 +175,7 @@ async ({ reply, expectedGap, delay }) => {
   }
   probe.active = false;
   probe.release();
-  return { delay, expectedGap, gaps, stable };
+  return { delay, expectedGap, gaps, stable, firstPaint: probe.firstPaint };
 }
 """
 
@@ -160,6 +197,24 @@ async reply => {
   return { finalTextComplete: true, codeBlockAndCopyControlPresent: true, savedTextComplete: true, html: target.innerHTML };
 }
 """
+
+
+def run_generation(page, optimized, delay, expected_gap):
+    page.evaluate(INSTALL_GATE, {'hold': optimized, 'firstPaint': delay == 20})
+    page.locator('#send_textarea').fill('Continue the synthetic river story.')
+    page.locator('#send_but').click()
+    if optimized:
+        page.wait_for_function('() => window.__adaptive.ready', timeout=30000)
+        result = page.evaluate(RUN_GAPS, {'reply': REPLY, 'delay': delay, 'expectedGap': expected_gap})
+    else:
+        result = {'delay': 0, 'expectedGap': None}
+    page.wait_for_function('() => window.__adaptive.ended && !SillyTavern.getContext().streamingProcessor', timeout=30000)
+    # The real keyboard observer decorates code-copy controls after the final write.
+    page.evaluate('async () => { await window.__adaptive.waitFrame(); await window.__adaptive.waitFrame(); }')
+    final = page.evaluate(FINAL_TEXT, REPLY)
+    html = final.pop('html')
+    result.update(final)
+    return result, html
 
 
 def run(args, temporary):
@@ -234,26 +289,18 @@ def run(args, temporary):
                             }""", optimized)
                             page.evaluate("() => document.querySelector('#api_button_openai').click()")
                             page.wait_for_function("() => [...document.querySelectorAll('.online_status_text')].some(node => node.textContent.toLowerCase().includes('valid'))")
-                            page.evaluate(INSTALL_GATE, {'hold': optimized})
-                            page.locator('#send_textarea').fill('Continue the synthetic river story.')
-                            page.locator('#send_but').click()
-                            if optimized:
-                                page.wait_for_function('() => window.__adaptive.ready', timeout=30000)
-                                result = page.evaluate(RUN_GAPS, {'reply': REPLY, 'delay': delay, 'expectedGap': expected_gap})
-                            else:
-                                result = {'delay': 0, 'expectedGap': None}
-                            page.wait_for_function('() => window.__adaptive.ended && !SillyTavern.getContext().streamingProcessor', timeout=30000)
-                            # Allow the real keyboard MutationObserver to decorate
-                            # copy controls before capturing either final path.
-                            page.evaluate('async () => { await window.__adaptive.waitFrame(); await window.__adaptive.waitFrame(); }')
-                            final = page.evaluate(FINAL_TEXT, REPLY)
-                            html = final.pop('html')
+                            result, html = run_generation(page, optimized, delay, expected_gap)
                             if baseline_html is None:
                                 baseline_html = html
                             assert html == baseline_html, 'Final HTML differs from optimized_streaming=false (no attributes ignored)'
-                            result.update(final)
                             result.update({'optimized': optimized, 'finalDomMatchesUnoptimized': True,
                                            'finalHtmlSha256': hashlib.sha256(html.encode()).hexdigest()})
+                            if delay == 20:
+                                second, second_html = run_generation(page, optimized, delay, expected_gap)
+                                assert second_html == baseline_html, 'Second generation differs from unoptimized HTML'
+                                assert result['firstPaint']['synchronous'] and second['firstPaint']['synchronous']
+                                second['finalDomMatchesUnoptimized'] = True
+                                result['secondGeneration'] = second
                             assert not errors, errors
                             cases.append(result)
                             print(f'optimized={optimized}, delay={delay}ms: {expected_gap} frame(s), final HTML matches baseline', flush=True)

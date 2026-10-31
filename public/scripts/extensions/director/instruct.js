@@ -177,6 +177,7 @@ export function confirmRegenerateDelete(candidate, context, type) {
     if (!candidate || type !== 'regenerate' || readBoundInstruct(context.chatMetadata)) return false;
     if (candidate.chatId !== context.chatId || candidate.metadata !== context.chatMetadata) return false;
     if (!shouldReinject({ type, chat: context.chat, binding: candidate.binding, hasPending: false })) return false;
+    context.chatMetadata.director ??= {};
     context.chatMetadata.director.boundInstruct = { ...candidate.binding };
     return true;
 }

@@ -405,9 +405,11 @@ test('dryRun neither clears a regenerate token nor restores a masked real genera
 test('only the same regenerate interceptor can restore a provisionally deleted binding', () => {
     assert.equal(typeof instruct.confirmRegenerateDelete, 'function');
     const binding = bindingFrom(user);
-    const metadata = { director: {} };
+    const metadata = withBinding(binding);
     const candidate = { chatId: 'chat-a', metadata, slotIndex: 1, binding };
     const context = { chatId: 'chat-a', chatMetadata: metadata, chat: [user] };
+    assert.equal(applyDeletionClear(metadata, context.chat, false), true);
+    assert.equal(metadata.director, undefined, 'normal deletion removes an empty director container');
     assert.equal(instruct.confirmRegenerateDelete(candidate, context, 'normal'), false);
     assert.equal(instruct.confirmRegenerateDelete(candidate, { ...context, chatId: 'chat-b' }, 'regenerate'), false);
     assert.equal(instruct.confirmRegenerateDelete(candidate, { ...context, chat: [{ ...user, mes: 'edited' }] }, 'regenerate'), false);

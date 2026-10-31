@@ -10,6 +10,7 @@ tasks and formatting run in the browser without a mocked performance clock.
 Synthetic data and logs remain in a temporary directory for diagnosis.
 """
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -25,7 +26,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('director_lab', ROOT / 'tests/browser-director-lab.py')
 lab = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(lab)
-REPLY = 'The traveller follows the river. 中文流式文本完整。\n\n**Complete** and *correct*.\n\n' + 'A quiet river flows. ' * 20 + 'The end.'
+REPLY = ('The traveller follows the river. 中文流式文本完整。\n\n**Complete** and *correct*.\n\n'
+         '```javascript\nconst river = "完整";\nconsole.log(river);\n```\n\n'
+         + 'A quiet river flows. ' * 20 + 'The end.')
 
 
 SCHEDULER = r"""
@@ -84,13 +87,14 @@ SCHEDULER = r"""
 
 
 INSTALL_GATE = r"""
-() => {
+({ hold }) => {
   const probe = window.__adaptive;
   const ctx = SillyTavern.getContext();
   probe.tokens = 0;
   ctx.eventSource.on(ctx.eventTypes.STREAM_TOKEN_RECEIVED, async text => {
-    if (++probe.tokens < 8 || probe.ready) return;
     probe.processor = SillyTavern.getContext().streamingProcessor;
+    if (!hold) return;
+    if (++probe.tokens < 8 || probe.ready) return;
     probe.ready = true;
     await new Promise(resolve => { probe.release = resolve; });
   });
@@ -142,20 +146,18 @@ async ({ reply, expectedGap, delay }) => {
 FINAL_TEXT = r"""
 async reply => {
   const ctx = SillyTavern.getContext();
-  const script = await import('/script.js');
   const id = window.__adaptive.processor.messageId;
   const message = ctx.chat[id];
   const target = document.querySelector(`#chat .mes[mesid="${id}"] .mes_text`);
-  const expected = document.createElement('div');
-  expected.innerHTML = script.messageFormatting(reply, message.name, message.is_system, message.is_user, id, {}, false);
   if (message.mes !== reply) throw new Error('Final chat text is incomplete or incorrect');
-  if (target.innerHTML !== expected.innerHTML) throw new Error('Final DOM differs from direct formatting');
+  if (target.querySelectorAll('pre code.language-javascript').length !== 1) throw new Error('Missing final language-marked code block');
+  if (target.querySelectorAll('pre code .code-copy[tabindex="0"]').length !== 1) throw new Error('Missing final keyboard-accessible code-copy control');
   const response = await fetch('/api/chats/get', {
     method: 'POST', headers: ctx.getRequestHeaders(),
     body: JSON.stringify({ avatar_url: ctx.characters[ctx.characterId].avatar, file_name: ctx.getCurrentChatId() }),
   });
   if (!response.ok || (await response.json()).at(-1).mes !== reply) throw new Error('Saved final text differs');
-  return { finalTextComplete: true, finalDomCorrect: true, savedTextComplete: true };
+  return { finalTextComplete: true, codeBlockAndCopyControlPresent: true, savedTextComplete: true, html: target.innerHTML };
 }
 """
 
@@ -203,10 +205,11 @@ def run(args, temporary):
             lab.wait_http(origin, server)
             assert (pathlib.Path(seeded['dataRoot']) / '.st-lab-owner.lock').is_file()
             cases = []
+            baseline_html = None
             with sync_playwright() as playwright:
                 browser = launch_chromium(playwright)
                 try:
-                    for delay, expected_gap in [(0, 1), (10, 2), (20, 3)]:
+                    for optimized, delay, expected_gap in [(False, 0, None), (True, 0, 1), (True, 10, 2), (True, 20, 3)]:
                         context = browser.new_context(viewport={'width': 1280, 'height': 800}, locale='en-US')
                         try:
                             page = context.new_page()
@@ -226,18 +229,34 @@ def run(args, temporary):
                                 return { avatar:await response.text() };
                             }""")
                             lab.select_sample(page, sample, expected_messages=1)
+                            page.evaluate("""async optimized => {
+                                (await import('/scripts/power-user.js')).power_user.optimized_streaming = optimized;
+                            }""", optimized)
                             page.evaluate("() => document.querySelector('#api_button_openai').click()")
                             page.wait_for_function("() => [...document.querySelectorAll('.online_status_text')].some(node => node.textContent.toLowerCase().includes('valid'))")
-                            page.evaluate(INSTALL_GATE)
+                            page.evaluate(INSTALL_GATE, {'hold': optimized})
                             page.locator('#send_textarea').fill('Continue the synthetic river story.')
                             page.locator('#send_but').click()
-                            page.wait_for_function('() => window.__adaptive.ready', timeout=30000)
-                            result = page.evaluate(RUN_GAPS, {'reply': REPLY, 'delay': delay, 'expectedGap': expected_gap})
+                            if optimized:
+                                page.wait_for_function('() => window.__adaptive.ready', timeout=30000)
+                                result = page.evaluate(RUN_GAPS, {'reply': REPLY, 'delay': delay, 'expectedGap': expected_gap})
+                            else:
+                                result = {'delay': 0, 'expectedGap': None}
                             page.wait_for_function('() => window.__adaptive.ended && !SillyTavern.getContext().streamingProcessor', timeout=30000)
-                            result.update(page.evaluate(FINAL_TEXT, REPLY))
+                            # Allow the real keyboard MutationObserver to decorate
+                            # copy controls before capturing either final path.
+                            page.evaluate('async () => { await window.__adaptive.waitFrame(); await window.__adaptive.waitFrame(); }')
+                            final = page.evaluate(FINAL_TEXT, REPLY)
+                            html = final.pop('html')
+                            if baseline_html is None:
+                                baseline_html = html
+                            assert html == baseline_html, 'Final HTML differs from optimized_streaming=false (no attributes ignored)'
+                            result.update(final)
+                            result.update({'optimized': optimized, 'finalDomMatchesUnoptimized': True,
+                                           'finalHtmlSha256': hashlib.sha256(html.encode()).hexdigest()})
                             assert not errors, errors
                             cases.append(result)
-                            print(f'format delay {delay}ms: {expected_gap} frame(s), final DOM/chat/save complete', flush=True)
+                            print(f'optimized={optimized}, delay={delay}ms: {expected_gap} frame(s), final HTML matches baseline', flush=True)
                         finally:
                             context.close()
                     return {'pass': True, 'cases': cases, 'chromium': browser.version}

@@ -731,6 +731,19 @@ def run_first_message_checks(page, sample, requests, wait_count, result):
     # DevTools observes callers without replacing fetch or changing save bodies.
     cdp = page.context.new_cdp_session(page)
     cdp.send('Network.enable')
+    cdp.send('Debugger.enable')
+    cdp.send('Debugger.setAsyncCallStackDepth', {'maxDepth':32})
+    page.evaluate("""() => {
+        const {eventSource,eventTypes} = SillyTavern.getContext();
+        window.__f3Events = [];
+        for (const name of ['GENERATION_STARTED','GENERATE_AFTER_DATA','GENERATION_ENDED','MESSAGE_SENT','USER_MESSAGE_RENDERED']) {
+            eventSource.on(eventTypes[name], (...args) => window.__f3Events.push({
+                name, at:Date.now()/1000, firstMes:SillyTavern.getContext().chat[0]?.mes,
+                generationType:name === 'GENERATION_STARTED' ? args[0] : undefined,
+                dryRun:name === 'GENERATION_STARTED' ? args[2] : undefined,
+            }));
+        }
+    }""")
 
     def save_caller(event):
         if urllib.parse.urlparse(event['request']['url']).path != '/api/chats/save':
@@ -793,6 +806,28 @@ def run_first_message_checks(page, sample, requests, wait_count, result):
     preset(page, 'macro-comment', text=literal_input)
     page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2""")
     assert_literal_message(1, 'macro-comment')
+    if result.get('saveDuringDryRunProbe'):
+        phase['name'] = 'save-during-dry-run'
+        audit['dryRunSaveProbe'] = page.evaluate("""async chatName => {
+            const context = SillyTavern.getContext();
+            let observed;
+            const saveDuringPrompt = async data => {
+                if (!data.dryRun || observed) return;
+                observed = { firstMes:context.chat[0].mes };
+                await context.saveChat();
+                const response = await fetch('/api/chats/get', {
+                    method:'POST', headers:context.getRequestHeaders(),
+                    body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,file_name:chatName}),
+                });
+                if (!response.ok) throw new Error('dry-run probe JSONL read failed');
+                observed.storedFirstMes = (await response.json())[1].mes;
+            };
+            context.eventSource.on(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, saveDuringPrompt);
+            try { await (await import('/script.js')).Generate('normal', {}, true); }
+            finally { context.eventSource.removeListener(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, saveDuringPrompt); }
+            if (!observed) throw new Error('dry-run save probe did not run');
+            return observed;
+        }""", macro_chat)
     phase['name'] = 'save-then-quiet'
     page.evaluate("""async () => {
         const extensions = await import('/scripts/extensions.js');
@@ -858,8 +893,12 @@ def run_first_message_checks(page, sample, requests, wait_count, result):
     assert_literal_message(0, 'macro-narrator')
     assert_literal_message(1, 'macro-comment')
     result['checks']['ordinaryGenerationSavesLiteralFirstNarration'] = True
+    audit['events'] = page.evaluate('window.__f3Events')
     page.remove_listener('request', saved_request)
     cdp.detach()
+    polluted = [save for save in audit['saveRequests'] if any(
+        message != 'placeholder' and message != expected_mes for message in save.get('firstMessages', []))]
+    assert not polluted, {'expandedFirstMessageSaves':polluted}
 
 
 def run_chapter_swipe_check(page, requests, result):
@@ -933,7 +972,8 @@ def run(args, temporary):
     result = {'base': args.base, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'runnerHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=RUNNER_ROOT,text=True).strip(),
               'mode':'f3-only' if args.f3_only else 'chapter-only' if args.chapter_only else 'review-only' if args.review_only else 'full',
-              'thirdPartyEnabled':args.enable_third_party, 'checks': {}}
+              'thirdPartyEnabled':args.enable_third_party, 'saveDuringDryRunProbe':args.f3_save_probe,
+              'testRunnerSha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'checks': {}}
     stage = 'start isolated lab'
     try:
         fake_source = """const { createFakeOpenAI } = await import(process.argv[1]);
@@ -2329,10 +2369,13 @@ def main():
     modes.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')
     modes.add_argument('--f3-only', action='store_true', help='Run the exact first-message/reload and ordinary-save checks only')
     modes.add_argument('--chapter-only', action='store_true', help='Run the same chapter swipe request-count check against a product tree')
+    parser.add_argument('--f3-save-probe', action='store_true', help='Diagnose a concurrent chat save during real Generate dry-run prompt processing')
     parser.add_argument('--enable-third-party', action='store_true', help='Enable the bundled third-party extensions in the synthetic fixture')
     parser.add_argument('--product-root', type=pathlib.Path, help='Read-only product checkout to test with this same runner')
     parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d2' / 'results.json')
     args = parser.parse_args()
+    if args.f3_save_probe and not args.f3_only:
+        parser.error('--f3-save-probe requires --f3-only')
     if args.product_root:
         ROOT = args.product_root.resolve()
         if not (ROOT / 'server.js').is_file():

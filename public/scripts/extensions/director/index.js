@@ -1,5 +1,5 @@
 import { Popper } from '../../../lib.js';
-import { doNavbarIconClick, is_send_press, setSendButtonState, showMoreMessages } from '../../../script.js';
+import { doNavbarIconClick, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
@@ -20,6 +20,8 @@ import {
     unmarkChapter,
 } from './chapters.js';
 import { initPresetManager } from './manager.js';
+import { createFateController } from './fate.js';
+import { createFatePanel } from './fate-ui.js';
 import {
     activeInstruct,
     applyBoundReinject,
@@ -44,6 +46,7 @@ let button;
 let popover;
 let popper;
 let instructChip;
+let fatePanel;
 let executing = false;
 let chatRevision = 0;
 /** One regenerate's pre-interceptor delete. Not a sticky boolean. */
@@ -510,7 +513,15 @@ function togglePopover() {
     chapters.textContent = '📖 章节';
     chapters.title = '章节列表';
     chapters.addEventListener('click', showChapterList);
-    footer.append(manage, chapters);
+    const fate = document.createElement('button');
+    fate.type = 'button';
+    fate.id = 'director_fate_open';
+    fate.textContent = '🎴 命运牌';
+    fate.addEventListener('click', () => {
+        closePopover();
+        fatePanel.open().catch(() => toastr.error('无法打开命运牌。'));
+    });
+    footer.append(manage, chapters, fate);
     popover.append(footer);
     popover.hidden = false;
     button.setAttribute('aria-expanded', 'true');
@@ -535,6 +546,16 @@ export async function init() {
         seeded = true;
     }
     const context = getContext();
+    const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim();
+    const fate = createFateController(getContext, {
+        isGenerating, hasDraft, uuid:uuidv4, random:Math.random,
+        generate: current => current.generate('normal'),
+        save: (_current, shouldSave) => saveChatConditional({ shouldSave }),
+        onRegenerateStart: () => setSendButtonState(true),
+        onError: message => toastr.warning(message),
+        onChange: () => fatePanel?.refresh(),
+    });
+    fatePanel = createFatePanel(fate, { Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn:message => toastr.warning(message) });
     initInstructLifecycle(getContext, refreshInstructChip);
     // The interceptor argument is a filtered copy. Swipe pops the target from
     // that copy before this runs, so reinject reads getContext().chat instead.
@@ -549,6 +570,7 @@ export async function init() {
                 maskDirectorPrompts(current);
                 return;
             }
+            fate.prepare(type);
             const result = applyBoundReinject(current, type);
             // Pending prompts were shielded at generation start. Bound text is
             // copied into the extension prompt here, so shield it before assembly.

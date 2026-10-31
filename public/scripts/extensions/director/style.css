@@ -3,6 +3,35 @@
     order: 4;
 }
 
+#director_fate_panel {
+    width: min(360px, calc(100vw - 64px));
+    max-width: 100%;
+    margin: auto;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.director_fate_card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    padding: 24px 16px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 12px;
+    background: repeating-linear-gradient(135deg, transparent 0 12px, rgba(127, 127, 127, 0.06) 12px 13px);
+    text-align: center;
+}
+
+.director_fate_seal { font-size: 36px; opacity: 0.65; }
+#director_fate_title { font-size: 1.25em; }
+#director_fate_strength_label { font-size: 0.9em; opacity: 0.8; }
+#director_fate_status { min-height: 2.5em; }
+.director_fate_actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.director_fate_actions .menu_button { flex: 1 1 auto; min-width: 0; white-space: normal; }
+#director_fate_strength { width: 100%; }
+
 #directorPopover {
     z-index: 30000;
     width: min(260px, 90vw);

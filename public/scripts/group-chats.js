@@ -169,26 +169,40 @@ async function _save(group, reload = true) {
 
 // Group chats
 async function regenerateGroup() {
-    let generationId = getLastMessageGenerationId();
+    // This operation deletes the previous batch before its normal Generate calls.
+    // Let extensions distinguish an explicit replay from an ordinary deletion.
+    const operation = { groupId: selected_group, chatId: getCurrentChatId(), generationId: getLastMessageGenerationId() };
+    const ownerMetadata = chat_metadata;
+    try {
+        await eventSource.emit(event_types.GROUP_REGENERATION_STARTED, operation);
+        if (selected_group !== operation.groupId || getCurrentChatId() !== operation.chatId || chat_metadata !== ownerMetadata) return;
+        if (operation.cancelled) {
+            setSendButtonState(false);
+            return;
+        }
+        let generationId = getLastMessageGenerationId();
 
-    while (chat.length > 0) {
-        const lastMes = chat[chat.length - 1];
-        const this_generationId = lastMes.extra?.gen_id;
+        while (chat.length > 0) {
+            const lastMes = chat[chat.length - 1];
+            const this_generationId = lastMes.extra?.gen_id;
 
-        // for new generations after the update
-        if ((generationId && this_generationId) && generationId !== this_generationId) {
-            break;
-        } else if (lastMes.is_user || lastMes.is_system) {
-            // legacy for generations before the update
-            break;
+            // for new generations after the update
+            if ((generationId && this_generationId) && generationId !== this_generationId) {
+                break;
+            } else if (lastMes.is_user || lastMes.is_system) {
+                // legacy for generations before the update
+                break;
+            }
+
+            await deleteLastMessage();
         }
 
-        await deleteLastMessage();
+        const abortController = new AbortController();
+        setExternalAbortController(abortController);
+        return await generateGroupWrapper(false, 'normal', { signal: abortController.signal });
+    } finally {
+        await eventSource.emit(event_types.GROUP_REGENERATION_FINISHED, operation);
     }
-
-    const abortController = new AbortController();
-    setExternalAbortController(abortController);
-    return generateGroupWrapper(false, 'normal', { signal: abortController.signal });
 }
 
 /**

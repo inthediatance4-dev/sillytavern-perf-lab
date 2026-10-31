@@ -1143,7 +1143,11 @@ def run_chapter_swipe_check(page, requests, result):
 def finish_report(result, errors, requests, browser, node, provider):
     assert not errors, errors
     result.update({'pass':True, 'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
-    source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*'))
+    source_paths = sorted([
+        *(ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*'),
+        ROOT / 'public' / 'script.js', ROOT / 'public' / 'scripts' / 'events.js',
+        ROOT / 'public' / 'scripts' / 'group-chats.js', ROOT / 'tests' / 'browser_fate_cases.py',
+    ])
     result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
         for source in source_paths if source.is_file()}
     result['fakeEndpointSha256'] = hashlib.sha256(provider.read_bytes()).hexdigest()
@@ -1162,7 +1166,7 @@ def run(args, temporary):
     log_path = temp / 'server.log'
     result = {'base': args.base, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'runnerHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=RUNNER_ROOT,text=True).strip(),
-              'mode':'f3-only' if args.f3_only else 'chapter-only' if args.chapter_only else 'review-only' if args.review_only else 'full',
+              'mode':'fate-only' if args.fate_only else 'f3-only' if args.f3_only else 'chapter-only' if args.chapter_only else 'review-only' if args.review_only else 'full',
               'thirdPartyEnabled':args.enable_third_party, 'saveDuringDryRunProbe':args.f3_save_probe,
               'testRunnerSha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'checks': {}}
     stage = 'start isolated lab'
@@ -1305,6 +1309,16 @@ def run(args, temporary):
                     assert not result['disabledThirdPartyExtensions'], result['disabledThirdPartyExtensions']
                     assert result['thirdPartyRuntime']['tavernHelperAvailable'], result['thirdPartyRuntime']
                     assert any(path.endswith('/st-memory-enhancement/index.js') for path in loaded_scripts), loaded_scripts
+                if args.fate_only:
+                    stage = 'Fate Cards browser acceptance'
+                    from browser_fate_cases import run_fate_checks
+                    run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message)
+                    def requests():
+                        with urllib.request.urlopen(fake_url.removesuffix('/v1') + '/__requests', timeout=5) as response:
+                            return json.load(response)
+                    finish_report(result, errors, requests, browser, node, provider)
+                    browser.close()
+                    return result
                 if args.f3_only or args.chapter_only:
                     def requests():
                         with urllib.request.urlopen(fake_url.removesuffix('/v1') + '/__requests', timeout=5) as response:
@@ -2557,6 +2571,7 @@ def main():
     parser.add_argument('--fake-endpoint', default=str(ROOT / 'scripts' / 'fake-openai-endpoint.mjs'))
     parser.add_argument('--base', default='ffd5f4e')
     modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--fate-only', action='store_true', help='Run sealed Fate Card browser scenarios')
     modes.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')
     modes.add_argument('--f3-only', action='store_true', help='Run the exact first-message/reload and ordinary-save checks only')
     modes.add_argument('--chapter-only', action='store_true', help='Run the same chapter swipe request-count check against a product tree')

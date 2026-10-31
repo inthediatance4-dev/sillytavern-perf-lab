@@ -2,7 +2,7 @@
 
 **Goal:** Implement the approved sealed-card interaction without changing existing Director instructions.
 
-**Architecture:** Independent fate.js controller/model, fate-ui.js for DOM, one index.js integration hook, and scoped group regeneration notifications. Existing quiet-generation and success-completion APIs remain authoritative.
+**Architecture:** Independent fate.js controller/model, fate-ui.js for DOM, one index.js integration hook, scoped group regeneration notifications, and an optional saveChatConditional ownership guard after its lock wait. Existing quiet-generation and success-completion APIs remain authoritative; Generate and third-party extensions remain unchanged.
 
 **Tech Stack:** Existing browser ES modules, node:test, Python Playwright and fake OpenAI fixture. Test with existing Node v24.22.1.
 

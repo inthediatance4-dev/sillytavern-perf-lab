@@ -10188,13 +10188,17 @@ export async function saveMetadata() {
     return await saveChatConditional();
 }
 
-export async function saveChatConditional() {
+export async function saveChatConditional(options = {}) {
+    const shouldSave = options?.shouldSave;
     try {
         await waitUntilCondition(() => !isChatSaving, DEFAULT_SAVE_EDIT_TIMEOUT, 100);
     } catch {
         console.warn('Timeout waiting for chat to save');
         return false;
     }
+
+    // Owner-bound extension saves may have waited while the selected chat changed.
+    if (typeof shouldSave === 'function' && !shouldSave()) return false;
 
     try {
         cancelDebouncedChatSave();

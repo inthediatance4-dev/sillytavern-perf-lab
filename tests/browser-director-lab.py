@@ -994,6 +994,9 @@ def run(args, temporary):
                 errors = []
                 page = context.new_page()
                 page.on('pageerror', lambda error: errors.append(str(error)))
+                result['failedRequests'] = []
+                page.on('requestfailed', lambda request: result['failedRequests'].append({
+                    'url':request.url, 'method':request.method, 'failure':request.failure}))
                 loaded_scripts = set()
                 page.on('response', lambda response: loaded_scripts.add(urllib.parse.urlparse(response.url).path)
                         if response.status == 200 and '/scripts/extensions/third-party/' in response.url else None)
@@ -2305,6 +2308,7 @@ def run(args, temporary):
         return result
     except Exception as error:
         tail = log_path.read_text(encoding='utf-8', errors='replace')[-4000:] if log_path.exists() else ''
+        result['processStatus'] = {'server':server.poll() if server else None, 'provider':fake.poll() if fake else None}
         failure = redact({**result, 'pass':False, 'stage':stage, 'error':str(error), 'serverLogTail':tail}, temporary)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_bytes((json.dumps(failure, indent=2, ensure_ascii=False) + '\n').encode('utf-8'))

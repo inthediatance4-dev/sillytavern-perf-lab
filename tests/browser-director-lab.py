@@ -634,6 +634,38 @@ def run_review_checks(page, sample, fake_url, result):
     assert_hidden_chip()
     result['checks']['disconnectedRegenerateThenDeleteClearsBinding'] = True
 
+    stage = 'earlier interceptor termination preserves the regenerate binding'
+    for termination in ('abort', 'stop'):
+        token = 'REGENPREFLIGHT' + termination.upper()
+        preset(page, 'direct', text=token)
+        page.locator('#send_textarea').fill('A user turn before the preflight ' + termination)
+        page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+        assert_bound(token)
+        before = len(requests())
+        # The built-in image interceptor is ordered before Director. Use its
+        # actual slot to terminate before Director runs, without a provider call.
+        page.evaluate("""async termination => {
+            const original = globalThis.SD_ProcessTriggers;
+            if (typeof original !== 'function') throw new Error('Missing earlier built-in interceptor');
+            globalThis.SD_ProcessTriggers = async (...args) => {
+                if (args[3] === 'regenerate') {
+                    if (termination === 'stop') SillyTavern.getContext().stopGeneration();
+                    args[2](true);
+                    return;
+                }
+                return original(...args);
+            };
+            try { await SillyTavern.getContext().generate('regenerate'); }
+            finally { globalThis.SD_ProcessTriggers = original; }
+            if ((await import('/script.js')).is_send_press) throw new Error('Aborted preflight stayed busy');
+        }""", termination)
+        assert len(requests()) == before
+        assert_bound(token)
+        page.evaluate("async () => { await SillyTavern.getContext().generate('regenerate'); }")
+        assert token in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+        assert_bound(token)
+        result['checks']['regenerateBindingSurvivesEarlierInterceptor' + termination.title()] = True
+
     stage = 'dryRun leaves the real regenerate deletion token alone'
     dry_token = 'REGENDRYRUN16'
     bind_instruct(dry_token)

@@ -164,25 +164,6 @@ export function matchesRegenerateDelete(skip, context, generationActive = true) 
 }
 
 /**
- * Direct Generate calls set their busy flag after deleting the old reply. The
- * deletion clears the persisted binding immediately; only this same run's
- * regenerate interceptor may restore its private candidate. A new real run,
- * stop/end, user message or chat switch discards the candidate in index.js.
- * @param {object|null} candidate
- * @param {object} context
- * @param {string} type
- * @returns {boolean}
- */
-export function confirmRegenerateDelete(candidate, context, type) {
-    if (!candidate || type !== 'regenerate' || readBoundInstruct(context.chatMetadata)) return false;
-    if (candidate.chatId !== context.chatId || candidate.metadata !== context.chatMetadata) return false;
-    if (!shouldReinject({ type, chat: context.chat, binding: candidate.binding, hasPending: false })) return false;
-    context.chatMetadata.director ??= {};
-    context.chatMetadata.director.boundInstruct = { ...candidate.binding };
-    return true;
-}
-
-/**
  * @param {string} type
  * @param {object[]} chat
  * @param {number} slotIndex

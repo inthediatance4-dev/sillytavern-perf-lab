@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import * as instruct from '../public/scripts/extensions/director/instruct.js';
 import { EventEmitter } from '../public/lib/eventemitter.js';
 import {
     BOUND_INSTRUCT_PROMPT_KEY,
@@ -402,18 +401,25 @@ test('dryRun neither clears a regenerate token nor restores a masked real genera
     assert.equal(cleared, 0);
 });
 
-test('only the same regenerate interceptor can restore a provisionally deleted binding', () => {
-    assert.equal(typeof instruct.confirmRegenerateDelete, 'function');
-    const binding = bindingFrom(user);
-    const metadata = withBinding(binding);
-    const candidate = { chatId: 'chat-a', metadata, slotIndex: 1, binding };
-    const context = { chatId: 'chat-a', chatMetadata: metadata, chat: [user] };
-    assert.equal(applyDeletionClear(metadata, context.chat, false), true);
-    assert.equal(metadata.director, undefined, 'normal deletion removes an empty director container');
-    assert.equal(instruct.confirmRegenerateDelete(candidate, context, 'normal'), false);
-    assert.equal(instruct.confirmRegenerateDelete(candidate, { ...context, chatId: 'chat-b' }, 'regenerate'), false);
-    assert.equal(instruct.confirmRegenerateDelete(candidate, { ...context, chat: [{ ...user, mes: 'edited' }] }, 'regenerate'), false);
-    assert.equal(instruct.confirmRegenerateDelete(candidate, context, 'regenerate'), true);
-    assert.deepEqual(readBoundInstruct(metadata), binding);
-    assert.equal(instruct.confirmRegenerateDelete(candidate, context, 'regenerate'), false, 'never overwrite a newer binding');
+test('a bound direct regenerate marks upstream busy before its pre-interceptor delete', () => {
+    const source = readFileSync(new URL('../public/scripts/extensions/director/index.js', import.meta.url), 'utf8');
+    const metadata = withBinding();
+    let busy = false;
+    const context = vm.createContext({
+        getContext: () => ({ chatId: 'chat-a', chatMetadata: metadata }),
+        readBoundInstruct,
+        clearBoundDeleteSkip() {},
+        setSendButtonState: value => { busy = value; },
+    });
+    const start = source.indexOf('function armBoundDeleteSkip(');
+    const end = source.indexOf('\nfunction closePopover', start);
+    vm.runInContext(source.slice(start, end), context);
+    vm.runInContext("armBoundDeleteSkip('quiet', false)", context);
+    assert.equal(busy, false);
+    vm.runInContext("armBoundDeleteSkip('regenerate', true)", context);
+    assert.equal(busy, false);
+    vm.runInContext("armBoundDeleteSkip('regenerate', false)", context);
+    assert.equal(busy, true);
+    const skip = { chatId: 'chat-a', metadata, slotIndex: 1 };
+    assert.equal(matchesRegenerateDelete(skip, { chatId: 'chat-a', chatMetadata: metadata, chat: [user] }, busy), true);
 });

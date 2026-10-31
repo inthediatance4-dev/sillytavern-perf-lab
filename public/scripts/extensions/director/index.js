@@ -1,5 +1,5 @@
 import { Popper } from '../../../lib.js';
-import { doNavbarIconClick, is_send_press, showMoreMessages } from '../../../script.js';
+import { doNavbarIconClick, is_send_press, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
@@ -28,7 +28,6 @@ import {
     applyUserSentClear,
     cancelPendingInstruct,
     clearTemporaryInstruct,
-    confirmRegenerateDelete,
     discardDirectorPromptMask,
     initInstructLifecycle,
     instructStatusText,
@@ -49,8 +48,6 @@ let executing = false;
 let chatRevision = 0;
 /** One regenerate's pre-interceptor delete. Not a sticky boolean. */
 let boundDeleteSkip = null;
-/** Deleted while upstream was not busy; restored only by this run's interceptor. */
-let deletedBindingCandidate = null;
 /** Literal chat[0] while Generate substitutes that message for the prompt. */
 let firstDirectorMessage = null;
 
@@ -75,7 +72,6 @@ function restoreFirstDirectorMessage() {
 
 function clearBoundDeleteSkip() {
     boundDeleteSkip = null;
-    deletedBindingCandidate = null;
 }
 
 /**
@@ -91,6 +87,10 @@ function armBoundDeleteSkip(generationType, dryRun) {
     const context = getContext();
     const binding = readBoundInstruct(context.chatMetadata);
     if (!binding) return;
+    // The native regenerate button already sets this before Generate. Direct
+    // extension calls do not, so mirror that public entry point for a binding.
+    // Generate's preflight exits/unblockGeneration reset it on failure/abort.
+    setSendButtonState(true);
     boundDeleteSkip = {
         chatId: context.chatId,
         metadata: context.chatMetadata,
@@ -561,11 +561,9 @@ export async function init() {
     // The interceptor argument is a filtered copy. Swipe pops the target from
     // that copy before this runs, so reinject reads getContext().chat instead.
     globalThis.director_rebind_interceptor = async function director_rebind_interceptor(_chat, _contextSize, _abort, type) {
-        const candidate = deletedBindingCandidate;
         clearBoundDeleteSkip();
         try {
             const current = getContext();
-            const confirmed = confirmRegenerateDelete(candidate, current, type);
             // Quiet and impersonate must not send or consume a pending instruct,
             // and they must not copy boundInstruct back into the prompt.
             if (type === 'quiet' || type === 'impersonate') {
@@ -577,7 +575,7 @@ export async function init() {
             // Pending prompts were shielded at generation start. Bound text is
             // copied into the extension prompt here, so shield it before assembly.
             shieldDirectorPromptValues(current);
-            if (result.cleared || confirmed) {
+            if (result.cleared) {
                 refreshInstructChip();
                 await current.saveMetadata();
             }
@@ -785,11 +783,8 @@ export async function init() {
     });
     context.eventSource.on(context.eventTypes.MESSAGE_DELETED, async () => {
         const current = getContext();
-        const candidate = matchesRegenerateDelete(boundDeleteSkip, current)
-            ? { ...boundDeleteSkip, binding: { ...readBoundInstruct(current.chatMetadata) } } : null;
         const duringRegenerate = matchesRegenerateDelete(boundDeleteSkip, current, is_send_press);
-        boundDeleteSkip = null;
-        deletedBindingCandidate = duringRegenerate ? null : candidate;
+        clearBoundDeleteSkip();
         if (!applyDeletionClear(current.chatMetadata, current.chat, duringRegenerate)) return;
         refreshInstructChip();
         await current.saveMetadata();

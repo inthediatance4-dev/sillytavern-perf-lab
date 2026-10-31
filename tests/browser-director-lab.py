@@ -37,6 +37,7 @@ def redact(value, temporary=''):
                                 (socket.gethostname(), '<host>')]:
         if source:
             text = text.replace(source, replacement)
+            text = text.replace(json.dumps(source, ensure_ascii=False)[1:-1], replacement)
     text = re.sub(re.escape(str(ROOT.parent)) + r'/[^\s"<>]*', '<repo>', text)
     text = re.sub(r'http://127\.0\.0\.1:\d+', 'http://<host>', text)
     return json.loads(text)
@@ -301,7 +302,7 @@ def run(args, temporary):
     node = args.node
     fake = server = None
     log_path = temp / 'server.log'
-    result = {'base': args.base, 'checks': {}}
+    result = {'base': args.base, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'checks': {}}
     stage = 'start isolated lab'
     try:
         fake_source = """const { createFakeOpenAI } = await import(process.argv[1]);
@@ -2023,7 +2024,7 @@ def run(args, temporary):
                 assert_literal_message(1, 'macro-comment')
                 result['checks']['ordinaryGenerationSavesLiteralFirstNarration'] = True
                 assert not errors, errors
-                result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
+                result.update({'pass':True, 'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]
                 result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
                     for source in source_paths if source.is_file()}
@@ -2047,11 +2048,13 @@ def main():
     parser.add_argument('--base', default='ffd5f4e')
     parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d2' / 'results.json')
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory(prefix='director-lab-') as temporary:
-        result = redact(run(args, temporary), temporary)
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-        print(json.dumps(result, ensure_ascii=False))
+    # Preserve synthetic artifacts for diagnosis instead of permanently deleting
+    # them on success or failure. Only this script's child processes are stopped.
+    temporary = tempfile.mkdtemp(prefix='director-lab-')
+    result = redact(run(args, temporary), temporary)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    print(json.dumps(result, ensure_ascii=False))
 
 
 if __name__ == '__main__':

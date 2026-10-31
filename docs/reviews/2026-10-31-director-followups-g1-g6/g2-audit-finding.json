@@ -1,0 +1,23 @@
+{
+  "acceptance": "blocked",
+  "gate": "G2",
+  "expectedFirstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+  "naturalUnsafeSave": {
+    "phase": "create-fixture",
+    "at": 1793440066.930172,
+    "firstMessages": [
+      "【Director Synthetic】Director Synthetic 和 Synthetic Tester a",
+      "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+    ],
+    "rows": 3
+  },
+  "naturalEvidence": "g2-3.results.json",
+  "naturalOldEndStatePass": true,
+  "controlledEvidence": "g2-direct-save-race.results.json",
+  "controlledExitCode": 1,
+  "controlledReadback": {
+    "firstMes": "【Director Synthetic】Director Synthetic 和 Synthetic Tester a",
+    "storedFirstMes": "【Director Synthetic】Director Synthetic 和 Synthetic Tester a"
+  },
+  "warning": "The old final-state checks masked a dirty intermediate save. The original historical extension caller remains unproven."
+}

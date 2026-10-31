@@ -1,0 +1,211 @@
+{
+  "base": "ffd5f4e",
+  "head": "19442dbabe05710ea9d8a387c0b1c62114422687",
+  "runnerHead": "19442dbabe05710ea9d8a387c0b1c62114422687",
+  "mode": "f3-only",
+  "thirdPartyEnabled": true,
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "08e39ceab473bf4cb4126cc49aaf7f618a9c0fc620e7c02b935c74bcf8d8643b",
+      "focusCount": 2
+    },
+    "firstMessageNarrationKeepsLiteralMacros": true
+  },
+  "disabledThirdPartyExtensions": [],
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [
+      "/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+      "/scripts/extensions/third-party/st-memory-enhancement/index.js"
+    ],
+    "tavernHelperAvailable": true
+  },
+  "f3Audit": {
+    "saveRequests": [
+      {
+        "phase": "create-fixture",
+        "at": 1793439677.591435,
+        "firstMessages": [
+          "placeholder"
+        ],
+        "rows": 2
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793439678.4109414,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 2
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793439678.8831098,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 3
+      },
+      {
+        "phase": "save-then-quiet",
+        "at": 1793439679.0437484,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 3
+      },
+      {
+        "phase": "reload-after-quiet",
+        "at": 1793439679.1909635,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 3
+      },
+      {
+        "phase": "ordinary-generation",
+        "at": 1793439679.4045875,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 4
+      }
+    ],
+    "saveCallers": [
+      {
+        "phase": "create-fixture",
+        "at": 1793439677.590148,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "eval",
+            "url": "",
+            "lineNumber": 2,
+            "columnNumber": 31
+          },
+          {
+            "functionName": "evaluate",
+            "url": "",
+            "lineNumber": 317,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 43
+          }
+        ]
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793439678.408115,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8099,
+            "columnNumber": 29
+          }
+        ]
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793439678.880382,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8099,
+            "columnNumber": 29
+          }
+        ]
+      },
+      {
+        "phase": "save-then-quiet",
+        "at": 1793439679.040911,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8099,
+            "columnNumber": 29
+          }
+        ]
+      },
+      {
+        "phase": "reload-after-quiet",
+        "at": 1793439679.185728,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8099,
+            "columnNumber": 29
+          }
+        ]
+      },
+      {
+        "phase": "ordinary-generation",
+        "at": 1793439679.402735,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8099,
+            "columnNumber": 29
+          }
+        ]
+      }
+    ],
+    "snapshots": [
+      {
+        "phase": "after-quiet",
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+      }
+    ]
+  },
+  "pass": false,
+  "stage": "standalone F3 with third-party configuration recorded",
+  "error": "Page.evaluate: TypeError: Failed to fetch\n    at window.fetch (http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js:73:145085)\n    at sendOpenAIRequest (http://<host>/scripts/openai.js:3149:28)\n    at async sendGenerationRequest (http://<host>/script.js:6707:16)\n    at async finishGenerating (http://<host>/script.js:6028:20)\n    at async eval (eval at evaluate (:311:30), <anonymous>:1:15)\n    at async <anonymous>:337:30",
+  "serverLogTail": "住所,7:其他重要信息\\n' +\n        '（此表格当前为空）\\n' +\n        '【增删改触发条件】\\n' +\n        '插入：本轮必须从上文寻找已知的所有角色使用insertRow插入，角色名不能为空\\n' +\n        '\\n' +\n        '\\n' +\n        '* 2:角色与Synthetic Tester社交表格\\n' +\n        '【说明】思考如果有角色和Synthetic Tester互动，应什么态度\\n' +\n        '【表格内容】\\n' +\n        'rowIndex,0:角色名,1:对Synthetic Tester关系,2:对Synthetic Tester态度,3:对Synthetic Tester好感\\n' +\n        '（此表格当前为空）\\n' +\n        '【增删改触发条件】\\n' +\n        '插入：本轮必须从上文寻找已知的所有角色使用insertRow插入，角色名不能为空\\n' +\n        '\\n' +\n        '\\n' +\n        '* 3:任务、命令或者约定表格\\n' +\n        '【说明】思考本轮是否应该执行任务/赴约\\n' +\n        '【表格内容】\\n' +\n        'rowIndex,0:角色,1:任务,2:地点,3:持续时间\\n' +\n        '（此表格当前为空）\\n' +\n        '【增删改触发条件】\\n' +\n        '插入：当特定时间约定一起去做某事时/某角色收到做某事的命令或任务时\\n' +\n        '删除：当大家赴约时/任务或命令完成时/任务，命令或约定被取消时\\n' +\n        '\\n' +\n        '\\n' +\n        '* 4:重要事件历史表格\\n' +\n        '【说明】记录Synthetic Tester或角色经历的重要事件\\n' +\n        '【表格内容】\\n' +\n        'rowIndex,0:角色,1:事件简述,2:日期,3:地点,4:情绪\\n' +\n        '（此表格当前为空）\\n' +\n        '【增删改触发条件】\\n' +\n        '插入：本轮必须从上文寻找可以插入的事件并使用insertRow插入\\n' +\n        '\\n' +\n        '\\n' +\n        '* 5:重要物品表格\\n' +\n        '【说明】对某人很贵重或有特殊纪念意义的物品\\n' +\n        '【表格内容】\\n' +\n        'rowIndex,0:拥有人,1:物品描述,2:物品名,3:重要原因\\n' +\n        '（此表格当前为空）\\n' +\n        '【增删改触发条件】\\n' +\n        '插入：当某人获得了贵重或有特殊意义的物品时/当某个已有物品有了特殊意义时\\n' +\n        '\\n' +\n        '\\n' +\n        '\\n' +\n        '  # 增删改dataTable操作方法：\\n' +\n        '  -当你生成正文后，需要根据【增删改触发条件】对每个表格是否需要增删改进行检视。如需修改，请在<tableEdit>标签中使用 JavaScript 函数的写法调用函数，并使用下面的 OperateRule 进行。\\n' +\n        '\\n' +\n        '  ## 操作规则 (必须严格遵守)\\n' +\n        '  <OperateRule>\\n' +\n        '  -在某个表格中插入新行时，使用insertRow函数：\\n' +\n        '  insertRow(tableIndex:number, data:{[colIndex:number]:string|number})\\n' +\n        '  例如：insertRow(0, {0: \"2021-09-01\", 1: \"12:00\", 2: \"阳台\", 3: \"小花\"})\\n' +\n        '  -在某个表格中删除行时，使用deleteRow函数：\\n' +\n        '  deleteRow(tableIndex:number, rowIndex:number)\\n' +\n        '  例如：deleteRow(0, 0)\\n' +\n        '  -在某个表格中更新行时，使用updateRow函数：\\n' +\n        '  updateRow(tableIndex:number, rowIndex:number, data:{[colIndex:number]:string|number})\\n' +\n        '  例如：updateRow(0, 0, {3: \"惠惠\"})\\n' +\n        '  </OperateRule>\\n' +\n        '\\n' +\n        '  # 重要操作原则 (必须遵守)\\n' +\n        '  -当Synthetic Tester要求修改表格时，Synthetic Tester的要求优先级最高。\\n' +\n        '  -每次回复都必须根据剧情在正确的位置进行增、删、改操作，禁止捏造信息和填入未知。\\n' +\n        '  -使用 insertRow 函数插入行时，请为所有已知的列提供对应的数据。且检查data:{[colIndex:number]:string|number}参数是否包含所有的colIndex。\\n' +\n        '  -单元格中禁止使用逗号，语义分割应使用 / 。\\n' +\n        '  -string中，禁止出现双引号。\\n' +\n        '  -社交表格(tableIndex: 2)中禁止出现对Synthetic Tester的态度。反例 (禁止)：insertRow(2, {\"0\":\"Synthetic Tester\",\"1\":\"未知\",\"2\":\"无\",\"3\":\"低\"})\\n' +\n        '  -<tableEdit>标签内必须使用<!-- -->标记进行注释\\n' +\n        '\\n' +\n        '  # 输出示例：\\n' +\n        '  <tableEdit>\\n' +\n        '  <!--\\n' +\n        '  insertRow(0, {\"0\":\"十月\",\"1\":\"冬天/下雪\",\"2\":\"学校\",\"3\":\"Synthetic Tester/悠悠\"})\\n' +\n        '  deleteRow(1, 2)\\n' +\n        '  insertRow(1, {0:\"悠悠\", 1:\"体重60kg/黑色长发\", 2:\"开朗活泼\", 3:\"学生\", 4:\"羽毛球\", 5:\"鬼灭之刃\", 6:\"宿舍\", 7:\"运动部部长\"})\\n' +\n        '  insertRow(1, {0:\"Synthetic Tester\", 1:\"制服/短发\", 2:\"忧郁\", 3:\"学生\", 4:\"唱歌\", 5:\"咒术回战\", 6:\"自己家\", 7:\"学生会长\"})\\n' +\n        '  insertRow(2, {0:\"悠悠\", 1:\"同学\", 2:\"依赖/喜欢\", 3:\"高\"})\\n' +\n        '  updateRow(4, 1, {0: \"小花\", 1: \"破坏表白失败\", 2: \"10月\", 3: \"学校\",4:\"愤怒\"})\\n' +\n        '  insertRow(4, {0: \"Synthetic Tester/悠悠\", 1: \"悠悠向Synthetic Tester表白\", 2: \"2021-10-05\", 3: \"教室\",4:\"感动\"})\\n' +\n        '  insertRow(5, {\"0\":\"Synthetic Tester\",\"1\":\"社团赛奖品\",\"2\":\"奖杯\",\"3\":\"比赛第一名\"})\\n' +\n        '  -->\\n' +\n        '  </tableEdit>\\n' +\n        '  '\n    },\n    {\n      role: 'user',\n      content: 'Ordinary generation after literal narration.'\n    }\n  ],\n  prompt: undefined,\n  model: 'startup-synthetic',\n  temperature: 1,\n  max_tokens: 300,\n  max_completion_tokens: undefined,\n  stream: false,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\n"
+}

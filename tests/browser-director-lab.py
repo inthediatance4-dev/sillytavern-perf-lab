@@ -294,6 +294,486 @@ def preset(page, preset_id, text=None, cancel=False, digit=None):
     wait_director_idle(page)
 
 
+def run_review_checks(page, sample, fake_url, result):
+    """Run only the Director macro/instruct review scenarios on a fresh fixture."""
+    request_url = fake_url.removesuffix('/v1') + '/__requests'
+    def requests():
+        with urllib.request.urlopen(request_url, timeout=5) as response:
+            return json.load(response)
+
+
+    def configure_provider(options):
+        request = urllib.request.Request(fake_url.removesuffix('/v1') + '/__configure',
+            data=json.dumps(options).encode(), headers={'Content-Type': 'application/json'}, method='POST')
+        with urllib.request.urlopen(request, timeout=10) as response:
+            assert json.load(response)['configured']
+
+
+    def chip_state():
+        return page.evaluate("""() => {
+            const chip = document.querySelector('#director_instruct_chip');
+            if (!chip) return null;
+            const style = getComputedStyle(chip);
+            return {
+                hidden: chip.hidden,
+                display: style.display,
+                state: chip.dataset.state || '',
+                title: chip.title || '',
+                label: chip.textContent || '',
+                aria: chip.getAttribute('aria-label') || '',
+            };
+        }""")
+
+
+    def wait_count(count, timeout=20):
+        deadline = time.monotonic() + timeout
+        latest = requests()
+        while len(latest) < count and time.monotonic() < deadline:
+            page.wait_for_timeout(50)
+            latest = requests()
+        assert len(latest) >= count, len(latest)
+        return latest
+
+
+    def slash(command):
+        outcome = page.evaluate("""async (command) => {
+            try {
+                await SillyTavern.getContext().executeSlashCommandsWithOptions(command);
+                return { ok: true };
+            } catch (error) {
+                return { ok: false, error: String(error && error.message || error) };
+            }
+        }""", command)
+        assert outcome['ok'], outcome
+        return outcome
+
+
+    def assert_bound(token):
+        state = chip_state()
+        assert state and state['hidden'] is False and state['display'] != 'none', state
+        assert state['state'] == 'bound' and token in state['title'] and '重生沿用' in state['label'], state
+        assert token in state['aria'] and '✕' in state['label']
+
+
+    def assert_hidden_chip():
+        state = chip_state()
+        assert state and state['hidden'] is True and state['display'] == 'none', state
+        assert 'director_instruct_chip' not in snapshot(page)['focus']
+
+
+    stage = 'user input macros stay literal'
+    # The group stage leaves a group open. Select the character before
+    # opening its chat. Popup input is not an STscript argument, so
+    # {{char}} reaches the template raw.
+    page.evaluate("""async (sample) => {
+        const context = SillyTavern.getContext();
+        const index = context.characters.findIndex(card => card.avatar === sample.avatar);
+        await context.selectCharacterById(String(index));
+        await SillyTavern.getContext().openCharacterChat(sample.chatName);
+    }""", sample)
+    page.wait_for_function("""name => {
+        const context = SillyTavern.getContext();
+        return !context.groupId && context.chatId === name && context.name2 === 'Director Synthetic';
+    }""", arg=sample['chatName'], timeout=30000)
+    literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
+    expected_mes = '【Director Synthetic】' + literal_input
+    page.evaluate("""async () => {
+        const { extension_settings } = await import('/scripts/extensions.js');
+        const template = '【{{char}}】{{input:说什么}}';
+        const fields = { template, isChapter: false, autoGenerate: false };
+        extension_settings.director.presets.push(
+            { ...fields, id: 'macro-narrator', icon: '⏩', name: '宏旁白', mode: 'narrator' },
+            { ...fields, id: 'macro-comment', icon: '📝', name: '宏备注', mode: 'comment' },
+            { ...fields, id: 'macro-instruct', icon: '🎭', name: '宏指令', mode: 'instruct' },
+        );
+    }""")
+
+    def saved_message():
+        return page.evaluate("""async (sample) => {
+            const context = SillyTavern.getContext();
+            const response = await fetch('/api/chats/get', { method: 'POST', headers: context.getRequestHeaders(),
+                body: JSON.stringify({ avatar_url: sample.avatar, file_name: sample.chatName }) });
+            if (!response.ok) throw new Error('Saved JSONL read failed');
+            const saved = await response.json();
+            return saved[saved.length - 1];
+        }""", sample)
+
+    for preset_id in ('macro-narrator', 'macro-comment'):
+        preset(page, preset_id, text=literal_input)
+        memory = page.evaluate('() => SillyTavern.getContext().chat.at(-1)')
+        assert memory['mes'] == expected_mes, memory['mes']
+        assert memory['extra']['director']['preset'] == preset_id
+        saved = saved_message()
+        assert saved['mes'] == expected_mes, saved.get('mes')
+        assert '{{random::a,b}}' in saved['mes']
+        assert saved['extra']['director']['preset'] == preset_id
+    chat_before = page.evaluate('() => SillyTavern.getContext().chat.length')
+    preset(page, 'macro-instruct', text=literal_input)
+    assert page.evaluate('() => SillyTavern.getContext().chat.length') == chat_before
+    before = len(requests())
+    slash('/trigger await=true')
+    latest = wait_count(before + 1, timeout=30)
+    body = json.dumps(latest[-1], ensure_ascii=False)
+    # Prompt assembly still expands macros inside saved chat messages.
+    # The injection itself is the system content that keeps the typed text.
+    assert expected_mes in body, body
+    assert '{{random::a,b}}' in body
+    result['checks']['userInputMacrosStayLiteral'] = True
+    print('User input macros stay literal in JSONL and the instruct request', flush=True)
+
+    stage = 'quiet and impersonate keep a pending instruct'
+
+    def director_prompts():
+        return page.evaluate("""() => {
+            const context = SillyTavern.getContext();
+            return Object.entries(context.chatMetadata.script_injects || {})
+                .filter(([, inject]) => inject && inject.directorEphemeral === true)
+                .map(([id, inject]) => {
+                    const prompt = context.extensionPrompts['script_inject_' + id];
+                    return { id, value: inject.value, promptValue: prompt ? prompt.value : null, hasPrompt: !!prompt };
+                });
+        }""")
+
+    def assert_pending(token):
+        state = chip_state()
+        assert state and state['hidden'] is False and state['state'] == 'pending', state
+        assert token in state['title'] and '待生效' in state['label'], state
+        color = page.evaluate("""() => getComputedStyle(document.querySelector('#director_instruct_chip')).color""")
+        assert color == 'rgb(196, 92, 18)', color
+        found = [item for item in director_prompts() if token in item['value']]
+        assert len(found) == 1 and found[0]['hasPrompt'] and found[0]['promptValue'] == found[0]['value'], found
+
+    quiet_token = 'QUIETMASKUNIQUE10'
+    preset(page, 'direct', text=quiet_token)
+    assert_pending(quiet_token)
+    before = len(requests())
+    quiet = page.evaluate("""async () => {
+        try {
+            const text = await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet probe only.' });
+            return { failed: false, text: String(text ?? '') };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert quiet['failed'] is False, quiet
+    quiet_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert quiet_token not in quiet_body, quiet_body
+    assert 'Quiet probe only.' in quiet_body
+    assert_pending(quiet_token)
+
+    before = len(requests())
+    slash('/impersonate await=true')
+    impersonate_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert quiet_token not in impersonate_body, impersonate_body
+    assert_pending(quiet_token)
+    page.evaluate("""() => {
+        const box = document.querySelector('#send_textarea');
+        box.value = '';
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+    }""")
+
+    before = len(requests())
+    slash('/trigger await=true')
+    sent_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert quiet_token in sent_body, sent_body
+    assert_bound(quiet_token)
+    assert not any(quiet_token in item['value'] for item in director_prompts())
+
+    stage = 'quiet 500 restores the extension prompt'
+    fail_token = 'QUIETFAILUNIQUE11'
+    preset(page, 'direct', text=fail_token)
+    assert_pending(fail_token)
+    configure_provider({'nextStatus': 500})
+    before = len(requests())
+    failed = page.evaluate("""async () => {
+        try {
+            await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet failure probe.' });
+            return { failed: false };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert failed['failed'] is True, failed
+    failed_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert fail_token not in failed_body, failed_body
+    assert_pending(fail_token)
+    configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+    result['checks']['quietAndImpersonateDoNotConsumePending'] = True
+    print('Quiet and impersonate leave pending instructs in place', flush=True)
+
+    stage = 'regenerate delete skip does not stick'
+
+    def dismiss_pending():
+        if chip_state()['state'] != 'pending':
+            return
+        page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+        page.wait_for_function("""() => {
+            const chip = document.querySelector('#director_instruct_chip');
+            return !chip || chip.hidden || chip.dataset.state !== 'pending';
+        }""")
+
+    def bind_instruct(token):
+        dismiss_pending()
+        preset(page, 'direct', text=token)
+        before_bind = len(requests())
+        slash('/trigger await=true')
+        wait_count(before_bind + 1)
+        assert_bound(token)
+
+    def delete_bound_message():
+        return page.evaluate("""async () => {
+            const context = SillyTavern.getContext();
+            const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
+            if (!bound) return { cleared: false, reason: 'no binding' };
+            await context.deleteMessage(bound.slotIndex);
+            const after = SillyTavern.getContext();
+            const still = after.chatMetadata.director && after.chatMetadata.director.boundInstruct;
+            return { cleared: !still, text: still && still.text || '' };
+        }""")
+
+    regen_fail = 'REGENFAILUNIQUE12'
+    page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+    bind_instruct(regen_fail)
+    # A non-streaming 500 deletes the bound message before the request
+    # and does not put it back. Another extension may also save that
+    # shorter chat, so a reload cannot restore the row. Put the same
+    # message back without a delete event, then delete it for real.
+    bound_message = page.evaluate("""() => {
+        const context = SillyTavern.getContext();
+        const bound = context.chatMetadata.director.boundInstruct;
+        return structuredClone(context.chat[bound.slotIndex]);
+    }""")
+    configure_provider({'nextStatus': 500})
+    before = len(requests())
+    failed_regen = page.evaluate("""async () => {
+        try {
+            await SillyTavern.getContext().generate('regenerate');
+            return { failed: false };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert failed_regen['failed'] is True, failed_regen
+    assert regen_fail in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert_bound(regen_fail)
+    page.evaluate("""(message) => {
+        const context = SillyTavern.getContext();
+        const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
+        if (!bound || context.chat[bound.slotIndex]) return;
+        context.chat.push(message);
+        context.addOneMessage(context.chat.at(-1));
+    }""", bound_message)
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+
+    stage = 'stopped regenerate delete skip does not stick'
+    regen_stop = 'REGENSTOPUNIQUE13'
+    configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+    bind_instruct(regen_stop)
+    configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
+    page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }""")
+    before = len(requests())
+    page.evaluate("""() => {
+        window.__directorPendingGeneration = SillyTavern.getContext().generate('regenerate').catch(() => null);
+    }""")
+    page.wait_for_function("""() => SillyTavern.getContext().streamingProcessor?.result?.length > 20""", timeout=30000)
+    page.evaluate("SillyTavern.getContext().stopGeneration()")
+    page.evaluate("window.__directorPendingGeneration")
+    wait_count(before + 1)
+    assert_bound(regen_stop)
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+
+    stage = 'successful regenerate delete skip does not stick'
+    regen_ok = 'REGENOKUNIQUE14'
+    page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+    configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+    bind_instruct(regen_ok)
+    before = len(requests())
+    ok_regen = page.evaluate("""async () => {
+        try {
+            await SillyTavern.getContext().generate('regenerate');
+            return { failed: false };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert ok_regen['failed'] is False, ok_regen
+    wait_count(before + 1)
+    assert_bound(regen_ok)
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+    result['checks']['regenerateDeleteSkipDoesNotStick'] = True
+    print('Regenerate delete skip resets after failure, stop, and success', flush=True)
+
+    stage = 'disconnected regenerate cannot hide a manual deletion'
+    early_token = 'REGENEARLYRETURN15'
+    bind_instruct(early_token)
+    before = len(requests())
+    page.evaluate("""async () => {
+        const main = await import('/script.js');
+        window.__directorOnlineStatus = main.online_status;
+        main.setOnlineStatus('no_connection');
+        await SillyTavern.getContext().generate('regenerate');
+        if (main.is_send_press) throw new Error('Early return left generation active');
+    }""")
+    assert len(requests()) == before
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+    page.evaluate("""async () => {
+        (await import('/script.js')).setOnlineStatus(window.__directorOnlineStatus);
+    }""")
+    connect_api(page)
+    page.evaluate("async () => { await SillyTavern.getContext().generate('regenerate'); }")
+    assert early_token not in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert_hidden_chip()
+    result['checks']['disconnectedRegenerateThenDeleteClearsBinding'] = True
+
+    stage = 'dryRun leaves the real regenerate deletion token alone'
+    dry_token = 'REGENDRYRUN16'
+    bind_instruct(dry_token)
+    before = len(requests())
+    page.evaluate("""async () => {
+        const context = SillyTavern.getContext();
+        context.eventSource.once(context.eventTypes.GENERATION_STARTED, async (type, params, dryRun) => {
+            if (!dryRun && type === 'regenerate') {
+                await context.eventSource.emit(context.eventTypes.GENERATION_STARTED, 'quiet', {}, true);
+            }
+        });
+        await context.generate('regenerate');
+    }""")
+    assert dry_token in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert_bound(dry_token)
+    result['checks']['dryRunPreservesRegenerateDeleteToken'] = True
+
+    stage = 'first message narration keeps literal macros'
+    # messageFormatting rewrites message 0. The sample chat is never
+    # empty, so open a chat with one placeholder and delete it first.
+    macro_chat = 'DirectorMacroZero-' + uuid.uuid4().hex[:10]
+    page.evaluate("""async ({sample, chatName}) => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/save', {
+            method: 'POST',
+            headers: context.getRequestHeaders(),
+            body: JSON.stringify({
+                ch_name: 'Director Synthetic',
+                file_name: chatName,
+                avatar_url: sample.avatar,
+                force: true,
+                chat: [
+                    { user_name: 'Synthetic Tester', character_name: 'Director Synthetic', chat_metadata: { integrity: 'macro-zero' } },
+                    { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-03-01T00:00:00.000Z', mes: 'placeholder', extra: {} },
+                ],
+            }),
+        });
+        if (!response.ok) throw new Error('macro chat save failed ' + response.status);
+        if (await context.openCharacterChat(chatName) === false) throw new Error('macro chat did not open');
+    }""", {'sample': sample, 'chatName': macro_chat})
+    page.wait_for_function("""name => {
+        const context = SillyTavern.getContext();
+        return context.chatId === name && context.chat.length === 1 && context.chat[0].mes === 'placeholder';
+    }""", arg=macro_chat, timeout=30000)
+    page.evaluate("""async () => { await SillyTavern.getContext().deleteMessage(0); }""")
+    page.wait_for_function("""() => SillyTavern.getContext().chat.length === 0 && document.querySelectorAll('#chat .mes').length === 0""")
+    literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
+    expected_mes = '【Director Synthetic】' + literal_input
+
+    def visible_text(mesid):
+        return page.evaluate("""id => {
+            const node = document.querySelector('#chat .mes[mesid="' + id + '"] .mes_text');
+            return node ? node.textContent : '';
+        }""", mesid)
+
+    def assert_literal_message(mesid, preset_id):
+        memory = page.evaluate("""id => SillyTavern.getContext().chat[id]""", mesid)
+        assert memory['mes'] == expected_mes, memory['mes']
+        assert memory['extra']['director']['preset'] == preset_id
+        shown = visible_text(mesid)
+        assert expected_mes in shown, shown
+        assert '{{random::a,b}}' in shown
+
+    preset(page, 'macro-narrator', text=literal_input)
+    page.wait_for_function("""() => SillyTavern.getContext().chat.length === 1""")
+    assert_literal_message(0, 'macro-narrator')
+    preset(page, 'macro-comment', text=literal_input)
+    page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2""")
+    assert_literal_message(1, 'macro-comment')
+    page.evaluate("""async () => {
+        const extensions = await import('/scripts/extensions.js');
+        extensions.cancelDebouncedMetadataSave();
+        await SillyTavern.getContext().saveChat();
+        await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Literal macro probe.' });
+    }""")
+    assert page.evaluate("""() => SillyTavern.getContext().chat[0].mes""") == expected_mes
+    page.evaluate("""async () => { await SillyTavern.getContext().reloadCurrentChat(); }""")
+    page.wait_for_function("""expected => {
+        const context = SillyTavern.getContext();
+        const narrator = context.chat[0];
+        const comment = context.chat[1];
+        return narrator && narrator.mes === expected && comment && comment.mes === expected
+            && document.querySelectorAll('#chat .mes').length === 2;
+    }""", arg=expected_mes, timeout=30000)
+    assert_literal_message(0, 'macro-narrator')
+    assert_literal_message(1, 'macro-comment')
+    stored = page.evaluate("""async (chatName) => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/get', {
+            method: 'POST',
+            headers: context.getRequestHeaders(),
+            body: JSON.stringify({ avatar_url: context.characters[context.characterId].avatar, file_name: chatName }),
+        });
+        if (!response.ok) throw new Error('macro JSONL read failed');
+        return response.json();
+    }""", macro_chat)
+    assert stored[1]['mes'] == expected_mes, stored[1].get('mes')
+    assert stored[2]['mes'] == expected_mes, stored[2].get('mes')
+    assert '{{random::a,b}}' in stored[1]['mes'] and '{{random::a,b}}' in stored[2]['mes']
+    result['checks']['firstMessageNarrationKeepsLiteralMacros'] = True
+    print('First narration and comment keep literal macros after reload', flush=True)
+
+    stage = 'ordinary generation auto-saves literal first narration'
+    before = len(requests())
+    page.locator('#send_textarea').fill('Ordinary generation after literal narration.')
+    # Generate(normal) sends the user message and awaits its own
+    # final save. Do not manually save the pre-generation fixture.
+    with page.expect_response(is_saved_chat):
+        page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+    wait_count(before + 1)
+    stored = page.evaluate("""async chatName => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/get', {
+            method:'POST', headers:context.getRequestHeaders(),
+            body:JSON.stringify({ avatar_url:context.characters[context.characterId].avatar, file_name:chatName }),
+        });
+        if (!response.ok) throw new Error('Post-generation JSONL read failed');
+        return response.json();
+    }""", macro_chat)
+    assert len(stored) == 5, stored
+    assert stored[1]['mes'] == expected_mes, stored[1]
+    assert stored[2]['mes'] == expected_mes, stored[2]
+    assert stored[-1]['mes'] == 'Synthetic Director reply.', stored[-1]
+    page.evaluate("async () => { await SillyTavern.getContext().reloadCurrentChat(); }")
+    page.wait_for_function("() => SillyTavern.getContext().chat.length === 4")
+    assert_literal_message(0, 'macro-narrator')
+    assert_literal_message(1, 'macro-comment')
+    result['checks']['ordinaryGenerationSavesLiteralFirstNarration'] = True
+
+
+def finish_report(result, errors, requests, browser, node, provider):
+    assert not errors, errors
+    result.update({'pass':True, 'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
+    source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]
+    result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
+        for source in source_paths if source.is_file()}
+    result['fakeEndpointSha256'] = hashlib.sha256(provider.read_bytes()).hexdigest()
+    result['node'] = subprocess.check_output([node, '--version'], text=True).strip()
+    return result
+
+
 def run(args, temporary):
     provider = pathlib.Path(args.fake_endpoint).resolve()
     if not provider.is_file():
@@ -429,6 +909,15 @@ def run(args, temporary):
                 ready(page, origin)
                 select_sample(page, sample)
                 page.locator('#directorButton').wait_for(state='visible')
+                if args.review_only:
+                    stage = 'isolated Director review scenarios'
+                    run_review_checks(page, sample, fake_url, result)
+                    def requests():
+                        with urllib.request.urlopen(fake_url.removesuffix('/v1') + '/__requests', timeout=5) as response:
+                            return json.load(response)
+                    finish_report(result, errors, requests, browser, node, provider)
+                    browser.close()
+                    return result
                 assert page.evaluate("document.querySelector('#extensionsMenuButton').nextElementSibling?.id") == 'directorButton'
                 wand_box = page.locator('#extensionsMenuButton').bounding_box()
                 director_box = page.locator('#directorButton').bounding_box()
@@ -1627,413 +2116,8 @@ def run(args, temporary):
                 result['checks']['instructRebindSwipeRegenerateContinueAndChatScope'] = True
                 print('Director instruct rebind passed', flush=True)
 
-                stage = 'user input macros stay literal'
-                # The group stage leaves a group open. Select the character before
-                # opening its chat. Popup input is not an STscript argument, so
-                # {{char}} reaches the template raw.
-                page.evaluate("""async (sample) => {
-                    const context = SillyTavern.getContext();
-                    const index = context.characters.findIndex(card => card.avatar === sample.avatar);
-                    await context.selectCharacterById(String(index));
-                    await SillyTavern.getContext().openCharacterChat(sample.chatName);
-                }""", sample)
-                page.wait_for_function("""name => {
-                    const context = SillyTavern.getContext();
-                    return !context.groupId && context.chatId === name && context.name2 === 'Director Synthetic';
-                }""", arg=sample['chatName'], timeout=30000)
-                literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
-                expected_mes = '【Director Synthetic】' + literal_input
-                page.evaluate("""async () => {
-                    const { extension_settings } = await import('/scripts/extensions.js');
-                    const template = '【{{char}}】{{input:说什么}}';
-                    const fields = { template, isChapter: false, autoGenerate: false };
-                    extension_settings.director.presets.push(
-                        { ...fields, id: 'macro-narrator', icon: '⏩', name: '宏旁白', mode: 'narrator' },
-                        { ...fields, id: 'macro-comment', icon: '📝', name: '宏备注', mode: 'comment' },
-                        { ...fields, id: 'macro-instruct', icon: '🎭', name: '宏指令', mode: 'instruct' },
-                    );
-                }""")
-
-                def saved_message():
-                    return page.evaluate("""async (sample) => {
-                        const context = SillyTavern.getContext();
-                        const response = await fetch('/api/chats/get', { method: 'POST', headers: context.getRequestHeaders(),
-                            body: JSON.stringify({ avatar_url: sample.avatar, file_name: sample.chatName }) });
-                        if (!response.ok) throw new Error('Saved JSONL read failed');
-                        const saved = await response.json();
-                        return saved[saved.length - 1];
-                    }""", sample)
-
-                for preset_id in ('macro-narrator', 'macro-comment'):
-                    preset(page, preset_id, text=literal_input)
-                    memory = page.evaluate('() => SillyTavern.getContext().chat.at(-1)')
-                    assert memory['mes'] == expected_mes, memory['mes']
-                    assert memory['extra']['director']['preset'] == preset_id
-                    saved = saved_message()
-                    assert saved['mes'] == expected_mes, saved.get('mes')
-                    assert '{{random::a,b}}' in saved['mes']
-                    assert saved['extra']['director']['preset'] == preset_id
-                chat_before = page.evaluate('() => SillyTavern.getContext().chat.length')
-                preset(page, 'macro-instruct', text=literal_input)
-                assert page.evaluate('() => SillyTavern.getContext().chat.length') == chat_before
-                before = len(requests())
-                slash('/trigger await=true')
-                latest = wait_count(before + 1, timeout=30)
-                body = json.dumps(latest[-1], ensure_ascii=False)
-                # Prompt assembly still expands macros inside saved chat messages.
-                # The injection itself is the system content that keeps the typed text.
-                assert expected_mes in body, body
-                assert '{{random::a,b}}' in body
-                result['checks']['userInputMacrosStayLiteral'] = True
-                print('User input macros stay literal in JSONL and the instruct request', flush=True)
-
-                stage = 'quiet and impersonate keep a pending instruct'
-
-                def director_prompts():
-                    return page.evaluate("""() => {
-                        const context = SillyTavern.getContext();
-                        return Object.entries(context.chatMetadata.script_injects || {})
-                            .filter(([, inject]) => inject && inject.directorEphemeral === true)
-                            .map(([id, inject]) => {
-                                const prompt = context.extensionPrompts['script_inject_' + id];
-                                return { id, value: inject.value, promptValue: prompt ? prompt.value : null, hasPrompt: !!prompt };
-                            });
-                    }""")
-
-                def assert_pending(token):
-                    state = chip_state()
-                    assert state and state['hidden'] is False and state['state'] == 'pending', state
-                    assert token in state['title'] and '待生效' in state['label'], state
-                    color = page.evaluate("""() => getComputedStyle(document.querySelector('#director_instruct_chip')).color""")
-                    assert color == 'rgb(196, 92, 18)', color
-                    found = [item for item in director_prompts() if token in item['value']]
-                    assert len(found) == 1 and found[0]['hasPrompt'] and found[0]['promptValue'] == found[0]['value'], found
-
-                quiet_token = 'QUIETMASKUNIQUE10'
-                preset(page, 'direct', text=quiet_token)
-                assert_pending(quiet_token)
-                before = len(requests())
-                quiet = page.evaluate("""async () => {
-                    try {
-                        const text = await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet probe only.' });
-                        return { failed: false, text: String(text ?? '') };
-                    } catch (error) {
-                        return { failed: true, error: String(error && error.message || error) };
-                    }
-                }""")
-                assert quiet['failed'] is False, quiet
-                quiet_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
-                assert quiet_token not in quiet_body, quiet_body
-                assert 'Quiet probe only.' in quiet_body
-                assert_pending(quiet_token)
-
-                before = len(requests())
-                slash('/impersonate await=true')
-                impersonate_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
-                assert quiet_token not in impersonate_body, impersonate_body
-                assert_pending(quiet_token)
-                page.evaluate("""() => {
-                    const box = document.querySelector('#send_textarea');
-                    box.value = '';
-                    box.dispatchEvent(new Event('input', { bubbles: true }));
-                }""")
-
-                before = len(requests())
-                slash('/trigger await=true')
-                sent_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
-                assert quiet_token in sent_body, sent_body
-                assert_bound(quiet_token)
-                assert not any(quiet_token in item['value'] for item in director_prompts())
-
-                stage = 'quiet 500 restores the extension prompt'
-                fail_token = 'QUIETFAILUNIQUE11'
-                preset(page, 'direct', text=fail_token)
-                assert_pending(fail_token)
-                configure_provider({'nextStatus': 500})
-                before = len(requests())
-                failed = page.evaluate("""async () => {
-                    try {
-                        await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet failure probe.' });
-                        return { failed: false };
-                    } catch (error) {
-                        return { failed: true, error: String(error && error.message || error) };
-                    }
-                }""")
-                assert failed['failed'] is True, failed
-                failed_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
-                assert fail_token not in failed_body, failed_body
-                assert_pending(fail_token)
-                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
-                result['checks']['quietAndImpersonateDoNotConsumePending'] = True
-                print('Quiet and impersonate leave pending instructs in place', flush=True)
-
-                stage = 'regenerate delete skip does not stick'
-
-                def dismiss_pending():
-                    if chip_state()['state'] != 'pending':
-                        return
-                    page.locator('#director_instruct_chip .director_instruct_dismiss').click()
-                    page.wait_for_function("""() => {
-                        const chip = document.querySelector('#director_instruct_chip');
-                        return !chip || chip.hidden || chip.dataset.state !== 'pending';
-                    }""")
-
-                def bind_instruct(token):
-                    dismiss_pending()
-                    preset(page, 'direct', text=token)
-                    before_bind = len(requests())
-                    slash('/trigger await=true')
-                    wait_count(before_bind + 1)
-                    assert_bound(token)
-
-                def delete_bound_message():
-                    return page.evaluate("""async () => {
-                        const context = SillyTavern.getContext();
-                        const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
-                        if (!bound) return { cleared: false, reason: 'no binding' };
-                        await context.deleteMessage(bound.slotIndex);
-                        const after = SillyTavern.getContext();
-                        const still = after.chatMetadata.director && after.chatMetadata.director.boundInstruct;
-                        return { cleared: !still, text: still && still.text || '' };
-                    }""")
-
-                regen_fail = 'REGENFAILUNIQUE12'
-                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
-                bind_instruct(regen_fail)
-                # A non-streaming 500 deletes the bound message before the request
-                # and does not put it back. Another extension may also save that
-                # shorter chat, so a reload cannot restore the row. Put the same
-                # message back without a delete event, then delete it for real.
-                bound_message = page.evaluate("""() => {
-                    const context = SillyTavern.getContext();
-                    const bound = context.chatMetadata.director.boundInstruct;
-                    return structuredClone(context.chat[bound.slotIndex]);
-                }""")
-                configure_provider({'nextStatus': 500})
-                before = len(requests())
-                failed_regen = page.evaluate("""async () => {
-                    try {
-                        await SillyTavern.getContext().generate('regenerate');
-                        return { failed: false };
-                    } catch (error) {
-                        return { failed: true, error: String(error && error.message || error) };
-                    }
-                }""")
-                assert failed_regen['failed'] is True, failed_regen
-                assert regen_fail in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
-                assert_bound(regen_fail)
-                page.evaluate("""(message) => {
-                    const context = SillyTavern.getContext();
-                    const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
-                    if (!bound || context.chat[bound.slotIndex]) return;
-                    context.chat.push(message);
-                    context.addOneMessage(context.chat.at(-1));
-                }""", bound_message)
-                deleted = delete_bound_message()
-                assert deleted['cleared'] is True, deleted
-                assert_hidden_chip()
-
-                stage = 'stopped regenerate delete skip does not stick'
-                regen_stop = 'REGENSTOPUNIQUE13'
-                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
-                bind_instruct(regen_stop)
-                configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
-                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }""")
-                before = len(requests())
-                page.evaluate("""() => {
-                    window.__directorPendingGeneration = SillyTavern.getContext().generate('regenerate').catch(() => null);
-                }""")
-                page.wait_for_function("""() => SillyTavern.getContext().streamingProcessor?.result?.length > 20""", timeout=30000)
-                page.evaluate("SillyTavern.getContext().stopGeneration()")
-                page.evaluate("window.__directorPendingGeneration")
-                wait_count(before + 1)
-                assert_bound(regen_stop)
-                deleted = delete_bound_message()
-                assert deleted['cleared'] is True, deleted
-                assert_hidden_chip()
-
-                stage = 'successful regenerate delete skip does not stick'
-                regen_ok = 'REGENOKUNIQUE14'
-                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
-                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
-                bind_instruct(regen_ok)
-                before = len(requests())
-                ok_regen = page.evaluate("""async () => {
-                    try {
-                        await SillyTavern.getContext().generate('regenerate');
-                        return { failed: false };
-                    } catch (error) {
-                        return { failed: true, error: String(error && error.message || error) };
-                    }
-                }""")
-                assert ok_regen['failed'] is False, ok_regen
-                wait_count(before + 1)
-                assert_bound(regen_ok)
-                deleted = delete_bound_message()
-                assert deleted['cleared'] is True, deleted
-                assert_hidden_chip()
-                result['checks']['regenerateDeleteSkipDoesNotStick'] = True
-                print('Regenerate delete skip resets after failure, stop, and success', flush=True)
-
-                stage = 'disconnected regenerate cannot hide a manual deletion'
-                early_token = 'REGENEARLYRETURN15'
-                bind_instruct(early_token)
-                before = len(requests())
-                page.evaluate("""async () => {
-                    const main = await import('/script.js');
-                    window.__directorOnlineStatus = main.online_status;
-                    main.setOnlineStatus('no_connection');
-                    await SillyTavern.getContext().generate('regenerate');
-                    if (main.is_send_press) throw new Error('Early return left generation active');
-                }""")
-                assert len(requests()) == before
-                deleted = delete_bound_message()
-                assert deleted['cleared'] is True, deleted
-                assert_hidden_chip()
-                page.evaluate("""async () => {
-                    (await import('/script.js')).setOnlineStatus(window.__directorOnlineStatus);
-                }""")
-                connect_api(page)
-                page.evaluate("async () => { await SillyTavern.getContext().generate('regenerate'); }")
-                assert early_token not in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
-                assert_hidden_chip()
-                result['checks']['disconnectedRegenerateThenDeleteClearsBinding'] = True
-
-                stage = 'dryRun leaves the real regenerate deletion token alone'
-                dry_token = 'REGENDRYRUN16'
-                bind_instruct(dry_token)
-                before = len(requests())
-                page.evaluate("""async () => {
-                    const context = SillyTavern.getContext();
-                    context.eventSource.once(context.eventTypes.GENERATION_STARTED, async (type, params, dryRun) => {
-                        if (!dryRun && type === 'regenerate') {
-                            await context.eventSource.emit(context.eventTypes.GENERATION_STARTED, 'quiet', {}, true);
-                        }
-                    });
-                    await context.generate('regenerate');
-                }""")
-                assert dry_token in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
-                assert_bound(dry_token)
-                result['checks']['dryRunPreservesRegenerateDeleteToken'] = True
-
-                stage = 'first message narration keeps literal macros'
-                # messageFormatting rewrites message 0. The sample chat is never
-                # empty, so open a chat with one placeholder and delete it first.
-                macro_chat = 'DirectorMacroZero-' + uuid.uuid4().hex[:10]
-                page.evaluate("""async ({sample, chatName}) => {
-                    const context = SillyTavern.getContext();
-                    const response = await fetch('/api/chats/save', {
-                        method: 'POST',
-                        headers: context.getRequestHeaders(),
-                        body: JSON.stringify({
-                            ch_name: 'Director Synthetic',
-                            file_name: chatName,
-                            avatar_url: sample.avatar,
-                            force: true,
-                            chat: [
-                                { user_name: 'Synthetic Tester', character_name: 'Director Synthetic', chat_metadata: { integrity: 'macro-zero' } },
-                                { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-03-01T00:00:00.000Z', mes: 'placeholder', extra: {} },
-                            ],
-                        }),
-                    });
-                    if (!response.ok) throw new Error('macro chat save failed ' + response.status);
-                    if (await context.openCharacterChat(chatName) === false) throw new Error('macro chat did not open');
-                }""", {'sample': sample, 'chatName': macro_chat})
-                page.wait_for_function("""name => {
-                    const context = SillyTavern.getContext();
-                    return context.chatId === name && context.chat.length === 1 && context.chat[0].mes === 'placeholder';
-                }""", arg=macro_chat, timeout=30000)
-                page.evaluate("""async () => { await SillyTavern.getContext().deleteMessage(0); }""")
-                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 0 && document.querySelectorAll('#chat .mes').length === 0""")
-                literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
-                expected_mes = '【Director Synthetic】' + literal_input
-
-                def visible_text(mesid):
-                    return page.evaluate("""id => {
-                        const node = document.querySelector('#chat .mes[mesid="' + id + '"] .mes_text');
-                        return node ? node.textContent : '';
-                    }""", mesid)
-
-                def assert_literal_message(mesid, preset_id):
-                    memory = page.evaluate("""id => SillyTavern.getContext().chat[id]""", mesid)
-                    assert memory['mes'] == expected_mes, memory['mes']
-                    assert memory['extra']['director']['preset'] == preset_id
-                    shown = visible_text(mesid)
-                    assert expected_mes in shown, shown
-                    assert '{{random::a,b}}' in shown
-
-                preset(page, 'macro-narrator', text=literal_input)
-                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 1""")
-                assert_literal_message(0, 'macro-narrator')
-                preset(page, 'macro-comment', text=literal_input)
-                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2""")
-                assert_literal_message(1, 'macro-comment')
-                page.evaluate("""async () => {
-                    const extensions = await import('/scripts/extensions.js');
-                    extensions.cancelDebouncedMetadataSave();
-                    await SillyTavern.getContext().saveChat();
-                    await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Literal macro probe.' });
-                }""")
-                assert page.evaluate("""() => SillyTavern.getContext().chat[0].mes""") == expected_mes
-                page.evaluate("""async () => { await SillyTavern.getContext().reloadCurrentChat(); }""")
-                page.wait_for_function("""expected => {
-                    const context = SillyTavern.getContext();
-                    const narrator = context.chat[0];
-                    const comment = context.chat[1];
-                    return narrator && narrator.mes === expected && comment && comment.mes === expected
-                        && document.querySelectorAll('#chat .mes').length === 2;
-                }""", arg=expected_mes, timeout=30000)
-                assert_literal_message(0, 'macro-narrator')
-                assert_literal_message(1, 'macro-comment')
-                stored = page.evaluate("""async (chatName) => {
-                    const context = SillyTavern.getContext();
-                    const response = await fetch('/api/chats/get', {
-                        method: 'POST',
-                        headers: context.getRequestHeaders(),
-                        body: JSON.stringify({ avatar_url: context.characters[context.characterId].avatar, file_name: chatName }),
-                    });
-                    if (!response.ok) throw new Error('macro JSONL read failed');
-                    return response.json();
-                }""", macro_chat)
-                assert stored[1]['mes'] == expected_mes, stored[1].get('mes')
-                assert stored[2]['mes'] == expected_mes, stored[2].get('mes')
-                assert '{{random::a,b}}' in stored[1]['mes'] and '{{random::a,b}}' in stored[2]['mes']
-                result['checks']['firstMessageNarrationKeepsLiteralMacros'] = True
-                print('First narration and comment keep literal macros after reload', flush=True)
-
-                stage = 'ordinary generation auto-saves literal first narration'
-                before = len(requests())
-                page.locator('#send_textarea').fill('Ordinary generation after literal narration.')
-                # Generate(normal) sends the user message and awaits its own
-                # final save. Do not manually save the pre-generation fixture.
-                with page.expect_response(is_saved_chat):
-                    page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
-                wait_count(before + 1)
-                stored = page.evaluate("""async chatName => {
-                    const context = SillyTavern.getContext();
-                    const response = await fetch('/api/chats/get', {
-                        method:'POST', headers:context.getRequestHeaders(),
-                        body:JSON.stringify({ avatar_url:context.characters[context.characterId].avatar, file_name:chatName }),
-                    });
-                    if (!response.ok) throw new Error('Post-generation JSONL read failed');
-                    return response.json();
-                }""", macro_chat)
-                assert len(stored) == 5, stored
-                assert stored[1]['mes'] == expected_mes, stored[1]
-                assert stored[2]['mes'] == expected_mes, stored[2]
-                assert stored[-1]['mes'] == 'Synthetic Director reply.', stored[-1]
-                page.evaluate("async () => { await SillyTavern.getContext().reloadCurrentChat(); }")
-                page.wait_for_function("() => SillyTavern.getContext().chat.length === 4")
-                assert_literal_message(0, 'macro-narrator')
-                assert_literal_message(1, 'macro-comment')
-                result['checks']['ordinaryGenerationSavesLiteralFirstNarration'] = True
-                assert not errors, errors
-                result.update({'pass':True, 'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
-                source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]
-                result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
-                    for source in source_paths if source.is_file()}
-                result['fakeEndpointSha256'] = hashlib.sha256(provider.read_bytes()).hexdigest()
-                result['node'] = subprocess.check_output([node, '--version'], text=True).strip()
+                run_review_checks(page, sample, fake_url, result)
+                finish_report(result, errors, requests, browser, node, provider)
                 browser.close()
         return result
     except Exception as error:
@@ -2050,6 +2134,7 @@ def main():
     parser.add_argument('--node', default=str(preferred_node) if preferred_node.is_file() else 'node')
     parser.add_argument('--fake-endpoint', default=str(ROOT / 'scripts' / 'fake-openai-endpoint.mjs'))
     parser.add_argument('--base', default='ffd5f4e')
+    parser.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')
     parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d2' / 'results.json')
     args = parser.parse_args()
     # Preserve synthetic artifacts for diagnosis instead of permanently deleting

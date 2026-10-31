@@ -810,20 +810,28 @@ def run_first_message_checks(page, sample, requests, wait_count, result):
         phase['name'] = 'save-during-dry-run'
         audit['dryRunSaveProbe'] = page.evaluate("""async chatName => {
             const context = SillyTavern.getContext();
+            const main = await import('/script.js');
             let observed;
-            const saveDuringPrompt = async data => {
+            let pending;
+            const saveDuringPrompt = data => {
                 if (!data.dryRun || observed) return;
                 observed = { firstMes:context.chat[0].mes };
-                await context.saveChat();
+                pending = (async () => {
+                await main.saveChat();
                 const response = await fetch('/api/chats/get', {
                     method:'POST', headers:context.getRequestHeaders(),
                     body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,file_name:chatName}),
                 });
                 if (!response.ok) throw new Error('dry-run probe JSONL read failed');
                 observed.storedFirstMes = (await response.json())[1].mes;
+                })();
+                return pending;
             };
             context.eventSource.on(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, saveDuringPrompt);
-            try { await (await import('/script.js')).Generate('normal', {}, true); }
+            try {
+                await main.Generate('normal', {}, true);
+                await pending;
+            }
             finally { context.eventSource.removeListener(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, saveDuringPrompt); }
             if (!observed) throw new Error('dry-run save probe did not run');
             return observed;

@@ -1,0 +1,781 @@
+{
+  "base": "ffd5f4e",
+  "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+  "runnerHead": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+  "mode": "f3-only",
+  "thirdPartyEnabled": true,
+  "saveDuringDryRunProbe": true,
+  "testRunnerSha256": "946bc9f18d7ca72cf8b0f4dacc65c3bafba20e27bb706d1f60efae74eb2b8950",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "1d35e6ec5923a776f9eb62937edb56a3980d6f10fe59452a1aa4546c76ba9748",
+      "focusCount": 2
+    },
+    "firstMessageNarrationKeepsLiteralMacros": true,
+    "ordinaryGenerationSavesLiteralFirstNarration": true,
+    "everyFirstMessageSaveStaysLiteral": true,
+    "overlappingDryRunsPreserveSavesClonesAndApiEdits": true,
+    "chatSwitchDuringDryRunPreservesBothChats": true,
+    "ordinaryGreetingStillExpandsAndManualChapterStaysLiteral": true,
+    "firstCommentSurvivesDryRunCloneSaveAndReload": true
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [],
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [
+      "/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+      "/scripts/extensions/third-party/st-memory-enhancement/index.js"
+    ],
+    "tavernHelperAvailable": true
+  },
+  "f3Audit": {
+    "saveRequests": [
+      {
+        "phase": "create-fixture",
+        "at": 1793443108.6119888,
+        "firstMessages": [
+          "placeholder"
+        ],
+        "rows": 2
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793443109.3439693,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 2
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793443109.8147573,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 3
+      },
+      {
+        "phase": "save-during-dry-run",
+        "at": 1793443110.1714728,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 3
+      },
+      {
+        "phase": "save-then-quiet",
+        "at": 1793443110.3107414,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 3
+      },
+      {
+        "phase": "reload-after-quiet",
+        "at": 1793443110.5876677,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 3
+      },
+      {
+        "phase": "ordinary-generation",
+        "at": 1793443110.825652,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 4
+      },
+      {
+        "phase": "ordinary-generation",
+        "at": 1793443111.164019,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 5
+      },
+      {
+        "phase": "reload-after-ordinary",
+        "at": 1793443111.454113,
+        "firstMessages": [
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+          "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+        ],
+        "rows": 5
+      }
+    ],
+    "saveCallers": [
+      {
+        "phase": "create-fixture",
+        "at": 1793443108.611058,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "eval",
+            "url": "",
+            "lineNumber": 2,
+            "columnNumber": 31
+          },
+          {
+            "functionName": "evaluate",
+            "url": "",
+            "lineNumber": 317,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 43
+          }
+        ]
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793443109.341998,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "saveChatConditional",
+            "url": "http://<host>/script.js",
+            "lineNumber": 10205,
+            "columnNumber": 20
+          },
+          {
+            "functionName": "sendNarratorMessage",
+            "url": "http://<host>/scripts/slash-commands.js",
+            "lineNumber": 6065,
+            "columnNumber": 14
+          },
+          {
+            "functionName": "insertLiteralMessage",
+            "url": "http://<host>/scripts/extensions/director/index.js",
+            "lineNumber": 228,
+            "columnNumber": 22
+          },
+          {
+            "functionName": "usePreset",
+            "url": "http://<host>/scripts/extensions/director/index.js",
+            "lineNumber": 292,
+            "columnNumber": 22
+          },
+          {
+            "functionName": "",
+            "url": "http://<host>/scripts/extensions/director/index.js",
+            "lineNumber": 498,
+            "columnNumber": 45
+          }
+        ]
+      },
+      {
+        "phase": "create-fixture",
+        "at": 1793443109.812854,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "saveChatConditional",
+            "url": "http://<host>/script.js",
+            "lineNumber": 10205,
+            "columnNumber": 20
+          },
+          {
+            "functionName": "sendCommentMessage",
+            "url": "http://<host>/scripts/slash-commands.js",
+            "lineNumber": 6151,
+            "columnNumber": 14
+          },
+          {
+            "functionName": "insertLiteralMessage",
+            "url": "http://<host>/scripts/extensions/director/index.js",
+            "lineNumber": 228,
+            "columnNumber": 22
+          },
+          {
+            "functionName": "usePreset",
+            "url": "http://<host>/scripts/extensions/director/index.js",
+            "lineNumber": 292,
+            "columnNumber": 22
+          },
+          {
+            "functionName": "",
+            "url": "http://<host>/scripts/extensions/director/index.js",
+            "lineNumber": 498,
+            "columnNumber": 45
+          }
+        ]
+      },
+      {
+        "phase": "save-during-dry-run",
+        "at": 1793443110.169139,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "eval",
+            "url": "",
+            "lineNumber": 9,
+            "columnNumber": 27
+          },
+          {
+            "functionName": "saveDuringPrompt",
+            "url": "",
+            "lineNumber": 16,
+            "columnNumber": 18
+          },
+          {
+            "functionName": "EventEmitter.emit",
+            "url": "http://<host>/lib/eventemitter.js",
+            "lineNumber": 145,
+            "columnNumber": 35
+          },
+          {
+            "functionName": "prepareOpenAIMessages",
+            "url": "http://<host>/scripts/openai.js",
+            "lineNumber": 1618,
+            "columnNumber": 22
+          }
+        ]
+      },
+      {
+        "phase": "save-then-quiet",
+        "at": 1793443110.308097,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "saveChatConditional",
+            "url": "http://<host>/script.js",
+            "lineNumber": 10205,
+            "columnNumber": 20
+          },
+          {
+            "functionName": "eval",
+            "url": "",
+            "lineNumber": 3,
+            "columnNumber": 39
+          },
+          {
+            "functionName": "evaluate",
+            "url": "",
+            "lineNumber": 317,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 43
+          }
+        ]
+      },
+      {
+        "phase": "reload-after-quiet",
+        "at": 1793443110.581952,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/core/manager.js",
+            "lineNumber": 57,
+            "columnNumber": 19
+          },
+          {
+            "functionName": "buildSheetsByTemplates",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/index.js",
+            "lineNumber": 87,
+            "columnNumber": 25
+          },
+          {
+            "functionName": "initHashSheet",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/core/manager.js",
+            "lineNumber": 295,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "onChatChanged",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/index.js",
+            "lineNumber": 736,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "EventEmitter.emit",
+            "url": "http://<host>/lib/eventemitter.js",
+            "lineNumber": 145,
+            "columnNumber": 35
+          },
+          {
+            "functionName": "getChatResult",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8414,
+            "columnNumber": 22
+          },
+          {
+            "functionName": "getChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8367,
+            "columnNumber": 18
+          },
+          {
+            "functionName": "reloadCurrentChatUnsafe",
+            "url": "http://<host>/script.js",
+            "lineNumber": 1854,
+            "columnNumber": 18
+          },
+          {
+            "functionName": "update",
+            "url": "http://<host>/scripts/util/SimpleMutex.js",
+            "lineNumber": 37,
+            "columnNumber": 23
+          },
+          {
+            "functionName": "eval",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 45
+          },
+          {
+            "functionName": "evaluate",
+            "url": "",
+            "lineNumber": 317,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 43
+          }
+        ]
+      },
+      {
+        "phase": "ordinary-generation",
+        "at": 1793443110.821932,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "saveChatConditional",
+            "url": "http://<host>/script.js",
+            "lineNumber": 10205,
+            "columnNumber": 20
+          },
+          {
+            "functionName": "sendMessageAsUser",
+            "url": "http://<host>/script.js",
+            "lineNumber": 6504,
+            "columnNumber": 14
+          },
+          {
+            "functionName": "Generate",
+            "url": "http://<host>/script.js",
+            "lineNumber": 5016,
+            "columnNumber": 18
+          },
+          {
+            "functionName": "eval",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 45
+          },
+          {
+            "functionName": "evaluate",
+            "url": "",
+            "lineNumber": 317,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 43
+          }
+        ]
+      },
+      {
+        "phase": "ordinary-generation",
+        "at": 1793443111.161718,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "saveChatConditional",
+            "url": "http://<host>/script.js",
+            "lineNumber": 10205,
+            "columnNumber": 20
+          },
+          {
+            "functionName": "onSuccess",
+            "url": "http://<host>/script.js",
+            "lineNumber": 6155,
+            "columnNumber": 14
+          },
+          {
+            "functionName": "Generate",
+            "url": "http://<host>/script.js",
+            "lineNumber": 6032,
+            "columnNumber": 30
+          }
+        ]
+      },
+      {
+        "phase": "reload-after-ordinary",
+        "at": 1793443111.448194,
+        "frames": [
+          {
+            "functionName": "window.fetch",
+            "url": "http://<host>/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+            "lineNumber": 72,
+            "columnNumber": 145084
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8100,
+            "columnNumber": 29
+          },
+          {
+            "functionName": "saveChat",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/core/manager.js",
+            "lineNumber": 57,
+            "columnNumber": 19
+          },
+          {
+            "functionName": "buildSheetsByTemplates",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/index.js",
+            "lineNumber": 87,
+            "columnNumber": 25
+          },
+          {
+            "functionName": "initHashSheet",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/core/manager.js",
+            "lineNumber": 295,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "onChatChanged",
+            "url": "http://<host>/scripts/extensions/third-party/st-memory-enhancement/index.js",
+            "lineNumber": 736,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "EventEmitter.emit",
+            "url": "http://<host>/lib/eventemitter.js",
+            "lineNumber": 145,
+            "columnNumber": 35
+          },
+          {
+            "functionName": "getChatResult",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8414,
+            "columnNumber": 22
+          },
+          {
+            "functionName": "getChat",
+            "url": "http://<host>/script.js",
+            "lineNumber": 8367,
+            "columnNumber": 18
+          },
+          {
+            "functionName": "reloadCurrentChatUnsafe",
+            "url": "http://<host>/script.js",
+            "lineNumber": 1854,
+            "columnNumber": 18
+          },
+          {
+            "functionName": "update",
+            "url": "http://<host>/scripts/util/SimpleMutex.js",
+            "lineNumber": 37,
+            "columnNumber": 23
+          },
+          {
+            "functionName": "eval",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 45
+          },
+          {
+            "functionName": "evaluate",
+            "url": "",
+            "lineNumber": 317,
+            "columnNumber": 17
+          },
+          {
+            "functionName": "",
+            "url": "",
+            "lineNumber": 0,
+            "columnNumber": 43
+          }
+        ]
+      }
+    ],
+    "snapshots": [
+      {
+        "phase": "after-quiet",
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+      },
+      {
+        "phase": "after-ordinary-save",
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+      }
+    ],
+    "dryRunSaveProbe": {
+      "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+      "storedFirstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}"
+    },
+    "events": [
+      {
+        "name": "MESSAGE_SENT",
+        "at": 1793443109.22,
+        "firstMes": "【Director Synthetic】Director Synthetic 和 Synthetic Tester a",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "USER_MESSAGE_RENDERED",
+        "at": 1793443109.24,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "MESSAGE_SENT",
+        "at": 1793443109.702,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "USER_MESSAGE_RENDERED",
+        "at": 1793443109.707,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATION_STARTED",
+        "at": 1793443109.858,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": "normal",
+        "dryRun": true
+      },
+      {
+        "name": "GENERATION_STARTED",
+        "at": 1793443110.015,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": "normal",
+        "dryRun": true
+      },
+      {
+        "name": "GENERATE_AFTER_DATA",
+        "at": 1793443110.171,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATE_AFTER_DATA",
+        "at": 1793443110.197,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATION_STARTED",
+        "at": 1793443110.329,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": "quiet",
+        "dryRun": false
+      },
+      {
+        "name": "GENERATE_AFTER_DATA",
+        "at": 1793443110.514,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATION_ENDED",
+        "at": 1793443110.527,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATION_STARTED",
+        "at": 1793443110.701,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": "normal",
+        "dryRun": false
+      },
+      {
+        "name": "MESSAGE_SENT",
+        "at": 1793443110.844,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "USER_MESSAGE_RENDERED",
+        "at": 1793443110.849,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATE_AFTER_DATA",
+        "at": 1793443111.029,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATION_ENDED",
+        "at": 1793443111.181,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      },
+      {
+        "name": "GENERATION_STARTED",
+        "at": 1793443111.226,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": "normal",
+        "dryRun": true
+      },
+      {
+        "name": "GENERATE_AFTER_DATA",
+        "at": 1793443111.396,
+        "firstMes": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+        "generationType": null,
+        "dryRun": null
+      }
+    ]
+  },
+  "f3Interleavings": {
+    "twoRunsPaused": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+    "clonedSnapshotWhilePaused": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+    "oneRunFinished": "【Director Synthetic】{{char}} 和 {{user}} {{random::a,b}}",
+    "editor": "TavernHelper.setChatMessages",
+    "editedTextAfterBothRuns": "Intentional API edit while a dry run is paused.",
+    "beforeAssemblyEdit": "Intentional API edit before host prompt assembly.",
+    "switchedChat": "New chat literal {{char}} / {{user}} / {{random::a,b}}",
+    "greetings": {
+      "ordinary": "Hello Director Synthetic / Synthetic Tester",
+      "expectedOrdinary": "Hello Director Synthetic / Synthetic Tester",
+      "chapter": "Chapter literal {{char}} / {{random::a,b}}"
+    }
+  },
+  "pass": true,
+  "pageErrors": [],
+  "generationRequests": 2,
+  "chromium": "156.0.8078.76",
+  "sourceSha256": {
+    "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+    "public/scripts/extensions/director/index.js": "c1aed8aab88da364324a500eabd6ddbc415e2c240d60e4d7361eedea9648ef78",
+    "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+    "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+    "public/scripts/extensions/director/manifest.json": "659ed94ffbd5de1c69d7c78628bd78de8ef69110f1018f0d57f61c76196b8e52",
+    "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+    "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+    "public/scripts/extensions/director/style.css": "6e4eabc72c59d4c758583574c871d614c171c65e7fda47215981ea3332422005",
+    "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3"
+  },
+  "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+  "node": "v24.22.1"
+}

@@ -1870,6 +1870,47 @@ def run(args, temporary):
                 result['checks']['regenerateDeleteSkipDoesNotStick'] = True
                 print('Regenerate delete skip resets after failure, stop, and success', flush=True)
 
+                stage = 'disconnected regenerate cannot hide a manual deletion'
+                early_token = 'REGENEARLYRETURN15'
+                bind_instruct(early_token)
+                before = len(requests())
+                page.evaluate("""async () => {
+                    const main = await import('/script.js');
+                    window.__directorOnlineStatus = main.online_status;
+                    main.setOnlineStatus('no_connection');
+                    await SillyTavern.getContext().generate('regenerate');
+                    if (main.is_send_press) throw new Error('Early return left generation active');
+                }""")
+                assert len(requests()) == before
+                deleted = delete_bound_message()
+                assert deleted['cleared'] is True, deleted
+                assert_hidden_chip()
+                page.evaluate("""async () => {
+                    (await import('/script.js')).setOnlineStatus(window.__directorOnlineStatus);
+                }""")
+                connect_api(page)
+                page.evaluate("async () => { await SillyTavern.getContext().generate('regenerate'); }")
+                assert early_token not in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+                assert_hidden_chip()
+                result['checks']['disconnectedRegenerateThenDeleteClearsBinding'] = True
+
+                stage = 'dryRun leaves the real regenerate deletion token alone'
+                dry_token = 'REGENDRYRUN16'
+                bind_instruct(dry_token)
+                before = len(requests())
+                page.evaluate("""async () => {
+                    const context = SillyTavern.getContext();
+                    context.eventSource.once(context.eventTypes.GENERATION_STARTED, async (type, params, dryRun) => {
+                        if (!dryRun && type === 'regenerate') {
+                            await context.eventSource.emit(context.eventTypes.GENERATION_STARTED, 'quiet', {}, true);
+                        }
+                    });
+                    await context.generate('regenerate');
+                }""")
+                assert dry_token in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+                assert_bound(dry_token)
+                result['checks']['dryRunPreservesRegenerateDeleteToken'] = True
+
                 stage = 'first message narration keeps literal macros'
                 # messageFormatting rewrites message 0. The sample chat is never
                 # empty, so open a chat with one placeholder and delete it first.

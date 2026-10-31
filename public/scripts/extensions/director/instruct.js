@@ -152,14 +152,33 @@ export function applyDeletionClear(metadata, chat, duringRegenerate) {
  * has no skip, or a different chat, and must still clear.
  * @param {{chatId: string, metadata: object, slotIndex: number}|null} skip
  * @param {object} context
+ * @param {boolean} generationActive Whether upstream is currently generating
  * @returns {boolean}
  */
-export function matchesRegenerateDelete(skip, context) {
-    if (!skip || !context) return false;
+export function matchesRegenerateDelete(skip, context, generationActive = true) {
+    if (!generationActive || !skip || !context) return false;
     if (skip.chatId !== context.chatId || skip.metadata !== context.chatMetadata) return false;
     const binding = readBoundInstruct(context.chatMetadata);
     if (!binding || binding.slotIndex !== skip.slotIndex) return false;
     return Array.isArray(context.chat) && context.chat.length === binding.slotIndex;
+}
+
+/**
+ * Direct Generate calls set their busy flag after deleting the old reply. The
+ * deletion clears the persisted binding immediately; only this same run's
+ * regenerate interceptor may restore its private candidate. A new real run,
+ * stop/end, user message or chat switch discards the candidate in index.js.
+ * @param {object|null} candidate
+ * @param {object} context
+ * @param {string} type
+ * @returns {boolean}
+ */
+export function confirmRegenerateDelete(candidate, context, type) {
+    if (!candidate || type !== 'regenerate' || readBoundInstruct(context.chatMetadata)) return false;
+    if (candidate.chatId !== context.chatId || candidate.metadata !== context.chatMetadata) return false;
+    if (!shouldReinject({ type, chat: context.chat, binding: candidate.binding, hasPending: false })) return false;
+    context.chatMetadata.director.boundInstruct = { ...candidate.binding };
+    return true;
 }
 
 /**

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
+import * as instruct from '../public/scripts/extensions/director/instruct.js';
 import { EventEmitter } from '../public/lib/eventemitter.js';
 import {
     BOUND_INSTRUCT_PROMPT_KEY,
@@ -366,4 +369,49 @@ test('a regenerate delete skip matches only that chat, binding, and post-delete 
     assert.equal(matchesRegenerateDelete({ ...skip, slotIndex: 2 }, { chatId: 'chat-a', chatMetadata: metadata, chat: [user] }), false);
     assert.equal(matchesRegenerateDelete(skip, { chatId: 'chat-a', chatMetadata: { director: {} }, chat: [user] }), false);
     assert.equal(matchesRegenerateDelete(null, { chatId: 'chat-a', chatMetadata: metadata, chat: [user] }), false);
+});
+
+test('an inactive generation cannot hide a real deletion after an early return', () => {
+    const metadata = withBinding();
+    const skip = { chatId: 'chat-a', metadata, slotIndex: 1 };
+    assert.equal(matchesRegenerateDelete(skip, { chatId: 'chat-a', chatMetadata: metadata, chat: [user] }, false), false);
+});
+
+test('dryRun neither clears a regenerate token nor restores a masked real generation', () => {
+    const source = readFileSync(new URL('../public/scripts/extensions/director/index.js', import.meta.url), 'utf8');
+    let cleared = 0;
+    let restored = 0;
+    const context = vm.createContext({
+        clearBoundDeleteSkip: () => cleared++,
+        restoreDirectorPrompts: () => restored++,
+        restoreFirstDirectorMessage() {},
+        snapshotFirstDirectorMessage() {},
+        getContext: () => ({ chatMetadata: {} }),
+        readBoundInstruct: () => null,
+    });
+    const start = source.indexOf('function armBoundDeleteSkip(');
+    const end = source.indexOf('\nfunction closePopover', start);
+    vm.runInContext(source.slice(start, end), context);
+    vm.runInContext("armBoundDeleteSkip('quiet', true)", context);
+    assert.equal(cleared, 0);
+    const listenerStart = source.indexOf('context.eventSource.on(context.eventTypes.GENERATION_STARTED, ');
+    const listenerEnd = source.indexOf('\n    });', listenerStart);
+    const callback = source.slice(listenerStart, listenerEnd).split('GENERATION_STARTED, ')[1];
+    vm.runInContext(`(${callback}\n})('quiet', {}, true)`, context);
+    assert.equal(restored, 0);
+    assert.equal(cleared, 0);
+});
+
+test('only the same regenerate interceptor can restore a provisionally deleted binding', () => {
+    assert.equal(typeof instruct.confirmRegenerateDelete, 'function');
+    const binding = bindingFrom(user);
+    const metadata = { director: {} };
+    const candidate = { chatId: 'chat-a', metadata, slotIndex: 1, binding };
+    const context = { chatId: 'chat-a', chatMetadata: metadata, chat: [user] };
+    assert.equal(instruct.confirmRegenerateDelete(candidate, context, 'normal'), false);
+    assert.equal(instruct.confirmRegenerateDelete(candidate, { ...context, chatId: 'chat-b' }, 'regenerate'), false);
+    assert.equal(instruct.confirmRegenerateDelete(candidate, { ...context, chat: [{ ...user, mes: 'edited' }] }, 'regenerate'), false);
+    assert.equal(instruct.confirmRegenerateDelete(candidate, context, 'regenerate'), true);
+    assert.deepEqual(readBoundInstruct(metadata), binding);
+    assert.equal(instruct.confirmRegenerateDelete(candidate, context, 'regenerate'), false, 'never overwrite a newer binding');
 });

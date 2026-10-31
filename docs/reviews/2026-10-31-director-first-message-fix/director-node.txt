@@ -1,0 +1,89 @@
+✔ chapter titles use the first input and never a stored number (1.2151ms)
+✔ live numbering survives deleting a middle chapter and does not renumber stored data (0.2456ms)
+✔ mark and unmark keep foreign director metadata and drop an empty chapter shell (0.2536ms)
+✔ chapter metadata survives every swipe and JSONL reload, and unmark clears every swipe (0.4507ms)
+✔ a chapter survives a newly regenerated swipe and reload, then unmark stays clear after reload (9.7729ms)
+✔ loading confirm starts only past 500 messages and names the exact gap (0.1545ms)
+✔ template chapter counts use the same title rule after a middle deletion (0.3159ms)
+Event emitted: prompt
+Event emitted: generation_ended
+Event emitted: generation_stopped
+Event emitted: prompt
+Event emitted: completed
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+✔ Director instruction survives failed/stopped attempts and is consumed only by a completed included request (2.0965ms)
+✔ user macros in a director instruction survive prompt assembly and are still consumed (0.8771ms)
+✔ dry runs, excluded instructions, replaced injections and another chat never consume a pending instruction (0.5604ms)
+✔ versioned JSON export/import round-trips every preset field without shared references (1.4982ms)
+✔ restoring defaults returns fresh exact defaults after custom edits and reordering (0.3288ms)
+✔ root values must be objects with version 1 and a presets array (0.4631ms)
+✔ every preset field is required, with exact string and boolean types (0.7628ms)
+✔ unknown modes, empty names and empty IDs are rejected (0.938ms)
+✔ string size limits and the preset count limit accept the boundary and reject overflow (0.525ms)
+✔ duplicate IDs reject the complete import without changing the source (0.298ms)
+✔ digit shortcuts follow the current order and stop at nine (0.2156ms)
+✔ slash arguments resolve 1-based positions and preserve optional text (0.5028ms)
+✔ slash names match exact case first, then case-insensitively, using longest prefixes (0.383ms)
+✔ provided slash text fills the first input and uses later defaults without a dialog (0.5137ms)
+✔ slash inputs ask only remaining fields without defaults and retain complete value order (0.2055ms)
+✔ ordinary presets still collect all inputs and templates without inputs never ask (0.1184ms)
+Event emitted: prompt
+Event emitted: generation_stopped
+Event emitted: generation_ended
+Event emitted: completed
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+✔ shouldReinject is true only for swipe, regenerate, and continue at the bound slot with the same fingerprint and no pending (1.218ms)
+✔ message fingerprint ignores send_date and changes with mes, name, or is_user (0.2687ms)
+✔ bound instructions are created from the chat present at completion and cleared by every release rule (0.5125ms)
+✔ reinject copies binding text through the in-chat prompt and leaves the binding in place (0.7094ms)
+✔ a completed pending instruction becomes bound, reinject does not consume it, and failure leaves both (1.6193ms)
+✔ quiet and impersonate mask director prompts, skip consumption, and restore the literal (1.0997ms)
+✔ a regenerate delete skip matches only that chat, binding, and post-delete length (0.1862ms)
+✔ an inactive generation cannot hide a real deletion after an early return (0.1302ms)
+✔ dryRun neither clears a regenerate token nor restores a masked real generation (1.4107ms)
+✔ a bound direct regenerate marks upstream busy before its pre-interceptor delete (1.166ms)
+✔ all inputs are collected once in template order, with Chinese punctuation and defaults (2.241ms)
+✔ prefilled defaults and explicit empty values, including fields with no default, are preserved (0.1989ms)
+✔ cancelling returns null without expanding macros or producing insertion text (0.1508ms)
+✔ chapter counts are derived live, including after deleting a middle chapter (0.1852ms)
+✔ chapter counting observes chat changes while the input dialog is open (0.1402ms)
+✔ standard macros expand on literal fragments and text typed by the user stays literal (0.1894ms)
+✔ a macro cannot span an input or chapter token, and typed director tokens are not parsed again (0.3168ms)
+✔ Director tokens entered as input stay literal and replacement strings retain dollar signs (0.1257ms)
+✔ templates without inputs do not open a dialog and still expand standard macros (0.1499ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 140.6722

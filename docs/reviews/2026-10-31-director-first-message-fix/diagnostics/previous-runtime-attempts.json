@@ -1,0 +1,72 @@
+{
+  "node": "v24.15.0",
+  "finalAcceptance": false,
+  "attempts": [
+    {
+      "file": "g2-1.json",
+      "pass": true,
+      "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+      "checks": 8,
+      "processStatus": null,
+      "error": null
+    },
+    {
+      "file": "g2-2.json",
+      "pass": true,
+      "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+      "checks": 8,
+      "processStatus": null,
+      "error": null
+    },
+    {
+      "file": "g2-3.json",
+      "pass": true,
+      "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+      "checks": 8,
+      "processStatus": null,
+      "error": null
+    },
+    {
+      "file": "g3-baseline.json",
+      "pass": true,
+      "head": "931354ffb5c9fe77bea504a4317d434f59eb98da",
+      "checks": 2,
+      "processStatus": null,
+      "error": null
+    },
+    {
+      "file": "g3-head.json",
+      "pass": true,
+      "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+      "checks": 2,
+      "processStatus": null,
+      "error": null
+    },
+    {
+      "file": "g4-1.json",
+      "pass": true,
+      "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+      "checks": 53,
+      "processStatus": null,
+      "error": null
+    },
+    {
+      "file": "g4-2.json",
+      "pass": false,
+      "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+      "checks": 43,
+      "processStatus": {
+        "server": 3221226505,
+        "provider": null
+      },
+      "error": "Page.evaluate: TypeError: Failed to fetch\n    at sendOpenAIRequest (http://<host>/scripts/openai.js:3149:28)\n    at async sendGenerationRequest (http://<host>/script.js:6708:16)\n    at async finishGenerating (http://<host>/script.js:6029:20)\n    at async eval (eval at evaluate (:311:30), <anonymous>:1:15)\n    at async <anonymous>:337:30"
+    }
+  ],
+  "newRuntime": {
+    "node": "v24.22.1",
+    "libuv": "1.52.1",
+    "moduleAbi": 137
+  },
+  "upstreamRelatedReport": "https://github.com/nodejs/node/issues/63620",
+  "attribution": "Signature consistent; no native dump collected to prove identical faulting stack."
+}

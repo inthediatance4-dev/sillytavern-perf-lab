@@ -1,5 +1,5 @@
 import { Popper } from '../../../lib.js';
-import { doNavbarIconClick, showMoreMessages } from '../../../script.js';
+import { doNavbarIconClick, is_send_press, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
@@ -20,15 +20,61 @@ import {
     unmarkChapter,
 } from './chapters.js';
 import { initPresetManager } from './manager.js';
-import { initInstructLifecycle } from './instruct.js';
+import {
+    activeInstruct,
+    applyBoundReinject,
+    applyCommittedMessageClear,
+    applyDeletionClear,
+    applyUserSentClear,
+    cancelPendingInstruct,
+    clearTemporaryInstruct,
+    discardDirectorPromptMask,
+    initInstructLifecycle,
+    instructStatusText,
+    maskDirectorPrompts,
+    matchesRegenerateDelete,
+    readBoundInstruct,
+    restoreDirectorPrompts,
+    shieldDirectorPromptValues,
+} from './instruct.js';
 import { createDefaultPresets, presetForDigit, resolvePresetArgument } from './presets.js';
-import { collectPresetInputs, renderDirectorTemplate } from './template.js';
+import { collectPresetInputs, containsExpandableMacro, renderDirectorTemplate } from './template.js';
 
 let button;
 let popover;
 let popper;
+let instructChip;
 let executing = false;
 let chatRevision = 0;
+/** One regenerate's pre-interceptor delete. Not a sticky boolean. */
+let boundDeleteSkip = null;
+function clearBoundDeleteSkip() {
+    boundDeleteSkip = null;
+}
+
+/**
+ * Arm the skip only for this chat's current binding. The next generation,
+ * a chat switch, or generation end/stop drops it if the delete never came.
+ * @param {string} generationType
+ * @param {boolean} dryRun
+ */
+function armBoundDeleteSkip(generationType, dryRun) {
+    if (dryRun) return;
+    clearBoundDeleteSkip();
+    if (generationType !== 'regenerate') return;
+    const context = getContext();
+    const binding = readBoundInstruct(context.chatMetadata);
+    if (!binding) return;
+    // The native regenerate button already sets this before Generate. Direct
+    // extension calls do not, so mirror that public entry point for a binding.
+    // Generate's preflight exits/unblockGeneration reset it on failure/abort.
+    setSendButtonState(true);
+    boundDeleteSkip = {
+        chatId: context.chatId,
+        metadata: context.chatMetadata,
+        slotIndex: binding.slotIndex,
+    };
+}
 
 function closePopover(restoreFocus = false) {
     popover.hidden = true;
@@ -49,6 +95,87 @@ function matchesHotkey(event) {
         && event.shiftKey === parts.includes('shift')
         && event.metaKey === parts.includes('meta')
         && parts.every(part => ['ctrl', 'alt', 'shift', 'meta'].includes(part));
+}
+
+function refreshInstructChip() {
+    if (!instructChip) return;
+    const active = activeInstruct(getContext().chatMetadata);
+    const label = instructChip.querySelector('.director_instruct_text');
+    if (!active) {
+        instructChip.hidden = true;
+        instructChip.removeAttribute('data-state');
+        instructChip.removeAttribute('title');
+        instructChip.removeAttribute('aria-label');
+        if (label) label.textContent = '';
+        return;
+    }
+    instructChip.hidden = false;
+    instructChip.dataset.state = active.state;
+    instructChip.title = active.text;
+    const status = active.state === 'pending' ? '待生效' : '重生沿用';
+    instructChip.setAttribute('aria-label', `${status}：${active.text}`);
+    if (label) label.textContent = instructStatusText(active.state, active.text);
+}
+
+async function clearDisplayedInstruct(active) {
+    const context = getContext();
+    const current = activeInstruct(context.chatMetadata);
+    if (!current || current.state !== active.state || current.id !== active.id || current.text !== active.text) {
+        refreshInstructChip();
+        return;
+    }
+    const changed = current.state === 'pending'
+        ? cancelPendingInstruct(context, current.id)
+        : applyUserSentClear(context.chatMetadata);
+    // Update the chip before the save so the click handler's synchronous prefix is visible.
+    refreshInstructChip();
+    if (changed) await context.saveMetadata();
+}
+
+async function dismissInstructChip() {
+    const active = activeInstruct(getContext().chatMetadata);
+    if (active) await clearDisplayedInstruct(active);
+}
+
+async function showInstructPopup() {
+    const active = activeInstruct(getContext().chatMetadata);
+    if (!active) return;
+    const body = document.createElement('div');
+    body.className = 'director_instruct_full';
+    body.textContent = active.text;
+    const popup = new Popup(body, POPUP_TYPE.TEXT, '', {
+        okButton: false,
+        cancelButton: '关闭',
+        customButtons: [{ text: '清除', result: POPUP_RESULT.CUSTOM1 }],
+    });
+    const result = await popup.show();
+    if (result === POPUP_RESULT.CUSTOM1) await clearDisplayedInstruct(active);
+}
+
+function createInstructChip() {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.id = 'director_instruct_chip';
+    chip.hidden = true;
+    const label = document.createElement('span');
+    label.className = 'director_instruct_text';
+    const dismiss = document.createElement('span');
+    dismiss.className = 'director_instruct_dismiss';
+    dismiss.textContent = ' ✕';
+    dismiss.setAttribute('aria-hidden', 'true');
+    chip.append(label, dismiss);
+    chip.addEventListener('click', event => {
+        const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+        const dismissClick = target instanceof Element && target.closest('.director_instruct_dismiss');
+        if (dismissClick) {
+            event.preventDefault();
+            event.stopPropagation();
+            dismissInstructChip().catch(error => console.error('Director instruct dismiss failed', error));
+            return;
+        }
+        showInstructPopup().catch(error => console.error('Director instruct popup failed', error));
+    });
+    return chip;
 }
 
 function isCurrentChat(context, revision) {
@@ -75,6 +202,34 @@ async function collectInputs(inputs, name) {
     return result === POPUP_RESULT.AFFIRMATIVE
         ? inputs.map((_, index) => String(popup.inputResults.get(`director-input-${index}`)))
         : null;
+}
+
+/**
+ * /sys and /comment run substituteParams, then emit MESSAGE_SENT, then render
+ * and save. Literals were already expanded. Restore during that event so the
+ * upstream save stores the rendered text. Macro-free text is left untouched,
+ * which keeps the saved message identical to the slash command.
+ * @param {'narrator'|'comment'} mode
+ * @param {string} text Rendered template
+ */
+async function insertLiteralMessage(mode, text) {
+    const context = getContext();
+    const insertAt = context.chat.length;
+    const literal = String(text ?? '').trim();
+    const restore = messageId => {
+        if (messageId !== insertAt) return;
+        const message = getContext().chat[messageId];
+        if (!message || message.mes === literal || !containsExpandableMacro(literal)) return;
+        message.mes = literal;
+    };
+    context.eventSource.on(context.eventTypes.MESSAGE_SENT, restore);
+    try {
+        const commands = context.SlashCommandParser.commands;
+        const command = mode === 'comment' ? commands.comment : commands.sys;
+        await command.callback({}, text);
+    } finally {
+        context.eventSource.removeListener(context.eventTypes.MESSAGE_SENT, restore);
+    }
 }
 
 async function usePreset(preset, inputText) {
@@ -116,6 +271,7 @@ async function usePreset(preset, inputText) {
             if (context.chatMetadata.script_injects[injectId]) {
                 context.chatMetadata.script_injects[injectId].directorEphemeral = true;
                 context.saveMetadataDebounced();
+                refreshInstructChip();
             }
         } else {
             const metadata = { id, preset: preset.isChapter ? 'chapter' : preset.id };
@@ -134,8 +290,7 @@ async function usePreset(preset, inputText) {
             // MESSAGE_SENT runs before rendering and the command's JSONL save.
             context.eventSource.makeFirst(context.eventTypes.MESSAGE_SENT, attachMetadata);
             try {
-                const command = preset.mode === 'comment' ? commands.comment : commands.sys;
-                await command.callback({}, text);
+                await insertLiteralMessage(preset.mode === 'comment' ? 'comment' : 'narrator', text);
             } finally {
                 context.eventSource.removeListener(context.eventTypes.MESSAGE_SENT, attachMetadata);
             }
@@ -380,7 +535,32 @@ export async function init() {
         seeded = true;
     }
     const context = getContext();
-    initInstructLifecycle(getContext);
+    initInstructLifecycle(getContext, refreshInstructChip);
+    // The interceptor argument is a filtered copy. Swipe pops the target from
+    // that copy before this runs, so reinject reads getContext().chat instead.
+    globalThis.director_rebind_interceptor = async function director_rebind_interceptor(_chat, _contextSize, _abort, type) {
+        clearBoundDeleteSkip();
+        try {
+            const current = getContext();
+            // Quiet and impersonate must not send or consume a pending instruct,
+            // and they must not copy boundInstruct back into the prompt.
+            if (type === 'quiet' || type === 'impersonate') {
+                clearTemporaryInstruct(current);
+                maskDirectorPrompts(current);
+                return;
+            }
+            const result = applyBoundReinject(current, type);
+            // Pending prompts were shielded at generation start. Bound text is
+            // copied into the extension prompt here, so shield it before assembly.
+            shieldDirectorPromptValues(current);
+            if (result.cleared) {
+                refreshInstructChip();
+                await current.saveMetadata();
+            }
+        } catch (error) {
+            console.error('Director rebind interceptor failed', error);
+        }
+    };
     if (seeded) context.saveSettingsDebounced();
     $('#extensions_settings').append(await renderExtensionTemplateAsync('director', 'settings'));
     $('#director_hotkey').val(settings.hotkey).on('input', function () {
@@ -423,6 +603,8 @@ export async function init() {
     button.setAttribute('aria-controls', 'directorPopover');
     button.setAttribute('aria-expanded', 'false');
     document.getElementById('extensionsMenuButton').after(button);
+    instructChip = createInstructChip();
+    button.after(instructChip);
 
     popover = document.createElement('div');
     popover.id = 'directorPopover';
@@ -489,8 +671,87 @@ export async function init() {
     ]) context.eventSource.on(type, refreshChapters);
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         chatRevision++;
+        clearBoundDeleteSkip();
+        // processChatSlashCommands already rebuilt script_inject_* for the new chat.
+        discardDirectorPromptMask();
         closePopover();
         refreshChapters();
+        try {
+            clearTemporaryInstruct(getContext());
+        } catch (error) {
+            console.error('Director failed to clear a temporary instruction', error);
+        }
+        refreshInstructChip();
+    });
+    const restoreMaskedInstruct = () => {
+        try {
+            restoreDirectorPrompts(getContext());
+        } catch (error) {
+            console.error('Director failed to restore a masked instruction', error);
+        }
+    };
+    // hideStopButton emits GENERATION_ENDED without awaiting. First listener runs
+    // before that call returns, so a quiet 500 restores before the error settles.
+    const releaseRegenerateDeleteSkip = () => clearBoundDeleteSkip();
+    context.eventSource.on(context.eventTypes.GENERATION_ENDED, restoreMaskedInstruct);
+    context.eventSource.makeFirst(context.eventTypes.GENERATION_ENDED, restoreMaskedInstruct);
+    context.eventSource.on(context.eventTypes.GENERATION_ENDED, releaseRegenerateDeleteSkip);
+    context.eventSource.on(context.eventTypes.GENERATION_STOPPED, restoreMaskedInstruct);
+    context.eventSource.makeFirst(context.eventTypes.GENERATION_STOPPED, restoreMaskedInstruct);
+    context.eventSource.on(context.eventTypes.GENERATION_STOPPED, releaseRegenerateDeleteSkip);
+    // GENERATION_STARTED is before Generate deletes the last AI message for regenerate.
+    context.eventSource.on(context.eventTypes.GENERATION_STARTED, (generationType, _params, dryRun) => {
+        // Token-count dry runs must not unmask or reset a real generation.
+        if (dryRun) return;
+        try {
+            // A quiet or impersonate run can return before the stop button exists,
+            // so GENERATION_ENDED never fires. Restore before this run shields.
+            restoreDirectorPrompts(getContext());
+        } catch (error) {
+            console.error('Director failed to restore a masked instruction', error);
+        }
+        try {
+            clearTemporaryInstruct(getContext());
+        } catch (error) {
+            console.error('Director failed to clear a temporary instruction', error);
+        }
+        try {
+            shieldDirectorPromptValues(getContext());
+        } catch (error) {
+            console.error('Director failed to shield an instruction from macro expansion', error);
+        }
+        armBoundDeleteSkip(generationType, dryRun);
+    });
+    context.eventSource.on(context.eventTypes.GENERATE_AFTER_DATA, () => {
+        try {
+            clearTemporaryInstruct(getContext());
+        } catch (error) {
+            console.error('Director failed to clear a temporary instruction', error);
+        }
+    });
+    context.eventSource.on(context.eventTypes.MESSAGE_SENT, async () => {
+        clearBoundDeleteSkip();
+        const current = getContext();
+        if (!applyUserSentClear(current.chatMetadata)) return;
+        refreshInstructChip();
+        await current.saveMetadata();
+    });
+    // MESSAGE_RECEIVED runs inside saveReply before swipe_info is written.
+    // Debounce the clear so that save does not persist the unfinished message.
+    context.eventSource.on(context.eventTypes.MESSAGE_RECEIVED, messageId => {
+        const current = getContext();
+        if (!applyCommittedMessageClear(current.chatMetadata, Number(messageId))) return;
+        refreshInstructChip();
+        current.saveMetadataDebounced();
+    });
+    context.eventSource.on(context.eventTypes.MESSAGE_DELETED, async () => {
+        const current = getContext();
+        const duringRegenerate = matchesRegenerateDelete(boundDeleteSkip, current, is_send_press);
+        clearBoundDeleteSkip();
+        if (!applyDeletionClear(current.chatMetadata, current.chat, duringRegenerate)) return;
+        refreshInstructChip();
+        await current.saveMetadata();
     });
     refreshChapters();
+    refreshInstructChip();
 }

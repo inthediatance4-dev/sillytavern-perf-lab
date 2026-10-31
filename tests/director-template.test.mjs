@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { countChapters, parseInputs, renderDirectorTemplate } from '../public/scripts/extensions/director/template.js';
+import { containsExpandableMacro, countChapters, parseInputs, renderDirectorTemplate } from '../public/scripts/extensions/director/template.js';
 
 test('all inputs are collected once in template order, with Chinese punctuation and defaults', async () => {
     const template = '{{input:过了多久？|一段时间}}后，{{input:新的地点}}：{{input:事件|风|雨}}';
@@ -68,17 +68,44 @@ test('chapter counting observes chat changes while the input dialog is open', as
     assert.equal(result, '第2章 新的章节');
 });
 
-test('standard macros expand once after inputs and chapter tokens have been resolved', async () => {
+test('standard macros expand on literal fragments and text typed by the user stays literal', async () => {
     const seen = [];
-    const result = await renderDirectorTemplate('{{char}}对{{user}}：第{{chapter}}章 {{input:标题}}', {
+    const substituteParams = text => {
+        seen.push(text);
+        return text.replaceAll('{{char}}', '角色').replaceAll('{{user}}', '用户');
+    };
+    const typed = '{{char}} 和 {{user}} {{random::a,b}}';
+    const result = await renderDirectorTemplate('【{{char}}】{{input:说什么}}', {
+        collectInputs: () => [typed],
+        substituteParams,
+    });
+    assert.deepEqual(seen, ['【{{char}}】']);
+    assert.equal(result, `【角色】${typed}`);
+    assert.equal(result.includes(typed), true);
+
+    seen.length = 0;
+    const chaptered = await renderDirectorTemplate('{{char}}对{{user}}：第{{chapter}}章 {{input:标题}}', {
         collectInputs: () => ['{{char}}回来了'],
+        substituteParams,
+    });
+    assert.deepEqual(seen, ['{{char}}对{{user}}：第', '章 ']);
+    assert.equal(chaptered, '角色对用户：第1章 {{char}}回来了');
+});
+
+test('a macro cannot span an input or chapter token, and typed director tokens are not parsed again', async () => {
+    const seen = [];
+    const result = await renderDirectorTemplate('{{cha{{input:x}}r}}/{{us{{chapter}}er}}', {
+        collectInputs: () => ['{{input:x}}{{chapter}}'],
         substituteParams: text => {
             seen.push(text);
             return text.replaceAll('{{char}}', '角色').replaceAll('{{user}}', '用户');
         },
     });
-    assert.deepEqual(seen, ['{{char}}对{{user}}：第1章 {{char}}回来了']);
-    assert.equal(result, '角色对用户：第1章 角色回来了');
+    assert.deepEqual(seen, ['{{cha', 'r}}/{{us', 'er}}']);
+    assert.equal(result, '{{cha{{input:x}}{{chapter}}r}}/{{us1er}}');
+    assert.equal(containsExpandableMacro('plain'), false);
+    assert.equal(containsExpandableMacro('{{char}}'), true);
+    assert.equal(containsExpandableMacro('<USER>'), true);
 });
 
 test('Director tokens entered as input stay literal and replacement strings retain dollar signs', async () => {

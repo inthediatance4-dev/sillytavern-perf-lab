@@ -5,6 +5,7 @@
     "optional": [],
     "js": "index.js",
     "css": "style.css",
+    "generate_interceptor": "director_rebind_interceptor",
     "author": "SillyTavern",
     "version": "1.0.0",
     "homePage": "https://github.com/SillyTavern/SillyTavern",

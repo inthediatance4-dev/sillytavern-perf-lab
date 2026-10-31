@@ -1,4 +1,4 @@
-import { streamingPerfEnabled, recordStreamingPerf, recordStreamingDomMode, recordStreamingDomFrame } from './scripts/streaming-perf.js';
+import { streamingPerfEnabled, recordStreamingPerf, recordStreamingDomMode, recordStreamingDomFrame, streamingFormatDelayMs } from './scripts/streaming-perf.js';
 import {
     showdown,
     moment,
@@ -1962,7 +1962,9 @@ export function messageFormatting(mes, ch_name, isSystem, isUser, messageId, san
         return '';
     }
 
-    if (Number(messageId) === 0 && !isSystem && !isUser && !isReasoning) {
+    // Greeting rewrite. Director messages already store the typed macros, so
+    // this pass must not expand them into the saved text or the bubble.
+    if (Number(messageId) === 0 && !isSystem && !isUser && !isReasoning && !chat[messageId]?.extra?.director) {
         const mesBeforeReplace = mes;
         const chatMessage = chat[messageId];
         mes = substituteParams(mes, undefined, ch_name);
@@ -4096,7 +4098,12 @@ class StreamingProcessor {
             {},
             false,
         );
-        const formatMs = performance.now() - formatStart;
+        let formatMs = performance.now() - formatStart;
+        // Lab query only. Absent or 0 skips the rest: no second clock read and no spin.
+        // typeof keeps extracted-class tests that never set the binding on the real path.
+        if (typeof streamingFormatDelayMs !== 'undefined' && streamingFormatDelayMs && formatMs < streamingFormatDelayMs) {
+            formatMs = streamingFormatDelayMs;
+        }
         if (streamingPerfEnabled) recordStreamingPerf('format', formatStart, messageId);
         const domStart = streamingPerfEnabled ? performance.now() : 0;
         if (this.messageTextDom instanceof HTMLElement) {
@@ -5042,8 +5049,9 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
         setExtensionPrompt(inject_ids.DEPTH_PROMPT, depthPromptText, extension_prompt_types.IN_CHAT, depthPromptDepth, extension_settings.note.allowWIScan, depthPromptRole);
     }
 
-    // First message in fresh 1-on-1 chat reacts to user/character settings changes
-    if (chat.length) {
+    // Ordinary greetings react to user/character settings changes. Director
+    // text is already rendered; mutating it here can leak into a concurrent save.
+    if (chat.length && !chat[0].extra?.director) {
         chat[0].mes = substituteParams(chat[0].mes);
     }
 

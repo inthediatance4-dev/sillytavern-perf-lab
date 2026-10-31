@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
+import { readStreamingFormatDelayMs, streamingFormatDelayMs } from '../public/scripts/streaming-perf.js';
 
 const source = readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
 const utils = readFileSync(new URL('../public/scripts/utils.js', import.meta.url), 'utf8');
@@ -21,7 +22,7 @@ function deferred() {
 // Exercise the application class and Stopwatch with a deterministic clock,
 // frame queue and message delivery boundary. Formatting itself is covered by
 // the browser equivalence/race suites; these assertions cover scheduling.
-function fixture(optimized = true) {
+function fixture(optimized = true, { streamingFps = 30 } = {}) {
     let now = 1000;
     let frameId = 0;
     let incoming = deferred();
@@ -71,7 +72,8 @@ function fixture(optimized = true) {
         Date: FakeDate, performance: { now: () => now }, console: { warn() {}, error(error) { throw error; } },
         AbortController, HTMLElement: Element, Event, ReasoningHandler,
         chat, main_api: 'openai', scrollLock: true,
-        power_user: { optimized_streaming: optimized, streaming_fps: 30, stream_fade_in: false },
+        power_user: { optimized_streaming: optimized, streaming_fps: streamingFps, stream_fade_in: false },
+        streamingFormatDelayMs: 0,
         document: { querySelector: selector => selector === '#send_textarea' ? textarea : message },
         event_types: { STREAM_TOKEN_RECEIVED: 'token' },
         eventSource: { async emit(name, value) { if (name === 'token') tokens.push(value); } },
@@ -127,8 +129,50 @@ function fixture(optimized = true) {
         },
         staleFrames() { for (const callback of cancelled.splice(0)) callback(now); },
         task() { tasks.shift()?.(); },
+        // Explicit clock for the adaptive-gap tests. frame()/task() stay put.
+        advance(ms) { now += ms; },
+        clock() { return now; },
+        dispatchFrame() {
+            const stamp = now;
+            const ready = [...frames.values()];
+            frames.clear();
+            for (const callback of ready) callback(stamp);
+        },
+        dispatchTasks() {
+            for (const task of tasks.splice(0, tasks.length)) task();
+        },
+        setFormatDelay(ms) { context.streamingFormatDelayMs = ms; },
+        /** True after a post-frame task, so the next vsync is 13ms away on a 16ms grid. */
+        syncedToTask: false,
         async close() { incoming.resolve(null); await run; },
     };
+}
+
+function contentCount(lab) {
+    return lab.writes.filter(item => item.type === 'content').length;
+}
+
+/**
+ * Pump a 16ms vsync grid until the next content write.
+ * A paint task is 3ms after its vsync, so the following vsync is 13ms later
+ * and falls under the adaptive gap's 14ms threshold.
+ * @returns {number} Animation frames until that write
+ */
+function pumpUntilContent(lab, limit = 6) {
+    const before = contentCount(lab);
+    let frames = 0;
+    while (contentCount(lab) === before && frames < limit) {
+        lab.advance(lab.syncedToTask ? 13 : 16);
+        lab.syncedToTask = false;
+        lab.dispatchFrame();
+        frames += 1;
+        if (lab.tasks.length) {
+            lab.advance(3);
+            lab.syncedToTask = true;
+            lab.dispatchTasks();
+        }
+    }
+    return frames;
 }
 
 test('first content bypasses the initial Stopwatch interval and paints before any frame', async () => {
@@ -254,5 +298,124 @@ test('abandonment while reasoning awaits prevents an in-flight tick from paintin
     assert.equal(lab.writes.length, writes);
     assert.equal(lab.text.innerHTML, 'selected chat sentinel');
     assert.equal(lab.frames.size, 0);
+    await lab.close();
+});
+
+test('format-delay query is off unless it is a positive number, and capped at 50ms', () => {
+    assert.equal(streamingFormatDelayMs, 0, 'importing the module without the query does not arm a delay');
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('')), 0);
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('stPerfStreaming=1')), 0);
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('stPerfFormatDelay=')), 0);
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('stPerfFormatDelay=0')), 0);
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('stPerfFormatDelay=-4')), 0);
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('stPerfFormatDelay=nope')), 0);
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('stPerfFormatDelay=12')), 12);
+    assert.equal(readStreamingFormatDelayMs(new URLSearchParams('stPerfFormatDelay=80')), 50);
+});
+
+test('a fixed 12ms format keeps the first paint synchronous and later paints two frames apart', async () => {
+    const lab = fixture(true, { streamingFps: 100 });
+    lab.setFormatDelay(12);
+    const html = text => `<p>${text}</p>`;
+
+    await lab.tick('A');
+    assert.equal(lab.text.innerHTML, html('A'));
+    assert.equal(lab.frames.size, 0, 'first visible content still paints before any frame');
+    assert.equal(lab.tasks.length, 0);
+    assert.equal(lab.writes.find(item => item.type === 'content').incremental, false);
+
+    // No coalesced timestamp yet, so the next update is not held for a second frame.
+    await lab.tick('B', '', 10);
+    assert.equal(lab.chat[0].mes, 'B');
+    assert.equal(lab.text.innerHTML, html('A'));
+    assert.equal(pumpUntilContent(lab), 1);
+    assert.equal(lab.text.innerHTML, html('B'));
+    assert.equal(lab.writes.at(-1).incremental, true);
+
+    for (const text of ['C', 'D', 'E']) {
+        await lab.tick(text, '', 0);
+        assert.equal(lab.chat[0].mes, text);
+        assert.equal(lab.text.innerHTML, html(String.fromCharCode(text.charCodeAt(0) - 1)));
+        assert.equal(pumpUntilContent(lab), 2, `${text} stays two frames away while format samples stay above 8ms`);
+        assert.equal(lab.text.innerHTML, html(text));
+    }
+    await lab.close();
+});
+
+test('the last chunk paints a full write immediately and matches direct formatting', async () => {
+    const lab = fixture(true, { streamingFps: 100 });
+    lab.setFormatDelay(12);
+    await lab.tick('A');
+    await lab.tick('partial', '', 10);
+    assert.equal(lab.frames.size, 1);
+    assert.equal(lab.text.innerHTML, '<p>A</p>');
+    await lab.processor.onProgressStreaming(0, 'DONE', true);
+    assert.equal(lab.text.innerHTML, '<p>DONE</p>');
+    assert.equal(lab.writes.at(-1).incremental, false);
+    assert.equal(lab.frames.size, 0);
+    assert.equal(lab.tasks.length, 0);
+    lab.staleFrames();
+    lab.dispatchTasks();
+    assert.equal(lab.text.innerHTML, '<p>DONE</p>');
+    await lab.close();
+});
+
+test('format samples at or under 8ms return to one frame and still honor streaming_fps', async () => {
+    const lab = fixture(true, { streamingFps: 100 });
+    lab.setFormatDelay(12);
+    await lab.tick('A');
+    await lab.tick('B', '', 10);
+    assert.equal(pumpUntilContent(lab), 1);
+    // Six samples of 12ms fill the moving window. The first coalesced paint is one of them.
+    for (const text of ['C', 'D', 'E', 'F']) {
+        await lab.tick(text, '', 0);
+        assert.equal(pumpUntilContent(lab), 2);
+    }
+
+    lab.setFormatDelay(0);
+    const gaps = [];
+    for (const text of ['G', 'H', 'I', 'J']) {
+        await lab.tick(text, '', 0);
+        gaps.push(pumpUntilContent(lab));
+        assert.equal(lab.text.innerHTML, `<p>${text}</p>`);
+    }
+    assert.ok(gaps.slice(0, 2).every(gap => gap >= 2), 'the window still averages above 8ms for the first fast paints');
+    assert.equal(gaps.at(-1), 1, 'once the average is no longer above 8ms, the next paint uses a single frame');
+
+    // A second accepted token inside the same unpumped frame collapses to one write.
+    const before = contentCount(lab);
+    await lab.tick('K', '', 10);
+    await lab.tick('L', '', 10);
+    assert.equal(lab.frames.size, 1);
+    assert.equal(lab.chat[0].mes, 'L');
+    assert.equal(contentCount(lab), before);
+    assert.equal(pumpUntilContent(lab), 1);
+    assert.equal(lab.text.innerHTML, '<p>L</p>');
+    assert.equal(contentCount(lab), before + 1);
+
+    // The pump above already spent the fps budget. Accept one more token, then
+    // reject one that arrives inside the 10ms interval without arming a frame.
+    await lab.tick('M', '', 0);
+    assert.equal(lab.chat[0].mes, 'M');
+    const armed = lab.frames.size;
+    await lab.tick('early', '', 4);
+    assert.equal(lab.chat[0].mes, 'M');
+    assert.equal(lab.text.innerHTML, '<p>L</p>');
+    assert.equal(lab.frames.size, armed);
+    await lab.close();
+});
+
+test('default streaming_fps still drops updates inside its interval when format delay is off', async () => {
+    const lab = fixture(true, { streamingFps: 30 });
+    assert.equal(lab.clock(), 1000);
+    await lab.tick('A');
+    await lab.tick('early', '', 10);
+    assert.equal(lab.chat[0].mes, 'A');
+    assert.equal(lab.frames.size, 0);
+    await lab.tick('B', '', 24);
+    assert.equal(lab.chat[0].mes, 'B');
+    assert.equal(lab.text.innerHTML, '<p>A</p>');
+    assert.equal(pumpUntilContent(lab), 1);
+    assert.equal(lab.text.innerHTML, '<p>B</p>');
     await lab.close();
 });

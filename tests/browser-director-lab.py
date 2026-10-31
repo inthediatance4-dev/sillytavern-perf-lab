@@ -4,12 +4,13 @@ This is the director browser suite. tests/browser-lifecycle-lab.py --director
 runs this same file. The default lifecycle command is unchanged.
 
 Run with a Python environment containing Playwright. The S0 provider is
-scripts/fake-openai-endpoint.mjs. Only summary hashes are retained. Data, logs,
+scripts/fake-openai-endpoint.mjs. Synthetic message excerpts and source hashes are retained. Data, logs,
 base assets and Chromium state live in a temporary directory, and every process
 this script stops is its own child.
 """
 import argparse
 import contextlib
+import gzip
 import hashlib
 import json
 import os
@@ -28,6 +29,7 @@ from playwright.sync_api import sync_playwright
 from lab_browser import assert_lab_page, launch_chromium
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+RUNNER_ROOT = ROOT
 
 
 def redact(value, temporary=''):
@@ -37,6 +39,7 @@ def redact(value, temporary=''):
                                 (socket.gethostname(), '<host>')]:
         if source:
             text = text.replace(source, replacement)
+            text = text.replace(json.dumps(source, ensure_ascii=False)[1:-1], replacement)
     text = re.sub(re.escape(str(ROOT.parent)) + r'/[^\s"<>]*', '<repo>', text)
     text = re.sub(r'http://127\.0\.0\.1:\d+', 'http://<host>', text)
     return json.loads(text)
@@ -75,8 +78,8 @@ def wait_http(origin, child):
     raise AssertionError('Lab HTTP readiness exceeded 120 seconds')
 
 
-def ready(page, origin):
-    page.goto(origin, wait_until='domcontentloaded', timeout=60000)
+def ready(page, origin, query=''):
+    page.goto(origin + query, wait_until='domcontentloaded', timeout=60000)
     page.wait_for_function("""() => {
         if (!window.__directorReadyHooked && window.SillyTavern?.getContext) {
             try {
@@ -189,11 +192,15 @@ def open_chapter_menu(page, mesid):
 
 
 def swipe_message(page, mesid, swipe_id):
-    page.evaluate("""async ({mesid, swipeId}) => {
+    return page.evaluate("""async ({mesid, swipeId}) => {
         const main = await import('/script.js');
+        const snapshot = () => ({ busy:main.is_send_press, length:main.chat.length,
+            swipeId:main.chat[mesid]?.swipe_id, swipes:main.chat[mesid]?.swipes?.length });
+        const before = snapshot();
         const { SWIPE_DIRECTION, SWIPE_SOURCE } = await import('/scripts/constants.js');
         await main.swipe(null, SWIPE_DIRECTION.RIGHT, { source:SWIPE_SOURCE.SLASH_COMMAND,
             forceMesId:mesid, forceSwipeId:swipeId, forceDuration:0 });
+        return { before, after:snapshot() };
     }""", {'mesid': mesid, 'swipeId': swipe_id})
 
 
@@ -293,6 +300,858 @@ def preset(page, preset_id, text=None, cancel=False, digit=None):
     wait_director_idle(page)
 
 
+def run_review_checks(page, sample, fake_url, result):
+    """Run only the Director macro/instruct review scenarios on a fresh fixture."""
+    request_url = fake_url.removesuffix('/v1') + '/__requests'
+    def requests():
+        with urllib.request.urlopen(request_url, timeout=5) as response:
+            return json.load(response)
+
+
+    def configure_provider(options):
+        request = urllib.request.Request(fake_url.removesuffix('/v1') + '/__configure',
+            data=json.dumps(options).encode(), headers={'Content-Type': 'application/json'}, method='POST')
+        with urllib.request.urlopen(request, timeout=10) as response:
+            assert json.load(response)['configured']
+
+
+    def chip_state():
+        return page.evaluate("""() => {
+            const chip = document.querySelector('#director_instruct_chip');
+            if (!chip) return null;
+            const style = getComputedStyle(chip);
+            return {
+                hidden: chip.hidden,
+                display: style.display,
+                state: chip.dataset.state || '',
+                title: chip.title || '',
+                label: chip.textContent || '',
+                aria: chip.getAttribute('aria-label') || '',
+            };
+        }""")
+
+
+    def wait_count(count, timeout=20):
+        deadline = time.monotonic() + timeout
+        latest = requests()
+        while len(latest) < count and time.monotonic() < deadline:
+            page.wait_for_timeout(50)
+            latest = requests()
+        assert len(latest) >= count, len(latest)
+        return latest
+
+
+    def slash(command):
+        outcome = page.evaluate("""async (command) => {
+            try {
+                await SillyTavern.getContext().executeSlashCommandsWithOptions(command);
+                return { ok: true };
+            } catch (error) {
+                return { ok: false, error: String(error && error.message || error) };
+            }
+        }""", command)
+        assert outcome['ok'], outcome
+        return outcome
+
+
+    def assert_bound(token):
+        state = chip_state()
+        assert state and state['hidden'] is False and state['display'] != 'none', state
+        assert state['state'] == 'bound' and token in state['title'] and '重生沿用' in state['label'], state
+        assert token in state['aria'] and '✕' in state['label']
+
+
+    def assert_hidden_chip():
+        state = chip_state()
+        assert state and state['hidden'] is True and state['display'] == 'none', state
+        assert 'director_instruct_chip' not in snapshot(page)['focus']
+
+
+    stage = 'user input macros stay literal'
+    # The group stage leaves a group open. Select the character before
+    # opening its chat. Popup input is not an STscript argument, so
+    # {{char}} reaches the template raw.
+    page.evaluate("""async (sample) => {
+        const context = SillyTavern.getContext();
+        const index = context.characters.findIndex(card => card.avatar === sample.avatar);
+        await context.selectCharacterById(String(index));
+        await SillyTavern.getContext().openCharacterChat(sample.chatName);
+    }""", sample)
+    page.wait_for_function("""name => {
+        const context = SillyTavern.getContext();
+        return !context.groupId && context.chatId === name && context.name2 === 'Director Synthetic';
+    }""", arg=sample['chatName'], timeout=30000)
+    connect_api(page)
+    literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
+    expected_mes = '【Director Synthetic】' + literal_input
+    page.evaluate("""async () => {
+        const { extension_settings } = await import('/scripts/extensions.js');
+        const template = '【{{char}}】{{input:说什么}}';
+        const fields = { template, isChapter: false, autoGenerate: false };
+        extension_settings.director.presets.push(
+            { ...fields, id: 'macro-narrator', icon: '⏩', name: '宏旁白', mode: 'narrator' },
+            { ...fields, id: 'macro-comment', icon: '📝', name: '宏备注', mode: 'comment' },
+            { ...fields, id: 'macro-instruct', icon: '🎭', name: '宏指令', mode: 'instruct' },
+        );
+    }""")
+
+    def saved_message():
+        return page.evaluate("""async (sample) => {
+            const context = SillyTavern.getContext();
+            const response = await fetch('/api/chats/get', { method: 'POST', headers: context.getRequestHeaders(),
+                body: JSON.stringify({ avatar_url: sample.avatar, file_name: sample.chatName }) });
+            if (!response.ok) throw new Error('Saved JSONL read failed');
+            const saved = await response.json();
+            return saved[saved.length - 1];
+        }""", sample)
+
+    for preset_id in ('macro-narrator', 'macro-comment'):
+        preset(page, preset_id, text=literal_input)
+        memory = page.evaluate('() => SillyTavern.getContext().chat.at(-1)')
+        assert memory['mes'] == expected_mes, memory['mes']
+        assert memory['extra']['director']['preset'] == preset_id
+        saved = saved_message()
+        assert saved['mes'] == expected_mes, saved.get('mes')
+        assert '{{random::a,b}}' in saved['mes']
+        assert saved['extra']['director']['preset'] == preset_id
+    chat_before = page.evaluate('() => SillyTavern.getContext().chat.length')
+    preset(page, 'macro-instruct', text=literal_input)
+    assert page.evaluate('() => SillyTavern.getContext().chat.length') == chat_before
+    before = len(requests())
+    slash('/trigger await=true')
+    latest = wait_count(before + 1, timeout=30)
+    body = json.dumps(latest[-1], ensure_ascii=False)
+    # Prompt assembly still expands macros inside saved chat messages.
+    # The injection itself is the system content that keeps the typed text.
+    assert expected_mes in body, body
+    assert '{{random::a,b}}' in body
+    result['checks']['userInputMacrosStayLiteral'] = True
+    print('User input macros stay literal in JSONL and the instruct request', flush=True)
+
+    stage = 'quiet and impersonate keep a pending instruct'
+
+    def director_prompts():
+        return page.evaluate("""() => {
+            const context = SillyTavern.getContext();
+            return Object.entries(context.chatMetadata.script_injects || {})
+                .filter(([, inject]) => inject && inject.directorEphemeral === true)
+                .map(([id, inject]) => {
+                    const prompt = context.extensionPrompts['script_inject_' + id];
+                    return { id, value: inject.value, promptValue: prompt ? prompt.value : null, hasPrompt: !!prompt };
+                });
+        }""")
+
+    def assert_pending(token):
+        state = chip_state()
+        assert state and state['hidden'] is False and state['state'] == 'pending', state
+        assert token in state['title'] and '待生效' in state['label'], state
+        color = page.evaluate("""() => getComputedStyle(document.querySelector('#director_instruct_chip')).color""")
+        assert color == 'rgb(196, 92, 18)', color
+        found = [item for item in director_prompts() if token in item['value']]
+        assert len(found) == 1 and found[0]['hasPrompt'] and found[0]['promptValue'] == found[0]['value'], found
+
+    quiet_token = 'QUIETMASKUNIQUE10'
+    preset(page, 'direct', text=quiet_token)
+    assert_pending(quiet_token)
+    before = len(requests())
+    quiet = page.evaluate("""async () => {
+        try {
+            const text = await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet probe only.' });
+            return { failed: false, text: String(text ?? '') };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert quiet['failed'] is False, quiet
+    quiet_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert quiet_token not in quiet_body, quiet_body
+    assert 'Quiet probe only.' in quiet_body
+    assert_pending(quiet_token)
+
+    before = len(requests())
+    slash('/impersonate await=true')
+    impersonate_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert quiet_token not in impersonate_body, impersonate_body
+    assert_pending(quiet_token)
+    page.evaluate("""() => {
+        const box = document.querySelector('#send_textarea');
+        box.value = '';
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+    }""")
+
+    before = len(requests())
+    slash('/trigger await=true')
+    sent_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert quiet_token in sent_body, sent_body
+    assert_bound(quiet_token)
+    assert not any(quiet_token in item['value'] for item in director_prompts())
+
+    stage = 'quiet 500 restores the extension prompt'
+    fail_token = 'QUIETFAILUNIQUE11'
+    preset(page, 'direct', text=fail_token)
+    assert_pending(fail_token)
+    configure_provider({'nextStatus': 500})
+    before = len(requests())
+    failed = page.evaluate("""async () => {
+        try {
+            await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Quiet failure probe.' });
+            return { failed: false };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert failed['failed'] is True, failed
+    failed_body = json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert fail_token not in failed_body, failed_body
+    assert_pending(fail_token)
+    configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+    result['checks']['quietAndImpersonateDoNotConsumePending'] = True
+    print('Quiet and impersonate leave pending instructs in place', flush=True)
+
+    stage = 'regenerate delete skip does not stick'
+
+    def dismiss_pending():
+        if chip_state()['state'] != 'pending':
+            return
+        page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+        page.wait_for_function("""() => {
+            const chip = document.querySelector('#director_instruct_chip');
+            return !chip || chip.hidden || chip.dataset.state !== 'pending';
+        }""")
+
+    def bind_instruct(token):
+        dismiss_pending()
+        preset(page, 'direct', text=token)
+        before_bind = len(requests())
+        slash('/trigger await=true')
+        wait_count(before_bind + 1)
+        assert_bound(token)
+
+    def delete_bound_message():
+        return page.evaluate("""async () => {
+            const context = SillyTavern.getContext();
+            const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
+            if (!bound) return { cleared: false, reason: 'no binding' };
+            await context.deleteMessage(bound.slotIndex);
+            const after = SillyTavern.getContext();
+            const still = after.chatMetadata.director && after.chatMetadata.director.boundInstruct;
+            return { cleared: !still, text: still && still.text || '' };
+        }""")
+
+    regen_fail = 'REGENFAILUNIQUE12'
+    page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+    bind_instruct(regen_fail)
+    # A non-streaming 500 deletes the bound message before the request
+    # and does not put it back. Another extension may also save that
+    # shorter chat, so a reload cannot restore the row. Put the same
+    # message back without a delete event, then delete it for real.
+    bound_message = page.evaluate("""() => {
+        const context = SillyTavern.getContext();
+        const bound = context.chatMetadata.director.boundInstruct;
+        return structuredClone(context.chat[bound.slotIndex]);
+    }""")
+    configure_provider({'nextStatus': 500})
+    before = len(requests())
+    failed_regen = page.evaluate("""async () => {
+        try {
+            await SillyTavern.getContext().generate('regenerate');
+            return { failed: false };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert failed_regen['failed'] is True, failed_regen
+    assert regen_fail in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert_bound(regen_fail)
+    page.evaluate("""(message) => {
+        const context = SillyTavern.getContext();
+        const bound = context.chatMetadata.director && context.chatMetadata.director.boundInstruct;
+        if (!bound || context.chat[bound.slotIndex]) return;
+        context.chat.push(message);
+        context.addOneMessage(context.chat.at(-1));
+    }""", bound_message)
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+
+    stage = 'stopped regenerate delete skip does not stick'
+    regen_stop = 'REGENSTOPUNIQUE13'
+    configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+    bind_instruct(regen_stop)
+    configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
+    page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }""")
+    before = len(requests())
+    page.evaluate("""() => {
+        window.__directorPendingGeneration = SillyTavern.getContext().generate('regenerate').catch(() => null);
+    }""")
+    page.wait_for_function("""() => SillyTavern.getContext().streamingProcessor?.result?.length > 20""", timeout=30000)
+    page.evaluate("SillyTavern.getContext().stopGeneration()")
+    page.evaluate("window.__directorPendingGeneration")
+    wait_count(before + 1)
+    assert_bound(regen_stop)
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+
+    stage = 'successful regenerate delete skip does not stick'
+    regen_ok = 'REGENOKUNIQUE14'
+    page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+    configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+    bind_instruct(regen_ok)
+    before = len(requests())
+    ok_regen = page.evaluate("""async () => {
+        try {
+            await SillyTavern.getContext().generate('regenerate');
+            return { failed: false };
+        } catch (error) {
+            return { failed: true, error: String(error && error.message || error) };
+        }
+    }""")
+    assert ok_regen['failed'] is False, ok_regen
+    wait_count(before + 1)
+    assert_bound(regen_ok)
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+    result['checks']['regenerateDeleteSkipDoesNotStick'] = True
+    print('Regenerate delete skip resets after failure, stop, and success', flush=True)
+
+    stage = 'disconnected regenerate cannot hide a manual deletion'
+    early_token = 'REGENEARLYRETURN15'
+    bind_instruct(early_token)
+    before = len(requests())
+    page.evaluate("""async () => {
+        const main = await import('/script.js');
+        window.__directorOnlineStatus = main.online_status;
+        main.setOnlineStatus('no_connection');
+        await SillyTavern.getContext().generate('regenerate');
+        if (main.is_send_press) throw new Error('Early return left generation active');
+    }""")
+    assert len(requests()) == before
+    deleted = delete_bound_message()
+    assert deleted['cleared'] is True, deleted
+    assert_hidden_chip()
+    page.evaluate("""async () => {
+        (await import('/script.js')).setOnlineStatus(window.__directorOnlineStatus);
+    }""")
+    connect_api(page)
+    page.evaluate("async () => { await SillyTavern.getContext().generate('regenerate'); }")
+    assert early_token not in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert_hidden_chip()
+    result['checks']['disconnectedRegenerateThenDeleteClearsBinding'] = True
+
+    stage = 'earlier interceptor termination preserves the regenerate binding'
+    for termination in ('abort', 'stop'):
+        token = 'REGENPREFLIGHT' + termination.upper()
+        preset(page, 'direct', text=token)
+        page.locator('#send_textarea').fill('A user turn before the preflight ' + termination)
+        page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+        assert_bound(token)
+        before = len(requests())
+        # The built-in image interceptor is ordered before Director. Use its
+        # actual slot to terminate before Director runs, without a provider call.
+        page.evaluate("""async termination => {
+            const original = globalThis.SD_ProcessTriggers;
+            if (typeof original !== 'function') throw new Error('Missing earlier built-in interceptor');
+            globalThis.SD_ProcessTriggers = async (...args) => {
+                if (args[3] === 'regenerate') {
+                    if (termination === 'stop') SillyTavern.getContext().stopGeneration();
+                    args[2](true);
+                    return;
+                }
+                return original(...args);
+            };
+            try { await SillyTavern.getContext().generate('regenerate'); }
+            finally { globalThis.SD_ProcessTriggers = original; }
+            if ((await import('/script.js')).is_send_press) throw new Error('Aborted preflight stayed busy');
+        }""", termination)
+        assert len(requests()) == before
+        assert_bound(token)
+        page.evaluate("async () => { await SillyTavern.getContext().generate('regenerate'); }")
+        assert token in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+        assert_bound(token)
+        result['checks']['regenerateBindingSurvivesEarlierInterceptor' + termination.title()] = True
+
+    stage = 'dryRun leaves the real regenerate deletion token alone'
+    dry_token = 'REGENDRYRUN16'
+    bind_instruct(dry_token)
+    before = len(requests())
+    page.evaluate("""async () => {
+        const context = SillyTavern.getContext();
+        context.eventSource.once(context.eventTypes.GENERATION_STARTED, async (type, params, dryRun) => {
+            if (!dryRun && type === 'regenerate') {
+                await context.eventSource.emit(context.eventTypes.GENERATION_STARTED, 'quiet', {}, true);
+            }
+        });
+        await context.generate('regenerate');
+    }""")
+    assert dry_token in json.dumps(wait_count(before + 1)[-1], ensure_ascii=False)
+    assert_bound(dry_token)
+    result['checks']['dryRunPreservesRegenerateDeleteToken'] = True
+
+    run_first_message_checks(page, sample, requests, wait_count, result)
+
+
+def run_first_message_checks(page, sample, requests, wait_count, result):
+    """The same F3/R2 assertions, usable with third-party extensions enabled."""
+    connect_api(page)
+    page.evaluate("""async () => {
+        const { extension_settings } = await import('/scripts/extensions.js');
+        const fields = { template:'【{{char}}】{{input:说什么}}', isChapter:false, autoGenerate:false };
+        for (const [id,mode] of [['macro-narrator','narrator'],['macro-comment','comment']]) {
+            if (!extension_settings.director.presets.some(preset => preset.id === id)) {
+                extension_settings.director.presets.push({ ...fields,id,mode,icon:'M',name:id });
+            }
+        }
+    }""")
+    stage = 'first message narration keeps literal macros'
+    # Exercise the first-message greeting path. The sample chat is never
+    # empty, so open a chat with one placeholder and delete it first.
+    macro_chat = 'DirectorMacroZero-' + uuid.uuid4().hex[:10]
+    audit = {'saveRequests':[], 'saveCallers':[], 'snapshots':[]}
+    result['f3Audit'] = audit
+    phase = {'name':'create-fixture'}
+
+    def saved_request(request):
+        if urllib.parse.urlparse(request.url).path != '/api/chats/save' or request.method != 'POST':
+            return
+        try:
+            raw = request.post_data_buffer or b''
+            if raw.startswith(b'\x1f\x8b'):
+                raw = gzip.decompress(raw)
+            payload = json.loads(raw)
+            if payload.get('file_name') != macro_chat:
+                return
+            rows = payload.get('chat', [])
+            audit['saveRequests'].append({'phase':phase['name'], 'at':time.time(),
+                'firstMessages':[row.get('mes') for row in rows[1:3]], 'rows':len(rows)})
+        except (ValueError, OSError) as error:
+            audit['saveRequests'].append({'phase':phase['name'], 'decodeError':type(error).__name__})
+
+    # DevTools observes callers without replacing fetch or changing save bodies.
+    cdp = page.context.new_cdp_session(page)
+    cdp.send('Network.enable')
+    cdp.send('Debugger.enable')
+    cdp.send('Debugger.setAsyncCallStackDepth', {'maxDepth':32})
+    page.evaluate("""() => {
+        const {eventSource,eventTypes} = SillyTavern.getContext();
+        window.__f3Events = [];
+        for (const name of ['GENERATION_STARTED','GENERATE_AFTER_DATA','GENERATION_ENDED','MESSAGE_SENT','USER_MESSAGE_RENDERED']) {
+            eventSource.on(eventTypes[name], (...args) => window.__f3Events.push({
+                name, at:Date.now()/1000, firstMes:SillyTavern.getContext().chat[0]?.mes,
+                generationType:name === 'GENERATION_STARTED' ? args[0] : undefined,
+                dryRun:name === 'GENERATION_STARTED' ? args[2] : undefined,
+            }));
+        }
+    }""")
+
+    def save_caller(event):
+        if urllib.parse.urlparse(event['request']['url']).path != '/api/chats/save':
+            return
+        frames = []
+        stack = event.get('initiator', {}).get('stack')
+        while stack and len(frames) < 20:
+            frames.extend({key:frame.get(key) for key in ('functionName','url','lineNumber','columnNumber')}
+                          for frame in stack.get('callFrames', []))
+            stack = stack.get('parent')
+        audit['saveCallers'].append({'phase':phase['name'], 'at':event.get('wallTime'), 'frames':frames[:20]})
+
+    page.on('request', saved_request)
+    cdp.on('Network.requestWillBeSent', save_caller)
+    page.evaluate("""async ({sample, chatName}) => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/save', {
+            method: 'POST',
+            headers: context.getRequestHeaders(),
+            body: JSON.stringify({
+                ch_name: 'Director Synthetic',
+                file_name: chatName,
+                avatar_url: sample.avatar,
+                force: true,
+                chat: [
+                    { user_name: 'Synthetic Tester', character_name: 'Director Synthetic', chat_metadata: { integrity: 'macro-zero' } },
+                    { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-03-01T00:00:00.000Z', mes: 'placeholder', extra: {} },
+                ],
+            }),
+        });
+        if (!response.ok) throw new Error('macro chat save failed ' + response.status);
+        if (await context.openCharacterChat(chatName) === false) throw new Error('macro chat did not open');
+    }""", {'sample': sample, 'chatName': macro_chat})
+    page.wait_for_function("""name => {
+        const context = SillyTavern.getContext();
+        return context.chatId === name && context.chat.length === 1 && context.chat[0].mes === 'placeholder';
+    }""", arg=macro_chat, timeout=30000)
+    page.evaluate("""async () => { await SillyTavern.getContext().deleteMessage(0); }""")
+    page.wait_for_function("""() => SillyTavern.getContext().chat.length === 0 && document.querySelectorAll('#chat .mes').length === 0""")
+    literal_input = '{{char}} 和 {{user}} {{random::a,b}}'
+    expected_mes = '【Director Synthetic】' + literal_input
+
+    def visible_text(mesid):
+        return page.evaluate("""id => {
+            const node = document.querySelector('#chat .mes[mesid="' + id + '"] .mes_text');
+            return node ? node.textContent : '';
+        }""", mesid)
+
+    def assert_literal_message(mesid, preset_id):
+        memory = page.evaluate("""id => SillyTavern.getContext().chat[id]""", mesid)
+        assert memory['mes'] == expected_mes, memory['mes']
+        assert memory['extra']['director']['preset'] == preset_id
+        shown = visible_text(mesid)
+        assert expected_mes in shown, shown
+        assert '{{random::a,b}}' in shown
+
+    preset(page, 'macro-narrator', text=literal_input)
+    page.wait_for_function("""() => SillyTavern.getContext().chat.length === 1""")
+    assert_literal_message(0, 'macro-narrator')
+    preset(page, 'macro-comment', text=literal_input)
+    page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2""")
+    assert_literal_message(1, 'macro-comment')
+    if result.get('saveDuringDryRunProbe'):
+        phase['name'] = 'save-during-dry-run'
+        audit['dryRunSaveProbe'] = page.evaluate("""async chatName => {
+            const context = SillyTavern.getContext();
+            const main = await import('/script.js');
+            let observed;
+            let pending;
+            const saveDuringPrompt = data => {
+                if (!data.dryRun || observed) return;
+                observed = { firstMes:context.chat[0].mes };
+                pending = (async () => {
+                await main.saveChat();
+                const response = await fetch('/api/chats/get', {
+                    method:'POST', headers:context.getRequestHeaders(),
+                    body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,file_name:chatName}),
+                });
+                if (!response.ok) throw new Error('dry-run probe JSONL read failed');
+                observed.storedFirstMes = (await response.json())[1].mes;
+                })();
+                return pending;
+            };
+            context.eventSource.on(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, saveDuringPrompt);
+            try {
+                await main.Generate('normal', {}, true);
+                await pending;
+            }
+            finally { context.eventSource.removeListener(context.eventTypes.CHAT_COMPLETION_PROMPT_READY, saveDuringPrompt); }
+            if (!observed) throw new Error('dry-run save probe did not run');
+            if (typeof observed.storedFirstMes !== 'string') throw new Error('dry-run save probe did not finish');
+            return observed;
+        }""", macro_chat)
+        assert audit['dryRunSaveProbe']['firstMes'] == expected_mes, audit['dryRunSaveProbe']
+        assert audit['dryRunSaveProbe']['storedFirstMes'] == expected_mes, audit['dryRunSaveProbe']
+    phase['name'] = 'save-then-quiet'
+    page.evaluate("""async () => {
+        const extensions = await import('/scripts/extensions.js');
+        extensions.cancelDebouncedMetadataSave();
+        await SillyTavern.getContext().saveChat();
+        await SillyTavern.getContext().generateQuietPrompt({ quietPrompt: 'Literal macro probe.' });
+    }""")
+    assert page.evaluate("""() => SillyTavern.getContext().chat[0].mes""") == expected_mes
+    audit['snapshots'].append({'phase':'after-quiet', 'firstMes':page.evaluate('SillyTavern.getContext().chat[0].mes')})
+    phase['name'] = 'reload-after-quiet'
+    page.evaluate("""async () => { await SillyTavern.getContext().reloadCurrentChat(); }""")
+    page.wait_for_function("""expected => {
+        const context = SillyTavern.getContext();
+        const narrator = context.chat[0];
+        const comment = context.chat[1];
+        return narrator && narrator.mes === expected && comment && comment.mes === expected
+            && document.querySelectorAll('#chat .mes').length === 2;
+    }""", arg=expected_mes, timeout=30000)
+    assert_literal_message(0, 'macro-narrator')
+    assert_literal_message(1, 'macro-comment')
+    stored = page.evaluate("""async (chatName) => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/get', {
+            method: 'POST',
+            headers: context.getRequestHeaders(),
+            body: JSON.stringify({ avatar_url: context.characters[context.characterId].avatar, file_name: chatName }),
+        });
+        if (!response.ok) throw new Error('macro JSONL read failed');
+        return response.json();
+    }""", macro_chat)
+    assert stored[1]['mes'] == expected_mes, stored[1].get('mes')
+    assert stored[2]['mes'] == expected_mes, stored[2].get('mes')
+    assert '{{random::a,b}}' in stored[1]['mes'] and '{{random::a,b}}' in stored[2]['mes']
+    result['checks']['firstMessageNarrationKeepsLiteralMacros'] = True
+    print('First narration and comment keep literal macros after reload', flush=True)
+
+    stage = 'ordinary generation auto-saves literal first narration'
+    phase['name'] = 'ordinary-generation'
+    before = len(requests())
+    page.locator('#send_textarea').fill('Ordinary generation after literal narration.')
+    # Generate(normal) sends the user message and awaits its own
+    # final save. Do not manually save the pre-generation fixture.
+    with page.expect_response(is_saved_chat):
+        page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+    wait_count(before + 1)
+    stored = page.evaluate("""async chatName => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/get', {
+            method:'POST', headers:context.getRequestHeaders(),
+            body:JSON.stringify({ avatar_url:context.characters[context.characterId].avatar, file_name:chatName }),
+        });
+        if (!response.ok) throw new Error('Post-generation JSONL read failed');
+        return response.json();
+    }""", macro_chat)
+    assert len(stored) == 5, stored
+    assert stored[1]['mes'] == expected_mes, stored[1]
+    assert stored[2]['mes'] == expected_mes, stored[2]
+    assert stored[-1]['mes'] == 'Synthetic Director reply.', stored[-1]
+    audit['snapshots'].append({'phase':'after-ordinary-save', 'firstMes':stored[1]['mes']})
+    phase['name'] = 'reload-after-ordinary'
+    page.evaluate("async () => { await SillyTavern.getContext().reloadCurrentChat(); }")
+    page.wait_for_function("() => SillyTavern.getContext().chat.length === 4")
+    assert_literal_message(0, 'macro-narrator')
+    assert_literal_message(1, 'macro-comment')
+    result['checks']['ordinaryGenerationSavesLiteralFirstNarration'] = True
+    audit['events'] = page.evaluate('window.__f3Events')
+    page.remove_listener('request', saved_request)
+    cdp.detach()
+    polluted = [save for save in audit['saveRequests'] if any(
+        message != 'placeholder' and message != expected_mes for message in save.get('firstMessages', []))]
+    assert not polluted, {'expandedFirstMessageSaves':polluted}
+    result['checks']['everyFirstMessageSaveStaysLiteral'] = True
+    run_first_message_interleavings(page, expected_mes, result)
+
+
+def run_first_message_interleavings(page, expected_mes, result):
+    """Real dry runs, saves, clones, edits and chat switches; no mocked Generate."""
+    chat_name = page.evaluate('SillyTavern.getContext().chatId')
+    observations = {}
+    result['f3Interleavings'] = observations
+
+    def save_and_read(clone=False, name=chat_name):
+        return page.evaluate("""async ({clone, name}) => {
+            const main = await import('/script.js');
+            const context = SillyTavern.getContext();
+            const saved = await main.saveChat(clone ? {chatData:structuredClone(context.chat)} : {});
+            if (saved === false) throw new Error('interleaving save failed');
+            const response = await fetch('/api/chats/get', {
+                method:'POST', headers:context.getRequestHeaders(),
+                body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,file_name:name}),
+            });
+            if (!response.ok) throw new Error('interleaving JSONL read failed');
+            return (await response.json())[1].mes;
+        }""", {'clone':clone, 'name':name})
+
+    page.evaluate("""async () => {
+        const main = await import('/script.js');
+        const {eventSource,eventTypes} = SillyTavern.getContext();
+        const state = window.__f3Overlap = {gates:[], afterData:0, pending:[], enabled:true};
+        state.onReady = data => {
+            if (!data.dryRun || !state.enabled) return;
+            return new Promise(resolve => state.gates.push(resolve));
+        };
+        state.onAfter = (_data, dryRun) => { if (dryRun) state.afterData++; };
+        eventSource.on(eventTypes.CHAT_COMPLETION_PROMPT_READY, state.onReady);
+        eventSource.on(eventTypes.GENERATE_AFTER_DATA, state.onAfter);
+        state.start = () => state.pending.push(main.Generate('normal', {}, true));
+        state.releaseAll = () => { for (const release of state.gates.splice(0)) release(); };
+        state.finish = async () => {
+            state.enabled = false;
+            eventSource.removeListener(eventTypes.CHAT_COMPLETION_PROMPT_READY, state.onReady);
+            state.releaseAll();
+            await Promise.all(state.pending);
+            eventSource.removeListener(eventTypes.GENERATE_AFTER_DATA, state.onAfter);
+        };
+        state.start();
+    }""")
+    try:
+        page.wait_for_function('window.__f3Overlap.gates.length >= 1')
+        page.evaluate('window.__f3Overlap.start()')
+        page.wait_for_function('window.__f3Overlap.gates.length >= 2')
+        observations['twoRunsPaused'] = save_and_read()
+        observations['clonedSnapshotWhilePaused'] = save_and_read(clone=True)
+        assert observations['twoRunsPaused'] == observations['clonedSnapshotWhilePaused'] == expected_mes
+        page.evaluate("""() => {
+            const state = window.__f3Overlap;
+            state.beforeRelease = state.afterData;
+            state.gates.shift()();
+        }""")
+        page.wait_for_function('window.__f3Overlap.afterData > window.__f3Overlap.beforeRelease')
+        assert page.evaluate('window.__f3Overlap.gates.length') >= 1
+        observations['oneRunFinished'] = save_and_read()
+        assert observations['oneRunFinished'] == expected_mes
+        edited = 'Intentional API edit while a dry run is paused.'
+        observations['editor'] = page.evaluate("""async text => {
+            if (globalThis.TavernHelper?.setChatMessages) {
+                await TavernHelper.setChatMessages([{message_id:0,message:text}], {refresh:'none'});
+                return 'TavernHelper.setChatMessages';
+            }
+            // The isolated full suite disables TavernHelper; keep the same
+            // no-MESSAGE_EDITED write/save order through the public core API.
+            SillyTavern.getContext().chat[0].mes = text;
+            await (await import('/script.js')).saveChat();
+            return 'direct write and saveChat';
+        }""", edited)
+        assert save_and_read() == edited
+    finally:
+        page.evaluate('window.__f3Overlap.finish()')
+    assert page.evaluate('SillyTavern.getContext().chat[0].mes') == edited
+    observations['editedTextAfterBothRuns'] = save_and_read()
+    assert observations['editedTextAfterBothRuns'] == edited
+    edited = 'Intentional API edit before host prompt assembly.'
+    observations['beforeAssemblyEdit'] = page.evaluate("""async ({original, edited}) => {
+        const main = await import('/script.js');
+        const context = SillyTavern.getContext();
+        context.chat[0].mes = original;
+        let changed = false;
+        const editAtStart = async (_type, _params, dryRun) => {
+            if (!dryRun || changed) return;
+            changed = true;
+            if (globalThis.TavernHelper?.setChatMessages) {
+                await TavernHelper.setChatMessages([{message_id:0,message:edited}], {refresh:'none'});
+            } else {
+                context.chat[0].mes = edited;
+                await main.saveChat();
+            }
+        };
+        context.eventSource.on(context.eventTypes.GENERATION_STARTED, editAtStart);
+        try { await main.Generate('normal', {}, true); }
+        finally { context.eventSource.removeListener(context.eventTypes.GENERATION_STARTED, editAtStart); }
+        if (!changed) throw new Error('before-assembly edit did not run');
+        return context.chat[0].mes;
+    }""", {'original':expected_mes, 'edited':edited})
+    assert observations['beforeAssemblyEdit'] == save_and_read() == edited
+    result['checks']['overlappingDryRunsPreserveSavesClonesAndApiEdits'] = True
+
+    # Pause another real dry run, change chat, and only then let it finish.
+    page.evaluate("""() => {
+        const state = window.__f3Overlap;
+        const {eventSource,eventTypes} = SillyTavern.getContext();
+        state.enabled = true;
+        eventSource.on(eventTypes.CHAT_COMPLETION_PROMPT_READY, state.onReady);
+        state.start();
+    }""")
+    page.wait_for_function('window.__f3Overlap.gates.length >= 1')
+    switched_name = 'DirectorSwitch-' + uuid.uuid4().hex[:10]
+    switched_text = 'New chat literal {{char}} / {{user}} / {{random::a,b}}'
+    try:
+        page.evaluate("""async ({name,text}) => {
+            const context = SillyTavern.getContext();
+            const first = structuredClone(context.chat[0]);
+            first.mes = text;
+            first.extra.director.id = 'switched-director-first';
+            const response = await fetch('/api/chats/save', {
+                method:'POST', headers:context.getRequestHeaders(),
+                body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,
+                    file_name:name,force:true,chat:[
+                        {user_name:context.name1,character_name:context.name2,chat_metadata:{integrity:name}},first,
+                    ]}),
+            });
+            if (!response.ok) throw new Error('switched chat fixture failed');
+            if (await context.openCharacterChat(name) === false) throw new Error('switched chat did not open');
+        }""", {'name':switched_name, 'text':switched_text})
+        page.wait_for_function('name => SillyTavern.getContext().chatId === name', arg=switched_name)
+    finally:
+        page.evaluate('window.__f3Overlap.finish()')
+    assert page.evaluate('SillyTavern.getContext().chat[0].mes') == switched_text
+    observations['switchedChat'] = save_and_read(clone=True, name=switched_name)
+    assert observations['switchedChat'] == switched_text
+    # Read the old chat without saving the new one over its name.
+    old_text = page.evaluate("""async name => {
+        const context = SillyTavern.getContext();
+        const response = await fetch('/api/chats/get', {
+            method:'POST',headers:context.getRequestHeaders(),
+            body:JSON.stringify({avatar_url:context.characters[context.characterId].avatar,file_name:name}),
+        });
+        if (!response.ok) throw new Error('old chat read failed');
+        return (await response.json())[1].mes;
+    }""", chat_name)
+    assert old_text == edited
+    result['checks']['chatSwitchDuringDryRunPreservesBothChats'] = True
+
+    greetings = page.evaluate("""async () => {
+        const main = await import('/script.js');
+        const context = SillyTavern.getContext();
+        context.chat[0] = {name:context.name2,is_user:false,is_system:false,
+            send_date:'2026-03-01T00:00:00.000Z',mes:'Hello {{char}} / {{user}}',extra:{}};
+        await main.Generate('normal', {}, true);
+        const ordinary = context.chat[0].mes;
+        const {markChapter} = await import('/scripts/extensions/director/chapters.js');
+        context.chat[0].mes = 'Chapter literal {{char}} / {{random::a,b}}';
+        markChapter(context.chat[0], 'Manual first chapter', 'manual-first-chapter');
+        await main.Generate('normal', {}, true);
+        return {ordinary, expectedOrdinary:'Hello ' + context.name2 + ' / ' + context.name1,
+            chapter:context.chat[0].mes};
+    }""")
+    assert greetings['ordinary'] == greetings['expectedOrdinary']
+    assert greetings['chapter'] == 'Chapter literal {{char}} / {{random::a,b}}'
+    assert save_and_read(name=switched_name) == greetings['chapter']
+    observations['greetings'] = greetings
+    result['checks']['ordinaryGreetingStillExpandsAndManualChapterStaysLiteral'] = True
+
+    page.evaluate("async () => { await SillyTavern.getContext().deleteMessage(0); }")
+    page.wait_for_function('SillyTavern.getContext().chat.length === 0')
+    preset(page, 'macro-comment', text='{{char}} 和 {{user}} {{random::a,b}}')
+    page.evaluate("async () => { await (await import('/script.js')).Generate('normal', {}, true); }")
+    assert save_and_read(clone=True, name=switched_name) == expected_mes
+    page.evaluate('async () => { await SillyTavern.getContext().reloadCurrentChat(); }')
+    assert page.evaluate('SillyTavern.getContext().chat[0].mes') == expected_mes
+    result['checks']['firstCommentSurvivesDryRunCloneSaveAndReload'] = True
+    print('First-message overlap, API edit, chat switch, greeting and comment regressions passed', flush=True)
+
+
+def run_chapter_swipe_check(page, requests, result):
+    """Run the default chapter swipe request-count check on either product tree."""
+    existing = chapter_snapshot(page)
+    stage = 'generate a new swipe after marking a chapter'
+    connect_api(page)
+    before_generation = chat_count(page)
+    page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+    mesid = before_generation
+    assert chat_count(page) == before_generation + 1
+    message = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id])', mesid)
+    assert not message['is_user'] and not message.get('is_system')
+    assert not message['extra'].get('director')
+    swipe_count = len(message['swipes'])
+    assert swipe_count == 1
+    row, menu_button = open_chapter_menu(page, mesid)
+    menu_button.click()
+    dialog = page.locator('dialog[open]')
+    dialog.locator('textarea').fill('新 swipe 章节')
+    with page.expect_response(is_saved_chat) as marked_save:
+        dialog.locator('.popup-button-ok').click()
+    dialog.wait_for(state='hidden')
+    marked_save.value.body()
+    director = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id].extra.director)', mesid)
+    label = f"第{len(existing) + 1}章 新 swipe 章节"
+    assert_chapter_swipes(page, mesid, swipe_count, director, label)
+    request_baseline = len(requests())
+    # The out-of-range target enters swipe()'s regenerate branch and
+    # saveReply(type='swipe'); no new swipe is seeded by the fixture.
+    observation = swipe_message(page, mesid, swipe_count)
+    result['chapterSwipeAudit'] = { **observation, 'requestsBefore':request_baseline, 'requestsAfter':len(requests()) }
+    assert len(requests()) == request_baseline + 1, result['chapterSwipeAudit']
+    assert chat_count(page) == before_generation + 1
+    assert page.evaluate('id => SillyTavern.getContext().chat[id].swipe_id', mesid) == swipe_count
+    assert row.locator('.mes_block > .director-chapter-divider').text_content() == label
+    assert_chapter_swipes(page, mesid, swipe_count + 1, director, label)
+    page.evaluate("""async () => {
+        const context = SillyTavern.getContext();
+        await context.saveChat();
+        await context.reloadCurrentChat();
+    }""")
+    assert_chapter_swipes(page, mesid, swipe_count + 1, director, label)
+    result['checks']['chapterSurvivesNewSwipeGenerationAndDiskReload'] = {
+        'swipesBeforeMark': swipe_count, 'newSwipeId': swipe_count,
+        'checkedSwipeIdsAfterReload': list(range(swipe_count + 1)),
+    }
+
+
+
+def finish_report(result, errors, requests, browser, node, provider):
+    assert not errors, errors
+    result.update({'pass':True, 'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
+    source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*'))
+    result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
+        for source in source_paths if source.is_file()}
+    result['fakeEndpointSha256'] = hashlib.sha256(provider.read_bytes()).hexdigest()
+    result['testRunnerSha256'] = hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()
+    result['node'] = subprocess.check_output([node, '--version'], text=True).strip()
+    return result
+
+
 def run(args, temporary):
     provider = pathlib.Path(args.fake_endpoint).resolve()
     if not provider.is_file():
@@ -301,7 +1160,11 @@ def run(args, temporary):
     node = args.node
     fake = server = None
     log_path = temp / 'server.log'
-    result = {'base': args.base, 'checks': {}}
+    result = {'base': args.base, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+              'runnerHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=RUNNER_ROOT,text=True).strip(),
+              'mode':'f3-only' if args.f3_only else 'chapter-only' if args.chapter_only else 'review-only' if args.review_only else 'full',
+              'thirdPartyEnabled':args.enable_third_party, 'saveDuringDryRunProbe':args.f3_save_probe,
+              'testRunnerSha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'checks': {}}
     stage = 'start isolated lab'
     try:
         fake_source = """const { createFakeOpenAI } = await import(process.argv[1]);
@@ -319,7 +1182,7 @@ def run(args, temporary):
         prepare_source = """import fs from 'node:fs/promises';
             import path from 'node:path';
             import { createRequire } from 'node:module';
-            const [repo,directory,port,fakeUrl] = process.argv.slice(1);
+            const [repo,directory,port,fakeUrl,thirdParty] = process.argv.slice(1);
             const require = createRequire(path.join(repo,'package.json'));
             const yaml = require('yaml');
             const { pathToFileURL } = await import('node:url');
@@ -333,12 +1196,13 @@ def run(args, temporary):
             Object.assign(settings.oai_settings,{ chat_completion_source:'custom',custom_url:fakeUrl,
                 custom_model:'startup-synthetic',stream_openai:false });
             settings.power_user.auto_connect = false;
-            settings.extension_settings.disabledExtensions = ['director'];
+            settings.extension_settings.disabledExtensions = ['director',
+                ...(thirdParty === 'on' ? [] : (await fs.readdir(path.join(repo,'public/scripts/extensions/third-party'))).map(name => 'third-party/' + name))];
             await fs.mkdir(path.join(lab.dataRoot,'default-user'),{ recursive:true });
             await fs.writeFile(path.join(lab.dataRoot,'default-user','settings.json'),JSON.stringify(settings));
             console.log(JSON.stringify(lab));"""
         lab = json.loads(subprocess.check_output([node, '--input-type=module', '-e', prepare_source,
-            str(ROOT), str(lab_dir), str(port), fake_url], cwd=ROOT, text=True))
+            str(ROOT), str(lab_dir), str(port), fake_url, 'on' if args.enable_third_party else 'off'], cwd=ROOT, text=True))
         env = {key: value for key, value in os.environ.items() if not key.upper().startswith('SILLYTAVERN_')}
         with log_path.open('w', encoding='utf-8') as logs:
             server = subprocess.Popen([node, 'server.js', '--configPath', lab['configPath'], '--dataRoot', lab['dataRoot'],
@@ -361,7 +1225,16 @@ def run(args, temporary):
                 errors = []
                 page = context.new_page()
                 page.on('pageerror', lambda error: errors.append(str(error)))
+                result['failedRequests'] = []
+                page.on('requestfailed', lambda request: result['failedRequests'].append({
+                    'url':request.url, 'method':request.method, 'failure':request.failure}))
+                loaded_scripts = set()
+                page.on('response', lambda response: loaded_scripts.add(urllib.parse.urlparse(response.url).path)
+                        if response.status == 200 and '/scripts/extensions/third-party/' in response.url else None)
                 ready(page, origin)
+                result['disabledThirdPartyExtensions'] = page.evaluate("""async () =>
+                    (await import('/scripts/extensions.js')).extension_settings.disabledExtensions.filter(id => id.startsWith('third-party/'))
+                """)
                 print('Director lab ready; creating synthetic fixture', flush=True)
                 sample = page.evaluate("""async (suffix) => {
                     const token = (await (await fetch('/csrf-token')).json()).token;
@@ -424,6 +1297,43 @@ def run(args, temporary):
                 ready(page, origin)
                 select_sample(page, sample)
                 page.locator('#directorButton').wait_for(state='visible')
+                result['thirdPartyRuntime'] = {
+                    'loadedEntrypoints':sorted(path for path in loaded_scripts if path.endswith(('/dist/index.js','st-memory-enhancement/index.js'))),
+                    'tavernHelperAvailable':page.evaluate("typeof globalThis.TavernHelper === 'object'"),
+                }
+                if args.enable_third_party:
+                    assert not result['disabledThirdPartyExtensions'], result['disabledThirdPartyExtensions']
+                    assert result['thirdPartyRuntime']['tavernHelperAvailable'], result['thirdPartyRuntime']
+                    assert any(path.endswith('/st-memory-enhancement/index.js') for path in loaded_scripts), loaded_scripts
+                if args.f3_only or args.chapter_only:
+                    def requests():
+                        with urllib.request.urlopen(fake_url.removesuffix('/v1') + '/__requests', timeout=5) as response:
+                            return json.load(response)
+                    def wait_count(count, timeout=20):
+                        deadline = time.monotonic() + timeout
+                        while len(requests()) < count and time.monotonic() < deadline:
+                            page.wait_for_timeout(50)
+                        latest = requests()
+                        assert len(latest) >= count, len(latest)
+                        return latest
+                    if args.f3_only:
+                        stage = 'standalone F3 with third-party configuration recorded'
+                        run_first_message_checks(page, sample, requests, wait_count, result)
+                    else:
+                        stage = 'standalone chapter swipe request-count comparison'
+                        run_chapter_swipe_check(page, requests, result)
+                    finish_report(result, errors, requests, browser, node, provider)
+                    browser.close()
+                    return result
+                if args.review_only:
+                    stage = 'isolated Director review scenarios'
+                    run_review_checks(page, sample, fake_url, result)
+                    def requests():
+                        with urllib.request.urlopen(fake_url.removesuffix('/v1') + '/__requests', timeout=5) as response:
+                            return json.load(response)
+                    finish_report(result, errors, requests, browser, node, provider)
+                    browser.close()
+                    return result
                 assert page.evaluate("document.querySelector('#extensionsMenuButton').nextElementSibling?.id") == 'directorButton'
                 wand_box = page.locator('#extensionsMenuButton').bounding_box()
                 director_box = page.locator('#directorButton').bounding_box()
@@ -805,7 +1715,7 @@ def run(args, temporary):
                 with page.expect_response(is_saved_chat) as marked_save:
                     dialog.locator('.popup-button-ok').click()
                 dialog.wait_for(state='hidden')
-                marked_save.value.finished()
+                marked_save.value.body()
                 page.wait_for_function("""() => document.querySelector('#chat .mes[mesid="0"] .director-chapter-divider')?.textContent === '第1章 手动章节'""")
                 assert target.locator('.mes_text').inner_html() == html_before
                 assert target.locator('.mes_text .director-chapter-divider').count() == 0
@@ -841,7 +1751,7 @@ def run(args, temporary):
                 row, menu_button = open_chapter_menu(page, 0)
                 with page.expect_response(is_saved_chat) as unmarked_save:
                     menu_button.click()
-                unmarked_save.value.finished()
+                unmarked_save.value.body()
                 page.wait_for_function("""() => !document.querySelector('#chat .mes[mesid="0"]').classList.contains('director-chapter')""")
                 assert page.evaluate("() => SillyTavern.getContext().chat[0].extra.director") is None
                 assert page.evaluate("() => SillyTavern.getContext().chat[0].swipe_info.every(info => !info.extra.director)")
@@ -874,15 +1784,16 @@ def run(args, temporary):
                 with page.expect_response(is_saved_chat) as marked_save:
                     dialog.locator('.popup-button-ok').click()
                 dialog.wait_for(state='hidden')
-                marked_save.value.finished()
+                marked_save.value.body()
                 director = page.evaluate('id => structuredClone(SillyTavern.getContext().chat[id].extra.director)', mesid)
                 label = f"第{len(existing) + 1}章 新 swipe 章节"
                 assert_chapter_swipes(page, mesid, swipe_count, director, label)
                 request_baseline = len(requests())
                 # The out-of-range target enters swipe()'s regenerate branch and
                 # saveReply(type='swipe'); no new swipe is seeded by the fixture.
-                swipe_message(page, mesid, swipe_count)
-                assert len(requests()) == request_baseline + 1
+                observation = swipe_message(page, mesid, swipe_count)
+                result['chapterSwipeAudit'] = { **observation, 'requestsBefore':request_baseline, 'requestsAfter':len(requests()) }
+                assert len(requests()) == request_baseline + 1, result['chapterSwipeAudit']
                 assert chat_count(page) == before_generation + 1
                 assert page.evaluate('id => SillyTavern.getContext().chat[id].swipe_id', mesid) == swipe_count
                 assert row.locator('.mes_block > .director-chapter-divider').text_content() == label
@@ -902,7 +1813,7 @@ def run(args, temporary):
                 row, menu_button = open_chapter_menu(page, mesid)
                 with page.expect_response(is_saved_chat) as unmarked_save:
                     menu_button.click()
-                unmarked_save.value.finished()
+                unmarked_save.value.body()
                 assert_chapter_swipes(page, mesid, swipe_count + 1, None)
                 page.evaluate('async () => { await SillyTavern.getContext().reloadCurrentChat(); }')
                 assert_chapter_swipes(page, mesid, swipe_count + 1, None)
@@ -1168,17 +2079,470 @@ def run(args, temporary):
                 assert page.evaluate("() => !SillyTavern.getContext().chatMetadata.script_injects?.['ordinary-stop-check']")
                 result['checks']['ordinaryEphemeralInjectStillClearsOnStop'] = True
                 print('Director failure, stop, retry and ordinary inject lifecycle passed', flush=True)
-                assert not errors, errors
-                result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
-                source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]
-                result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
-                    for source in source_paths if source.is_file()}
-                result['fakeEndpointSha256'] = hashlib.sha256(provider.read_bytes()).hexdigest()
-                result['node'] = subprocess.check_output([node, '--version'], text=True).strip()
+
+                stage = 'director instruct rebind'
+                # The stop stage leaves streaming on and a slow fixture. Rebind checks
+                # non-streaming requests except for the explicit mid-stop swipe.
+                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+
+                def chip_state():
+                    return page.evaluate("""() => {
+                        const chip = document.querySelector('#director_instruct_chip');
+                        if (!chip) return null;
+                        const style = getComputedStyle(chip);
+                        return {
+                            hidden: chip.hidden,
+                            display: style.display,
+                            state: chip.dataset.state || '',
+                            title: chip.title || '',
+                            label: chip.textContent || '',
+                            aria: chip.getAttribute('aria-label') || '',
+                        };
+                    }""")
+
+                def count_needle(payload, needle):
+                    return json.dumps(payload, ensure_ascii=False).count(needle)
+
+                def wait_count(count, timeout=20):
+                    deadline = time.monotonic() + timeout
+                    latest = requests()
+                    while len(latest) < count and time.monotonic() < deadline:
+                        page.wait_for_timeout(50)
+                        latest = requests()
+                    assert len(latest) >= count, len(latest)
+                    return latest
+
+                def slash(command):
+                    outcome = page.evaluate("""async (command) => {
+                        try {
+                            await SillyTavern.getContext().executeSlashCommandsWithOptions(command);
+                            return { ok: true };
+                        } catch (error) {
+                            return { ok: false, error: String(error && error.message || error) };
+                        }
+                    }""", command)
+                    assert outcome['ok'], outcome
+                    return outcome
+
+                def click_generation(option_id):
+                    page.evaluate("""async (optionId) => {
+                        const main = await import('/script.js');
+                        const stamp = () => SillyTavern.getContext().chat.at(-1)?.gen_finished ?? null;
+                        const beforeStamp = stamp();
+                        document.getElementById(optionId).click();
+                        const started = Date.now();
+                        let saw = main.is_send_press || main.is_group_generating;
+                        while (Date.now() - started < 30000) {
+                            if (main.is_send_press || main.is_group_generating) saw = true;
+                            const idle = !main.is_send_press && !main.is_group_generating;
+                            if (idle && (saw || stamp() !== beforeStamp)) return;
+                            await new Promise(resolve => setTimeout(resolve, 30));
+                        }
+                        throw new Error('Timed out after clicking ' + optionId);
+                    }""", option_id)
+
+                def send_and_generate(text):
+                    page.evaluate("""async (text) => {
+                        const main = await import('/script.js');
+                        const box = document.querySelector('#send_textarea');
+                        box.value = text;
+                        box.dispatchEvent(new Event('input', { bubbles: true }));
+                        document.querySelector('#send_but').click();
+                        const started = Date.now();
+                        let saw = main.is_send_press || main.is_group_generating;
+                        while (Date.now() - started < 30000) {
+                            if (main.is_send_press || main.is_group_generating) saw = true;
+                            if (saw && !main.is_send_press && !main.is_group_generating) return;
+                            await new Promise(resolve => setTimeout(resolve, 30));
+                        }
+                        throw new Error('Timed out sending a user message');
+                    }""", text)
+
+                def assert_latest(needle, present):
+                    body = json.dumps(requests()[-1], ensure_ascii=False)
+                    found = body.count(needle)
+                    assert found == (1 if present else 0), found
+
+                def assert_bound(token):
+                    state = chip_state()
+                    assert state and state['hidden'] is False and state['display'] != 'none', state
+                    assert state['state'] == 'bound' and token in state['title'] and '重生沿用' in state['label'], state
+                    assert token in state['aria'] and '✕' in state['label']
+
+                def assert_hidden_chip():
+                    state = chip_state()
+                    assert state and state['hidden'] is True and state['display'] == 'none', state
+                    assert 'director_instruct_chip' not in snapshot(page)['focus']
+
+                alpha = 'REBINDALPHAUNIQUE01'
+                stage = 'director instruct chip idle and pending focus'
+                idle_focus = snapshot(page)['focus']
+                assert 'director_instruct_chip' not in idle_focus
+                assert_hidden_chip()
+                preset(page, 'direct', text=alpha)
+                pending = chip_state()
+                assert pending['state'] == 'pending' and pending['hidden'] is False, pending
+                assert alpha in pending['title'] and '[导演指令：' in pending['title'], pending
+                assert '待生效' in pending['label'] and '…' in pending['label'] and '✕' in pending['label'], pending
+                assert alpha not in pending['label']
+                shown_focus = snapshot(page)['focus']
+                # Intentional tab-order change while an instruction is visible: only #director_instruct_chip.
+                assert [item for item in shown_focus if item != 'director_instruct_chip'] == idle_focus
+                assert shown_focus.count('director_instruct_chip') == 1
+                result['checks']['instructChipIntentionalFocusEntry'] = True
+                page.locator('#director_instruct_chip .director_instruct_text').click()
+                dialog = page.locator('dialog[open]')
+                dialog.wait_for(state='visible')
+                assert alpha in dialog.inner_text()
+                # TEXT popups keep a hidden template input. The instruction view has no visible field.
+                assert dialog.locator('input, textarea').locator('visible=true').count() == 0
+                assert dialog.locator('.popup-button-ok').count() == 0 or not dialog.locator('.popup-button-ok').is_visible()
+                assert dialog.get_by_text('关闭', exact=True).is_visible()
+                assert dialog.get_by_text('清除', exact=True).is_visible()
+                dialog.get_by_text('关闭', exact=True).click()
+                dialog.wait_for(state='hidden')
+                assert chip_state()['state'] == 'pending'
+
+                stage = 'director instruct consume binds the producing message'
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                stored = page.evaluate("""() => {
+                    const context = SillyTavern.getContext();
+                    const bound = context.chatMetadata.director.boundInstruct;
+                    const message = context.chat[bound.slotIndex];
+                    return {
+                        slot: bound.slotIndex,
+                        last: context.chat.length - 1,
+                        extraDirector: message?.extra?.director ?? null,
+                        own: Object.hasOwn(message, 'boundInstruct'),
+                        swipeInfo: (message.swipe_info || []).some(info => info && (info.boundInstruct || info.extra?.boundInstruct)),
+                    };
+                }""")
+                assert stored['slot'] == stored['last'] and stored['extraDirector'] is None, stored
+                assert stored['own'] is False and stored['swipeInfo'] is False, stored
+
+                stage = 'pending dismiss restores the previous binding'
+                zeta = 'REBINDZETACANCEL02'
+                preset(page, 'direct', text=zeta)
+                assert chip_state()['state'] == 'pending' and zeta in chip_state()['title']
+                page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+                assert page.locator('dialog[open]').count() == 0
+                page.wait_for_function("""token => {
+                    const chip = document.querySelector('#director_instruct_chip');
+                    return chip && !chip.hidden && chip.dataset.state === 'bound' && chip.title.includes(token);
+                }""", arg=alpha)
+                assert_bound(alpha)
+                assert zeta not in chip_state()['title']
+
+                stage = 'swipe regenerate and continue reinject the bound instruction'
+                for command in ('/swipe await=true', '/swipe await=true'):
+                    before = len(requests())
+                    slash(command)
+                    wait_count(before + 1)
+                    assert_latest(alpha, True)
+                    assert_bound(alpha)
+                before = len(requests())
+                click_generation('option_regenerate')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                before = len(requests())
+                click_generation('option_continue')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+
+                stage = 'optimized streaming off still reinjects'
+                page.evaluate("""async (enabled) => {
+                    (await import('/scripts/power-user.js')).power_user.optimized_streaming = enabled;
+                }""", False)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                page.evaluate("""async () => {
+                    (await import('/scripts/power-user.js')).power_user.optimized_streaming = true;
+                }""")
+                assert_bound(alpha)
+
+                stage = 'failed and stopped reinject keep the binding'
+                before = len(requests())
+                configure_provider({'nextStatus': 500})
+                # /swipe observes Generate only after the swipe animation. A fast 500
+                # rejects first, and Playwright records that as a page error even though
+                # endSwipe catches it. generate('swipe') is the same interceptor type and
+                # attaches the rejection handler immediately, matching the M6 failure test.
+                failed_swipe = page.evaluate("""async () => {
+                    try { await SillyTavern.getContext().generate('swipe'); return { failed: false }; }
+                    catch (error) { return { failed: true, error: String(error && error.message || error) }; }
+                }""")
+                assert failed_swipe['failed'], failed_swipe
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                configure_provider({'tokens': 500, 'rate': 25, 'jitter': 0})
+                before = len(requests())
+                page.evaluate("""async () => {
+                    (await import('/scripts/openai.js')).oai_settings.stream_openai = true;
+                    window.__directorPendingGeneration = SillyTavern.getContext().executeSlashCommandsWithOptions('/swipe await=true').catch(error => String(error));
+                }""")
+                page.wait_for_function("""() => (SillyTavern.getContext().streamingProcessor?.result?.length || 0) > 10""", timeout=30000)
+                page.evaluate('SillyTavern.getContext().stopGeneration()')
+                page.evaluate('window.__directorPendingGeneration')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+                page.evaluate("""async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }""")
+                configure_provider({'reply': 'Synthetic Director reply.', 'tokens': 8, 'rate': 10000, 'jitter': 0})
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(alpha, True)
+                assert_bound(alpha)
+
+                stage = 'a new pending instruction replaces the binding'
+                beta = 'REBINDBETAUNIQUE03'
+                preset(page, 'direct', text=beta)
+                assert chip_state()['state'] == 'pending' and beta in chip_state()['title']
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(beta, True)
+                assert count_needle(requests()[-1], alpha) == 0
+                assert_bound(beta)
+
+                stage = 'refresh keeps the bound instruction'
+                ready(page, origin)
+                connect_api(page)
+                page.evaluate("""async (sample) => {
+                    const context = SillyTavern.getContext();
+                    await context.getCharacters();
+                    const index = context.characters.findIndex(card => card.avatar === sample.avatar);
+                    if (index < 0) throw new Error('Synthetic card missing after reload');
+                    await context.selectCharacterById(String(index));
+                    const current = SillyTavern.getContext();
+                    if (current.chatId !== sample.chatName) await current.openCharacterChat(sample.chatName);
+                }""", sample)
+                page.wait_for_function("""token => {
+                    const chip = document.querySelector('#director_instruct_chip');
+                    return chip && !chip.hidden && chip.title.includes(token);
+                }""", arg=beta, timeout=30000)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(beta, True)
+                assert_bound(beta)
+
+                stage = 'a new user message drops the binding'
+                before = len(requests())
+                send_and_generate('SyntheticUserFollowsBound')
+                wait_count(before + 1)
+                assert_latest(beta, False)
+                assert_hidden_chip()
+
+                stage = 'editing the previous message drops the binding'
+                edit_token = 'REBINDEDITUNIQUE04'
+                slash('/send RebindEditUserLine')
+                assert page.evaluate("""() => {
+                    const message = SillyTavern.getContext().chat.at(-1);
+                    return message.is_user === true && message.mes === 'RebindEditUserLine';
+                }""")
+                preset(page, 'direct', text=edit_token)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(edit_token, True)
+                assert_bound(edit_token)
+                page.evaluate("""async () => {
+                    const context = SillyTavern.getContext();
+                    const slot = context.chatMetadata.director.boundInstruct.slotIndex;
+                    context.chat[slot - 1].mes += ' fingerprint-edit';
+                    await context.saveChat();
+                }""")
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(edit_token, False)
+                assert_hidden_chip()
+
+                stage = 'deleting the bound message drops the binding'
+                gamma = 'REBINDGAMMADELETE05'
+                preset(page, 'direct', text=gamma)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(gamma, True)
+                assert_bound(gamma)
+                removed = page.evaluate("""async () => {
+                    const context = SillyTavern.getContext();
+                    const slot = context.chatMetadata.director.boundInstruct.slotIndex;
+                    const before = context.chat.length;
+                    await context.deleteMessage(slot);
+                    return { before, after: SillyTavern.getContext().chat.length, slot };
+                }""")
+                assert removed['after'] < removed['before'], removed
+                assert_hidden_chip()
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(gamma, False)
+                assert_hidden_chip()
+
+                stage = 'impersonate and quiet leave the binding'
+                delta = 'REBINDDELTAQUIET06'
+                preset(page, 'direct', text=delta)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_bound(delta)
+                before = len(requests())
+                slash('/impersonate await=true')
+                wait_count(before + 1)
+                assert_latest(delta, False)
+                assert_bound(delta)
+                before = len(requests())
+                slash('/gen QuietProbe')
+                wait_count(before + 1)
+                assert_latest(delta, False)
+                assert_bound(delta)
+                page.evaluate("""() => {
+                    const box = document.querySelector('#send_textarea');
+                    box.value = '';
+                    box.dispatchEvent(new Event('input', { bubbles: true }));
+                }""")
+
+                stage = 'chip dismiss clears pending and bound'
+                page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+                assert page.locator('dialog[open]').count() == 0
+                page.wait_for_function("""() => document.querySelector('#director_instruct_chip')?.hidden""")
+                assert_hidden_chip()
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(delta, False)
+                epsilon = 'REBINDEPSILONCLEAR07'
+                preset(page, 'direct', text=epsilon)
+                assert chip_state()['state'] == 'pending'
+                page.locator('#director_instruct_chip .director_instruct_dismiss').click()
+                page.wait_for_function("""() => document.querySelector('#director_instruct_chip')?.hidden""")
+                assert_hidden_chip()
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_latest(epsilon, False)
+
+                stage = 'each chat keeps its own binding'
+                chat_token = 'REBINDZETACHAT08'
+                preset(page, 'direct', text=chat_token)
+                before = len(requests())
+                slash('/trigger await=true')
+                wait_count(before + 1)
+                assert_bound(chat_token)
+                other_chat = page.evaluate("""async (sample) => {
+                    const token = (await (await fetch('/csrf-token')).json()).token;
+                    const post = async (url, body) => {
+                        const response = await fetch(url, { method: 'POST', headers: { 'X-CSRF-Token': token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(url + ' ' + response.status + ' ' + JSON.stringify(data));
+                        return data;
+                    };
+                    const context = SillyTavern.getContext();
+                    const card = context.characters.find(item => item.avatar === sample.avatar);
+                    const file = 'DirectorRebindB-' + sample.suffix;
+                    await post('/api/chats/save', { avatar_url: sample.avatar, file_name: file, chat: [
+                        { user_name: 'Synthetic Tester', character_name: card.name, chat_metadata: { integrity: 'rebind-b-' + sample.suffix } },
+                        { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-02-01T00:00:00.000Z', mes: 'Chat B greeting', extra: {} },
+                        { name: card.name, is_user: false, is_system: false, send_date: '2026-02-01T00:00:01.000Z', mes: 'Chat B ready', extra: {} },
+                    ] });
+                    await context.openCharacterChat(file);
+                    return file;
+                }""", {**sample, 'suffix': uuid.uuid4().hex[:10]})
+                page.wait_for_function("""() => SillyTavern.getContext().chat.length === 2 && document.querySelector('#director_instruct_chip')?.hidden""")
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(chat_token, False)
+                assert_hidden_chip()
+                page.evaluate("""async (name) => { await SillyTavern.getContext().openCharacterChat(name); }""", sample['chatName'])
+                page.wait_for_function("""token => {
+                    const chip = document.querySelector('#director_instruct_chip');
+                    return chip && !chip.hidden && chip.title.includes(token) && SillyTavern.getContext().chat.length > 2;
+                }""", arg=chat_token, timeout=30000)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(chat_token, True)
+                assert_bound(chat_token)
+                assert other_chat
+
+                stage = 'group swipe reinjects and the next member clears it'
+                eta = 'REBINDETAGROUP09'
+                page.evaluate("""async (sample) => {
+                    const token = (await (await fetch('/csrf-token')).json()).token;
+                    const post = async (url, body) => {
+                        const response = await fetch(url, { method: 'POST', headers: { 'X-CSRF-Token': token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(url + ' ' + response.status + ' ' + JSON.stringify(data));
+                        return data;
+                    };
+                    const form = new FormData();
+                    form.set('ch_name', 'Director Synthetic Two');
+                    form.set('file_name', 'DirectorSyntheticTwo-' + sample.suffix);
+                    form.set('description', 'Second synthetic group member.');
+                    form.set('first_mes', 'Second ready');
+                    const created = await fetch('/api/characters/create', { method: 'POST', headers: { 'X-CSRF-Token': token }, body: form });
+                    if (!created.ok) throw new Error('Second synthetic create failed');
+                    const avatar = await created.text();
+                    const chatId = 'DirectorRebindGroup-' + sample.suffix;
+                    const group = await post('/api/groups/create', { name: 'Synthetic Rebind Group', members: [sample.avatar, avatar],
+                        chat_id: chatId, chats: [chatId], activation_strategy: 1, generation_mode: 0 });
+                    await post('/api/chats/group/save', { id: chatId, chat: [
+                        { user_name: 'Synthetic Tester', character_name: 'Group', chat_metadata: { integrity: 'rebind-group-' + sample.suffix } },
+                        { name: 'Synthetic Tester', is_user: true, is_system: false, send_date: '2026-03-01T00:00:00.000Z', mes: 'Group rebind start', extra: {} },
+                    ] });
+                    const groupModule = await import('/scripts/group-chats.js');
+                    await groupModule.getGroups();
+                    if (!await groupModule.openGroupById(group.id)) throw new Error('Rebind group did not open');
+                }""", {**sample, 'suffix': uuid.uuid4().hex[:10]})
+                page.wait_for_function("""() => !!SillyTavern.getContext().groupId && SillyTavern.getContext().chat.length === 1""", timeout=30000)
+                preset(page, 'direct', text=eta)
+                before = len(requests())
+                slash('/trigger await=true 0')
+                wait_count(before + 1)
+                assert_latest(eta, True)
+                assert_bound(eta)
+                before = len(requests())
+                slash('/swipe await=true')
+                wait_count(before + 1)
+                assert_latest(eta, True)
+                assert_bound(eta)
+                before = len(requests())
+                slash('/trigger await=true 1')
+                wait_count(before + 1)
+                assert_latest(eta, False)
+                assert_hidden_chip()
+                result['checks']['instructRebindSwipeRegenerateContinueAndChatScope'] = True
+                print('Director instruct rebind passed', flush=True)
+
+                run_review_checks(page, sample, fake_url, result)
+                finish_report(result, errors, requests, browser, node, provider)
                 browser.close()
         return result
     except Exception as error:
         tail = log_path.read_text(encoding='utf-8', errors='replace')[-4000:] if log_path.exists() else ''
+        result['processStatus'] = {'server':server.poll() if server else None, 'provider':fake.poll() if fake else None}
+        failure = redact({**result, 'pass':False, 'stage':stage, 'error':str(error), 'serverLogTail':tail}, temporary)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_bytes((json.dumps(failure, indent=2, ensure_ascii=False) + '\n').encode('utf-8'))
         raise AssertionError(json.dumps(redact({'stage':stage, 'error':str(error), 'serverLogTail':tail}, temporary), ensure_ascii=False)) from error
     finally:
         stop(server)
@@ -1186,18 +2550,34 @@ def run(args, temporary):
 
 
 def main():
+    global ROOT
     parser = argparse.ArgumentParser(description=__doc__)
     preferred_node = pathlib.Path('/tmp/node-v24.22.1-linux-x64/bin/node')
     parser.add_argument('--node', default=str(preferred_node) if preferred_node.is_file() else 'node')
     parser.add_argument('--fake-endpoint', default=str(ROOT / 'scripts' / 'fake-openai-endpoint.mjs'))
     parser.add_argument('--base', default='ffd5f4e')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')
+    modes.add_argument('--f3-only', action='store_true', help='Run the exact first-message/reload and ordinary-save checks only')
+    modes.add_argument('--chapter-only', action='store_true', help='Run the same chapter swipe request-count check against a product tree')
+    parser.add_argument('--f3-save-probe', action='store_true', help='Diagnose a concurrent chat save during real Generate dry-run prompt processing')
+    parser.add_argument('--enable-third-party', action='store_true', help='Enable the bundled third-party extensions in the synthetic fixture')
+    parser.add_argument('--product-root', type=pathlib.Path, help='Read-only product checkout to test with this same runner')
     parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d2' / 'results.json')
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory(prefix='director-lab-') as temporary:
-        result = redact(run(args, temporary), temporary)
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-        print(json.dumps(result, ensure_ascii=False))
+    if args.f3_save_probe and not args.f3_only:
+        parser.error('--f3-save-probe requires --f3-only')
+    if args.product_root:
+        ROOT = args.product_root.resolve()
+        if not (ROOT / 'server.js').is_file():
+            parser.error('product-root must contain server.js')
+    # Preserve synthetic artifacts for diagnosis instead of permanently deleting
+    # them on success or failure. Only this script's child processes are stopped.
+    temporary = tempfile.mkdtemp(prefix='director-lab-')
+    result = redact(run(args, temporary), temporary)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    print(json.dumps(result, ensure_ascii=False))
 
 
 if __name__ == '__main__':

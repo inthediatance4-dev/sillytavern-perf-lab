@@ -297,6 +297,7 @@ def preset(page, preset_id, text=None, cancel=False, digit=None):
 def run_review_checks(page, sample, fake_url, result):
     """Run only the Director macro/instruct review scenarios on a fresh fixture."""
     request_url = fake_url.removesuffix('/v1') + '/__requests'
+    connect_api(page)
     def requests():
         with urllib.request.urlopen(request_url, timeout=5) as response:
             return json.load(response)

@@ -1,0 +1,168 @@
+{
+  "pass": true,
+  "cases": [
+    {
+      "delay": 0,
+      "expectedGap": null,
+      "finalTextComplete": true,
+      "codeBlockAndCopyControlPresent": true,
+      "savedTextComplete": true,
+      "optimized": false,
+      "finalDomMatchesUnoptimized": true,
+      "finalHtmlSha256": "acd025a4a5a5ee9a4beca7e75dbc9822f4c04a1c702b77d9154ff37ac4c8cdd0"
+    },
+    {
+      "delay": 0,
+      "expectedGap": 1,
+      "gaps": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "stable": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "firstPaint": null,
+      "finalTextComplete": true,
+      "codeBlockAndCopyControlPresent": true,
+      "savedTextComplete": true,
+      "optimized": true,
+      "finalDomMatchesUnoptimized": true,
+      "finalHtmlSha256": "acd025a4a5a5ee9a4beca7e75dbc9822f4c04a1c702b77d9154ff37ac4c8cdd0"
+    },
+    {
+      "delay": 10,
+      "expectedGap": 2,
+      "gaps": [
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "stable": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "firstPaint": null,
+      "finalTextComplete": true,
+      "codeBlockAndCopyControlPresent": true,
+      "savedTextComplete": true,
+      "optimized": true,
+      "finalDomMatchesUnoptimized": true,
+      "finalHtmlSha256": "acd025a4a5a5ee9a4beca7e75dbc9822f4c04a1c702b77d9154ff37ac4c8cdd0"
+    },
+    {
+      "delay": 20,
+      "expectedGap": 3,
+      "gaps": [
+        1,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "stable": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "firstPaint": {
+        "synchronous": true,
+        "framesDelivered": 0,
+        "taskPosts": 0,
+        "freshProcessor": true
+      },
+      "finalTextComplete": true,
+      "codeBlockAndCopyControlPresent": true,
+      "savedTextComplete": true,
+      "optimized": true,
+      "finalDomMatchesUnoptimized": true,
+      "finalHtmlSha256": "acd025a4a5a5ee9a4beca7e75dbc9822f4c04a1c702b77d9154ff37ac4c8cdd0",
+      "secondGeneration": {
+        "delay": 20,
+        "expectedGap": 3,
+        "gaps": [
+          1,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "stable": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "firstPaint": {
+          "synchronous": true,
+          "framesDelivered": 0,
+          "taskPosts": 0,
+          "freshProcessor": true
+        },
+        "finalTextComplete": true,
+        "codeBlockAndCopyControlPresent": true,
+        "savedTextComplete": true,
+        "finalDomMatchesUnoptimized": true
+      }
+    }
+  ],
+  "chromium": "155.0.8059.86"
+}

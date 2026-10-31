@@ -162,7 +162,7 @@ bound（已绑定，chat_metadata.director.boundInstruct）
 删除
 ```
 
-只有 `GENERATION_COMPLETED`，并且组装好的请求里确实包含这条指令的文字，才算用掉。接口报错或中途停止时，待生效的指令还在，绑定也不变。用掉之后，如果这次生成的类型是 `normal`、`swipe`、`regenerate` 或 `continue`，文字会记到当前聊天的 `chat_metadata.director.boundInstruct`：`id`、`text`、`slotIndex`、`prevFingerprint`、`boundAt`。`slotIndex` 是这次产生的 AI 消息在 `chat` 里的下标。`prevFingerprint` 由前一条消息的 `is_user`、`name` 和 `mes` 算出，不用 `send_date`。绑定只放在这份聊天元数据里。`quiet` 和 `impersonate` 不会把待生效指令放进这次请求，也不会把它用掉或写成绑定。这次生成会从扩展提示里拿开这些指令，并在 `GENERATION_ENDED`、`GENERATION_STOPPED` 或出错后按原文字放回。
+只有 `GENERATION_COMPLETED`，并且组装好的请求里确实包含这条指令的文字，才算用掉。接口报错或中途停止时，待生效的指令还在，绑定也不变。用掉之后，如果这次生成的类型是 `normal`、`swipe`、`regenerate` 或 `continue`，文字会记到当前聊天的 `chat_metadata.director.boundInstruct`：`id`、`text`、`slotIndex`、`prevFingerprint`、`boundAt`。`slotIndex` 是这次产生的 AI 消息在 `chat` 里的下标。`prevFingerprint` 由前一条消息的 `is_user`、`name` 和 `mes` 算出，不用 `send_date`。绑定只放在这份聊天元数据里。`quiet` 和 `impersonate` 不会把待生效指令放进这次请求，也不会把它用掉或写成绑定。这次生成会从扩展提示里拿开这些指令，并在 `GENERATION_ENDED` 或 `GENERATION_STOPPED` 时按原文字放回。如果提前返回或出错而没有发出这两个事件，则在下一次非 dryRun 生成开始时恢复。切换聊天时直接丢弃旧聊天的屏蔽状态，因为新聊天已经重新建立了自己的扩展提示。
 
 绑定之后，对这条消息做 swipe、重新生成（类型 `regenerate`）或续写（`continue`），会再次带上同一段文字。这次带上的副本不会被消费，所以连续滑几次都还在。有待生效指令时只发送待生效的那一条。普通发送、`impersonate`、`quiet`，以及类型为 `normal` 的生成，都不会沿用绑定。群聊里下一个角色的自动发言，还有群聊的重新生成，上游类型都是 `normal`。
 

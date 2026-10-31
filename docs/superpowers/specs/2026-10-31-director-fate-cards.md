@@ -1,0 +1,15 @@
+# Blind Fate Cards
+
+User approved implementation after choosing genre-adaptive surprises, blind previews, and immediate generation when adopting a card.
+
+- Director popover gets a Fate panel. Manual draw, one held card, three strengths (medium default). Random universal event category is chosen locally; AI uses the current story to invent the private event. Public titles come from a curated vague list so they cannot disclose the event.
+- A draw is one additional quiet generation; it adds no chat message and must not consume existing instructions or an existing bound Fate. Validate the model's JSON event and length; show only generic failure text on invalid responses. Never render/log the private body.
+- Preview shows only public title and strength. Adopt immediately generates a story reply. Reject adoption while the compose box contains a draft; preserve that draft. Discard removes only the held card. Redraw replaces a held card only after a successful validated draw.
+- Persist held and bound independently in current chat metadata. Capture chat identity, metadata reference, owning character/group, revision and operation nonce around async work. Stale responses cannot update or save another chat.
+- Fate has its own temporary prompt key, not directorEphemeral or boundInstruct. Use an opaque token during assembly and replace it with the fixed event after assembly, so macros in event text cannot change on replay.
+- Consume a held card only on a matching successful GENERATION_COMPLETED and an actual AI target. Failed/stopped/early-return requests retain it for explicit retry; later ordinary Send must not activate it.
+- Keep a bound event fixed for exact swipe/regenerate of that story point. Later normal replies/continue receive no new Fate prompt. Preserve same-batch group binding through subsequent speakers, injecting only once.
+- Group regenerate deletes its previous batch before normal generation. Add scoped GROUP_REGENERATION_STARTED/FINISHED notifications around that operation, carrying group/chat/batch identity. Fate can then distinguish a genuine regeneration from manual deletion plus normal generation. Do not change Generate or third-party extensions.
+- UI must stay usable at 390px, use textContent, maintain focus/Escape behavior, and never expose event text through DOM attributes/accessibility labels before generation. No automatic timers or background draws.
+
+Acceptance: meaningful node lifecycle tests first, real-browser fake-provider coverage for draw/adopt/replay/discard/reload/error/stop/stale-chat/drafts/instruction coexistence/group regeneration and manual deletion; existing Director regression once; targeted lint; normal push of the new branch and actual final CI. No merge.

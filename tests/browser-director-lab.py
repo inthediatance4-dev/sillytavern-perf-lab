@@ -1995,6 +1995,33 @@ def run(args, temporary):
                 assert '{{random::a,b}}' in stored[1]['mes'] and '{{random::a,b}}' in stored[2]['mes']
                 result['checks']['firstMessageNarrationKeepsLiteralMacros'] = True
                 print('First narration and comment keep literal macros after reload', flush=True)
+
+                stage = 'ordinary generation auto-saves literal first narration'
+                before = len(requests())
+                page.locator('#send_textarea').fill('Ordinary generation after literal narration.')
+                # Generate(normal) sends the user message and awaits its own
+                # final save. Do not manually save the pre-generation fixture.
+                with page.expect_response(is_saved_chat):
+                    page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+                wait_count(before + 1)
+                stored = page.evaluate("""async chatName => {
+                    const context = SillyTavern.getContext();
+                    const response = await fetch('/api/chats/get', {
+                        method:'POST', headers:context.getRequestHeaders(),
+                        body:JSON.stringify({ avatar_url:context.characters[context.characterId].avatar, file_name:chatName }),
+                    });
+                    if (!response.ok) throw new Error('Post-generation JSONL read failed');
+                    return response.json();
+                }""", macro_chat)
+                assert len(stored) == 5, stored
+                assert stored[1]['mes'] == expected_mes, stored[1]
+                assert stored[2]['mes'] == expected_mes, stored[2]
+                assert stored[-1]['mes'] == 'Synthetic Director reply.', stored[-1]
+                page.evaluate("async () => { await SillyTavern.getContext().reloadCurrentChat(); }")
+                page.wait_for_function("() => SillyTavern.getContext().chat.length === 4")
+                assert_literal_message(0, 'macro-narrator')
+                assert_literal_message(1, 'macro-comment')
+                result['checks']['ordinaryGenerationSavesLiteralFirstNarration'] = True
                 assert not errors, errors
                 result.update({'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
                 source_paths = sorted((ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*')) + [pathlib.Path(__file__)]

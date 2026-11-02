@@ -181,9 +181,11 @@ pending → completed generation whose request contains the text → bound → c
 
 ### Blind Fate Cards
 
-Open 🎴 命运牌 from the Director menu, choose a light/medium/strong turn (medium by default), and draw. Each draw makes one additional request through the current connection and adapts an event to the current story. Only a curated vague title and strength are shown; the event is revealed through the story. Failed redraws keep the previous card.
+Open 🎴 命运牌 from the Director menu, choose a light/medium/strong turn (medium by default), and draw. Each draw makes one additional request through the current connection and adapts an event to the current story. Only a curated vague title and strength are shown; the title hints at the broad category, while the specific event is revealed through the story. Failed redraws keep the previous card. New events are limited to 400 Unicode codepoints; cards exceeding this limit from earlier experimental builds need to be redrawn.
 
 Let the event happen immediately generates a story reply. Send or clear any compose draft first; adoption never sends a draft automatically. A card is consumed only by a successfully completed request that actually included it. Errors and stopped generations keep the same held card for explicit retry. Discard affects only the held card, leaving normal Director instructions intact.
+
+If an ordinary Director instruction is pending, adoption includes it in the same story request and consumes it on success as usual. Drawing a card leaves that pending instruction untouched.
 
 The fixed event is reused for swipe/regenerate at its bound story point. Later normal replies and continue receive no new Fate prompt. Native group batch regeneration also reuses it, injecting it into only one member's request; manual deletion of the relevant messages or a changed preceding story ends replay. Held and bound cards are independent, so drawing another card preserves the previous replay. The group limit above concerns ordinary instructions.
 

@@ -13,18 +13,25 @@ function fixture(onStart = () => {}) {
     let entered;
     const started = new Promise(yes => { entered = yes; });
     const events = [];
+    const sendButtonStates = [];
+    let sendInProgress = true;
+    let generationCalls = 0;
     const deps = {
         selected_group:'group', chat_metadata:{}, chat:[{is_user:true,extra:{gen_id:100}}],
-        getCurrentChatId:() => 'chat', getLastMessageGenerationId:() => 100,
+        chatId:'chat', getCurrentChatId:() => deps.chatId, getLastMessageGenerationId:() => 100,
         event_types:{GROUP_REGENERATION_STARTED:'start',GROUP_REGENERATION_FINISHED:'finish'},
         eventSource:{emit:async name => { events.push(name); if(name === 'start') onStart(deps); }},
         deleteLastMessage:async () => { throw new Error('must not delete the user message'); },
-        setExternalAbortController:() => {}, setSendButtonState:() => {},
-        generateGroupWrapper:() => { entered(); return gate; },
+        setExternalAbortController:() => {},
+        setSendButtonState:value => { sendInProgress = value; sendButtonStates.push(value); },
+        generateGroupWrapper:() => { generationCalls++; entered(); return gate; },
     };
-    const names = Object.keys(deps);
-    const regenerate = new Function(...names, 'return (' + fn + ');')(...names.map(name => deps[name]));
-    return {regenerate,events,resolve,reject,started,deps};
+    // Module bindings can change while emit is awaited; resolve them from the mutable environment.
+    const regenerate = new Function('environment', 'with (environment) { return (' + fn + '); }')(deps);
+    return {regenerate,events,resolve,reject,started,deps,sendButtonStates,
+        get sendInProgress() { return sendInProgress; },
+        get generationCalls() { return generationCalls; },
+    };
 }
 
 test('real group regeneration keeps its scope until asynchronous generation completes', async () => {
@@ -58,6 +65,43 @@ test('an extension can cancel regeneration before the old batch is deleted', asy
     assert.equal(generated,false);
     assert.deepEqual(lab.events,['start','finish']);
 });
+
+for (const [name, changeOwner] of [
+    ['group', deps => { deps.selected_group = 'other-group'; }],
+    ['chat ID', deps => { deps.chatId = 'other-chat'; }],
+    ['metadata', deps => { deps.chat_metadata = {}; }],
+]) {
+    test(`regeneration releases sending when ${name} changes during its start event`, async () => {
+        let changed = false;
+        const lab = fixture(deps => {
+            if (!changed) {
+                changeOwner(deps);
+                changed = true;
+            }
+        });
+        const originalMessages = [
+            {is_user:true,mes:'original user message',extra:{gen_id:100}},
+            {is_user:false,mes:'original response',extra:{gen_id:100}},
+        ];
+        lab.deps.chat = structuredClone(originalMessages);
+        let deletions = 0;
+        lab.deps.deleteLastMessage = async () => { deletions++; lab.deps.chat.pop(); };
+        lab.resolve('follow-up completed');
+
+        assert.equal(await lab.regenerate(),undefined);
+        assert.equal(deletions,0);
+        assert.equal(lab.generationCalls,0);
+        assert.deepEqual(lab.deps.chat,originalMessages);
+        assert.deepEqual(lab.events,['start','finish']);
+        assert.deepEqual(lab.sendButtonStates,[false]);
+        assert.equal(lab.sendInProgress,false);
+
+        assert.equal(await lab.regenerate(),'follow-up completed');
+        assert.equal(lab.generationCalls,1);
+        assert.equal(deletions,1);
+        assert.deepEqual(lab.events,['start','finish','start','finish']);
+    });
+}
 
 test('queued conditional save checks ownership at the write boundary', async () => {
     const text=readFileSync(new URL('../public/script.js',import.meta.url),'utf8');

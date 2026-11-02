@@ -175,7 +175,10 @@ async function regenerateGroup() {
     const ownerMetadata = chat_metadata;
     try {
         await eventSource.emit(event_types.GROUP_REGENERATION_STARTED, operation);
-        if (selected_group !== operation.groupId || getCurrentChatId() !== operation.chatId || chat_metadata !== ownerMetadata) return;
+        if (selected_group !== operation.groupId || getCurrentChatId() !== operation.chatId || chat_metadata !== ownerMetadata) {
+            setSendButtonState(false);
+            return;
+        }
         if (operation.cancelled) {
             setSendButtonState(false);
             return;

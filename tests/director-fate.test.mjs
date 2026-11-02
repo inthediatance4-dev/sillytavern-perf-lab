@@ -143,10 +143,62 @@ test('draw persists a private event but exposes only curated title, strength and
     assert.equal(fixture.metadata.director.fate.held.event, privateEvent);
     assert.deepEqual(fixture.metadata.director.boundInstruct, { text: 'existing binding' });
     assert.equal(fixture.context.chat.length, 1);
-    assert.equal(fixture.quietCalls[0].responseLength, 500);
+    assert.equal(fixture.quietCalls[0].responseLength, 1024);
     assert.match(fixture.quietCalls[0].quietPrompt, /JSON/);
     view.held.title = 'spoiler';
     assert.notEqual(fixture.controller.view().held.title, 'spoiler');
+});
+
+test('Fate assembly budgets the full 400-codepoint event while final macros remain literal', async () => {
+    const fixture = lab();
+    const prefix = 'A sealed message for {{char}} and <uSeR>: ';
+    const event = prefix + '山'.repeat(400 - Array.from(prefix).length);
+    fixture.setResponse(JSON.stringify({ event }));
+    await fixture.controller.draw();
+    fixture.setGenerator(async () => {
+        await fixture.start();
+        const assembled = fixture.context.extensionPrompts[FATE_PROMPT_KEY].value;
+        const data = { prompt: assembled };
+        await fixture.emit('GENERATE_AFTER_DATA', data, false);
+        assert.ok(assembled.length >= data.prompt.length, 'budgeted value cannot hide the event length');
+        assert.ok(assembled.length <= data.prompt.length + 120, 'framing stays small relative to the event');
+        assert.equal(assembled.includes('{{'), false);
+        assert.equal(assembled.toLowerCase().includes('<user>'), false);
+        assert.ok(data.prompt.includes(event));
+        await fixture.complete(data);
+    });
+    assert.equal(await fixture.controller.apply(), true);
+});
+
+test('the event limit counts Unicode codepoints and rejects 401 while preserving the previous card', async () => {
+    const fixture = lab();
+    fixture.setResponse(JSON.stringify({ event: '🌙'.repeat(400) }));
+    assert.equal(await fixture.controller.draw(), true);
+    const held = fixture.metadata.director.fate.held;
+    fixture.setResponse(JSON.stringify({ event: '🌙'.repeat(401) }));
+    await assert.rejects(fixture.controller.draw(), /抽取失败/);
+    assert.equal(fixture.metadata.director.fate.held, held);
+    assert.match(fixture.quietCalls.at(-1).quietPrompt, /400/);
+});
+
+test('text prompt newline normalization cannot shrink the budgeted event or strand its frame', async () => {
+    for (const event of ['First\r\nThen {{char}}.', 'First\n\nThen <uSeR>.', 'A' + '\rZ'.repeat(180) + ' {{char}}']) {
+        const fixture = lab();
+        fixture.setResponse(JSON.stringify({ event }));
+        await fixture.controller.draw();
+        fixture.setGenerator(async () => {
+            await fixture.start();
+            const token = fixture.context.extensionPrompts[FATE_PROMPT_KEY].value;
+            const normalized = token.replace(/\r/g, '').replace(/\n+/g, '\n');
+            assert.equal(normalized.length, token.length, 'native normalization cannot reduce the reserved text');
+            const data = { prompt: normalized };
+            await fixture.emit('GENERATE_AFTER_DATA', data, false);
+            assert.ok(data.prompt.includes(event));
+            assert.equal(data.prompt.includes('directorfate'), false);
+            await fixture.complete(data);
+        });
+        assert.equal(await fixture.controller.apply(), true);
+    }
 });
 
 test('strict JSON validation never exposes invalid model text and failed redraw retains both cards', async () => {

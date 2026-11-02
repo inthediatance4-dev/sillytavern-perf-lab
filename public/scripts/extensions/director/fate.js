@@ -15,7 +15,7 @@ const TITLES = new Set(CATEGORIES.map(category => category.title));
 const isGroup = context => context.groupId !== undefined && context.groupId !== null && context.groupId !== '';
 const isAi = message => message?.is_user === false && !message.is_system;
 const validEvent = value => typeof value === 'string' && value.trim().length > 0
-    && Array.from(value).length <= 1200 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value);
+    && Array.from(value).length <= 400 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value);
 
 function readCard(value) {
     return value && typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 200
@@ -132,11 +132,11 @@ export function createFateController(getContext, options = {}) {
         const category = CATEGORIES[Math.min(CATEGORIES.length - 1, Math.max(0, Math.floor(random() * CATEGORIES.length)))];
         notify();
         try {
-            const raw = await context.generateQuietPrompt({ responseLength: 500, quietPrompt: [
+            const raw = await context.generateQuietPrompt({ responseLength: 1024, quietPrompt: [
                 'Invent one unexpected event for the current story. Adapt to its genre, setting, tone and characters.',
                 `Category: ${category.theme}. Strength: ${STRENGTHS[strength]}.`,
                 'Keep character agency and existing story facts. Use the story language. Describe a concrete event, not instructions to the assistant.',
-                'Return only JSON with exactly one property: {"event":"the private event"}. Use 1 to 1200 characters.',
+                'Return only JSON with exactly one property: {"event":"the private event"}. Be concise; use at most 400 Unicode codepoints.',
             ].join('\n') });
             if (!current(snapshot) || operation.cancelled) return false;
             const event = parseEvent(raw);
@@ -209,10 +209,14 @@ export function createFateController(getContext, options = {}) {
             slotIndex = bound.slotIndex;
         }
         if (!card) return false;
-        // The opaque value is the only private-event representation seen by macro assembly.
-        let token;
-        do { token = `directorfate${++tokenSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '')}`; } while (card.event.includes(token));
         const text = `[Director Fate: introduce this fixed event naturally in this story reply.]\n${card.event}`;
+        // Budget the complete text. Also protect whitespace that text-completion
+        // assembly normalizes, so restoring literals cannot grow the reserved input.
+        let tag;
+        do { tag = `directorfate${++tokenSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`; } while (text.includes(tag));
+        const delimiters = { '{': '\uE004', '}': '\uE005', '<': '\uE006', '>': '\uE007', '\r': '\uE008', '\n': '\uE009' };
+        const shielded = text.replace(/[{}<>\r\n]/g, character => delimiters[character]);
+        const token = `\uE000${tag}\uE001${shielded}\uE002${tag}\uE003`;
         tokens.set(token, { token, text, card, attempt, scope, slotIndex, type, snapshot: capture(context, !attempt),
             prevFingerprint: messageFingerprint(context.chat[slotIndex - 1]), invalid: false });
         context.setExtensionPrompt(FATE_PROMPT_KEY, token, 1, 0, false, 0);

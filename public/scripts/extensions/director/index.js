@@ -559,18 +559,19 @@ export async function init() {
     initInstructLifecycle(getContext, refreshInstructChip);
     // The interceptor argument is a filtered copy. Swipe pops the target from
     // that copy before this runs, so reinject reads getContext().chat instead.
-    globalThis.director_rebind_interceptor = async function director_rebind_interceptor(_chat, _contextSize, _abort, type) {
+    globalThis.director_rebind_interceptor = async function director_rebind_interceptor(requestChat, _contextSize, _abort, type) {
         clearBoundDeleteSkip();
         try {
             const current = getContext();
             // Quiet and impersonate must not send or consume a pending instruct,
             // and they must not copy boundInstruct back into the prompt.
             if (type === 'quiet' || type === 'impersonate') {
+                fate.prepare(type, requestChat);
                 clearTemporaryInstruct(current);
                 maskDirectorPrompts(current);
                 return;
             }
-            fate.prepare(type);
+            fate.prepare(type, requestChat);
             const result = applyBoundReinject(current, type);
             // Pending prompts were shielded at generation start. Bound text is
             // copied into the extension prompt here, so shield it before assembly.

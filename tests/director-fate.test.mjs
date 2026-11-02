@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { EventEmitter } from '../public/lib/eventemitter.js';
 import { createFateController, FATE_PROMPT_KEY } from '../public/scripts/extensions/director/fate.js';
@@ -81,6 +82,7 @@ function lab({ group = false, save } = {}) {
     let response = JSON.stringify({ event: privateEvent });
     let generator = async () => {};
     const quietCalls = [];
+    let preparedChat = [];
     const metadata = { director: { boundInstruct: { text: 'existing binding' } }, script_injects: {} };
     context = {
         eventSource, eventTypes: events, chatId: 'chat-one', chatMetadata: metadata,
@@ -101,13 +103,16 @@ function lab({ group = false, save } = {}) {
     const api = {
         controller, metadata, quietCalls, eventSource, emit,
         get context() { return context; }, get saves() { return saves; }, get changes() { return changes; },
+        get preparedChat() { return preparedChat; },
+        get preparedToken() { return preparedChat.find(message => message.extra?.directorFatePrompt)?.mes; },
+        prepare(type) { preparedChat = context.chat.map(message => ({ ...message })); return controller.prepare(type, preparedChat); },
         setResponse(value) { response = value; }, setGenerator(value) { generator = value; },
         setGenerating(value) { generating = value; }, setDraft(value) { draft = value; },
         switchChat(overrides = {}) { context = { ...context, chatId: 'chat-two', chatMetadata: {}, ...overrides }; return context; },
-        async start(type = 'normal', dryRun = false) { await emit('GENERATION_STARTED', type, {}, dryRun); return controller.prepare(type); },
+        async start(type = 'normal', dryRun = false) { await emit('GENERATION_STARTED', type, {}, dryRun); return api.prepare(type); },
         async request(type = 'normal', { omit = false, dryRun = false } = {}) {
             await api.start(type, dryRun);
-            const token = context.extensionPrompts[FATE_PROMPT_KEY]?.value;
+            const token = api.preparedToken;
             const data = { prompt: [{ role: 'system', content: [{ type: 'text', text: omit ? 'ordinary' : token ?? 'ordinary' }] }], input: omit ? 'ordinary' : token ?? 'ordinary' };
             await emit('GENERATE_AFTER_DATA', data, dryRun);
             return { data, token };
@@ -157,7 +162,7 @@ test('Fate assembly budgets the full 400-codepoint event while final macros rema
     await fixture.controller.draw();
     fixture.setGenerator(async () => {
         await fixture.start();
-        const assembled = fixture.context.extensionPrompts[FATE_PROMPT_KEY].value;
+        const assembled = fixture.preparedToken;
         const data = { prompt: assembled };
         await fixture.emit('GENERATE_AFTER_DATA', data, false);
         assert.ok(assembled.length >= data.prompt.length, 'budgeted value cannot hide the event length');
@@ -188,7 +193,7 @@ test('text prompt newline normalization cannot shrink the budgeted event or stra
         await fixture.controller.draw();
         fixture.setGenerator(async () => {
             await fixture.start();
-            const token = fixture.context.extensionPrompts[FATE_PROMPT_KEY].value;
+            const token = fixture.preparedToken;
             const normalized = token.replace(/\r/g, '').replace(/\n+/g, '\n');
             assert.equal(normalized.length, token.length, 'native normalization cannot reduce the reserved text');
             const data = { prompt: normalized };
@@ -199,6 +204,87 @@ test('text prompt newline normalization cannot shrink the budgeted event or stra
         });
         assert.equal(await fixture.controller.apply(), true);
     }
+});
+
+test('two quiet assemblies cannot inherit or erase a prepared normal Fate request', async () => {
+    const fixture = lab();
+    await fixture.controller.draw();
+    fixture.setGenerator(async () => {
+        await fixture.start();
+        const normalChat = fixture.preparedChat;
+        const frame = fixture.preparedToken;
+        assert.ok(frame);
+        assert.equal(fixture.context.extensionPrompts[FATE_PROMPT_KEY], undefined);
+        assert.equal(normalChat.length, fixture.context.chat.length + 1);
+        assert.equal(normalChat.at(-1).extra.type, 'narrator');
+        for (const type of ['quiet', 'impersonate']) {
+            await fixture.start(type);
+            assert.equal(fixture.preparedToken, undefined);
+            const data = { prompt: fixture.preparedChat.map(message => message.mes).join('\n') };
+            await fixture.emit('GENERATE_AFTER_DATA', data, false);
+            assert.equal(data.prompt.includes(privateEvent), false);
+            assert.equal(data.prompt.includes('directorfate'), false);
+            await fixture.emit('GENERATION_ENDED');
+        }
+        const data = { prompt: frame };
+        await fixture.emit('GENERATE_AFTER_DATA', data, false);
+        assert.ok(data.prompt.includes(privateEvent));
+        assert.equal(data.prompt.includes('directorfate'), false);
+        await fixture.complete(data);
+    });
+    assert.equal(await fixture.controller.apply(), true);
+    assert.equal(fixture.controller.view().held, null);
+});
+
+test('quiet completion preserves a normal request that was already assembled', async () => {
+    const fixture = lab();
+    await fixture.controller.draw();
+    fixture.setGenerator(async () => {
+        const { data } = await fixture.request();
+        await fixture.emit('GENERATION_ENDED');
+        await fixture.request('quiet');
+        await fixture.emit('GENERATION_ENDED');
+        await fixture.complete(data);
+    });
+    assert.equal(await fixture.controller.apply(), true);
+});
+
+test('unrecognized, stopped and stale Fate frames are removed with their entire private body', async () => {
+    for (const kind of ['unknown', 'stopped', 'stale']) {
+        const fixture = lab();
+        await fixture.controller.draw();
+        fixture.setGenerator(async () => {
+            await fixture.start();
+            let frame = fixture.preparedToken;
+            if (kind === 'unknown') frame = frame.replace(/directorfate\d+x[a-zA-Z0-9]+/g, 'directorfate999xunknown');
+            if (kind === 'stopped') await fixture.emit('GENERATION_STOPPED');
+            else if (kind === 'stale') await fixture.emit('CHAT_CHANGED');
+            const data = { prompt: `before ${frame} after` };
+            await fixture.emit('GENERATE_AFTER_DATA', data, false);
+            assert.equal(data.prompt, 'before  after', kind);
+            await fixture.complete(data);
+        });
+        assert.equal(await fixture.controller.apply(), false);
+        assert.ok(fixture.metadata.director.fate.held, kind);
+    }
+    const fixture = lab();
+    const data = { prompt: 'ordinary directorfate123xdeadbeef remainder' };
+    await fixture.emit('GENERATE_AFTER_DATA', data, false);
+    assert.equal(data.prompt, 'ordinary  remainder');
+});
+
+test('Generate excludes only the temporary Fate row from world-info scanning', () => {
+    const source = readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
+    const start = source.indexOf('    const chatForWI = coreChat');
+    const statement = source.slice(start, source.indexOf(';', start) + 1);
+    const scan = new Function('coreChat', 'world_info_include_names', statement + '\nreturn chatForWI;');
+    const rows = [
+        { name: 'User', mes: 'visible story', extra: {} },
+        { name: 'Narrator', mes: 'stored Director narration', extra: { type: 'narrator', director: {} } },
+        { name: '', mes: 'private Fate payload', extra: { type: 'narrator', directorFatePrompt: true } },
+    ];
+    assert.deepEqual(scan(rows, false), ['stored Director narration', 'visible story']);
+    assert.deepEqual(scan(rows, true), ['Narrator: stored Director narration', 'User: visible story']);
 });
 
 test('strict JSON validation never exposes invalid model text and failed redraw retains both cards', async () => {
@@ -340,7 +426,7 @@ test('a stop between preparation and assembled data cannot consume held', async 
     const held = fixture.metadata.director.fate.held;
     fixture.setGenerator(async () => {
         await fixture.start();
-        const token = fixture.context.extensionPrompts[FATE_PROMPT_KEY].value;
+        const token = fixture.preparedToken;
         await fixture.emit('GENERATION_STOPPED');
         const data = { prompt: token };
         await fixture.emit('GENERATE_AFTER_DATA', data, false);
@@ -356,8 +442,8 @@ test('only exact swipe/regenerate replay a bound event, with fingerprint and tar
         await fixture.adopt();
         await fixture.emit('GENERATION_STARTED', type, {}, false);
         if (type === 'regenerate') { fixture.setGenerating(true); fixture.context.chat.pop(); await fixture.emit('MESSAGE_DELETED'); }
-        fixture.controller.prepare(type);
-        const token = fixture.context.extensionPrompts[FATE_PROMPT_KEY]?.value;
+        fixture.prepare(type);
+        const token = fixture.preparedToken;
         assert.equal(Boolean(token), ['swipe', 'regenerate'].includes(type), type);
         if (token) {
             const data = { prompt: token };

@@ -94,6 +94,7 @@ export function createFateController(getContext, options = {}) {
     const tokens = new Map();
     const requests = new WeakMap();
     const activeRequests = new Set();
+    const dirtyMetadata = new WeakSet();
     const notify = () => { try { onChange(); } catch { /* UI failures cannot expose the private response. */ } };
     const capture = (context, independent = false) => ({ context, metadata: context.chatMetadata, chatId: context.chatId,
         groupId: context.groupId, characterId: isGroup(context) ? undefined : context.characterId, revision, nonce: independent ? null : nonce });
@@ -115,7 +116,18 @@ export function createFateController(getContext, options = {}) {
         return { held: publicCard(value.held), bound: publicCard(value.bound), busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle' };
     };
 
-    async function commit(snapshot, next) {
+    async function retrySave() {
+        const snapshot = capture(getContext(), true);
+        const metadata = snapshot.metadata;
+        if (!metadata || !dirtyMetadata.has(metadata)) return;
+        const value = metadata.director?.fate;
+        try {
+            if (await save(snapshot.context, () => current(snapshot)) !== false && current(snapshot)
+                && metadata.director?.fate === value) dirtyMetadata.delete(metadata);
+        } catch { /* Keep dirty state for the next save opportunity. */ }
+    }
+
+    async function commit(snapshot, next, rollbackOnFailure = true) {
         if (!current(snapshot)) return false;
         const metadata = snapshot.metadata;
         if (!metadata.director || typeof metadata.director !== 'object' || Array.isArray(metadata.director)) metadata.director = {};
@@ -124,13 +136,15 @@ export function createFateController(getContext, options = {}) {
         try {
             if (await save(snapshot.context, () => current(snapshot)) === false) throw new Error();
         } catch {
-            if (metadata.director?.fate === next) {
+            if (!rollbackOnFailure) dirtyMetadata.add(metadata);
+            else if (metadata.director?.fate === next) {
                 if (previous === undefined) delete metadata.director.fate;
                 else metadata.director.fate = previous;
             }
             throw new Error('命运卡保存失败，请重试。');
         }
         if (!current(snapshot)) return false;
+        if (metadata.director?.fate === next) dirtyMetadata.delete(metadata);
         notify();
         return true;
     }
@@ -265,9 +279,9 @@ export function createFateController(getContext, options = {}) {
         activeRequests.clear();
         notify();
     });
-    on('GENERATION_STARTED', (type, _params, dryRun) => {
+    on('GENERATION_STARTED', async (type, _params, dryRun) => {
         if (dryRun) return;
-        if (type === 'quiet' || type === 'impersonate') return;
+        if (type === 'quiet' || type === 'impersonate') return retrySave();
         clearPrompt();
         for (const record of activeRequests) record.invalid = true;
         activeRequests.clear();
@@ -279,6 +293,7 @@ export function createFateController(getContext, options = {}) {
             regenerateDelete = { snapshot: capture(context, true), card: bound };
             onRegenerateStart();
         }
+        await retrySave();
     });
     on('GENERATE_AFTER_DATA', (data, dryRun) => {
         if (!data || typeof data !== 'object') return;
@@ -321,9 +336,19 @@ export function createFateController(getContext, options = {}) {
             if (record.scope) record.scope.card = value.bound;
             return;
         }
-        const saved = await commit(record.snapshot, { ...value, held: record.attempt ? null : value.held, bound });
-        if (saved && record.attempt) record.attempt.consumed = true;
-        if (saved && record.scope) record.scope.card = bound;
+        // The reply is already saved. Consumption cannot be undone by a metadata
+        // failure, or applying the held card again would duplicate its event.
+        if (record.attempt) record.attempt.consumed = true;
+        if (record.scope) record.scope.card = bound;
+        try {
+            await commit(record.snapshot, { ...value, held: record.attempt ? null : value.held, bound }, false);
+        } catch {
+            if (current(record.snapshot)) {
+                notify();
+                onError('剧情已生成，但命运牌状态保存失败。');
+                await retrySave();
+            }
+        }
     });
     const finish = stopped => {
         clearPrompt();

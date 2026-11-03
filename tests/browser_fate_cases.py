@@ -458,6 +458,56 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     result['checks']['fateLogAndMessageMarkPersistAfterNextMessageAndBrowserReload'] = True
     result['checks']['fateUnchangedReplayKeepsLogAndDoesNotRepeatMessagePulse'] = True
 
+    # Fate on reply N, a later message clears the binding, deleting that later
+    # message makes N last again, and the next swipe is generated without the
+    # event. The mark follows the swipe that actually carried it.
+    held = draw('FATE_SWIPE_GAP: A door opens onto a street that was not there.')
+    apply(held)
+    slot = fate()['bound']['slotIndex']
+    recorded = page.evaluate('slot => SillyTavern.getContext().chat[slot].swipe_id', slot)
+    stored = next(item for item in fate()['log'] if item['id'] == held['id'])
+    assert recorded in stored['swipeIds']
+    assert_mark(held, slot)
+    page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+    idle()
+    assert not fate().get('bound')
+    assert_mark(held, slot)
+    page.evaluate("""async slot => {
+        const main = window.__fateLabMain;
+        while (SillyTavern.getContext().chat.length > slot + 1) await main.deleteLastMessage();
+    }""", slot)
+    page.wait_for_function('slot => SillyTavern.getContext().chat.length === slot + 1', arg=slot)
+    assert_mark(held, slot)
+    swipe_count = page.evaluate('slot => SillyTavern.getContext().chat[slot].swipes.length', slot)
+    before_gap = len(requests())
+    swipe_message(page, slot, swipe_count)
+    idle()
+    assert len(requests()) == before_gap + 1
+    assert held['event'] not in body()
+    assert page.evaluate('slot => SillyTavern.getContext().chat[slot].swipe_id', slot) == swipe_count
+    assert swipe_count not in next(item for item in fate()['log'] if item['id'] == held['id'])['swipeIds']
+    page.wait_for_function("""slot => !document.querySelector('#chat .mes[mesid="' + slot + '"] .director_fate_mark')""", arg=slot)
+    open_panel()
+    tab('log')
+    gap_row = log_entry(held)
+    assert gap_row.locator('.director_fate_log_status').inner_text() == '消息已改写'
+    assert gap_row.locator('.director_fate_log_jump').is_disabled()
+    assert gap_row.locator('.director_fate_log_event').text_content() == ''
+    hidden(held['event'])
+    close_panel()
+    before_back = len(requests())
+    swipe_message(page, slot, recorded)
+    idle()
+    assert len(requests()) == before_back
+    assert_mark(held, slot)
+    open_panel()
+    tab('log')
+    restored = log_entry(held)
+    assert restored.locator('.director_fate_log_status').count() == 0
+    assert restored.locator('.director_fate_log_jump').is_enabled()
+    close_panel()
+    result['checks']['fateSwipeWithoutEventDropsMark'] = True
+
     held = draw('FATE_PRIVATE_02: An unexpected invitation offers a new route.')
     configure('MALFORMED_PRIVATE_BODY not valid JSON')
     page.locator('#director_fate_draw').click()
@@ -870,6 +920,8 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         }
         const entry = { ...template, id: 'fate-history-' + suffix, slotIndex: 1,
             prevFingerprint: messageFingerprint(rows[0]), generationId: null, replays: 0 };
+        // These rows were not generated with the event. Drop copied swipe ids so the row stays anchor-only.
+        delete entry.swipeIds;
         const metadata = { integrity: file, director: { fate: { version: 1, log: [entry] } } };
         const response = await fetch('/api/chats/save', { method: 'POST', headers: c.getRequestHeaders(),
             body: JSON.stringify({ avatar_url: sample.avatar, file_name: file, chat: [
@@ -998,8 +1050,13 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
             { name: 'Director Synthetic', is_user: false, is_system: false, mes: 'A surviving Fate target.', extra: {} },
             { name: 'Director Synthetic', is_user: false, is_system: false, mes: 'A removed Fate target.', extra: {} },
         ];
-        const entries = [2, 1].map(slotIndex => ({ ...template, id: 'fate-target-' + slotIndex + '-' + suffix,
-            slotIndex, prevFingerprint: messageFingerprint(rows[slotIndex - 1]), generationId: null, replays: 0 }));
+        const entries = [2, 1].map(slotIndex => {
+            const entry = { ...template, id: 'fate-target-' + slotIndex + '-' + suffix,
+                slotIndex, prevFingerprint: messageFingerprint(rows[slotIndex - 1]), generationId: null, replays: 0 };
+            // These rows were not generated with the event. Drop copied swipe ids so the row stays anchor-only.
+            delete entry.swipeIds;
+            return entry;
+        });
         const metadata = { integrity: file, director: { fate: { version: 1, log: entries } } };
         const response = await fetch('/api/chats/save', { method: 'POST', headers: c.getRequestHeaders(),
             body: JSON.stringify({ avatar_url: sample.avatar, file_name: file, chat: [

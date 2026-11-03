@@ -73,6 +73,23 @@ function lab({ group = false, metadata = {} } = {}) {
             assert.equal(await controller.apply(), true);
             return request;
         },
+        async completeSwipe(request, { generationId = 1, swipeId = 0, append = false } = {}) {
+            const message = reply(generationId);
+            if (swipeId !== null) message.swipe_id = swipeId;
+            if (append) context.chat.push(message);
+            else context.chat[context.chat.length - 1] = message;
+            await emit('MESSAGE_RECEIVED', context.chat.length - 1);
+            await emit('GENERATION_ENDED');
+            await emit('GENERATION_COMPLETED', request);
+        },
+        async adoptSwipe(swipeId = 0, generationId = 1) {
+            await controller.draw();
+            generate = async () => {
+                const request = await api.request();
+                await api.completeSwipe(request, { generationId, swipeId, append: true });
+            };
+            assert.equal(await controller.apply(), true);
+        },
     };
     return api;
 }
@@ -370,6 +387,144 @@ for (const thrown of [false, true]) {
         assert.equal(fixture.metadata.director.boundInstruct.text, 'Concurrent instruction');
     });
 }
+
+test('a swipe generated after the binding clears is changed until a recorded swipe is shown', async () => {
+    const fixture = lab();
+    await fixture.adoptSwipe(0, 1);
+    const stored = fixture.metadata.director.fate.log[0];
+    assert.deepEqual(stored.swipeIds, [0]);
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    const published = fixture.controller.log();
+    published[0].swipeIds.push(9);
+    assert.deepEqual(fixture.controller.log()[0].swipeIds, [0]);
+
+    fixture.context.chat.push({ is_user: true, name: 'User', mes: 'Continue.' });
+    await fixture.emit('MESSAGE_SENT', 2);
+    assert.equal(fixture.controller.view().bound, null);
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    fixture.context.chat.pop();
+    await fixture.emit('MESSAGE_DELETED', 1);
+    assert.equal(fixture.context.chat.length, 2);
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+
+    const requestChat = fixture.context.chat.map(message => ({ ...message }));
+    assert.equal(fixture.controller.prepare('swipe', requestChat), false);
+    assert.equal(requestChat.some(message => message.extra?.directorFatePrompt), false);
+    fixture.context.chat[1].swipe_id = 1;
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    assert.deepEqual(fixture.metadata.director.fate.log[0].swipeIds, [0]);
+    fixture.context.chat[1].swipe_id = 0;
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+});
+
+test('a replay adds the new swipe id, and an unchanged binding records it without counting a replay', async () => {
+    const fixture = lab();
+    await fixture.adoptSwipe(0, 1);
+    const request = await fixture.request('swipe');
+    const before = fixture.saves.length;
+    await fixture.completeSwipe(request, { generationId: 2, swipeId: 1 });
+    assert.equal(fixture.saves.length, before + 1);
+    assert.equal(fixture.controller.log()[0].replays, 1);
+    assert.deepEqual(fixture.controller.log()[0].swipeIds, [1, 0]);
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    fixture.context.chat[1].swipe_id = 0;
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    fixture.context.chat[1].swipe_id = 1;
+
+    const repeat = await fixture.request('swipe');
+    const saved = fixture.saves.length;
+    await fixture.completeSwipe(repeat, { generationId: 2, swipeId: 1 });
+    assert.equal(fixture.saves.length, saved);
+    assert.equal(fixture.controller.log()[0].replays, 1);
+    assert.deepEqual(fixture.controller.log()[0].swipeIds, [1, 0]);
+
+    const extra = await fixture.request('swipe');
+    await fixture.completeSwipe(extra, { generationId: 2, swipeId: 4 });
+    assert.equal(fixture.controller.log()[0].replays, 1);
+    assert.deepEqual(fixture.controller.log()[0].swipeIds, [4, 1, 0]);
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    fixture.context.chat[1].swipe_id = 2;
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+});
+
+test('recorded swipe ids keep the newest 32', async () => {
+    const fixture = lab();
+    await fixture.adoptSwipe(0, 1);
+    for (let swipeId = 1; swipeId <= 33; swipeId++) {
+        const request = await fixture.request('swipe');
+        await fixture.completeSwipe(request, { generationId: swipeId + 1, swipeId });
+    }
+    const ids = fixture.controller.log()[0].swipeIds;
+    assert.equal(ids.length, 32);
+    assert.deepEqual(ids, Array.from({ length: 32 }, (_, index) => 33 - index));
+    assert.equal(fixture.controller.log()[0].replays, 33);
+    fixture.context.chat[1].swipe_id = 0;
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    fixture.context.chat[1].swipe_id = 2;
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+});
+
+test('legacy entries without swipe ids ignore the displayed swipe until a replay updates them', async () => {
+    const fixture = lab();
+    await fixture.adopt(1);
+    assert.equal(Object.hasOwn(fixture.metadata.director.fate.log[0], 'swipeIds'), false);
+    fixture.context.chat[1] = { ...reply(1), swipe_id: 3 };
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    const before = fixture.saves.length;
+    await fixture.completeSwipe(await fixture.request('swipe'), { generationId: 1, swipeId: 4 });
+    assert.equal(fixture.saves.length, before);
+    assert.equal(fixture.controller.log()[0].replays, 0);
+    assert.equal(Object.hasOwn(fixture.controller.log()[0], 'swipeIds'), false);
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+
+    await fixture.completeSwipe(await fixture.request('swipe'), { generationId: 2, swipeId: 4 });
+    assert.deepEqual(fixture.controller.log()[0].swipeIds, [4]);
+    assert.equal(fixture.controller.log()[0].replays, 1);
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    fixture.context.chat[1].swipe_id = 0;
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    fixture.context.chat[1].swipe_id = 4;
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+});
+
+test('readLog drops an invalid swipeIds field and keeps the newest 32 ids', () => {
+    const longIds = Array.from({ length: 40 }, (_, index) => index);
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log: [
+        entry('bad-type', { swipeIds: 'nope' }),
+        entry('bad-negative', { swipeIds: [1, -1] }),
+        entry('bad-float', { swipeIds: [0, 1.5] }),
+        entry('bad-text', { swipeIds: [0, '1'] }),
+        entry('empty', { swipeIds: [] }),
+        entry('dupes', { swipeIds: [2, 2, 0] }),
+        entry('long', { swipeIds: longIds }),
+        entry('tailed', { swipeIds: [...longIds.slice(0, 32), -1, 'bad'] }),
+    ] } } } });
+    fixture.context.chat = [anchor(), { ...reply(1), swipe_id: 39 }];
+    const log = fixture.controller.log();
+    assert.deepEqual(log.map(item => item.id), ['bad-type', 'bad-negative', 'bad-float', 'bad-text', 'empty', 'dupes', 'long', 'tailed']);
+    for (const id of ['bad-type', 'bad-negative', 'bad-float', 'bad-text']) {
+        const item = log.find(value => value.id === id);
+        assert.equal(Object.hasOwn(item, 'swipeIds'), false);
+        assert.equal(item.status, 'ok');
+    }
+    assert.equal(fixture.metadata.director.fate.log[0].swipeIds, 'nope');
+    assert.deepEqual(log.find(value => value.id === 'empty').swipeIds, []);
+    assert.equal(log.find(value => value.id === 'empty').status, 'changed');
+    assert.deepEqual(log.find(value => value.id === 'dupes').swipeIds, [2, 0]);
+    assert.equal(log.find(value => value.id === 'dupes').status, 'changed');
+    assert.deepEqual(log.find(value => value.id === 'long').swipeIds, longIds.slice(0, 32));
+    assert.equal(log.find(value => value.id === 'long').status, 'changed');
+    assert.deepEqual(log.find(value => value.id === 'tailed').swipeIds, longIds.slice(0, 32));
+    assert.equal(log.find(value => value.id === 'tailed').status, 'changed');
+    fixture.context.chat[1].swipe_id = 0;
+    assert.equal(fixture.controller.log().find(value => value.id === 'dupes').status, 'ok');
+    assert.equal(fixture.controller.log().find(value => value.id === 'long').status, 'ok');
+    assert.equal(fixture.controller.log().find(value => value.id === 'tailed').status, 'ok');
+    fixture.context.chat[1].swipe_id = 39;
+    assert.equal(fixture.controller.log().find(value => value.id === 'long').status, 'changed');
+    fixture.context.chat.pop();
+    assert.equal(fixture.controller.log().find(value => value.id === 'dupes').status, 'missing');
+});
 
 test('log() reads at most two indexes per entry in a 2000-message chat and never iterates it', () => {
     const chat = Array.from({ length: 2000 }, (_, index) => index % 2 ? reply(index) : anchor());

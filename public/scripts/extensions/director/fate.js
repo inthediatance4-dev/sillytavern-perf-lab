@@ -52,6 +52,55 @@ function readRecent(value) {
     return value;
 }
 
+// Newest first. Only swipes generated while this event was injected are recorded.
+const SWIPE_ID_LIMIT = 32;
+
+function readSwipeIds(value) {
+    if (!Array.isArray(value)) return null;
+    const ids = [];
+    const seen = new Set();
+    const count = Math.min(value.length, SWIPE_ID_LIMIT);
+    for (let index = 0; index < count; index++) {
+        const id = value[index];
+        if (!Number.isInteger(id) || id < 0) return null;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        ids.push(id);
+    }
+    return ids;
+}
+
+function normalizeLogEntry(entry) {
+    if (!Object.hasOwn(entry, 'swipeIds')) return entry;
+    const swipeIds = readSwipeIds(entry.swipeIds);
+    // A corrupt list is dropped, not the history row. Missing ids keep the old anchor-only status.
+    if (!swipeIds) {
+        const copy = { ...entry };
+        delete copy.swipeIds;
+        return copy;
+    }
+    if (swipeIds.length === entry.swipeIds.length && swipeIds.every((id, index) => id === entry.swipeIds[index])) return entry;
+    return { ...entry, swipeIds };
+}
+
+function swipeIdOf(message) {
+    const swipeId = message?.swipe_id;
+    return Number.isInteger(swipeId) && swipeId >= 0 ? swipeId : null;
+}
+
+function rememberSwipe(entry, swipeId) {
+    if (swipeId === null) return entry;
+    const previous = Array.isArray(entry.swipeIds) ? entry.swipeIds : [];
+    if (Object.hasOwn(entry, 'swipeIds') && previous.includes(swipeId)) return entry;
+    return { ...entry, swipeIds: [swipeId, ...previous.filter(id => id !== swipeId)].slice(0, SWIPE_ID_LIMIT) };
+}
+
+// Unchanged bindings are not counted replays. Legacy rows have no list, so they stay anchor-only.
+function trackDisplayedSwipe(entry, swipeId) {
+    if (swipeId === null || !Object.hasOwn(entry, 'swipeIds') || entry.swipeIds.includes(swipeId)) return null;
+    return rememberSwipe(entry, swipeId);
+}
+
 function readLog(value) {
     if (!Array.isArray(value)) return [];
     const entries = [];
@@ -64,7 +113,7 @@ function readLog(value) {
             || !(entry.generationId === null || typeof entry.generationId === 'string' || Number.isFinite(entry.generationId))
             || seen.has(entry.id)) continue;
         seen.add(entry.id);
-        entries.push(entry);
+        entries.push(normalizeLogEntry(entry));
         if (entries.length === 50) break;
     }
     return entries;
@@ -162,8 +211,12 @@ export function createFateController(getContext, options = {}) {
     const anchorMatches = (context, bound) => messageFingerprint(context.chat?.[bound.slotIndex - 1]) === bound.prevFingerprint;
     const publicCard = card => card ? { id: card.id, title: card.title, strength: card.strength, rarity: cardRarity(card) } : null;
     const publicReveal = card => ({ ...publicCard(card), slotIndex: card.slotIndex });
-    const publicEntry = entry => ({ ...publicReveal(entry), category: cardCategoryId(entry), event: entry.event,
-        prevFingerprint: entry.prevFingerprint, generationId: entry.generationId, at: entry.at, replays: entry.replays });
+    const publicEntry = entry => {
+        const value = { ...publicReveal(entry), category: cardCategoryId(entry), event: entry.event,
+            prevFingerprint: entry.prevFingerprint, generationId: entry.generationId, at: entry.at, replays: entry.replays };
+        if (Object.hasOwn(entry, 'swipeIds')) value.swipeIds = entry.swipeIds.slice();
+        return value;
+    };
     const publicOffer = offer => offer ? {
         id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity })),
     } : null;
@@ -186,11 +239,19 @@ export function createFateController(getContext, options = {}) {
             // chat rows once even if several completed entries share that slot.
             if (!slot || slotIndex === undefined) {
                 const missing = entry.slotIndex >= chat.length;
-                const ai = !missing && isAi(chat[entry.slotIndex]);
-                slot = { missing, ai, prevFingerprint: ai ? messageFingerprint(chat[entry.slotIndex - 1]) : null };
+                const message = missing ? undefined : chat[entry.slotIndex];
+                const ai = isAi(message);
+                slot = {
+                    missing, ai, swipeId: ai ? message.swipe_id : undefined,
+                    prevFingerprint: ai ? messageFingerprint(chat[entry.slotIndex - 1]) : null,
+                };
             }
+            // Legacy rows omit swipeIds and stay anchor-only. A displayed swipe
+            // that was not generated with this event is rewritten text, so it
+            // shares 'changed' with an edit: the mark leaves and jump stays off.
+            const carriesEvent = !Object.hasOwn(entry, 'swipeIds') || entry.swipeIds.includes(slot.swipeId);
             return { ...publicEntry(entry), status: slot.missing ? 'missing'
-                : slot.ai && slot.prevFingerprint === entry.prevFingerprint ? 'ok' : 'changed' };
+                : slot.ai && slot.prevFingerprint === entry.prevFingerprint && carriesEvent ? 'ok' : 'changed' };
         });
     };
 
@@ -422,6 +483,23 @@ export function createFateController(getContext, options = {}) {
         context.saveMetadataDebounced?.();
     }
 
+    const persist = async (snapshot, next, reveal = null) => {
+        try {
+            const saving = commit(snapshot, next, false);
+            // The binding is now visible in memory. Announce a new consumption
+            // before persistence settles, without passing private event text.
+            if (reveal) {
+                try { onReveal(reveal); } catch { /* UI failures cannot undo a generated reply. */ }
+            }
+            await saving;
+        } catch {
+            if (current(snapshot)) {
+                notify();
+                onError('剧情已生成，但命运牌状态保存失败。');
+                await retrySave();
+            }
+        }
+    };
     const { eventSource, eventTypes } = getContext();
     const on = (name, handler) => { if (eventTypes[name]) eventSource.on(eventTypes[name], handler); };
     on('CHAT_CHANGED', () => {
@@ -484,11 +562,16 @@ export function createFateController(getContext, options = {}) {
         if (previous !== record.card || !isAi(context.chat[record.slotIndex])
             || messageFingerprint(context.chat[record.slotIndex - 1]) !== record.prevFingerprint) return;
         const target = context.chat[record.slotIndex];
+        const swipeId = swipeIdOf(target);
         const bound = { ...record.card, slotIndex: record.slotIndex, prevFingerprint: messageFingerprint(context.chat[record.slotIndex - 1]),
             generationId: target.extra?.gen_id ?? null, batchEndIndex: record.slotIndex, groupRetry: false };
         if (!record.attempt && value.bound && Object.keys(bound).length === Object.keys(value.bound).length
             && Object.keys(bound).every(key => Object.is(bound[key], value.bound[key]))) {
             if (record.scope) record.scope.card = value.bound;
+            const currentEntry = value.log.find(entry => entry.id === bound.id);
+            const tracked = currentEntry && trackDisplayedSwipe(currentEntry, swipeId);
+            if (!tracked) return;
+            await persist(record.snapshot, { ...value, log: value.log.map(entry => entry.id === bound.id ? tracked : entry) });
             return;
         }
         // The reply is already saved. Consumption cannot be undone by a metadata
@@ -503,28 +586,14 @@ export function createFateController(getContext, options = {}) {
             bound.rarity = rarity;
             next.pity = rarity === 'common' ? Math.min(99, value.pity + 1) : 0;
             next.recent = categoryId ? [categoryId, ...value.recent].slice(0, 2) : value.recent.slice(0, 2);
-            next.log = [publicEntry({ ...bound, at: new Date().toISOString(), replays: 0 }),
+            next.log = [publicEntry(rememberSwipe({ ...bound, at: new Date().toISOString(), replays: 0 }, swipeId)),
                 ...value.log.filter(entry => entry.id !== bound.id)].slice(0, 50);
         } else {
             next.log = value.log.map(entry => entry.id === bound.id
-                ? { ...entry, generationId: bound.generationId, prevFingerprint: bound.prevFingerprint,
-                    replays: Math.min(999, entry.replays + 1) } : entry);
+                ? rememberSwipe({ ...entry, generationId: bound.generationId, prevFingerprint: bound.prevFingerprint,
+                    replays: Math.min(999, entry.replays + 1) }, swipeId) : entry);
         }
-        try {
-            const saving = commit(record.snapshot, next, false);
-            // The binding is now visible in memory. Announce a new consumption
-            // before persistence settles, without passing private event text.
-            if (record.attempt) {
-                try { onReveal(publicReveal(bound)); } catch { /* UI failures cannot undo a generated reply. */ }
-            }
-            await saving;
-        } catch {
-            if (current(record.snapshot)) {
-                notify();
-                onError('剧情已生成，但命运牌状态保存失败。');
-                await retrySave();
-            }
-        }
+        await persist(record.snapshot, next, record.attempt ? publicReveal(bound) : null);
     });
     const finish = stopped => {
         clearPrompt();

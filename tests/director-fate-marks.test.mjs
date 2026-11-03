@@ -420,6 +420,39 @@ test('log and marks use bounded index reads on a 2000-message Proxy chat without
     assert.equal(stats.scans, 0);
 });
 
+test('a displayed swipe without the recorded event drops the mark until that swipe returns', t => {
+    const tree = dom(t);
+    tree.addMessage(1);
+    const previous = { is_user: true, name: 'User', mes: 'What happens next?' };
+    const message = { is_user: false, name: 'Bot', mes: 'A completed reply.', swipe_id: 0, extra: { gen_id: 1 } };
+    const logged = {
+        id: 'saved-card', category: 'echo', title: '尘封的低语', strength: 'medium', rarity: 'rare', event: secret,
+        slotIndex: 1, prevFingerprint: messageFingerprint(previous), generationId: 1,
+        at: '2026-01-01T00:00:00.000Z', replays: 0, swipeIds: [0],
+    };
+    const context = {
+        chat: [previous, message], chatId: 'swipe-mark', chatMetadata: { director: { fate: { version: 1, log: [logged] } } },
+        eventSource: new EventEmitter(), eventTypes: {}, extensionPrompts: {}, groupId: null, characterId: 0,
+    };
+    const controller = createFateController(() => context);
+    const marks = createFateMarks({ getContext: () => context, getEntries: controller.log, onOpen() {} });
+    marks.paintAll();
+    assert.ok(tree.document.querySelector('#chat .director_fate_mark'));
+    message.swipe_id = 1;
+    marks.invalidate();
+    marks.paintOne(1);
+    assert.equal(tree.document.querySelector('#chat .director_fate_mark'), null);
+    assert.equal(controller.log()[0].status, 'changed');
+    message.swipe_id = 0;
+    marks.invalidate();
+    marks.paintOne(1);
+    const restored = tree.document.querySelector('#chat .director_fate_mark');
+    assert.ok(restored);
+    assert.equal(restored.getAttribute('aria-label'), '命运牌：〈尘封的低语〉');
+    assert.equal(controller.log()[0].status, 'ok');
+    assert.equal(serialized(tree.document.querySelector('#chat .mes_text')).includes(secret), false);
+});
+
 const source = readFileSync(new URL('../public/scripts/extensions/director/index.js', import.meta.url), 'utf8');
 const jumpSource = source.slice(source.indexOf('async function jumpToMessage('), source.indexOf('\nasync function jumpToChapter('));
 

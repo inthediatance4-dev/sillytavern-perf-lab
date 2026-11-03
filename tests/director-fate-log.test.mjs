@@ -1,0 +1,416 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { EventEmitter } from '../public/lib/eventemitter.js';
+import { createFateController } from '../public/scripts/extensions/director/fate.js';
+import { messageFingerprint } from '../public/scripts/extensions/director/instruct.js';
+
+globalThis.localStorage = { getItem: () => null };
+
+const eventTypes = Object.fromEntries([
+    'CHAT_CHANGED', 'GENERATION_STARTED', 'GENERATION_STOPPED', 'GENERATION_ENDED',
+    'GENERATE_AFTER_DATA', 'GENERATION_COMPLETED', 'MESSAGE_SENT', 'MESSAGE_RECEIVED', 'MESSAGE_DELETED',
+].map(name => [name, name]));
+const privateEvent = 'LOG_PRIVATE_EVENT: a messenger brings a sealed invitation.';
+const anchor = () => ({ is_user: true, name: 'User', mes: 'What happens next?' });
+const reply = generationId => ({ is_user: false, name: 'Bot', mes: 'A completed reply.', extra: { gen_id: generationId } });
+const entry = (id = 'saved-card', overrides = {}) => ({
+    id, category: 'echo', title: '尘封的低语', strength: 'medium', rarity: 'rare', event: privateEvent,
+    slotIndex: 1, prevFingerprint: messageFingerprint(anchor()), generationId: 1,
+    at: '2026-01-01T00:00:00.000Z', replays: 0, ...overrides,
+});
+
+function lab({ group = false, metadata = {} } = {}) {
+    const eventSource = new EventEmitter();
+    let context = {
+        eventSource, eventTypes, chatId: 'chat-one', chatMetadata: metadata,
+        groupId: group ? 'group-one' : null, characterId: group ? undefined : 0,
+        chat: [anchor()], extensionPrompts: {},
+        generateQuietPrompt: async () => JSON.stringify({ event: privateEvent }),
+        saveMetadataDebounced() {},
+    };
+    let serial = 0;
+    let generate = async () => {};
+    let save = async () => true;
+    const saves = [];
+    const persisted = [];
+    const errors = [];
+    const controller = createFateController(() => context, {
+        uuid: () => `log-${++serial}`, random: () => 0,
+        generate: () => generate(), onError: value => errors.push(value),
+        save: async (owner, shouldSave) => {
+            saves.push(structuredClone(owner.chatMetadata.director.fate));
+            if (await save() === false || !shouldSave()) return false;
+            persisted.push(structuredClone(owner.chatMetadata.director.fate));
+            return true;
+        },
+    });
+    const emit = (name, ...args) => eventSource.emit(eventTypes[name], ...args);
+    const api = {
+        controller, metadata, emit, saves, persisted, errors,
+        get context() { return context; },
+        setGenerate(value) { generate = value; },
+        setSave(value) { save = value; },
+        switchChat() { context = { ...context, chatId: 'chat-two', chatMetadata: {}, chat: [anchor()] }; },
+        async request(type = 'normal') {
+            await emit('GENERATION_STARTED', type, {}, false);
+            const requestChat = context.chat.map(message => ({ ...message }));
+            assert.equal(controller.prepare(type, requestChat), true);
+            const data = { prompt: requestChat.find(message => message.extra?.directorFatePrompt).mes };
+            await emit('GENERATE_AFTER_DATA', data, false);
+            return { data, type, chatId: context.chatId, chatMetadata: context.chatMetadata };
+        },
+        async complete(request, { append = true, generationId = 1 } = {}) {
+            if (append) context.chat.push(reply(generationId));
+            else context.chat[context.chat.length - 1] = reply(generationId);
+            await emit('MESSAGE_RECEIVED', context.chat.length - 1);
+            await emit('GENERATION_ENDED');
+            await emit('GENERATION_COMPLETED', request);
+        },
+        async adopt(generationId = 1) {
+            await controller.draw();
+            let request;
+            generate = async () => { request = await api.request(); await api.complete(request, { generationId }); };
+            assert.equal(await controller.apply(), true);
+            return request;
+        },
+    };
+    return api;
+}
+
+test('only COMPLETED appends the fully populated event in the single consumption save', async () => {
+    const fixture = lab();
+    const { controller } = fixture;
+    assert.deepEqual(controller.log(), []);
+    assert.equal(controller.view().logCount, 0);
+    await controller.deal();
+    assert.deepEqual(controller.log(), []);
+    assert.equal(JSON.stringify(controller.view()).includes(privateEvent), false);
+    await controller.pick(0, 'strong');
+    const card = structuredClone(fixture.metadata.director.fate.held);
+    assert.deepEqual(controller.log(), []);
+    fixture.setGenerate(async () => {
+        const request = await fixture.request();
+        assert.deepEqual(controller.log(), []);
+        fixture.context.chat.push(reply(123));
+        await fixture.emit('MESSAGE_RECEIVED', 1);
+        await fixture.emit('GENERATION_ENDED');
+        assert.deepEqual(controller.log(), []);
+        const before = fixture.saves.length;
+        await fixture.emit('GENERATION_COMPLETED', request);
+        assert.equal(fixture.saves.length, before + 1);
+        // A duplicate completion has lost its request provenance.
+        await fixture.emit('GENERATION_COMPLETED', request);
+        assert.equal(fixture.saves.length, before + 1);
+    });
+    assert.equal(await controller.apply(), true);
+    const stored = fixture.metadata.director.fate.log;
+    assert.equal(stored.length, 1);
+    assert.deepEqual(stored[0], { ...card, slotIndex: 1, prevFingerprint: messageFingerprint(anchor()),
+        generationId: 123, at: stored[0].at, replays: 0 });
+    assert.equal(new Date(stored[0].at).toISOString(), stored[0].at);
+    assert.deepEqual(controller.log(), [{ ...stored[0], status: 'ok' }]);
+    assert.equal(controller.view().logCount, 1);
+    assert.equal(Object.hasOwn(controller.view(), 'log'), false);
+    assert.deepEqual(fixture.persisted.at(-1).log, stored);
+    const publicLog = controller.log();
+    publicLog[0].event = 'Mutated by consumer';
+    publicLog.push(entry('extra'));
+    assert.equal(controller.log().length, 1);
+    assert.equal(controller.log()[0].event, privateEvent);
+});
+
+for (const failure of ['stop', 'request failure', 'chat switch', 'metadata switch']) {
+    test(`${failure} cannot append a log entry, even with a late completion`, async () => {
+        const fixture = lab();
+        await fixture.controller.draw();
+        fixture.setGenerate(async () => {
+            const request = await fixture.request();
+            if (failure === 'request failure') throw new Error('Provider failed');
+            if (failure === 'stop') await fixture.emit('GENERATION_STOPPED');
+            if (failure === 'chat switch') { fixture.switchChat(); await fixture.emit('CHAT_CHANGED'); }
+            if (failure === 'metadata switch') fixture.context.chatMetadata = {};
+            await fixture.complete(request);
+        });
+        if (failure === 'request failure') await assert.rejects(fixture.controller.apply(), /采用失败/);
+        else assert.equal(await fixture.controller.apply(), false);
+        assert.deepEqual(fixture.controller.log(), []);
+        assert.deepEqual(fixture.metadata.director.fate.log, []);
+        assert.ok(fixture.metadata.director.fate.held);
+    });
+}
+
+test('a provider completion arriving after a failed apply cannot consume or log its card', async () => {
+    const fixture = lab();
+    await fixture.controller.draw();
+    const held = structuredClone(fixture.metadata.director.fate.held);
+    let request;
+    fixture.setGenerate(async () => {
+        request = await fixture.request();
+        throw new Error('Provider failed after request assembly');
+    });
+    await assert.rejects(fixture.controller.apply(), /采用失败/);
+    const saves = fixture.saves.length;
+    await fixture.complete(request);
+    assert.equal(fixture.saves.length, saves);
+    assert.deepEqual(fixture.metadata.director.fate.held, held);
+    assert.deepEqual(fixture.controller.log(), []);
+});
+
+test('failed completion saves retain the consumed log in memory and retry it on the next generation', async () => {
+    const fixture = lab();
+    await fixture.controller.draw();
+    fixture.setGenerate(async () => {
+        const request = await fixture.request();
+        fixture.setSave(async () => false);
+        await fixture.complete(request);
+    });
+    assert.equal(await fixture.controller.apply(), true);
+    assert.equal(fixture.controller.view().held, null);
+    const completed = fixture.controller.log();
+    assert.equal(completed.length, 1);
+    assert.equal(completed[0].event, privateEvent);
+    assert.equal(fixture.persisted.at(-1).log.length, 0);
+    assert.equal(fixture.errors.length, 1);
+    fixture.setSave(async () => true);
+    const before = fixture.saves.length;
+    await fixture.emit('GENERATION_STARTED', 'quiet', {}, false);
+    assert.equal(fixture.saves.length, before + 1);
+    assert.deepEqual(fixture.persisted.at(-1).log, fixture.metadata.director.fate.log);
+    assert.deepEqual(fixture.controller.log(), completed);
+    await fixture.emit('GENERATION_STARTED', 'quiet', {}, false);
+    assert.equal(fixture.saves.length, before + 1);
+});
+
+test('swipe and regenerate update the same entry only when the binding changes', async () => {
+    const fixture = lab();
+    await fixture.adopt(1);
+    const initial = fixture.controller.log()[0];
+    for (const [type, generationId] of [['swipe', 2], ['regenerate', 3]]) {
+        if (type === 'regenerate') fixture.context.chat.pop();
+        const request = await fixture.request(type);
+        const before = fixture.saves.length;
+        await fixture.complete(request, { append: type === 'regenerate', generationId });
+        assert.equal(fixture.saves.length, before + 1);
+        const log = fixture.controller.log();
+        assert.equal(log.length, 1);
+        assert.deepEqual(log[0], { ...initial, generationId, replays: generationId - 1 });
+    }
+    const before = fixture.saves.length;
+    const log = fixture.controller.log();
+    await fixture.complete(await fixture.request('swipe'), { append: false, generationId: 3 });
+    assert.equal(fixture.saves.length, before);
+    assert.deepEqual(fixture.controller.log(), log);
+    fixture.metadata.director.fate.log[0].replays = 999;
+    await fixture.complete(await fixture.request('swipe'), { append: false, generationId: 4 });
+    assert.equal(fixture.controller.log()[0].replays, 999);
+});
+
+test('replaying a legacy binding or a cleared log does not invent a past application', async () => {
+    const fixture = lab();
+    await fixture.adopt();
+    await fixture.controller.clearLog();
+    await fixture.complete(await fixture.request('swipe'), { append: false, generationId: 2 });
+    assert.deepEqual(fixture.controller.log(), []);
+});
+
+test('the log keeps the newest 50 applications in descending application order', async () => {
+    const fixture = lab();
+    for (let index = 0; index < 52; index++) await fixture.adopt(index);
+    const log = fixture.controller.log();
+    assert.equal(log.length, 50);
+    assert.equal(fixture.metadata.director.fate.log.length, 50);
+    assert.deepEqual(log.map(value => value.generationId), Array.from({ length: 50 }, (_, index) => 51 - index));
+    assert.equal(new Set(log.map(value => value.id)).size, 50);
+});
+
+test('readLog drops malformed entries individually and deduplicates valid ids keeping the first', () => {
+    const first = entry('first');
+    const second = entry('second', { strength: 'light', rarity: 'legendary' });
+    const invalid = [
+        null, false, 'bad', [], {},
+        ...[
+            { id: '' }, { id: 'x'.repeat(201) }, { title: 'unknown' }, { category: 'unknown', title: 'unknown' },
+            { strength: 'invalid' }, { event: '' }, { event: 'x'.repeat(401) }, { event: 'bad\u0000event' },
+            { slotIndex: -1 }, { slotIndex: 1.5 }, { slotIndex: '1' }, { prevFingerprint: 1 },
+            { replays: -1 }, { replays: 1000 }, { replays: 0.5 }, { replays: '0' },
+            { at: 'invalid' }, { at: null }, { generationId: {} }, { generationId: undefined },
+        ].map((value, index) => entry(`invalid-${index}`, value)),
+    ];
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log: [
+        ...invalid, first, entry('first', { event: 'Later duplicate must be ignored' }), second,
+    ] } } } });
+    assert.deepEqual(fixture.controller.log(), [{ ...first, status: 'missing' }, { ...second, status: 'missing' }]);
+    assert.equal(fixture.controller.view().logCount, 2);
+    fixture.metadata.director.fate.log = { first };
+    assert.deepEqual(fixture.controller.log(), []);
+    fixture.metadata.director.fate = { version: 2, log: [first] };
+    assert.deepEqual(fixture.controller.log(), []);
+});
+
+test('reading oversized stored logs retains at most the first 50 valid unique entries', () => {
+    const fixture = lab({ metadata: { director: { fate: { version: 1,
+        log: Array.from({ length: 60 }, (_, index) => entry(`card-${index}`)) } } } });
+    assert.equal(fixture.controller.log().length, 50);
+    assert.equal(fixture.controller.log().at(-1).id, 'card-49');
+});
+
+test('the entry stays ok after a next message clears the active binding', async () => {
+    for (const name of ['MESSAGE_SENT', 'MESSAGE_RECEIVED']) {
+        const fixture = lab();
+        await fixture.adopt();
+        fixture.context.chat.push({ is_user: name === 'MESSAGE_SENT', name: 'Next', mes: 'The story continues.' });
+        await fixture.emit(name, 2);
+        assert.equal(fixture.controller.view().bound, null);
+        assert.equal(fixture.controller.log()[0].status, 'ok');
+        assert.equal(fixture.controller.view().logCount, 1);
+    }
+});
+
+test('a reloaded completed log survives with no active binding and causes no save', async () => {
+    const fixture = lab();
+    await fixture.adopt(42);
+    fixture.context.chat.push({ is_user: true, name: 'User', mes: 'Continue.' });
+    await fixture.emit('MESSAGE_SENT', 2);
+    const expected = fixture.controller.log();
+    const restored = lab({ metadata: structuredClone(fixture.metadata) });
+    restored.context.chat = structuredClone(fixture.context.chat);
+    assert.equal(restored.controller.view().bound, null);
+    assert.deepEqual(restored.controller.log(), expected);
+    assert.equal(restored.controller.log()[0].status, 'ok');
+    assert.equal(restored.controller.view().logCount, 1);
+    assert.equal(restored.saves.length, 0);
+});
+
+test('status uses only the target AI row and its preceding fingerprint', async () => {
+    const fixture = lab();
+    await fixture.adopt();
+    const chat = fixture.context.chat;
+    chat[0].mes = 'Edited anchor';
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    chat[0] = anchor();
+    chat[1].mes = 'Edited AI content retains the mark';
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+    chat[1].is_system = true;
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    chat[1] = { ...reply(1), is_user: true };
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    chat[1] = reply(1);
+    chat.push(reply(2));
+    chat.splice(0, 1);
+    await fixture.emit('MESSAGE_DELETED');
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    chat.pop();
+    await fixture.emit('MESSAGE_DELETED');
+    assert.equal(fixture.controller.log()[0].status, 'missing');
+});
+
+test('a slot-zero entry uses the empty predecessor fingerprint and remains reviewable', () => {
+    const first = entry('first-message', { slotIndex: 0, prevFingerprint: messageFingerprint(undefined) });
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log: [first] } } } });
+    fixture.context.chat = [reply(1)];
+    assert.deepEqual(fixture.controller.log(), [{ ...first, status: 'ok' }]);
+    fixture.context.chat[0].is_user = true;
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    fixture.context.chat.pop();
+    assert.equal(fixture.controller.log()[0].status, 'missing');
+});
+
+test('later members of the same group batch do not change or append log records', async () => {
+    const fixture = lab({ group: true });
+    await fixture.adopt(100);
+    const before = structuredClone(fixture.metadata.director.fate.log);
+    const saves = fixture.saves.length;
+    fixture.context.chat.push(reply(100));
+    await fixture.emit('MESSAGE_RECEIVED', 2);
+    assert.deepEqual(fixture.metadata.director.fate.log, before);
+    assert.equal(fixture.saves.length, saves);
+    assert.equal(fixture.metadata.director.fate.bound.batchEndIndex, 2);
+    assert.equal(fixture.controller.log()[0].slotIndex, 1);
+});
+
+test('discard, deal and pick preserve all completed entries', async () => {
+    const fixture = lab();
+    await fixture.adopt();
+    const log = fixture.controller.log();
+    await fixture.controller.deal();
+    assert.deepEqual(fixture.controller.log(), log);
+    await fixture.controller.pick(0, 'light');
+    assert.deepEqual(fixture.controller.log(), log);
+    await fixture.controller.discard();
+    assert.deepEqual(fixture.controller.log(), log);
+});
+
+test('clearLog uses one save and preserves held, bound, offer, pity and recent', async () => {
+    const fixture = lab();
+    await fixture.adopt();
+    await fixture.controller.draw();
+    await fixture.controller.deal();
+    const before = structuredClone(fixture.metadata.director.fate);
+    const saves = fixture.saves.length;
+    assert.equal(await fixture.controller.clearLog(), true);
+    assert.equal(fixture.saves.length, saves + 1);
+    assert.deepEqual(fixture.metadata.director.fate, { ...before, log: [] });
+    assert.equal(fixture.controller.view().logCount, 0);
+    assert.deepEqual(fixture.controller.log(), []);
+});
+
+for (const thrown of [false, true]) {
+    test(`clearLog rolls back only its fate state when persistence ${thrown ? 'throws' : 'returns false'}`, async () => {
+        const fixture = lab();
+        await fixture.adopt();
+        const before = fixture.metadata.director.fate;
+        fixture.setSave(async () => {
+            fixture.metadata.director.boundInstruct = { text: 'Concurrent instruction' };
+            if (thrown) throw new Error('Save failed');
+            return false;
+        });
+        await assert.rejects(fixture.controller.clearLog(), /保存失败/);
+        assert.equal(fixture.metadata.director.fate, before);
+        assert.equal(fixture.controller.log().length, 1);
+        assert.equal(fixture.metadata.director.boundInstruct.text, 'Concurrent instruction');
+    });
+}
+
+test('log() reads at most two indexes per entry in a 2000-message chat and never iterates it', () => {
+    const chat = Array.from({ length: 2000 }, (_, index) => index % 2 ? reply(index) : anchor());
+    const log = Array.from({ length: 50 }, (_, index) => entry(`perf-${index}`, { slotIndex: index * 2 + 1 }));
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log } } } });
+    let reads = 0;
+    fixture.context.chat = new Proxy(chat, {
+        get(target, key, receiver) {
+            if (typeof key === 'string' && /^\d+$/.test(key)) reads++;
+            else if (key !== 'length') throw new Error(`Unexpected chat traversal: ${String(key)}`);
+            return Reflect.get(target, key, receiver);
+        },
+    });
+    const entries = fixture.controller.log();
+    assert.equal(entries.length, 50);
+    assert.ok(entries.every(value => value.status === 'ok'));
+    assert.equal(reads, 2 * entries.length);
+});
+
+test('log(slotIndex) reads at most two chat indexes for a cold mark lookup, including repeated slots', () => {
+    const chat = Array.from({ length: 2000 }, (_, index) => index % 2 ? reply(index) : anchor());
+    const log = Array.from({ length: 49 }, (_, index) => entry(`perf-${index}`, { slotIndex: index * 2 + 1 }));
+    log.splice(1, 0, entry('older-at-same-slot', { prevFingerprint: 'different-anchor' }));
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log } } } });
+    let reads = 0;
+    fixture.context.chat = new Proxy(chat, {
+        get(target, key, receiver) {
+            if (typeof key === 'string' && /^\d+$/.test(key)) reads++;
+            else if (key !== 'length') throw new Error(`Unexpected chat traversal: ${String(key)}`);
+            return Reflect.get(target, key, receiver);
+        },
+    });
+    assert.deepEqual(fixture.controller.log(1), [
+        { ...log[0], status: 'ok' }, { ...log[1], status: 'changed' },
+    ]);
+    assert.equal(reads, 2);
+    reads = 0;
+    assert.deepEqual(fixture.controller.log(1999), []);
+    assert.equal(reads, 0);
+    assert.deepEqual(fixture.controller.log(-1), []);
+    assert.equal(reads, 0);
+    assert.equal(fixture.controller.log(97)[0].id, 'perf-48');
+    assert.equal(reads, 2);
+});

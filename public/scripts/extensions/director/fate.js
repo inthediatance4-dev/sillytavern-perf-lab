@@ -52,13 +52,32 @@ function readRecent(value) {
     return value;
 }
 
+function readLog(value) {
+    if (!Array.isArray(value)) return [];
+    const entries = [];
+    const seen = new Set();
+    for (const entry of value) {
+        if (!readCard(entry) || !Number.isInteger(entry.slotIndex) || entry.slotIndex < 0
+            || typeof entry.prevFingerprint !== 'string' || typeof entry.at !== 'string'
+            || !Number.isFinite(Date.parse(entry.at)) || new Date(entry.at).toISOString() !== entry.at
+            || !Number.isInteger(entry.replays) || entry.replays < 0 || entry.replays > 999
+            || !(entry.generationId === null || typeof entry.generationId === 'string' || Number.isFinite(entry.generationId))
+            || seen.has(entry.id)) continue;
+        seen.add(entry.id);
+        entries.push(entry);
+        if (entries.length === 50) break;
+    }
+    return entries;
+}
+
 function state(metadata) {
     const value = metadata?.director?.fate;
-    if (value?.version !== 1) return { version: 1, held: null, bound: null, offer: null, pity: 0, recent: [] };
+    if (value?.version !== 1) return { version: 1, held: null, bound: null, offer: null, pity: 0, recent: [], log: [] };
     const bound = readCard(value.bound);
     return {
         version: 1, held: readCard(value.held), offer: readOffer(value.offer), pity: readPity(value.pity), recent: readRecent(value.recent),
         bound: bound && Number.isInteger(bound.slotIndex) && bound.slotIndex >= 0 && typeof bound.prevFingerprint === 'string' ? bound : null,
+        log: readLog(value.log),
     };
 }
 
@@ -104,7 +123,7 @@ function contains(data, text) {
 }
 
 /**
- * Blind-card state and request lifecycle. Only view() may cross the UI boundary.
+ * Blind-card state and request lifecycle. Only view() and the completed log() may cross the UI boundary.
  * Group membership changes characterId during generation; the group owns that chat.
  * @param {() => object} getContext Current extension context
  * @param {object} options Injected generation and UI dependencies
@@ -143,6 +162,8 @@ export function createFateController(getContext, options = {}) {
     const anchorMatches = (context, bound) => messageFingerprint(context.chat?.[bound.slotIndex - 1]) === bound.prevFingerprint;
     const publicCard = card => card ? { id: card.id, title: card.title, strength: card.strength, rarity: cardRarity(card) } : null;
     const publicReveal = card => ({ ...publicCard(card), slotIndex: card.slotIndex });
+    const publicEntry = entry => ({ ...publicReveal(entry), category: cardCategoryId(entry), event: entry.event,
+        prevFingerprint: entry.prevFingerprint, generationId: entry.generationId, at: entry.at, replays: entry.replays });
     const publicOffer = offer => offer ? {
         id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity })),
     } : null;
@@ -153,7 +174,24 @@ export function createFateController(getContext, options = {}) {
         const reveal = value.bound && anchorMatches(context, value.bound) && isAi(context.chat[value.bound.slotIndex])
             ? { ...publicReveal(value.bound), event: value.bound.event } : null;
         return { held: publicCard(value.held), bound: publicCard(value.bound), reveal, offer: publicOffer(value.offer),
-            busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle' };
+            busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle', logCount: value.log.length };
+    };
+    const log = slotIndex => {
+        const context = getContext();
+        const chat = context.chat ?? [];
+        const entries = state(context.chatMetadata).log.filter(entry => slotIndex === undefined || entry.slotIndex === slotIndex);
+        let slot;
+        return entries.map(entry => {
+            // Marks can request one slot before a full cache exists. Inspect its
+            // chat rows once even if several completed entries share that slot.
+            if (!slot || slotIndex === undefined) {
+                const missing = entry.slotIndex >= chat.length;
+                const ai = !missing && isAi(chat[entry.slotIndex]);
+                slot = { missing, ai, prevFingerprint: ai ? messageFingerprint(chat[entry.slotIndex - 1]) : null };
+            }
+            return { ...publicEntry(entry), status: slot.missing ? 'missing'
+                : slot.ai && slot.prevFingerprint === entry.prevFingerprint ? 'ok' : 'changed' };
+        });
     };
 
     async function retrySave() {
@@ -290,6 +328,11 @@ export function createFateController(getContext, options = {}) {
         if (!state(context.chatMetadata).held) return false;
         nonce++;
         return commit(capture(context), { ...state(context.chatMetadata), held: null });
+    }
+
+    async function clearLog() {
+        const context = getContext();
+        return commit(capture(context), { ...state(context.chatMetadata), log: [] });
     }
 
     async function apply() {
@@ -460,6 +503,12 @@ export function createFateController(getContext, options = {}) {
             bound.rarity = rarity;
             next.pity = rarity === 'common' ? Math.min(99, value.pity + 1) : 0;
             next.recent = categoryId ? [categoryId, ...value.recent].slice(0, 2) : value.recent.slice(0, 2);
+            next.log = [publicEntry({ ...bound, at: new Date().toISOString(), replays: 0 }),
+                ...value.log.filter(entry => entry.id !== bound.id)].slice(0, 50);
+        } else {
+            next.log = value.log.map(entry => entry.id === bound.id
+                ? { ...entry, generationId: bound.generationId, prevFingerprint: bound.prevFingerprint,
+                    replays: Math.min(999, entry.replays + 1) } : entry);
         }
         try {
             const saving = commit(record.snapshot, next, false);
@@ -549,5 +598,5 @@ export function createFateController(getContext, options = {}) {
         groupScope = null;
         clearPrompt();
     });
-    return { view, draw, deal, pick, discard, apply, prepare };
+    return { view, log, clearLog, draw, deal, pick, discard, apply, prepare };
 }

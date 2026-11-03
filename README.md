@@ -185,6 +185,8 @@ Open 🎴 命运牌 from the Director menu, choose a light/medium/strong turn (m
 
 Let the event happen immediately generates a story reply. Send or clear any compose draft and pending file attachment first; adoption preserves both without sending them automatically. A card is consumed only by a successfully completed request that actually included it. Failed or stopped generations keep the same held card for explicit retry. Stopping mid-generation may leave part of the event in a partial message, so reapplying may duplicate it; delete or edit that partial message before reapplying. Discard affects only the held card, leaving normal Director instructions intact.
 
+Refreshing or reloading the page after a completion-phase metadata save failure and before a retry or another metadata save persists consumption restores the card from disk as held, so the already-generated card can be applied again, potentially duplicating the event.
+
 If an ordinary Director instruction is pending, adoption includes it in the same story request and consumes it on success as usual. Drawing a card leaves that pending instruction untouched.
 
 The fixed event is reused for swipe/regenerate at its bound story point. Later normal replies and continue receive no new Fate prompt. Native group batch regeneration also reuses it, injecting it into only one member's request; manual deletion of the relevant messages or a changed preceding story ends replay. Manually deleting later members' messages in that batch intentionally clears the binding when the chat no longer reaches the batch's last recorded message, even if the event message remains. Held and bound cards are independent, so drawing another card preserves the previous replay. The group limit above concerns ordinary instructions.

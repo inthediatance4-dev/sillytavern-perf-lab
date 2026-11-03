@@ -2,6 +2,7 @@ import { messageFingerprint } from './instruct.js';
 
 /** Legacy shared key is only cleaned up; new Fate prompts are request-local. */
 export const FATE_PROMPT_KEY = 'director_fate';
+const FATE_NARRATOR_NAME = 'Narrator';
 // Remove an entire unknown frame, including private text, or an old short token.
 const FATE_FRAMES = /\uE000(directorfate\d+x[a-zA-Z0-9]+)\uE001[\s\S]*?\uE002\1\uE003|\uE000directorfate\d+x[a-zA-Z0-9]+\uE001[\s\S]*$|directorfate\d+x[a-zA-Z0-9]+/g;
 const CATEGORIES = [
@@ -256,7 +257,7 @@ export function createFateController(getContext, options = {}) {
             prevFingerprint: messageFingerprint(context.chat[slotIndex - 1]), invalid: false });
         // The interceptor receives this Generate call's copy, not the persisted
         // chat. Other quiet requests therefore cannot inherit or remove its row.
-        requestChat.push({ name: '', is_user: false, is_system: true, mes: token,
+        requestChat.push({ name: FATE_NARRATOR_NAME, is_user: false, is_system: true, mes: token,
             extra: { type: 'narrator', directorFatePrompt: true } });
         return true;
     }

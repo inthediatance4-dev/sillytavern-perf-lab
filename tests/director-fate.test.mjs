@@ -181,6 +181,30 @@ test('Fate assembly budgets the full 400-codepoint event while final macros rema
     assert.equal(await fixture.controller.apply(), true);
 });
 
+test('group Chat Completion DEFAULT names give Fate a nonempty narrator prefix', async () => {
+    const source = readFileSync(new URL('../public/scripts/openai.js', import.meta.url), 'utf8');
+    const start = source.indexOf('case character_names_behavior.DEFAULT:', source.indexOf('function setOpenAIMessages(chat)'));
+    const branch = source.slice(source.indexOf('\n', start), source.indexOf('                break;', start));
+    const format = new Function('chat', 'selected_group', 'name1', 'system_message_types',
+        'const j = 0; let content = chat[j].mes;' + branch + '\nreturn content;');
+    const fixture = lab({ group: true });
+    await fixture.controller.draw();
+    fixture.setGenerator(async () => {
+        await fixture.start();
+        const row = fixture.preparedChat.at(-1);
+        assert.equal(row.name, 'Narrator');
+        assert.equal(row.extra.type, 'narrator');
+        assert.equal(row.is_system, true);
+        const data = { prompt: format([row], fixture.context.groupId, 'User', { NARRATOR: 'narrator' }) };
+        assert.ok(data.prompt.startsWith('Narrator: '));
+        await fixture.emit('GENERATE_AFTER_DATA', data, false);
+        assert.ok(data.prompt.startsWith('Narrator: [Director Fate:'));
+        assert.ok(data.prompt.includes(privateEvent));
+        await fixture.complete(data, 'normal', { generationId: 100 });
+    });
+    assert.equal(await fixture.controller.apply(), true);
+});
+
 test('the event limit counts Unicode codepoints and rejects 401 while preserving the previous card', async () => {
     const fixture = lab();
     fixture.setResponse(JSON.stringify({ event: '🌙'.repeat(400) }));
@@ -287,7 +311,7 @@ test('Generate excludes only the temporary Fate row from world-info scanning', (
     const rows = [
         { name: 'User', mes: 'visible story', extra: {} },
         { name: 'Narrator', mes: 'stored Director narration', extra: { type: 'narrator', director: {} } },
-        { name: '', mes: 'private Fate payload', extra: { type: 'narrator', directorFatePrompt: true } },
+        { name: 'Narrator', mes: 'private Fate payload', extra: { type: 'narrator', directorFatePrompt: true } },
     ];
     assert.deepEqual(scan(rows, false), ['stored Director narration', 'visible story']);
     assert.deepEqual(scan(rows, true), ['Narrator: stored Director narration', 'User: visible story']);

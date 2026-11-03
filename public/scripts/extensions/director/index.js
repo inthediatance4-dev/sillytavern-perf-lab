@@ -24,6 +24,7 @@ import { initPresetManager } from './manager.js';
 import { createFateController } from './fate.js';
 import { createFatePanel } from './fate-ui.js';
 import { createFateSound } from './fate-sound.js';
+import { createFateMarks } from './fate-marks.js';
 import {
     activeInstruct,
     applyBoundReinject,
@@ -384,43 +385,57 @@ function applyChapterDividers() {
     }
 }
 
-function loadedChapterRange() {
+function loadedMessageRange() {
     const nodes = document.querySelectorAll('#chat .mes');
     if (!nodes.length) return null;
     const first = Number(nodes[0].getAttribute('mesid'));
     return Number.isInteger(first) ? first : null;
 }
 
-async function jumpToChapter(index) {
+async function jumpToMessage(index, highlightClass = 'director-fate-highlight', beforeScroll = () => {}, { warnMissing = false } = {}) {
     closePopover();
     const context = getContext();
-    if (!Number.isInteger(index) || index < 0 || index >= context.chat.length) return;
-    const distance = messagesBeforeLoadedRange(loadedChapterRange() ?? index, index);
+    const revision = chatRevision;
+    if (!Number.isInteger(index) || index < 0 || index >= context.chat.length) return false;
+    const distance = messagesBeforeLoadedRange(loadedMessageRange() ?? index, index);
     if (needsLoadConfirm(distance)) {
         const result = await context.callGenericPopup(loadConfirmMessage(distance), POPUP_TYPE.CONFIRM, '', {
             okButton: '加载',
             cancelButton: '取消',
         });
-        if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+        if (result !== POPUP_RESULT.AFFIRMATIVE || !isCurrentChat(context, revision)) return false;
     }
     let guard = 0;
     while (!document.querySelector(`#chat .mes[mesid="${index}"]`) && guard++ < 10000) {
-        const first = loadedChapterRange();
+        const first = loadedMessageRange();
         if (first === null || first <= index) break;
         const before = first;
         await showMoreMessages(before - index);
-        const after = loadedChapterRange();
+        if (!isCurrentChat(context, revision)) return false;
+        const after = loadedMessageRange();
         if (after === null || after >= before) break;
     }
     const mes = document.querySelector(`#chat .mes[mesid="${index}"]`);
-    if (!(mes instanceof HTMLElement)) return;
-    applyChapterDividers();
+    if (!(mes instanceof HTMLElement)) {
+        if (warnMissing) toastr.warning('该消息未加载，请向上滚动');
+        return false;
+    }
+    await beforeScroll();
+    if (!isCurrentChat(context, revision)) return false;
     mes.scrollIntoView({ block: 'center', inline: 'nearest' });
-    mes.classList.add('director-chapter-highlight');
+    mes.classList.add(highlightClass);
     const token = ++highlightToken;
+    // Moved from jumpToChapter: its existing timer also works when reduced motion suppresses animation events.
     setTimeout(() => {
-        if (highlightToken === token) mes.classList.remove('director-chapter-highlight');
+        if (highlightToken === token) mes.classList.remove(highlightClass);
     }, 1500);
+    return true;
+}
+
+async function jumpToChapter(index) {
+    // Chapters keep their divider refresh and visual treatment. Fate jumps do
+    // not enter this pre-existing full-chat chapter rendering path.
+    return jumpToMessage(index, 'director-chapter-highlight', applyChapterDividers);
 }
 
 function showChapterList() {
@@ -563,20 +578,40 @@ export async function init() {
     }
     const context = getContext();
     const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
+    let fateMarks;
     const fate = createFateController(getContext, {
         isGenerating, hasDraft, setSendButtonState, deactivateSendButtons, activateSendButtons, uuid:uuidv4, random:Math.random,
         generate: current => current.generate('normal'),
         save: (_current, shouldSave) => saveChatConditional({ shouldSave }),
         onRegenerateStart: () => setSendButtonState(true),
         onError: message => toastr.warning(message),
-        onChange: () => fatePanel?.refresh(),
-        onReveal: card => toastr.info(`🎴 命运已降临：〈${card.title}〉`, '', {
-            escapeHtml: true,
-            onclick: () => fatePanel.open({ focusReveal: true }).catch(() => toastr.error('无法打开命运牌。')),
-        }),
+        onChange: () => {
+            fateMarks?.invalidate();
+            // clearLog has no message-render event; remove its old marks now.
+            fateMarks?.paintAll();
+            fatePanel?.refresh();
+        },
+        onReveal: card => {
+            toastr.info(`🎴 命运已降临：〈${card.title}〉`, '', {
+                escapeHtml: true,
+                onclick: () => fatePanel.open({ focusReveal: true }).catch(() => toastr.error('无法打开命运牌。')),
+            });
+            // Completion publishes its in-memory log before the save resolves
+            // and before onChange can invalidate the previous slot cache.
+            fateMarks.invalidate();
+            queueMicrotask(() => {
+                fateMarks.paintOne(card.slotIndex);
+                fateMarks.pulse(card.id);
+            });
+        },
     });
+    fateMarks = createFateMarks({
+        getContext, getEntries: fate.log,
+        onOpen: entryId => fatePanel.open({ tab: 'log', entryId }).catch(() => toastr.error('无法打开命运牌。')),
+    });
+    document.documentElement.classList.toggle('director_fate_nomotion', settings.fate.motion === 'off');
     fatePanel = createFatePanel(fate, {
-        Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn: message => toastr.warning(message),
+        Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, jumpToMessage, warn: message => toastr.warning(message),
         settings: settings.fate, sound: createFateSound(() => settings.fate.sound),
         saveSettings: () => getContext().saveSettingsDebounced(),
         restoreFocus: () => {
@@ -725,6 +760,25 @@ export async function init() {
         context.eventTypes.MESSAGE_DELETED,
         context.eventTypes.MORE_MESSAGES_LOADED,
     ]) context.eventSource.on(type, refreshChapters);
+    // Marks have their own bounded work; never attach them to chapter scans.
+    context.eventSource.on(context.eventTypes.CHARACTER_MESSAGE_RENDERED, id => fateMarks.paintOne(id));
+    for (const type of [context.eventTypes.MESSAGE_UPDATED, context.eventTypes.MESSAGE_SWIPED]) {
+        context.eventSource.on(type, id => {
+            fateMarks.invalidate();
+            fateMarks.paintOne(id);
+            // Editing/swiping the predecessor can invalidate the next anchor.
+            fateMarks.paintOne(Number(id) + 1);
+            fatePanel?.refresh();
+        });
+    }
+    for (const type of [context.eventTypes.CHAT_CHANGED, context.eventTypes.MORE_MESSAGES_LOADED,
+        context.eventTypes.MESSAGE_DELETED, context.eventTypes.MESSAGE_EDITED]) {
+        context.eventSource.on(type, () => {
+            fateMarks.invalidate();
+            fateMarks.paintAll();
+            fatePanel?.refresh();
+        });
+    }
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
         chatRevision++;
         clearBoundDeleteSkip();
@@ -809,5 +863,6 @@ export async function init() {
         await current.saveMetadata();
     });
     refreshChapters();
+    fateMarks.paintAll();
     refreshInstructChip();
 }

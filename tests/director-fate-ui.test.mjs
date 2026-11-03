@@ -440,3 +440,64 @@ test('picking and revealing work with no animation events under app reduced moti
     assert.equal(fixture.query('.director_fate_log_event').textContent, secret);
     await fixture.close();
 });
+
+test('opening the log recovers a shifted slot, and jump follows that index', async t => {
+    const entries = [entry('shifted', { slotIndex: 4, status: 'changed' })];
+    const fixture = lab(t, { entries });
+    const calls = [];
+    fixture.controller.recoverLog = async () => {
+        calls.push('recover');
+        entries[0] = { ...entries[0], slotIndex: entries[0].slotIndex - 1, status: 'ok' };
+        return true;
+    };
+    fixture.open();
+    await settle();
+    assert.deepEqual(calls, []);
+    assert.equal(fixture.query('.director_fate_log_jump').disabled, true);
+    fixture.query('#director_fate_tab_log').click();
+    await settle();
+    assert.deepEqual(calls, ['recover']);
+    assert.equal(fixture.query('.director_fate_log_details').textContent.includes('第 4 条'), true);
+    assert.equal(fixture.query('.director_fate_log_status'), null);
+    assert.equal(fixture.query('.director_fate_log_jump').disabled, false);
+    fixture.query('.director_fate_log_jump').click();
+    await settle();
+    assert.deepEqual(calls, ['recover', 'recover']);
+    assert.equal(fixture.jumps.length, 1);
+    assert.equal(fixture.jumps[0][0], 2);
+    assert.equal(fixture.jumps[0][1], 'director-fate-highlight');
+});
+
+test('a log jump stays disabled when recovery leaves the row changed', async t => {
+    const entries = [entry('changed', { status: 'changed', slotIndex: 6 })];
+    const fixture = lab(t, { entries });
+    let calls = 0;
+    fixture.controller.recoverLog = async () => {
+        calls++;
+        return false;
+    };
+    fixture.open({ tab: 'log' });
+    await settle();
+    assert.equal(calls, 1);
+    assert.equal(fixture.query('.director_fate_log_status').textContent, '消息已改写');
+    assert.equal(fixture.query('.director_fate_log_jump').disabled, true);
+    fixture.query('.director_fate_log_jump').click();
+    await settle();
+    assert.equal(calls, 1);
+    assert.equal(fixture.jumps.length, 0);
+});
+
+test('the current card jump does not recover log slots', async t => {
+    const fixture = lab(t);
+    let calls = 0;
+    fixture.controller.recoverLog = async () => {
+        calls++;
+        return false;
+    };
+    fixture.open();
+    fixture.query('#director_fate_flip').click();
+    fixture.query('#director_fate_jump').click();
+    await settle();
+    assert.equal(calls, 0);
+    assert.equal(fixture.jumps[0][0], 1);
+});

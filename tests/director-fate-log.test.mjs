@@ -569,3 +569,212 @@ test('log(slotIndex) reads at most two chat indexes for a cold mark lookup, incl
     assert.equal(fixture.controller.log(97)[0].id, 'perf-48');
     assert.equal(reads, 2);
 });
+
+const userLine = mes => ({ is_user: true, name: 'User', mes });
+const aiLine = (generationId, swipeId) => {
+    const message = reply(generationId);
+    if (swipeId !== undefined) message.swipe_id = swipeId;
+    return message;
+};
+const countedChat = (chat, stats) => new Proxy(chat, {
+    get(target, key, receiver) {
+        if (typeof key === 'string' && /^\d+$/.test(key)) stats.reads++;
+        else if (key !== 'length') throw new Error(`Unexpected chat traversal: ${String(key)}`);
+        return Reflect.get(target, key, receiver);
+    },
+});
+
+test('deleting or inserting an earlier message recovers on recoverLog and persists the new slot', async () => {
+    const anchorA = anchor();
+    const anchorB = userLine('And after that?');
+    const held = entry('held-card');
+    const bound = entry('bound-card', { slotIndex: 2, prevFingerprint: 'bound-anchor', generationId: 4, batchEndIndex: 2 });
+    const corrupt = { id: 'not-a-card' };
+    const laterA = entry('later-a', {
+        slotIndex: 2, generationId: 4, prevFingerprint: messageFingerprint(anchorA), swipeIds: [1],
+    });
+    const laterB = entry('later-b', {
+        slotIndex: 4, generationId: 8, prevFingerprint: messageFingerprint(anchorB), swipeIds: [0],
+    });
+    // An earlier row was removed, so both replies now sit one index lower.
+    const fixture = lab({ metadata: { director: { fate: {
+        version: 1, pity: 2, recent: ['echo'], held, bound, log: [laterA, corrupt, laterB],
+    } } } });
+    fixture.context.chat = [anchorA, aiLine(4, 1), anchorB, aiLine(8, 0)];
+    const saves = fixture.saves.length;
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    assert.equal(fixture.controller.log()[1].status, 'missing');
+    assert.equal(fixture.saves.length, saves);
+    assert.equal(JSON.stringify(fixture.controller.view()).includes(privateEvent), false);
+    const [first, second] = await Promise.all([fixture.controller.recoverLog(), fixture.controller.recoverLog()]);
+    assert.equal(first, true);
+    assert.equal(second, true);
+    assert.equal(fixture.saves.length, saves + 1);
+    assert.equal(fixture.metadata.director.fate.log[1], corrupt);
+    assert.equal(fixture.metadata.director.fate.held, held);
+    assert.equal(fixture.metadata.director.fate.bound, bound);
+    assert.equal(fixture.metadata.director.fate.bound.slotIndex, 2);
+    assert.equal(fixture.metadata.director.fate.pity, 2);
+    assert.deepEqual(fixture.metadata.director.fate.recent, ['echo']);
+    assert.deepEqual(fixture.metadata.director.fate.log[0], { ...laterA, slotIndex: 1 });
+    assert.deepEqual(fixture.metadata.director.fate.log[2], { ...laterB, slotIndex: 3 });
+    assert.deepEqual(fixture.persisted.at(-1).log.map(row => row.slotIndex), [1, undefined, 3]);
+    const recovered = fixture.controller.log();
+    assert.deepEqual(recovered.map(row => row.status), ['ok', 'ok']);
+    assert.equal(recovered[0].event, privateEvent);
+    assert.equal(JSON.stringify(fixture.controller.view()).includes(privateEvent), false);
+    await fixture.controller.recoverLog();
+    assert.equal(fixture.saves.length, saves + 1);
+
+    const inserted = userLine('A line inserted above.');
+    const raised = entry('raised', {
+        slotIndex: 1, generationId: 3, prevFingerprint: messageFingerprint(anchorA), swipeIds: [2],
+    });
+    const upward = lab({ metadata: { director: { fate: { version: 1, log: [raised] } } } });
+    upward.context.chat = [inserted, anchorA, aiLine(3, 2)];
+    assert.equal(upward.controller.log()[0].status, 'changed');
+    assert.equal(await upward.controller.recoverLog(), true);
+    assert.equal(upward.metadata.director.fate.log[0].slotIndex, 2);
+    assert.equal(upward.controller.log()[0].status, 'ok');
+    assert.deepEqual(upward.persisted.at(-1).log[0], { ...raised, slotIndex: 2 });
+});
+
+test('an ambiguous or unmatched anchor stays changed and is not saved', async () => {
+    const line = anchor();
+    const tied = entry('tied', {
+        slotIndex: 2, generationId: 5, prevFingerprint: messageFingerprint(line), swipeIds: [0],
+    });
+    const missingGen = entry('wrong-gen', {
+        slotIndex: 0, generationId: 9, prevFingerprint: messageFingerprint(line), swipeIds: [0],
+    });
+    const openGen = entry('open-gen', {
+        slotIndex: 5, generationId: null, prevFingerprint: messageFingerprint(line), swipeIds: [0],
+    });
+    const farther = entry('farther-gen', {
+        slotIndex: 2, generationId: 9, prevFingerprint: messageFingerprint(line), swipeIds: [0],
+    });
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log: [tied] } } } });
+    fixture.context.chat = [line, aiLine(5, 0), line, aiLine(5, 0)];
+    const saves = fixture.saves.length;
+    assert.equal(await fixture.controller.recoverLog(), false);
+    assert.equal(fixture.saves.length, saves);
+    assert.equal(fixture.metadata.director.fate.log[0].slotIndex, 2);
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+
+    const unmatched = lab({ metadata: { director: { fate: { version: 1, log: [missingGen, openGen] } } } });
+    unmatched.context.chat = [userLine('Not the anchor.'), line, aiLine(1, 0)];
+    assert.equal(await unmatched.controller.recoverLog(), true);
+    assert.equal(unmatched.metadata.director.fate.log[0], missingGen);
+    assert.equal(unmatched.controller.log()[0].status, 'changed');
+    assert.deepEqual(unmatched.metadata.director.fate.log[1], { ...openGen, slotIndex: 2 });
+    assert.equal(unmatched.controller.log()[1].status, 'ok');
+    assert.equal(unmatched.saves.length, 1);
+
+    const picked = lab({ metadata: { director: { fate: { version: 1, log: [farther] } } } });
+    picked.context.chat = [line, aiLine(1, 0), userLine('Between.'), line, aiLine(9, 0)];
+    assert.equal(await picked.controller.recoverLog(), true);
+    assert.equal(picked.metadata.director.fate.log[0].slotIndex, 4);
+    assert.equal(picked.controller.log()[0].status, 'ok');
+});
+
+test('a swipe id outside the recorded list is not recovered', async () => {
+    const line = anchor();
+    const mismatched = entry('swipe-mismatch', {
+        slotIndex: 0, generationId: 9, prevFingerprint: messageFingerprint(line), swipeIds: [0],
+    });
+    const legacy = entry('legacy-swipe', {
+        slotIndex: 0, generationId: 9, prevFingerprint: messageFingerprint(line),
+    });
+    const recorded = entry('recorded-swipe', {
+        slotIndex: 2, generationId: 9, prevFingerprint: messageFingerprint(line), swipeIds: [0, 4],
+    });
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log: [mismatched] } } } });
+    fixture.context.chat = [userLine('Shifted.'), line, aiLine(9, 5)];
+    assert.equal(await fixture.controller.recoverLog(), false);
+    assert.equal(fixture.saves.length, 0);
+    assert.equal(fixture.metadata.director.fate.log[0].slotIndex, 0);
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+
+    const legacyFixture = lab({ metadata: { director: { fate: { version: 1, log: [legacy] } } } });
+    legacyFixture.context.chat = [userLine('Shifted.'), line, aiLine(9, 5)];
+    assert.equal(await legacyFixture.controller.recoverLog(), true);
+    assert.equal(legacyFixture.metadata.director.fate.log[0].slotIndex, 2);
+    assert.equal(Object.hasOwn(legacyFixture.metadata.director.fate.log[0], 'swipeIds'), false);
+    assert.equal(legacyFixture.controller.log()[0].status, 'ok');
+
+    const recordedFixture = lab({ metadata: { director: { fate: { version: 1, log: [recorded] } } } });
+    recordedFixture.context.chat = [line, aiLine(9, 5), userLine('Between.'), line, aiLine(9, 4)];
+    assert.equal(await recordedFixture.controller.recoverLog(), true);
+    assert.equal(recordedFixture.metadata.director.fate.log[0].slotIndex, 4);
+    assert.deepEqual(recordedFixture.metadata.director.fate.log[0].swipeIds, [0, 4]);
+    assert.equal(recordedFixture.controller.log()[0].status, 'ok');
+});
+
+test('recoverLog can scan a long chat, and log() still reads at most two indexes', async () => {
+    const chat = Array.from({ length: 2000 }, (_, index) => index % 2 ? reply(index) : anchor());
+    const aligned = entry('aligned', { slotIndex: 1, generationId: 1, prevFingerprint: messageFingerprint(anchor()) });
+    const shifted = entry('shifted', { slotIndex: 1998, generationId: 1999, prevFingerprint: messageFingerprint(anchor()) });
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log: [aligned, shifted] } } } });
+    const stats = { reads: 0 };
+    fixture.context.chat = countedChat(chat, stats);
+    const listed = fixture.controller.log();
+    assert.equal(listed[0].status, 'ok');
+    assert.equal(listed[1].status, 'changed');
+    assert.equal(stats.reads, 3);
+    stats.reads = 0;
+    assert.equal(await fixture.controller.recoverLog(), true);
+    assert.ok(stats.reads > 3);
+    assert.equal(fixture.metadata.director.fate.log[0], aligned);
+    assert.equal(fixture.metadata.director.fate.log[1].slotIndex, 1999);
+    stats.reads = 0;
+    const after = fixture.controller.log();
+    assert.deepEqual(after.map(row => [row.id, row.slotIndex, row.status]), [
+        ['aligned', 1, 'ok'], ['shifted', 1999, 'ok'],
+    ]);
+    assert.equal(stats.reads, 4);
+});
+
+test('a chat switch or a failed save does not keep a recovered slot', async () => {
+    const line = anchor();
+    const row = entry('switch', {
+        slotIndex: 3, generationId: 4, prevFingerprint: messageFingerprint(line), swipeIds: [1],
+    });
+    const make = () => {
+        const fixture = lab({ metadata: { director: { fate: { version: 1, log: [structuredClone(row)] } } } });
+        fixture.context.chat = [line, aiLine(4, 1)];
+        return fixture;
+    };
+    const switched = make();
+    const before = structuredClone(switched.metadata.director.fate);
+    switched.switchChat();
+    await switched.emit('CHAT_CHANGED');
+    assert.equal(await switched.controller.recoverLog(), false);
+    assert.deepEqual(switched.metadata.director.fate, before);
+    assert.equal(switched.context.chatMetadata.director, undefined);
+    assert.equal(switched.saves.length, 0);
+
+    const during = make();
+    const duringBefore = structuredClone(during.metadata.director.fate);
+    during.setSave(async () => {
+        during.switchChat();
+        await during.emit('CHAT_CHANGED');
+        return true;
+    });
+    await assert.rejects(during.controller.recoverLog(), /保存失败/);
+    assert.deepEqual(during.metadata.director.fate, duringBefore);
+    assert.equal(during.context.chatMetadata.director, undefined);
+    assert.equal(during.persisted.length, 0);
+
+    for (const thrown of [false, true]) {
+        const failed = make();
+        const failedBefore = failed.metadata.director.fate;
+        failed.setSave(async () => {
+            if (thrown) throw new Error('Save failed');
+            return false;
+        });
+        await assert.rejects(failed.controller.recoverLog(), /保存失败/);
+        assert.equal(failed.metadata.director.fate, failedBefore);
+        assert.equal(failed.metadata.director.fate.log[0].slotIndex, 3);
+        assert.equal(failed.controller.log()[0].status, 'missing');
+    }
+});

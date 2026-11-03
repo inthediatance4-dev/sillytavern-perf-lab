@@ -6,6 +6,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
     let popup = null;
     let error = '';
     let activeTab = 'current';
+    let logPresentation = 0;
     const flipped = new Set();
     const labels = { light: '轻微波澜', medium: '明显转折', strong: '重大变故' };
     const rarities = { common: '寻常', rare: '稀有', legendary: '传说' };
@@ -38,6 +39,17 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             if (selected && focus) control.focus();
         }
         if (changed) syncLog(controller.view());
+        if (changed && next === 'log') queueLogRecovery();
+    }
+
+    // log() does not search the chat. Repair shifted indexes when the log is shown.
+    function queueLogRecovery() {
+        if (typeof controller.recoverLog !== 'function' || !panel || activeTab !== 'log') return;
+        const generation = ++logPresentation;
+        Promise.resolve(controller.recoverLog()).then(changed => {
+            if (!changed || !panel || activeTab !== 'log' || generation !== logPresentation) return;
+            syncLog(controller.view());
+        }, () => { /* A failed save rolls back, so the list already shows the stored indexes. */ });
     }
 
     function focusEntry(id) {
@@ -46,6 +58,18 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             entry.focus();
             entry.scrollIntoView({ block: 'nearest' });
         } else panel.querySelector('#director_fate_tab_log').focus();
+    }
+
+    async function jumpToLogEntry(entry) {
+        let target = entry;
+        if (typeof controller.recoverLog === 'function') {
+            try { await controller.recoverLog(); } catch { /* Rolled back; the status check keeps a stale index. */ }
+            const updated = controller.log().find(item => item.id === entry.id);
+            if (!updated || updated.status !== 'ok') throw new Error();
+            target = updated;
+            if (panel && activeTab === 'log' && target.slotIndex !== entry.slotIndex) syncLog(controller.view());
+        }
+        await jumpToEntry(target);
     }
 
     async function jumpToEntry(entry) {
@@ -119,7 +143,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             flip.dataset.fateAction = 'flip';
             flip.hidden = settings.reveal !== 'tap' || revealed;
             actions.append(flip);
-            const jump = button('', '跳转', () => action(() => jumpToEntry(entry), '未能跳转到该消息。'));
+            const jump = button('', '跳转', () => action(() => jumpToLogEntry(entry), '未能跳转到该消息。'));
             jump.classList.add('director_fate_log_jump');
             jump.dataset.fateAction = 'jump';
             jump.disabled = entry.status !== 'ok';
@@ -267,6 +291,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         panel.setAttribute('aria-busy', String(view.busy));
         syncLog(view);
         selectTab(activeTab);
+        if (activeTab === 'log') queueLogRecovery();
     }
 
     function action(operation, failure) {

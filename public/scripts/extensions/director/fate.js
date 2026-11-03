@@ -101,6 +101,39 @@ function trackDisplayedSwipe(entry, swipeId) {
     return rememberSwipe(entry, swipeId);
 }
 
+// Same anchor rule log() uses for status. generationId is checked only when the row recorded one.
+function logSlotMatches(chat, index, entry) {
+    if (!Number.isInteger(index) || index < 0 || index >= chat.length) return false;
+    const message = chat[index];
+    if (!isAi(message)) return false;
+    const previous = index > 0 ? chat[index - 1] : undefined;
+    if (messageFingerprint(previous) !== entry.prevFingerprint) return false;
+    if (entry.generationId !== null && message.extra?.gen_id !== entry.generationId) return false;
+    return !Object.hasOwn(entry, 'swipeIds') || entry.swipeIds.includes(message.swipe_id);
+}
+
+// Deletes shift later rows down and inserts shift them up. One pass over the
+// chat finds the closest unique hit; a tie or a miss leaves the stored index.
+// log() and mark painting never call this.
+function relocatedSlot(chat, entry) {
+    if (!Array.isArray(chat)) return null;
+    const origin = entry.slotIndex;
+    if (logSlotMatches(chat, origin, entry)) return origin;
+    let best = null;
+    let bestDistance = Infinity;
+    let ambiguous = false;
+    for (let index = 0; index < chat.length; index++) {
+        if (!logSlotMatches(chat, index, entry)) continue;
+        const distance = Math.abs(index - origin);
+        if (distance < bestDistance) {
+            best = index;
+            bestDistance = distance;
+            ambiguous = false;
+        } else if (distance === bestDistance) ambiguous = true;
+    }
+    return ambiguous || best === null ? null : best;
+}
+
 function readLog(value) {
     if (!Array.isArray(value)) return [];
     const entries = [];
@@ -396,6 +429,35 @@ export function createFateController(getContext, options = {}) {
         return commit(capture(context), { ...state(context.chatMetadata), log: [] });
     }
 
+    // User actions only. Opening the log and jumping ask for this; message
+    // marks keep calling log(), which still reads the stored index.
+    let recovering = null;
+    function recoverLog() {
+        if (recovering) return recovering;
+        recovering = relocateEntries().finally(() => { recovering = null; });
+        return recovering;
+    }
+
+    async function relocateEntries() {
+        const context = getContext();
+        const snapshot = capture(context, true);
+        if (!current(snapshot) || !snapshot.metadata || !Array.isArray(context.chat)) return false;
+        const value = state(snapshot.metadata);
+        const moves = new Map();
+        for (const entry of value.log) {
+            const index = relocatedSlot(context.chat, entry);
+            if (index !== null && index !== entry.slotIndex) moves.set(entry.id, index);
+        }
+        if (moves.size === 0 || !current(snapshot)) return false;
+        const stored = snapshot.metadata.director?.fate;
+        const source = Array.isArray(stored?.log) ? stored.log : value.log;
+        const log = source.map(entry => {
+            const index = entry && typeof entry.id === 'string' ? moves.get(entry.id) : undefined;
+            return index === undefined ? entry : { ...entry, slotIndex: index };
+        });
+        return commit(snapshot, { ...value, log });
+    }
+
     async function apply() {
         checkAvailable();
         if (hasDraft()) throw new Error('请先处理输入框中的草稿，再采用命运卡。');
@@ -667,5 +729,5 @@ export function createFateController(getContext, options = {}) {
         groupScope = null;
         clearPrompt();
     });
-    return { view, log, clearLog, draw, deal, pick, discard, apply, prepare };
+    return { view, log, recoverLog, clearLog, draw, deal, pick, discard, apply, prepare };
 }

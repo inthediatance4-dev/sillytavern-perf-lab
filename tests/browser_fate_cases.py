@@ -1,4 +1,5 @@
 """Real-browser Fate Card checks on the existing synthetic lab."""
+import gzip
 import json
 from pathlib import Path
 import urllib.request
@@ -44,7 +45,8 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     def open_panel():
         if page.locator('#director_fate_panel').is_visible():
             return
-        page.locator('#directorButton').click()
+        if not page.locator('#directorPopover').is_visible():
+            page.locator('#directorButton').click()
         assert page.locator('#director_fate_open').count() == 1, 'Fate Cards entry missing'
         page.locator('#director_fate_open').click()
         page.locator('#director_fate_panel').wait_for(state='visible')
@@ -59,6 +61,53 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     def hidden(text):
         assert text not in page.locator('body').evaluate('(node) => node.outerHTML')
 
+    def ritual_hidden(text):
+        # outerHTML covers text, title, aria-* and data-* alike. Also check the
+        # private marker so escaping or rendering only part cannot conceal a leak.
+        panel_html = page.locator('#director_fate_panel').evaluate('(node) => node.outerHTML')
+        toast_html = page.locator('#toast-container').evaluate('(node) => node.outerHTML') if page.locator('#toast-container').count() else ''
+        for private in (text, text.partition(':')[0]):
+            assert private not in panel_html, 'Private event leaked into Fate panel markup'
+            assert private not in toast_html, 'Private event leaked into toast markup'
+        assert page.locator('.director_fate_face').text_content() == ''
+
+    def reveal_toast(held):
+        toast = page.locator('#toast-container .toast').filter(has_text='命运已降临').filter(has_text=held['title']).last
+        toast.wait_for(state='visible')
+        assert held['event'] not in toast.evaluate('(node) => node.outerHTML')
+        return toast
+
+    def settings():
+        if not page.locator('#director_fate_settings').is_visible():
+            page.locator('#director_fate_settings_toggle').click()
+        page.locator('#director_fate_reveal').wait_for(state='visible')
+
+    def saved_settings_match(response, **expected):
+        if not response.url.endswith('/api/settings/save') or response.request.method != 'POST':
+            return False
+        data = response.request.post_data_buffer
+        if response.request.headers.get('content-encoding') == 'gzip':
+            data = gzip.decompress(data)
+        saved = json.loads(data)['extension_settings']['director']['fate']
+        return all(saved.get(key) == value for key, value in expected.items())
+
+    def reload_browser():
+        page.reload()
+        page.locator('#directorButton').wait_for(state='visible', timeout=30000)
+        page.evaluate("""async sample => {
+            window.__fateLabMain = await import('/script.js');
+            const c=SillyTavern.getContext();
+            await c.selectCharacterById(c.characters.findIndex(card=>card.avatar===sample.avatar));
+            if(SillyTavern.getContext().chatId!==sample.chatName) await SillyTavern.getContext().openCharacterChat(sample.chatName);
+        }""", sample)
+        connect_api(page)
+
+    def fade_only():
+        for face in ('.director_fate_back', '.director_fate_face'):
+            assert page.locator(face).evaluate("node => { const style=getComputedStyle(node); return style.transform==='none' && style.transitionProperty==='opacity' && style.transitionDuration==='0.15s'; }")
+        for selector, pseudo in (('.director_fate_back', '::before'), ('.director_fate_seal', None), ('.director_fate_seal', '::after')):
+            assert page.locator(selector).evaluate('(node, pseudo) => getComputedStyle(node, pseudo).animationName', pseudo) == 'none'
+
     def draw(text=secret):
         configure(json.dumps({'event':text}))
         open_panel()
@@ -71,11 +120,47 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         hidden(text)
         return held
 
-    def apply(held):
+    def apply(held, inspect_ritual=False):
         configure()
         assert page.locator('#send_textarea').input_value() == ''
         before = len(requests())
-        page.locator('#director_fate_apply').click()
+        if inspect_ritual:
+            # Pause the native HTTP request to inspect the applying state before
+            # any reply exists, independent of provider or machine speed.
+            pending = []
+            pattern = '**/api/backends/chat-completions/generate'
+            def hold_generation(route):
+                pending.append(route)
+            page.route(pattern, hold_generation)
+            try:
+                with page.expect_request(lambda request: request.url.endswith('/api/backends/chat-completions/generate') and request.method == 'POST'):
+                    page.locator('#director_fate_apply').click()
+                page.locator('#director_fate_panel').wait_for(state='hidden')
+                open_panel()
+                page.wait_for_function("document.querySelector('.director_fate_card')?.dataset.state === 'applying'")
+                assert page.locator('#director_fate_status').inner_text() == '命运在转动…'
+                ritual_hidden(held['event'])
+                result['checks']['fateApplyingMarkupAndToastsKeepEventPrivate'] = True
+                page.emulate_media(reduced_motion='reduce')
+                fade_only()
+                page.emulate_media(reduced_motion='no-preference')
+                settings()
+                page.locator('#director_fate_motion').select_option('off')
+                fade_only()
+                page.locator('#director_fate_motion').select_option('system')
+                result['checks']['fateApplyingReducedMotionAndMotionOffDisableAnimations'] = True
+                assert len(pending) == 1
+                close_panel()
+            finally:
+                try:
+                    # Removing the last handler disables interception and can
+                    # release paused requests. Continue them before unroute.
+                    for route in pending:
+                        route.continue_()
+                finally:
+                    page.unroute(pattern, hold_generation)
+        else:
+            page.locator('#director_fate_apply').click()
         page.locator('#director_fate_panel').wait_for(state='hidden')
         page.wait_for_function("id => { const f=SillyTavern.getContext().chatMetadata.director?.fate; return !f?.held && f?.bound?.id === id; }", arg=held['id'], timeout=30000)
         idle()
@@ -87,6 +172,11 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
 
     # A normal pending instruction must survive the quiet draw and coexist
     # with the Fate prompt during the eventual real story generation.
+    open_panel()
+    assert page.locator('.director_fate_card').get_attribute('data-state') == 'empty'
+    assert page.locator('.director_fate_face').text_content() == ''
+    close_panel()
+    result['checks']['fateEmptyCardHasNoFaceText'] = True
     page.locator('#directorButton').click()
     page.locator('#directorPopover [data-preset-id="direct"]').click()
     page.locator('dialog[open] #director-input-0').fill('ORDINARY_DIRECTOR_FATE_COEXIST')
@@ -98,14 +188,33 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert 'ORDINARY_DIRECTOR_FATE_COEXIST' not in body()
     assert page.evaluate("Object.values(SillyTavern.getContext().chatMetadata.script_injects).some(x => x.value.includes('ORDINARY_DIRECTOR_FATE_COEXIST'))")
     assert len(page.locator('#director_fate_title').inner_text()) > 0
+    assert page.locator('.director_fate_card').get_attribute('data-state') == 'sealed'
+    assert page.locator('.director_fate_back').count() == 1
+    assert page.locator('#director_fate_status').inner_text() == '牌已封存。'
+    ritual_hidden(secret)
+    page.emulate_media(reduced_motion='reduce')
+    assert page.locator('.director_fate_back').evaluate("node => getComputedStyle(node,'::before').animationName") == 'none'
+    fade_only()
+    page.emulate_media(reduced_motion='no-preference')
+    result['checks']['fateSystemReducedMotionUsesFadeWithoutBreathing'] = True
+    settings()
+    assert page.locator('#director_fate_reveal').input_value() == 'tap'
+    assert not page.locator('#director_fate_sound').is_checked()
+    assert page.locator('#director_fate_motion').input_value() == 'system'
+    for control in ('director_fate_reveal', 'director_fate_sound', 'director_fate_motion'):
+        assert page.locator('label[for="' + control + '"]').count() == 1
+    page.locator('#director_fate_settings_toggle').click()
+    result['checks']['fateSealedMarkupPrivateAndDefaultRitualSettings'] = True
     result['checks']['fateDrawSealedAndExistingInstructionPreserved'] = True
 
     page.set_viewport_size({'width':390,'height':844})
     assert page.locator('#director_fate_panel').evaluate('n => n.scrollWidth <= n.clientWidth')
+    assert page.locator('.director_fate_card').evaluate('n => { const r=n.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }')
     hidden(secret)
     screenshots=Path(__file__).resolve().parents[1] / '.evidence' / 'fate'
     screenshots.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=str(screenshots / 'mobile.png'))
+    result['checks']['fateRitualMobileCardHasNoOverflow'] = True
     page.set_viewport_size({'width':1440,'height':1000})
     page.screenshot(path=str(screenshots / 'desktop.png'))
     close_panel()
@@ -145,7 +254,50 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     open_panel()
     result['checks']['fatePendingAttachmentStaysUnsentAndPreserved'] = True
 
-    apply(held)
+    apply(held, inspect_ritual=True)
+    hidden(secret)
+    reveal_toast(held).click()
+    page.locator('#director_fate_panel').wait_for(state='visible')
+    assert page.locator('.director_fate_card').get_attribute('data-state') == 'revealed'
+    assert page.locator('#director_fate_status').inner_text() == '命运已降临，点击翻牌。'
+    ritual_hidden(secret)
+    page.locator('#director_fate_flip').click()
+    page.wait_for_function('event => document.querySelector(".director_fate_face")?.textContent === event', arg=secret)
+    result['checks']['fateTitleOnlyCompletionToastAndExplicitTapReveal'] = True
+
+    slot = fate()['bound']['slotIndex']
+    close_panel()
+    anchor = page.evaluate('slot => SillyTavern.getContext().chat[slot - 1].mes', slot)
+    try:
+        page.evaluate("slot => { SillyTavern.getContext().chat[slot - 1].mes = 'Changed anchor for the stale-card check.'; }", slot)
+        open_panel()
+        assert page.locator('.director_fate_card').get_attribute('data-state') == 'stale'
+        ritual_hidden(secret)
+        assert not page.locator('#director_fate_flip').is_visible()
+        close_panel()
+    finally:
+        page.evaluate('({slot, anchor}) => { SillyTavern.getContext().chat[slot - 1].mes = anchor; }', {'slot':slot, 'anchor':anchor})
+    open_panel()
+    assert page.locator('.director_fate_face').text_content() == secret
+    result['checks']['fateStaleAnchorHidesPreviouslyFlippedEvent'] = True
+    page.locator('#chat [mesid="' + str(slot) + '"]').evaluate("node => { window.__fateJumpCount=0; node.scrollIntoView=() => { window.__fateJumpCount++; }; }")
+    page.locator('#director_fate_jump').click()
+    page.locator('#director_fate_panel').wait_for(state='hidden')
+    page.wait_for_function('window.__fateJumpCount === 1')
+    open_panel()
+    row = page.locator('#chat [mesid="' + str(slot) + '"]')
+    row.evaluate("node => { window.__fateJumpRow=node; node.removeAttribute('mesid'); }")
+    try:
+        page.locator('#director_fate_jump').click()
+        page.locator('#toast-container .toast').filter(has_text='该消息未加载，请向上滚动').last.wait_for(state='visible')
+    finally:
+        page.evaluate("slot => { window.__fateJumpRow.setAttribute('mesid',String(slot)); delete window.__fateJumpRow.scrollIntoView; delete window.__fateJumpRow; }", slot)
+    open_panel()
+    page.keyboard.press('Escape')
+    page.locator('#director_fate_panel').wait_for(state='hidden')
+    page.wait_for_function("document.activeElement?.id === 'director_fate_open'")
+    page.locator('#directorButton').click()
+    result['checks']['fateRevealJumpLoadedMissingAndEscFocus'] = True
     assert 'ORDINARY_DIRECTOR_FATE_COEXIST' in body()
     result['fateInstructionState'] = page.evaluate('structuredClone(SillyTavern.getContext().chatMetadata)')
     assert page.evaluate('SillyTavern.getContext().chatMetadata.director.boundInstruct.text') == 'ORDINARY_DIRECTOR_FATE_COEXIST' or page.evaluate("SillyTavern.getContext().chatMetadata.director.boundInstruct.text.includes('ORDINARY_DIRECTOR_FATE_COEXIST')")
@@ -292,4 +444,73 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     }""", sample['avatar'])
     assert fate()['held']['id'] == kept['id']
     result['checks']['fateStaleDrawDoesNotReplaceOrSaveIntoAnotherChat'] = True
-    print('Fate sealed draw, adoption, replay, failure/stop, real group and stale-chat checks passed', flush=True)
+
+    # Reveal policies use the same completed binding. The event must remain
+    # absent while sealed even when the next completed card will reveal itself.
+    open_panel()
+    settings()
+    page.locator('#director_fate_reveal').select_option('auto')
+    auto = draw('FATE_AUTO_PRIVATE: An old keepsake returns in an unexpected place.')
+    ritual_hidden(auto['event'])
+    apply(auto)
+    reveal_toast(auto)
+    open_panel()
+    page.wait_for_function('event => document.querySelector(".director_fate_face")?.textContent === event', arg=auto['event'])
+    assert not page.locator('#director_fate_flip').is_visible()
+    result['checks']['fateAutoShowsOnlyCompletedEventWithoutFlip'] = True
+
+    settings()
+    page.locator('#director_fate_reveal').select_option('off')
+    off = draw('FATE_OFF_PRIVATE: A hidden stairway opens beyond the ruined gate.')
+    ritual_hidden(off['event'])
+    apply(off)
+    reveal_toast(off).click()
+    page.locator('#director_fate_panel').wait_for(state='visible')
+    assert page.locator('.director_fate_card').get_attribute('data-state') == 'revealed'
+    assert not page.locator('#director_fate_flip').is_visible()
+    ritual_hidden(off['event'])
+    hidden(off['event'])
+    result['checks']['fateOffStillToastsTitleAndNeverShowsEvent'] = True
+
+    settings()
+    with page.expect_response(lambda response: saved_settings_match(response, reveal='off', sound=True, motion='off')) as saved_settings:
+        page.locator('#director_fate_sound').check()
+        page.locator('#director_fate_motion').select_option('off')
+    assert saved_settings.value.ok
+    assert page.locator('#director_fate_panel').evaluate('node => node.classList.contains("director_fate_nomotion")')
+    fade_only()
+    reload_browser()
+    open_panel()
+    settings()
+    assert page.locator('#director_fate_reveal').input_value() == 'off'
+    assert page.locator('#director_fate_sound').is_checked()
+    assert page.locator('#director_fate_motion').input_value() == 'off'
+    ritual_hidden(off['event'])
+    result['checks']['fateRitualSettingsPersistAfterBrowserReload'] = True
+
+    # A flip lasts only for this page lifetime. Keeping the same bound card on
+    # disk must not cause tap mode to disclose its event after another reload.
+    with page.expect_response(lambda response: saved_settings_match(response, reveal='tap', sound=True, motion='off')) as saved_tap:
+        page.locator('#director_fate_reveal').select_option('tap')
+    assert saved_tap.value.ok
+    ritual_hidden(off['event'])
+    page.locator('#director_fate_flip').click()
+    assert page.locator('.director_fate_face').text_content() == off['event']
+    page.set_viewport_size({'width':390,'height':844})
+    assert page.locator('#director_fate_panel').evaluate('node => node.scrollWidth <= node.clientWidth')
+    assert page.locator('.director_fate_card').evaluate('node => { const rect=node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth; }')
+    page.screenshot(path=str(screenshots / 'reveal-mobile.png'))
+    page.set_viewport_size({'width':1440,'height':1000})
+    reload_browser()
+    open_panel()
+    assert page.locator('.director_fate_card').get_attribute('data-state') == 'revealed'
+    ritual_hidden(off['event'])
+    assert page.locator('#director_fate_flip').is_visible()
+    result['checks']['fateTapFlipMemoryResetsOnBrowserReload'] = True
+    settings()
+    with page.expect_response(lambda response: saved_settings_match(response, reveal='tap', sound=False, motion='system')) as restored_settings:
+        page.locator('#director_fate_sound').uncheck()
+        page.locator('#director_fate_motion').select_option('system')
+    assert restored_settings.value.ok
+    close_panel()
+    print('Fate sealed draw, adoption, replay, failure/stop, groups, stale chats and reveal ritual checks passed', flush=True)

@@ -12,25 +12,98 @@
 }
 
 .director_fate_card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+    display: grid;
+    width: 100%;
+    min-width: 0;
     margin: 16px 0;
-    padding: 24px 16px;
-    border: 1px solid var(--SmartThemeBorderColor);
-    border-radius: 12px;
-    background: repeating-linear-gradient(135deg, transparent 0 12px, rgba(127, 127, 127, 0.06) 12px 13px);
+    perspective: 900px;
     text-align: center;
 }
 
-.director_fate_seal { font-size: 36px; opacity: 0.65; }
+.director_fate_back,
+.director_fate_face {
+    position: relative;
+    display: flex;
+    grid-area: 1 / 1;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-width: 0;
+    min-height: 210px;
+    padding: 24px 16px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 12px;
+    background-color: var(--SmartThemeBlurTintColor);
+    backface-visibility: hidden;
+    transition: transform 600ms ease, opacity 600ms ease;
+}
+
+.director_fate_back {
+    background-image: repeating-linear-gradient(135deg, transparent 0 12px, rgba(127, 127, 127, 0.06) 12px 13px);
+    transform: rotateY(0deg);
+}
+
+.director_fate_face {
+    white-space: pre-wrap;
+    transform: rotateY(-180deg);
+    opacity: 0;
+}
+
+.director_fate_flipped .director_fate_back { transform: rotateY(180deg); opacity: 0; }
+.director_fate_flipped .director_fate_face { transform: rotateY(0deg); opacity: 1; }
+
+.director_fate_card[data-state="sealed"] .director_fate_back::before {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 22px rgba(199, 156, 85, 0.3);
+    content: '';
+    pointer-events: none;
+    animation: director_fate_breathe 3s ease-in-out infinite;
+}
+
+.director_fate_seal { position: relative; font-size: 36px; opacity: 0.65; }
+.director_fate_card[data-state="applying"] .director_fate_seal {
+    animation: director_fate_crack 900ms ease-in-out infinite;
+}
+.director_fate_card[data-state="applying"] .director_fate_seal::after {
+    position: absolute;
+    inset: 15% 45%;
+    background: currentColor;
+    content: '';
+    transform: rotate(25deg);
+    animation: director_fate_breathe 900ms ease-in-out infinite;
+}
+
+@keyframes director_fate_breathe { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes director_fate_crack {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.65; }
+    50% { transform: scale(1.08) rotate(-8deg); opacity: 1; }
+}
+
 #director_fate_title { font-size: 1.25em; }
-#director_fate_strength_label { font-size: 0.9em; opacity: 0.8; }
+#director_fate_strength_label, #director_fate_rarity { font-size: 0.9em; opacity: 0.8; }
 #director_fate_status { min-height: 2.5em; }
 .director_fate_actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .director_fate_actions .menu_button { flex: 1 1 auto; min-width: 0; white-space: normal; }
 #director_fate_strength { width: 100%; }
+#director_fate_settings_toggle { display: block; margin: 12px 0 0; }
+#director_fate_settings:not([hidden]) { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin-top: 12px; }
+#director_fate_settings select { min-width: 0; max-width: 100%; }
+#director_fate_panel [hidden] { display: none; }
+
+.director_fate_nomotion .director_fate_card *,
+.director_fate_nomotion .director_fate_card ::before,
+.director_fate_nomotion .director_fate_card ::after { animation: none !important; }
+.director_fate_nomotion .director_fate_back,
+.director_fate_nomotion .director_fate_face { transform: none; transition: opacity 150ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+    .director_fate_card *, .director_fate_card ::before, .director_fate_card ::after { animation: none !important; }
+    .director_fate_back, .director_fate_face { transform: none !important; transition: opacity 150ms ease; }
+}
 
 #directorPopover {
     z-index: 30000;

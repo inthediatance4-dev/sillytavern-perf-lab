@@ -23,6 +23,7 @@ import {
 import { initPresetManager } from './manager.js';
 import { createFateController } from './fate.js';
 import { createFatePanel } from './fate-ui.js';
+import { createFateSound } from './fate-sound.js';
 import {
     activeInstruct,
     applyBoundReinject,
@@ -546,6 +547,20 @@ export async function init() {
         settings.version = 1;
         seeded = true;
     }
+    if (!settings.fate || typeof settings.fate !== 'object' || Array.isArray(settings.fate)) {
+        settings.fate = { reveal: 'tap', sound: false, motion: 'system' };
+        seeded = true;
+    }
+    for (const [key, fallback, valid] of [
+        ['reveal', 'tap', ['tap', 'auto', 'off']],
+        ['sound', false, [true, false]],
+        ['motion', 'system', ['system', 'off']],
+    ]) {
+        if (!valid.includes(settings.fate[key])) {
+            settings.fate[key] = fallback;
+            seeded = true;
+        }
+    }
     const context = getContext();
     const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
     const fate = createFateController(getContext, {
@@ -555,8 +570,20 @@ export async function init() {
         onRegenerateStart: () => setSendButtonState(true),
         onError: message => toastr.warning(message),
         onChange: () => fatePanel?.refresh(),
+        onReveal: card => toastr.info(`🎴 命运已降临：〈${card.title}〉`, '', {
+            escapeHtml: true,
+            onclick: () => fatePanel.open({ focusReveal: true }).catch(() => toastr.error('无法打开命运牌。')),
+        }),
     });
-    fatePanel = createFatePanel(fate, { Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn:message => toastr.warning(message) });
+    fatePanel = createFatePanel(fate, {
+        Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn: message => toastr.warning(message),
+        settings: settings.fate, sound: createFateSound(() => settings.fate.sound),
+        saveSettings: () => getContext().saveSettingsDebounced(),
+        restoreFocus: () => {
+            if (popover.hidden) togglePopover();
+            document.getElementById('director_fate_open')?.focus();
+        },
+    });
     initInstructLifecycle(getContext, refreshInstructChip);
     // The interceptor argument is a filtered copy. Swipe pops the target from
     // that copy before this runs, so reinject reads getContext().chat instead.

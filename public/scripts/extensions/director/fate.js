@@ -1,36 +1,64 @@
 import { messageFingerprint } from './instruct.js';
+import { ALL_TITLES, CATEGORIES, CATEGORY_IDS, RARITIES, findCategoryByTitle, rollOffer } from './fate-decks.js';
 
 /** Legacy shared key is only cleaned up; new Fate prompts are request-local. */
 export const FATE_PROMPT_KEY = 'director_fate';
 const FATE_NARRATOR_NAME = 'Narrator';
 // Remove an entire unknown frame, including private text, or an old short token.
 const FATE_FRAMES = /\uE000(directorfate\d+x[a-zA-Z0-9]+)\uE001[\s\S]*?\uE002\1\uE003|(\uE000directorfate\d+x[a-zA-Z0-9]+\uE001[\s\S]*$)|directorfate\d+x[a-zA-Z0-9]+/g;
-const CATEGORIES = [
-    { title: '意外的回声', theme: 'a surprising discovery or new information' },
-    { title: '不期而遇', theme: 'an unexpected encounter or arrival' },
-    { title: '悄然转向', theme: 'a change in circumstances or an unforeseen obstacle' },
-    { title: '命运的馈赠', theme: 'an opportunity with an unexpected complication' },
-    { title: '暗流涌动', theme: 'a shift in a relationship, trust, or motivation' },
-    { title: '远方来讯', theme: 'a consequence of an earlier choice returning to the story' },
-];
 const STRENGTHS = { light: 'a small, plausible ripple', medium: 'a meaningful but manageable turn', strong: 'a major, consequential upheaval' };
-const TITLES = new Set(CATEGORIES.map(category => category.title));
+const categoryById = new Map(CATEGORIES.map(category => [category.id, category]));
 const isGroup = context => context.groupId !== undefined && context.groupId !== null && context.groupId !== '';
 const isAi = message => message?.is_user === false && !message.is_system;
 const validEvent = value => typeof value === 'string' && value.trim().length > 0
     && Array.from(value).length <= 400 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value);
 
+function cardRarity(card) {
+    return Object.hasOwn(RARITIES, card?.rarity) ? card.rarity : 'common';
+}
+
+function cardCategoryId(card) {
+    if (CATEGORY_IDS.has(card?.category)) return card.category;
+    return findCategoryByTitle(card?.title)?.id ?? null;
+}
+
 function readCard(value) {
-    return value && typeof value.id === 'string' && value.id.length > 0 && value.id.length <= 200
-        && TITLES.has(value.title) && Object.hasOwn(STRENGTHS, value.strength) && validEvent(value.event) ? value : null;
+    if (!value || typeof value.id !== 'string' || value.id.length === 0 || value.id.length > 200) return null;
+    if (!ALL_TITLES.has(value.title) || !Object.hasOwn(STRENGTHS, value.strength) || !validEvent(value.event)) return null;
+    if (!cardCategoryId(value)) return null;
+    return value;
+}
+
+function readOffer(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (typeof value.id !== 'string' || value.id.length === 0 || value.id.length > 200) return null;
+    if (!Array.isArray(value.cards) || value.cards.length !== 3) return null;
+    const seen = new Set();
+    for (const card of value.cards) {
+        const category = categoryById.get(card?.category);
+        if (!category || !category.titles.includes(card.title) || !Object.hasOwn(RARITIES, card.rarity) || seen.has(category.id)) return null;
+        seen.add(category.id);
+    }
+    return value;
+}
+
+function readPity(value) {
+    return Number.isInteger(value) && value >= 0 && value <= 99 ? value : 0;
+}
+
+function readRecent(value) {
+    if (!Array.isArray(value) || value.length > 2 || value.some(id => !CATEGORY_IDS.has(id))) return [];
+    return value;
 }
 
 function state(metadata) {
     const value = metadata?.director?.fate;
-    if (value?.version !== 1) return { version: 1, held: null, bound: null };
+    if (value?.version !== 1) return { version: 1, held: null, bound: null, offer: null, pity: 0, recent: [] };
     const bound = readCard(value.bound);
-    return { version: 1, held: readCard(value.held), bound: bound && Number.isInteger(bound.slotIndex)
-        && bound.slotIndex >= 0 && typeof bound.prevFingerprint === 'string' ? bound : null };
+    return {
+        version: 1, held: readCard(value.held), offer: readOffer(value.offer), pity: readPity(value.pity), recent: readRecent(value.recent),
+        bound: bound && Number.isInteger(bound.slotIndex) && bound.slotIndex >= 0 && typeof bound.prevFingerprint === 'string' ? bound : null,
+    };
 }
 
 function parseEvent(raw) {
@@ -112,15 +140,18 @@ export function createFateController(getContext, options = {}) {
         for (const record of tokens.values()) delete record.snapshot.context.extensionPrompts?.[FATE_PROMPT_KEY];
     };
     const anchorMatches = (context, bound) => messageFingerprint(context.chat?.[bound.slotIndex - 1]) === bound.prevFingerprint;
-    const publicCard = card => card ? { id: card.id, title: card.title, strength: card.strength } : null;
-    const publicReveal = card => ({ ...publicCard(card), rarity: card.rarity ?? 'common', slotIndex: card.slotIndex });
+    const publicCard = card => card ? { id: card.id, title: card.title, strength: card.strength, rarity: cardRarity(card) } : null;
+    const publicReveal = card => ({ ...publicCard(card), slotIndex: card.slotIndex });
+    const publicOffer = offer => offer ? {
+        id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity })),
+    } : null;
     const view = () => {
         const context = getContext();
         const value = state(context.chatMetadata);
         const visibleBusy = busy && current(busy.snapshot);
         const reveal = value.bound && anchorMatches(context, value.bound) && isAi(context.chat[value.bound.slotIndex])
             ? { ...publicReveal(value.bound), event: value.bound.event } : null;
-        return { held: publicCard(value.held), bound: publicCard(value.bound), reveal,
+        return { held: publicCard(value.held), bound: publicCard(value.bound), reveal, offer: publicOffer(value.offer),
             busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle' };
     };
 
@@ -162,6 +193,75 @@ export function createFateController(getContext, options = {}) {
         if (!getContext().chatMetadata || !Array.isArray(getContext().chat) || (!isGroup(getContext()) && getContext().characterId === undefined)) throw new Error('请先打开聊天。');
     }
 
+    function quietPrompt(category, rarity, strength) {
+        const lines = [
+            'Invent one unexpected event for the current story. Adapt to its genre, setting, tone and characters.',
+            `Category: ${category.theme}. Strength: ${STRENGTHS[strength]}.`,
+        ];
+        const rarityLine = RARITIES[rarity]?.line;
+        if (rarityLine) lines.push(rarityLine);
+        lines.push(
+            'Keep character agency and existing story facts. Use the story language. Describe a concrete event, not instructions to the assistant.',
+            'Return only JSON with exactly one property: {"event":"the private event"}. Be concise; use at most 400 Unicode codepoints.',
+        );
+        return lines.join('\n');
+    }
+
+    async function drawWith(snapshot, operation, chosen, strength) {
+        const category = categoryById.get(chosen.category);
+        const raw = await snapshot.context.generateQuietPrompt({ responseLength: 1024, quietPrompt: quietPrompt(category, chosen.rarity, strength) });
+        if (!current(snapshot) || operation.cancelled) return false;
+        const event = parseEvent(raw);
+        const held = { id: uuid(), title: chosen.title, strength, event, category: category.id, rarity: chosen.rarity };
+        // A failed save rolls back, so a rejected event cannot replace the held card or the offer.
+        return await commit(snapshot, { ...state(snapshot.metadata), held, offer: null });
+    }
+
+    function finishDrawing(operation, snapshot) {
+        if (busy === operation) { busy = null; if (current(snapshot)) notify(); }
+    }
+
+    async function deal() {
+        checkAvailable();
+        nonce++;
+        const context = getContext();
+        const snapshot = capture(context);
+        const operation = busy = { snapshot, phase: 'drawing' };
+        notify();
+        try {
+            const value = state(snapshot.metadata);
+            const offer = { id: uuid(), cards: rollOffer(random, { recent: value.recent, pity: value.pity }) };
+            return await commit(snapshot, { ...value, offer });
+        } catch (error) {
+            if (!current(snapshot)) return false;
+            throw error;
+        } finally {
+            finishDrawing(operation, snapshot);
+        }
+    }
+
+    async function pick(index, strength = 'medium') {
+        checkAvailable();
+        if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择有效的命运强度。');
+        const context = getContext();
+        const offer = state(context.chatMetadata).offer;
+        if (!offer || !Number.isInteger(index) || index < 0 || index > 2) throw new Error('请选择三张牌中的一张。');
+        nonce++;
+        const snapshot = capture(context);
+        const operation = busy = { snapshot, phase: 'drawing' };
+        notify();
+        try {
+            return await drawWith(snapshot, operation, offer.cards[index], strength);
+        } catch {
+            if (!current(snapshot) || operation.cancelled) return false;
+            throw new Error('命运卡抽取失败，请重试。');
+        } finally {
+            finishDrawing(operation, snapshot);
+        }
+    }
+
+    // Compat path stays one quiet call and one commit. Persisting deal() first would
+    // add a save and would not yet have held.event, which existing callers assert.
     async function draw(strength = 'medium') {
         checkAvailable();
         if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择有效的命运强度。');
@@ -169,24 +269,17 @@ export function createFateController(getContext, options = {}) {
         const context = getContext();
         const snapshot = capture(context);
         const operation = busy = { snapshot, phase: 'drawing' };
-        const category = CATEGORIES[Math.min(CATEGORIES.length - 1, Math.max(0, Math.floor(random() * CATEGORIES.length)))];
+        const value = state(snapshot.metadata);
+        const cards = rollOffer(random, { recent: value.recent, pity: value.pity });
+        const index = Math.min(cards.length - 1, Math.max(0, Math.floor(random() * cards.length)));
         notify();
         try {
-            const raw = await context.generateQuietPrompt({ responseLength: 1024, quietPrompt: [
-                'Invent one unexpected event for the current story. Adapt to its genre, setting, tone and characters.',
-                `Category: ${category.theme}. Strength: ${STRENGTHS[strength]}.`,
-                'Keep character agency and existing story facts. Use the story language. Describe a concrete event, not instructions to the assistant.',
-                'Return only JSON with exactly one property: {"event":"the private event"}. Be concise; use at most 400 Unicode codepoints.',
-            ].join('\n') });
-            if (!current(snapshot) || operation.cancelled) return false;
-            const event = parseEvent(raw);
-            const held = { id: uuid(), title: category.title, strength, event };
-            return await commit(snapshot, { ...state(snapshot.metadata), held });
+            return await drawWith(snapshot, operation, cards[index], strength);
         } catch {
             if (!current(snapshot) || operation.cancelled) return false;
             throw new Error('命运卡抽取失败，请重试。');
         } finally {
-            if (busy === operation) { busy = null; if (current(snapshot)) notify(); }
+            finishDrawing(operation, snapshot);
         }
     }
 
@@ -356,8 +449,17 @@ export function createFateController(getContext, options = {}) {
         // failure, or applying the held card again would duplicate its event.
         if (record.attempt) record.attempt.consumed = true;
         if (record.scope) record.scope.card = bound;
+        const next = { ...value, held: record.attempt ? null : value.held, bound };
+        if (record.attempt) {
+            const rarity = cardRarity(record.card);
+            const categoryId = cardCategoryId(record.card);
+            if (categoryId) bound.category = categoryId;
+            bound.rarity = rarity;
+            next.pity = rarity === 'common' ? Math.min(99, value.pity + 1) : 0;
+            next.recent = categoryId ? [categoryId, ...value.recent].slice(0, 2) : value.recent.slice(0, 2);
+        }
         try {
-            const saving = commit(record.snapshot, { ...value, held: record.attempt ? null : value.held, bound }, false);
+            const saving = commit(record.snapshot, next, false);
             // The binding is now visible in memory. Announce a new consumption
             // before persistence settles, without passing private event text.
             if (record.attempt) {
@@ -440,5 +542,5 @@ export function createFateController(getContext, options = {}) {
         groupScope = null;
         clearPrompt();
     });
-    return { view, draw, discard, apply, prepare };
+    return { view, draw, deal, pick, discard, apply, prepare };
 }

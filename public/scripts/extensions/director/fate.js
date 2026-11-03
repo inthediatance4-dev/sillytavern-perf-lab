@@ -300,7 +300,7 @@ export function createFateController(getContext, options = {}) {
         nonce++;
         const snapshot = capture(context);
         const operation = busy = { snapshot, phase: 'applying', ownsSendLock: true };
-        const attempt = armed = { snapshot, card, claimed: false, consumed: false };
+        const attempt = armed = { snapshot, card, claimed: false, consumed: false, stopped: false };
         try {
             // Generate awaits preflight work before taking the native send lock.
             setSendButtonState(true);
@@ -326,6 +326,8 @@ export function createFateController(getContext, options = {}) {
     function prepare(type, requestChat) {
         clearPrompt();
         if (!Array.isArray(requestChat) || !['normal', 'swipe', 'regenerate'].includes(type)) return false;
+        // Stop during pre-interceptor setup aborts the normal Generate before a provider request.
+        if (type === 'normal' && armed && armed.stopped) return 'abort';
         const context = getContext();
         const value = state(context.chatMetadata);
         let card;
@@ -480,7 +482,11 @@ export function createFateController(getContext, options = {}) {
         if (stopped) {
             for (const record of tokens.values()) record.invalid = true;
             for (const record of activeRequests) record.invalid = true;
-            if (armed && current(armed.snapshot)) armed.claimed = true;
+            if (armed && current(armed.snapshot)) {
+                // Not claimed yet: Generate has no abortController for this call. The interceptor must abort it.
+                if (!armed.claimed) armed.stopped = true;
+                armed.claimed = true;
+            }
             if (busy?.phase === 'drawing' && current(busy.snapshot)) busy.cancelled = true;
         }
         // ENDED is a UI unlock and runs before COMPLETED. Keep request provenance.

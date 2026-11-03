@@ -117,6 +117,11 @@ function lab({ group = false, save } = {}) {
         prepare(type) { preparedChat = context.chat.map(message => ({ ...message })); return controller.prepare(type, preparedChat); },
         setResponse(value) { response = value; }, setGenerator(value) { generator = value; },
         setGenerating(value) { generating = value; }, setDraft(value) { draft = value; },
+        unblockGeneration() {
+            generating = false;
+            sendButtonStates.push(false);
+            sendButtonUiStates.push(false);
+        },
         switchChat(overrides = {}) { context = { ...context, chatId: 'chat-two', chatMetadata: {}, ...overrides }; return context; },
         async start(type = 'normal', dryRun = false) { await emit('GENERATION_STARTED', type, {}, dryRun); return api.prepare(type); },
         async request(type = 'normal', { omit = false, dryRun = false } = {}) {
@@ -542,6 +547,47 @@ test('dry, excluded, changed-owner, missing-target and modified assembled data c
         assert.equal(await fixture.controller.apply(), false, kind);
         assert.equal(fixture.metadata.director.fate.held, held, kind);
     }
+});
+
+test('a stop before the interceptor aborts the normal generation, keeps the card, and releases the lock', async () => {
+    const fixture = lab();
+    await fixture.controller.draw();
+    const held = fixture.metadata.director.fate.held;
+    const abortCalls = [];
+    let providerRequests = 0;
+    fixture.setGenerator(async () => {
+        // stopGeneration: hideStopButton emits GENERATION_ENDED, then GENERATION_STOPPED.
+        // This Generate has not installed its abortController yet, so that abort does not cancel it.
+        await fixture.eventSource.emit('GENERATION_ENDED');
+        await fixture.emit('GENERATION_STOPPED');
+        const decision = fixture.prepare('normal');
+        if (decision === 'abort') {
+            abortCalls.push(true);
+            fixture.unblockGeneration();
+            return;
+        }
+        providerRequests += 1;
+        await fixture.request();
+    });
+    assert.equal(await fixture.controller.apply(), false);
+    assert.deepEqual(abortCalls, [true]);
+    assert.equal(providerRequests, 0);
+    assert.equal(fixture.preparedToken, undefined);
+    assert.equal(fixture.context.chat.length, 1);
+    assert.equal(fixture.metadata.director.fate.held, held);
+    assert.equal(fixture.controller.view().held.id, held.id);
+    assert.equal(fixture.controller.view().bound, null);
+    assert.equal(fixture.controller.view().busy, false);
+    assert.equal(fixture.generating, false);
+    assert.deepEqual(fixture.sendButtonStates, [true, false]);
+    assert.deepEqual(fixture.sendButtonUiStates, [true, false]);
+    const indexSource = readFileSync(new URL('../public/scripts/extensions/director/index.js', import.meta.url), 'utf8');
+    const interceptorAt = indexSource.indexOf('async function director_rebind_interceptor');
+    const interceptorSource = indexSource.slice(interceptorAt, indexSource.indexOf('if (seeded)', interceptorAt));
+    assert.match(interceptorSource, /if \(fate\.prepare\(type, requestChat\) === 'abort'\) \{\s*abort\(true\);/s);
+    const ordinary = await fixture.request();
+    assert.equal(ordinary.token, undefined);
+    assert.equal(fixture.metadata.director.fate.held, held);
 });
 
 test('a stop between preparation and assembled data cannot consume held', async () => {

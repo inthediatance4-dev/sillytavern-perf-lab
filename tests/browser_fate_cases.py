@@ -377,6 +377,58 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert held['event'] not in body()
     result['checks']['fateStopRetainsCardAndDiscardDisarmsOrdinarySend'] = True
 
+    # Stop during pre-interceptor setup, while GENERATION_STARTED is still awaited
+    # and Generate has not replaced abortController. No chat row and no provider call.
+    held = draw('FATE_PREP_STOP: A bell rings before the story can move.')
+    chat_before = page.evaluate('SillyTavern.getContext().chat.length')
+    requests_before = len(requests())
+    page.evaluate("""() => {
+        const c = SillyTavern.getContext();
+        let release;
+        window.__fatePrepGate = new Promise(resolve => { release = resolve; });
+        window.__fateReleasePrep = release;
+        window.__fatePrepEntered = false;
+        window.__fateSawStop = false;
+        window.__fateNoteStop = () => { window.__fateSawStop = true; };
+        window.__fateDelayPrep = async type => {
+            if (type !== 'normal') return;
+            c.eventSource.removeListener(c.eventTypes.GENERATION_STARTED, window.__fateDelayPrep);
+            window.__fatePrepEntered = true;
+            await window.__fatePrepGate;
+        };
+        c.eventSource.on(c.eventTypes.GENERATION_STARTED, window.__fateDelayPrep);
+        c.eventSource.on(c.eventTypes.GENERATION_STOPPED, window.__fateNoteStop);
+    }""")
+    try:
+        page.locator('#director_fate_apply').click()
+        page.wait_for_function("() => window.__fatePrepEntered === true && getComputedStyle(document.querySelector('#mes_stop')).display !== 'none'")
+        # The Fate dialog covers the send form. Click the Stop control directly.
+        page.evaluate("""() => {
+            const stop = document.querySelector('#mes_stop');
+            if (getComputedStyle(stop).display === 'none') throw new Error('Stop is hidden during prep');
+            stop.click();
+        }""")
+        page.wait_for_function('window.__fateSawStop === true')
+        page.evaluate('() => window.__fateReleasePrep()')
+        page.locator('#director_fate_panel').wait_for(state='hidden', timeout=30000)
+        idle()
+        assert page.evaluate('SillyTavern.getContext().chat.length') == chat_before
+        assert len(requests()) == requests_before, len(requests())
+        open_panel()
+        assert fate()['held']['id'] == held['id']
+        assert not fate().get('bound')
+        assert page.evaluate("getComputedStyle(document.querySelector('#mes_stop')).display") == 'none'
+        page.wait_for_function("!document.querySelector('#director_fate_apply').disabled")
+        result['checks']['fateStopDuringPrepSendsNoProviderRequest'] = True
+        close_panel()
+    finally:
+        page.evaluate("""() => {
+            const c = SillyTavern.getContext();
+            if (window.__fateDelayPrep) c.eventSource.removeListener(c.eventTypes.GENERATION_STARTED, window.__fateDelayPrep);
+            if (window.__fateNoteStop) c.eventSource.removeListener(c.eventTypes.GENERATION_STOPPED, window.__fateNoteStop);
+            if (typeof window.__fateReleasePrep === 'function') window.__fateReleasePrep();
+        }""")
+
     # A real two-member group: the private event appears only in the first
     # member's request; native regenerate must replay the same entire batch.
     second_avatar = page.evaluate("""async ({sample,suffix}) => {

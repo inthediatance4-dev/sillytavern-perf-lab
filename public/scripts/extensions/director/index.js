@@ -587,7 +587,7 @@ export async function init() {
     initInstructLifecycle(getContext, refreshInstructChip);
     // The interceptor argument is a filtered copy. Swipe pops the target from
     // that copy before this runs, so reinject reads getContext().chat instead.
-    globalThis.director_rebind_interceptor = async function director_rebind_interceptor(requestChat, _contextSize, _abort, type) {
+    globalThis.director_rebind_interceptor = async function director_rebind_interceptor(requestChat, _contextSize, abort, type) {
         clearBoundDeleteSkip();
         try {
             const current = getContext();
@@ -599,7 +599,12 @@ export async function init() {
                 maskDirectorPrompts(current);
                 return;
             }
-            fate.prepare(type, requestChat);
+            // Stop arrived before this attempt was claimed. abort(true) makes
+            // Generate call unblockGeneration and return before the provider request.
+            if (fate.prepare(type, requestChat) === 'abort') {
+                abort(true);
+                return;
+            }
             const result = applyBoundReinject(current, type);
             // Pending prompts were shielded at generation start. Bound text is
             // copied into the extension prompt here, so shield it before assembly.

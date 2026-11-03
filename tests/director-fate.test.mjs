@@ -79,6 +79,7 @@ function lab({ group = false, save } = {}) {
     let saves = 0;
     let changes = 0;
     let serial = 0;
+    const sendButtonStates = [];
     let response = JSON.stringify({ event: privateEvent });
     let generator = async () => {};
     const quietCalls = [];
@@ -96,13 +97,18 @@ function lab({ group = false, save } = {}) {
     };
     const controller = createFateController(() => context, {
         isGenerating: () => generating, hasDraft: () => draft, save, onRegenerateStart:() => { generating=true; },
+        setSendButtonState: value => { generating = value; sendButtonStates.push(value); },
         uuid: () => `fate-${++serial}`, random: () => 0,
         generate: async capture => generator(capture), onChange: () => { changes++; },
     });
-    const emit = (name, ...args) => eventSource.emit(events[name], ...args);
+    const emit = (name, ...args) => {
+        if (name === 'GENERATION_ENDED') generating = false;
+        return eventSource.emit(events[name], ...args);
+    };
     const api = {
         controller, metadata, quietCalls, eventSource, emit,
         get context() { return context; }, get saves() { return saves; }, get changes() { return changes; },
+        get generating() { return generating; }, sendButtonStates,
         get preparedChat() { return preparedChat; },
         get preparedToken() { return preparedChat.find(message => message.extra?.directorFatePrompt)?.mes; },
         prepare(type) { preparedChat = context.chat.map(message => ({ ...message })); return controller.prepare(type, preparedChat); },
@@ -374,9 +380,76 @@ test('adopt rejects a draft and failed, stopped or early requests retain held wi
         assert.equal(calls, kind === 'draft' ? 0 : 1);
         assert.equal(fixture.metadata.director.fate.held, held, kind);
         assert.equal(fixture.controller.view().bound, null, kind);
+        assert.equal(fixture.generating, false, kind);
         assert.equal(fixture.context.extensionPrompts[FATE_PROMPT_KEY], undefined, kind);
         const ordinary = await fixture.request();
         assert.equal(ordinary.token, undefined, kind);
+    }
+});
+
+test('adopt locks startup against a second apply and native Send, then unlocks on return or error', async () => {
+    const source = readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
+    const begin = source.indexOf('export async function sendTextareaMessage() {');
+    assert.ok(begin >= 0);
+    const send = source.slice(begin, source.indexOf('\n}\n', begin) + 2).replace('export ', '');
+    const nativeSend = new Function('is_send_press', 'swipeState', 'SWIPE_STATE', 'hideSwipeButtons',
+        `${send}\nreturn sendTextareaMessage();`);
+    for (const outcome of ['return', 'throw', 'stop']) {
+        const fixture = lab();
+        assert.equal(await fixture.controller.apply(), false);
+        assert.deepEqual(fixture.sendButtonStates, []);
+        await fixture.controller.draw();
+        const held = fixture.metadata.director.fate.held;
+        const startup = deferred();
+        fixture.setGenerator(() => startup.promise);
+        const applying = fixture.controller.apply();
+        assert.equal(fixture.generating, true, outcome);
+        await assert.rejects(fixture.controller.apply(), /正在生成/);
+        assert.equal(fixture.generating, true, 'the rejected apply must preserve the first lock');
+        await nativeSend(fixture.generating, 0, { NONE: 0, EDITING: 1 }, () => assert.fail('Send passed its generation guard'));
+        if (outcome === 'throw') {
+            startup.reject(new Error('startup failure'));
+            await assert.rejects(applying, /采用失败/);
+        } else {
+            if (outcome === 'stop') await fixture.emit('GENERATION_STOPPED');
+            startup.resolve();
+            assert.equal(await applying, false);
+        }
+        assert.equal(fixture.generating, false, outcome);
+        assert.deepEqual(fixture.sendButtonStates, [true, false]);
+        assert.equal(fixture.metadata.director.fate.held, held);
+        assert.equal(fixture.controller.view().busy, false);
+    }
+});
+
+test('adopt never clears an existing generation lock', async () => {
+    const fixture = lab();
+    await fixture.controller.draw();
+    fixture.setGenerating(true);
+    await assert.rejects(fixture.controller.apply(), /正在生成/);
+    assert.equal(fixture.generating, true);
+    assert.deepEqual(fixture.sendButtonStates, []);
+});
+
+test('adopt cleanup preserves a new generation lock after a chat switch or native unlock', async () => {
+    for (const transition of ['chat', 'ended']) {
+        const fixture = lab();
+        await fixture.controller.draw();
+        const startup = deferred();
+        fixture.setGenerator(() => startup.promise);
+        const applying = fixture.controller.apply();
+        assert.equal(fixture.generating, true);
+        if (transition === 'chat') {
+            fixture.switchChat();
+            await fixture.emit('CHAT_CHANGED');
+        } else {
+            await fixture.emit('GENERATION_ENDED');
+        }
+        fixture.setGenerating(true);
+        startup.resolve();
+        assert.equal(await applying, false);
+        assert.equal(fixture.generating, true, transition);
+        assert.deepEqual(fixture.sendButtonStates, [true]);
     }
 });
 

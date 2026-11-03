@@ -83,7 +83,7 @@ function contains(data, text) {
 export function createFateController(getContext, options = {}) {
     const { isGenerating = () => false, hasDraft = () => false, uuid = () => crypto.randomUUID(),
         random = Math.random, generate = context => context.generate('normal'), onChange = () => {},
-        save = context => context.saveMetadata(), onRegenerateStart = () => {}, onError = () => {} } = options;
+        save = context => context.saveMetadata(), setSendButtonState = () => {}, onRegenerateStart = () => {}, onError = () => {} } = options;
     let revision = 0;
     let nonce = 0;
     let tokenSerial = 0;
@@ -198,16 +198,19 @@ export function createFateController(getContext, options = {}) {
         if (!card) return false;
         nonce++;
         const snapshot = capture(context);
-        const operation = busy = { snapshot, phase: 'applying' };
+        const operation = busy = { snapshot, phase: 'applying', ownsSendLock: true };
         const attempt = armed = { snapshot, card, claimed: false, consumed: false };
-        notify();
         try {
+            // Generate awaits preflight work before taking the native send lock.
+            setSendButtonState(true);
+            notify();
             await generate(context);
             return attempt.consumed;
         } catch {
             if (!current(snapshot)) return false;
             throw new Error('命运卡采用失败，请重试。');
         } finally {
+            if (operation.ownsSendLock && current(snapshot)) setSendButtonState(false);
             if (armed === attempt) armed = null;
             for (const record of activeRequests) if (record.attempt === attempt && !attempt.consumed) record.invalid = true;
             clearPrompt();
@@ -360,6 +363,8 @@ export function createFateController(getContext, options = {}) {
             if (busy?.phase === 'drawing' && current(busy.snapshot)) busy.cancelled = true;
         }
         // ENDED is a UI unlock and runs before COMPLETED. Keep request provenance.
+        // A later send lock belongs to native generation, not this apply's cleanup.
+        if (!stopped && busy?.phase === 'applying') busy.ownsSendLock = false;
     };
     on('GENERATION_ENDED', () => finish(false));
     on('GENERATION_STOPPED', () => finish(true));

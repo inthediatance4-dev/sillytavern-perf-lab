@@ -549,7 +549,7 @@ export async function init() {
     const context = getContext();
     const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
     const fate = createFateController(getContext, {
-        isGenerating, hasDraft, uuid:uuidv4, random:Math.random,
+        isGenerating, hasDraft, setSendButtonState, uuid:uuidv4, random:Math.random,
         generate: current => current.generate('normal'),
         save: (_current, shouldSave) => saveChatConditional({ shouldSave }),
         onRegenerateStart: () => setSendButtonState(true),

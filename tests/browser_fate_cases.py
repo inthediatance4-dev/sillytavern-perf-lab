@@ -108,15 +108,25 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         for selector, pseudo in (('.director_fate_back', '::before'), ('.director_fate_seal', None), ('.director_fate_seal', '::after')):
             assert page.locator(selector).evaluate('(node, pseudo) => getComputedStyle(node, pseudo).animationName', pseudo) == 'none'
 
+    def ensure_offer():
+        offer = page.locator('.director_fate_offer')
+        if offer.count() == 0 or not offer.is_visible():
+            page.locator('#director_fate_draw').click()
+        page.locator('.director_fate_offer').wait_for(state='visible')
+        page.wait_for_function("() => { const cards=[...document.querySelectorAll('.director_fate_choice')]; return cards.length===3 && cards.every(card => !card.disabled); }")
+
     def draw(text=secret):
         configure(json.dumps({'event':text}))
         open_panel()
         previous = (fate().get('held') or {}).get('id')
-        page.locator('#director_fate_draw').click()
+        ensure_offer()
+        hidden(text)
+        page.locator('.director_fate_choice').first.click()
         page.wait_for_function("id => { const h=SillyTavern.getContext().chatMetadata.director?.fate?.held; return h && h.id !== id; }", arg=previous)
         page.wait_for_function("!document.querySelector('#director_fate_draw').disabled")
         held = fate()['held']
         assert held['event'] == text
+        assert not fate().get('offer')
         hidden(text)
         return held
 
@@ -316,8 +326,11 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     held = draw('FATE_PRIVATE_02: An unexpected invitation offers a new route.')
     configure('MALFORMED_PRIVATE_BODY not valid JSON')
     page.locator('#director_fate_draw').click()
+    page.locator('.director_fate_choice').first.wait_for(state='visible')
+    page.locator('.director_fate_choice').first.click()
     page.wait_for_function("document.querySelector('#director_fate_status').textContent.includes('未抽到')")
     assert fate()['held']['id'] == held['id']
+    assert len(fate()['offer']['cards']) == 3
     hidden('MALFORMED_PRIVATE_BODY')
     configure(nextStatus=500)
     with page.expect_response(generation_response) as failed_apply:
@@ -424,8 +437,10 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         };
         c.eventSource.on(c.eventTypes.GENERATION_STARTED,switchDuringDraw);
     }""", second_avatar)
+    page.locator('#director_fate_draw').click()
+    page.locator('.director_fate_choice').first.wait_for(state='visible')
     with page.expect_response(generation_response) as stale_reply:
-        page.locator('#director_fate_draw').click()
+        page.locator('.director_fate_choice').first.click()
     assert stale_reply.value.status == 200
     stale_reply.value.body()
     idle()
@@ -512,5 +527,75 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         page.locator('#director_fate_sound').uncheck()
         page.locator('#director_fate_motion').select_option('system')
     assert restored_settings.value.ok
+    close_panel()
+
+    # Deal three local backs, keep them through a failed pick and a reload, then seal one.
+    offer_secret = 'FATE_OFFER_PRIVATE: Three sealed backs hide one concrete turn.'
+    page.set_viewport_size({'width':390,'height':844})
+    open_panel()
+    assert page.locator('#director_fate_draw').inner_text() == '发牌'
+    page.locator('#director_fate_draw').click()
+    page.locator('.director_fate_offer').wait_for(state='visible')
+    page.wait_for_function("() => { const cards=[...document.querySelectorAll('.director_fate_choice')]; return cards.length===3 && cards.every(card => !card.disabled); }")
+    assert page.locator('#director_fate_draw').inner_text() == '换一组'
+    labels = page.locator('.director_fate_choice').evaluate_all("nodes => nodes.map(node => node.getAttribute('aria-label'))")
+    assert [label.startswith('第 ' + str(index) + ' 张：〈') and '，〈' in label for index, label in enumerate(labels, start=1)] == [True, True, True]
+    layout = page.locator('.director_fate_offer').evaluate("""node => {
+        const cards = [...node.querySelectorAll('.director_fate_choice')].map(el => el.getBoundingClientRect());
+        const panel = node.closest('#director_fate_panel');
+        return {
+            row: cards.length === 3 && cards.every(card => Math.abs(card.top - cards[0].top) < 2),
+            fits: cards.every(card => card.left >= -1 && card.right <= window.innerWidth + 1),
+            widths: cards.map(card => card.width),
+            separated: cards[1].left >= cards[0].right - 1 && cards[2].left >= cards[1].right - 1,
+            panelFits: panel.scrollWidth <= panel.clientWidth + 1,
+        };
+    }""")
+    assert layout['row'] and layout['fits'] and layout['separated'] and layout['panelFits'], layout
+    assert all(70 <= width <= 140 for width in layout['widths']), layout
+    hidden(offer_secret)
+    offer_id = fate()['offer']['id']
+    close_panel()
+    idle()
+    reload_browser()
+    page.set_viewport_size({'width':390,'height':844})
+    open_panel()
+    assert fate()['offer']['id'] == offer_id
+    assert page.locator('.director_fate_choice').count() == 3
+    page.locator('.director_fate_offer').wait_for(state='visible')
+    hidden(offer_secret)
+    result['checks']['fateOfferSurvivesBrowserReload'] = True
+    result['checks']['fateOfferMobileRowHasNoOverflow'] = True
+    configure('FATE_OFFER_BROKEN not valid JSON')
+    page.locator('.director_fate_choice').nth(0).click()
+    page.wait_for_function("document.querySelector('#director_fate_status').textContent.includes('未抽到')")
+    assert fate()['offer']['id'] == offer_id
+    assert len(fate()['offer']['cards']) == 3
+    assert not fate().get('held')
+    assert not page.locator('.director_fate_choice').first.is_disabled()
+    hidden('FATE_OFFER_BROKEN')
+    result['checks']['fateOfferKeptAfterQuietFailureAndRepick'] = True
+    configure(json.dumps({'event':offer_secret}))
+    page.locator('.director_fate_choice').nth(1).click()
+    # Metadata updates before the chat save resolves. Wait until that save refreshes the panel.
+    page.wait_for_function("""() => {
+        const fate = SillyTavern.getContext().chatMetadata.director?.fate;
+        const card = document.querySelector('.director_fate_card');
+        return fate?.held && !fate.offer && card?.dataset.state === 'sealed' && !card.hidden;
+    }""")
+    assert page.locator('.director_fate_card').get_attribute('data-state') == 'sealed'
+    assert page.locator('#director_fate_status').inner_text() == '牌已封存。'
+    hidden(offer_secret)
+    held = fate()['held']
+    assert held['event'] == offer_secret
+    apply(held)
+    reveal_toast(held).click()
+    page.locator('#director_fate_panel').wait_for(state='visible')
+    assert page.locator('.director_fate_face').text_content() == ''
+    page.locator('#director_fate_flip').click()
+    page.wait_for_function('event => document.querySelector(".director_fate_face")?.textContent === event', arg=offer_secret)
+    result['checks']['fateDealPickSealApplyReveal'] = True
+    result['checks']['fateOfferMarkupKeepsEventPrivate'] = True
+    page.set_viewport_size({'width':1440,'height':1000})
     close_panel()
     print('Fate sealed draw, adoption, replay, failure/stop, groups, stale chats and reveal ritual checks passed', flush=True)

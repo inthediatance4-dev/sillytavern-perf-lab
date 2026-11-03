@@ -1,0 +1,519 @@
+✔ chapter titles use the first input and never a stored number (2.5604ms)
+✔ live numbering survives deleting a middle chapter and does not renumber stored data (0.5235ms)
+✔ mark and unmark keep foreign director metadata and drop an empty chapter shell (0.5079ms)
+✔ chapter metadata survives every swipe and JSONL reload, and unmark clears every swipe (0.8208ms)
+✔ a chapter survives a newly regenerated swipe and reload, then unmark stays clear after reload (17.6944ms)
+✔ loading confirm starts only past 500 messages and names the exact gap (0.4184ms)
+✔ template chapter counts use the same title rule after a middle deletion (0.7131ms)
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+✔ S2 actual adoption guard checks draft "" / attachment false (4.1161ms)
+✔ S2 actual adoption guard checks draft "  \n" / attachment false (1.4845ms)
+✔ S2 actual adoption guard checks draft "Unsent draft" / attachment false (1.0154ms)
+✔ S2 actual adoption guard checks draft "" / attachment true (0.8741ms)
+✔ S2 actual adoption guard checks draft "  \n" / attachment true (0.9081ms)
+✔ S2 actual adoption guard checks draft "Unsent draft" / attachment true (0.9217ms)
+✔ S1 draw extracts explanation before and after (2.0554ms)
+✔ S1 draw extracts a fenced object inside explanation (0.2745ms)
+✔ S1 draw extracts braces and escaped quotes inside the event (0.2951ms)
+✔ S1 draw extracts an event ending with a literal backslash (0.3464ms)
+✔ S1 draw extracts the first complete object before another object (0.3241ms)
+✔ S1 draw extracts exactly 400 Unicode codepoints (0.4076ms)
+✔ S1 draw still rejects empty output (0.8933ms)
+✔ S1 draw still rejects an empty object before a valid object (0.3467ms)
+✔ S1 draw still rejects a wrong event type before a valid object (0.2497ms)
+✔ S1 draw still rejects an invalid first JSON object before a valid object (0.2452ms)
+✔ S1 draw still rejects an extra property before a valid object (0.1551ms)
+✔ S1 draw still rejects a nested object in the wrong first object (0.142ms)
+✔ S1 draw still rejects an empty event (0.1531ms)
+✔ S1 draw still rejects 401 Unicode codepoints (0.1566ms)
+✔ S1 draw still rejects a control character in the event (0.192ms)
+✔ S1 draw still rejects an array (0.1811ms)
+✔ S1 draw still rejects null (0.1651ms)
+✔ S3 successful native swipe does not save an unchanged Fate binding again (4.5669ms)
+✔ S3 group replay still saves a changed generation ID (1.0453ms)
+✔ S4 failed Fate save preserves a concurrently added Director instruction binding (0.5016ms)
+✔ real group regeneration keeps its scope until asynchronous generation completes (2.7354ms)
+✔ real group regeneration always finishes its scope on a rejected generation (0.9936ms)
+✔ an extension can cancel regeneration before the old batch is deleted (0.3279ms)
+✔ regeneration releases sending when group changes during its start event (0.5712ms)
+✔ regeneration releases sending when chat ID changes during its start event (0.3986ms)
+✔ regeneration releases sending when metadata changes during its start event (0.4518ms)
+✔ queued conditional save checks ownership at the write boundary (2.95ms)
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_STOPPED
+Event emitted: GROUP_REGENERATION_FINISHED
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STOPPED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: CHAT_CHANGED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: CHAT_CHANGED
+Event emitted: GENERATION_STOPPED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STOPPED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STOPPED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: MESSAGE_SENT
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GROUP_REGENERATION_FINISHED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GROUP_REGENERATION_FINISHED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GROUP_REGENERATION_FINISHED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: MESSAGE_DELETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GROUP_REGENERATION_STARTED
+Event emitted: CHAT_CHANGED
+✔ a false save result rolls back held state just like a thrown persistence failure (4.8293ms)
+✔ native replay error unlocks actions and late success preserves a newly drawn card (5.0034ms)
+✔ an early-return regenerate cannot shield a later manual deletion (1.2123ms)
+✔ a stopped group-regenerate partial batch can explicitly replay the same card (1.8322ms)
+✔ draw persists a private event but exposes only curated title, strength and id (1.7959ms)
+✔ Fate assembly budgets the full 400-codepoint event while final macros remain literal (1.3489ms)
+✔ the event limit counts Unicode codepoints and rejects 401 while preserving the previous card (1.0758ms)
+✔ text prompt newline normalization cannot shrink the budgeted event or strand its frame (1.9523ms)
+✔ two quiet assemblies cannot inherit or erase a prepared normal Fate request (1.0424ms)
+✔ quiet completion preserves a normal request that was already assembled (0.9051ms)
+✔ unrecognized, stopped and stale Fate frames are removed with their entire private body (1.471ms)
+✔ Generate excludes only the temporary Fate row from world-info scanning (2.6154ms)
+✔ strict JSON validation never exposes invalid model text and failed redraw retains both cards (1.721ms)
+✔ draw is blocked during generation and late draw results cannot cross chat, owner or revision changes (0.68ms)
+✔ stopping a quiet draw preserves the old held card even when a valid partial response resolves (1.5354ms)
+✔ discard changes only held and a failed save restores the previous held card (0.814ms)
+✔ adopt rejects a draft and failed, stopped or early requests retain held without activating later Send (1.2729ms)
+✔ adopt shields literal macros and binds only the exact assembled completed request after UI end (1.1857ms)
+✔ dry, excluded, changed-owner, missing-target and modified assembled data cannot consume held (2.351ms)
+✔ a stop between preparation and assembled data cannot consume held (0.436ms)
+✔ only exact swipe/regenerate replay a bound event, with fingerprint and target checks (2.5962ms)
+✔ draw and Fate adoption coexist with pending and bound Director instructions (1.1689ms)
+✔ ordinary later replies and user messages clear old bound while preserving held (1.7739ms)
+✔ same-batch group speakers preserve binding and never activate another normal Fate request (0.7568ms)
+✔ explicit scoped group regeneration survives batch deletion and injects exactly once (0.9469ms)
+✔ failed scoped group regeneration retains explicit retry but ordinary normal cannot replay empty slot (0.8212ms)
+✔ manual deletion, mismatched group scope and deleted same-batch members clear old bound (1.4069ms)
+✔ failed group pre-save cancels the explicit operation and preserves its old binding (0.5133ms)
+✔ a queued owner-guarded save rolls back after switching chats (0.3612ms)
+Event emitted: prompt
+Event emitted: generation_ended
+Event emitted: generation_stopped
+Event emitted: prompt
+Event emitted: completed
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+✔ Director instruction survives failed/stopped attempts and is consumed only by a completed included request (4.1072ms)
+✔ user macros in a director instruction survive prompt assembly and are still consumed (1.7617ms)
+✔ dry runs, excluded instructions, replaced injections and another chat never consume a pending instruction (1.4879ms)
+✔ versioned JSON export/import round-trips every preset field without shared references (3.2552ms)
+✔ restoring defaults returns fresh exact defaults after custom edits and reordering (0.6858ms)
+✔ root values must be objects with version 1 and a presets array (0.8802ms)
+✔ every preset field is required, with exact string and boolean types (1.0968ms)
+✔ unknown modes, empty names and empty IDs are rejected (1.3199ms)
+✔ string size limits and the preset count limit accept the boundary and reject overflow (0.9254ms)
+✔ duplicate IDs reject the complete import without changing the source (0.5308ms)
+✔ digit shortcuts follow the current order and stop at nine (0.4639ms)
+✔ slash arguments resolve 1-based positions and preserve optional text (0.8331ms)
+✔ slash names match exact case first, then case-insensitively, using longest prefixes (0.648ms)
+✔ provided slash text fills the first input and uses later defaults without a dialog (0.7529ms)
+✔ slash inputs ask only remaining fields without defaults and retain complete value order (0.2824ms)
+✔ ordinary presets still collect all inputs and templates without inputs never ask (0.191ms)
+Event emitted: prompt
+Event emitted: generation_stopped
+Event emitted: generation_ended
+Event emitted: completed
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+Event emitted: prompt
+Event emitted: completed
+✔ shouldReinject is true only for swipe, regenerate, and continue at the bound slot with the same fingerprint and no pending (2.0993ms)
+✔ message fingerprint ignores send_date and changes with mes, name, or is_user (0.5521ms)
+✔ bound instructions are created from the chat present at completion and cleared by every release rule (1.1798ms)
+✔ reinject copies binding text through the in-chat prompt and leaves the binding in place (1.5171ms)
+✔ a completed pending instruction becomes bound, reinject does not consume it, and failure leaves both (4.1758ms)
+✔ quiet and impersonate mask director prompts, skip consumption, and restore the literal (2.2126ms)
+✔ a regenerate delete skip matches only that chat, binding, and post-delete length (0.3786ms)
+✔ an inactive generation cannot hide a real deletion after an early return (0.2658ms)
+✔ dryRun neither clears a regenerate token nor restores a masked real generation (2.2086ms)
+✔ a bound direct regenerate marks upstream busy before its pre-interceptor delete (2.2117ms)
+✔ all inputs are collected once in template order, with Chinese punctuation and defaults (3.8717ms)
+✔ prefilled defaults and explicit empty values, including fields with no default, are preserved (0.4267ms)
+✔ cancelling returns null without expanding macros or producing insertion text (0.2586ms)
+✔ chapter counts are derived live, including after deleting a middle chapter (0.3363ms)
+✔ chapter counting observes chat changes while the input dialog is open (0.2573ms)
+✔ standard macros expand on literal fragments and text typed by the user stays literal (0.3219ms)
+✔ a macro cannot span an input or chapter token, and typed director tokens are not parsed again (0.4788ms)
+✔ Director tokens entered as input stay literal and replacement strings retain dollar signs (0.2161ms)
+✔ templates without inputs do not open a dialog and still expand standard macros (0.2716ms)
+ℹ tests 104
+ℹ suites 0
+ℹ pass 104
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 354.6074

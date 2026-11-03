@@ -1,0 +1,81 @@
+✔ real group regeneration keeps its scope until asynchronous generation completes (1.6157ms)
+✔ real group regeneration always finishes its scope on a rejected generation (0.4846ms)
+✔ an extension can cancel regeneration before the old batch is deleted (0.2228ms)
+✖ regeneration releases sending when group changes during its start event (1.02ms)
+✖ regeneration releases sending when chat ID changes during its start event (0.2735ms)
+✖ regeneration releases sending when metadata changes during its start event (0.3003ms)
+✔ queued conditional save checks ownership at the write boundary (1.5134ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 4
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 86.4069
+
+✖ failing tests:
+
+test at tests\director-fate-group-scope.test.mjs:74:5
+✖ regeneration releases sending when group changes during its start event (1.02ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + []
+  - [
+  -   false
+  - ]
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate-group-scope.test.mjs:96:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ false ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate-group-scope.test.mjs:74:5
+✖ regeneration releases sending when chat ID changes during its start event (0.2735ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + []
+  - [
+  -   false
+  - ]
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate-group-scope.test.mjs:96:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ false ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate-group-scope.test.mjs:74:5
+✖ regeneration releases sending when metadata changes during its start event (0.3003ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + []
+  - [
+  -   false
+  - ]
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate-group-scope.test.mjs:96:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ false ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+exit=1

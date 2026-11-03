@@ -58,7 +58,7 @@ Files: existing browser runner, `tests/browser_fate_review_cases.py`, review evi
 - [x] FC2: pause a real UI adoption at CHAT_COMPLETION_PROMPT_READY, run a real quiet request to completion, then resume. Require no frame/event in quiet, exactly one event in normal, held consumed, and no `directorfate` in any provider request.
 - [x] FC3: change ownership in STARTED on a real two-member group; assert native sending state false and successful subsequent UI send.
 - [x] Run only related Director unit tests and lint, then three browser groups: default complete Director (isolated extensions), `--fate-only --enable-third-party`, and the new focused review group. Stop after those pass.
-- [ ] Preserve red/green and failed diagnostic evidence, source hashes, exact command/results and actual CI run links. Ordinary push, final HEAD CI 6/6; leave Fate merge for the next review approval.
+- [x] Preserve red/green and failed diagnostic evidence, source hashes, exact command/results and actual source/test CI run links. Ordinary push completed through 4785259; actual source/test CI 6/6 in run 41652833120. Leave Fate merge for the next review approval. The final delivery message separately identifies the documentation commit and its actual CI run.
 
 ## Verification details
 

@@ -7,6 +7,7 @@ stayed on the configured origin before creating synthetic data.
 Environment:
 - LAB_URL or LAB_ORIGIN: base URL (default http://127.0.0.1:8780/)
 - LAB_BROWSER_EXECUTABLE: optional browser path. Unset uses Playwright's bundled Chromium.
+- LAB_BROWSER_PROXY: optional proxy for external browser dependencies; loopback stays direct.
 - LAB_EVIDENCE_DIR: screenshot and results directory (default <repo>/.evidence/browser)
 
 Prerequisites: Python Playwright, and `playwright install chromium` when no
@@ -35,6 +36,9 @@ def launch_chromium(playwright):
     executable = os.environ.get('LAB_BROWSER_EXECUTABLE')
     if executable:
         kwargs['executable_path'] = executable
+    proxy = os.environ.get('LAB_BROWSER_PROXY')
+    if proxy:
+        kwargs['proxy'] = {'server': proxy, 'bypass': '127.0.0.1,localhost'}
     return playwright.chromium.launch(**kwargs)
 
 

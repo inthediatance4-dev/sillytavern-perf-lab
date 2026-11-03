@@ -7,6 +7,7 @@ import uuid
 
 def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     connect_api(page)
+    page.evaluate("async () => { window.__fateLabMain = await import('/script.js'); }")
     endpoint = fake_url.removesuffix('/v1')
     secret = 'FATE_PRIVATE_01: A stranger brings a sealed map bearing {{char}} and {{random::a,b}}.'
     reply = 'A stranger arrives with a sealed map. Synthetic Fate reply.'
@@ -53,7 +54,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         page.locator('#director_fate_panel').wait_for(state='hidden')
 
     def idle():
-        page.wait_for_function("async () => !(await import('/script.js')).isGenerating()", timeout=30000)
+        page.wait_for_function("!window.__fateLabMain.isGenerating() && !window.__fateLabMain.isChatSaving", timeout=30000)
 
     def hidden(text):
         assert text not in page.locator('body').evaluate('(node) => node.outerHTML')
@@ -124,6 +125,26 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     hidden(secret)
     result['checks']['fateMobileDraftAndReload'] = True
 
+    close_panel()
+    page.locator('#file_form_input').set_input_files({
+        'name':'fate-unsent-attachment.txt', 'mimeType':'text/plain',
+        'buffer':b'Pending attachment must stay unsent during Fate adoption.',
+    })
+    open_panel()
+    attempts = len(requests())
+    messages = page.evaluate('SillyTavern.getContext().chat.length')
+    page.locator('#director_fate_apply').click()
+    page.wait_for_function("document.querySelector('#director_fate_status')?.textContent.includes('附件')")
+    assert len(requests()) == attempts
+    assert page.evaluate('SillyTavern.getContext().chat.length') == messages
+    assert page.locator('#file_form_input').evaluate('input => input.files.length') == 1
+    assert fate()['held']['id'] == held['id']
+    assert page.locator('#director_fate_panel').is_visible()
+    close_panel()
+    page.locator('#file_form_input').set_input_files([])
+    open_panel()
+    result['checks']['fatePendingAttachmentStaysUnsentAndPreserved'] = True
+
     apply(held)
     assert 'ORDINARY_DIRECTOR_FATE_COEXIST' in body()
     result['fateInstructionState'] = page.evaluate('structuredClone(SillyTavern.getContext().chatMetadata)')
@@ -174,7 +195,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }")
     page.locator('#director_fate_apply').click()
     page.locator('#director_fate_panel').wait_for(state='hidden')
-    page.wait_for_function("async () => (await import('/script.js')).is_send_press && !!SillyTavern.getContext().streamingProcessor", timeout=30000)
+    page.wait_for_function("window.__fateLabMain.is_send_press && !!SillyTavern.getContext().streamingProcessor", timeout=30000)
     page.wait_for_function("SillyTavern.getContext().chat.at(-1)?.mes?.includes('Slow synthetic')", timeout=30000)
     page.evaluate('() => SillyTavern.getContext().stopGeneration()')
     idle()
@@ -187,6 +208,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }")
     configure()
     page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
+    idle()
     assert held['event'] not in body()
     result['checks']['fateStopRetainsCardAndDiscardDisarmsOrdinarySend'] = True
 

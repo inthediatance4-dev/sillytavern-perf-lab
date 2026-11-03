@@ -102,14 +102,14 @@ function trackDisplayedSwipe(entry, swipeId) {
 }
 
 // Same anchor rule log() uses for status. generationId is checked only when the row recorded one.
-function logSlotMatches(chat, index, entry) {
+function logSlotMatches(chat, index, entry, checkSwipe = true) {
     if (!Number.isInteger(index) || index < 0 || index >= chat.length) return false;
     const message = chat[index];
     if (!isAi(message)) return false;
     const previous = index > 0 ? chat[index - 1] : undefined;
     if (messageFingerprint(previous) !== entry.prevFingerprint) return false;
     if (entry.generationId !== null && message.extra?.gen_id !== entry.generationId) return false;
-    return !Object.hasOwn(entry, 'swipeIds') || entry.swipeIds.includes(message.swipe_id);
+    return !checkSwipe || !Object.hasOwn(entry, 'swipeIds') || entry.swipeIds.includes(message.swipe_id);
 }
 
 // Deletes shift later rows down and inserts shift them up. One pass over the
@@ -118,7 +118,9 @@ function logSlotMatches(chat, index, entry) {
 function relocatedSlot(chat, entry) {
     if (!Array.isArray(chat)) return null;
     const origin = entry.slotIndex;
-    if (logSlotMatches(chat, origin, entry)) return origin;
+    // A row whose stored slot keeps its anchor did not shift. If only the
+    // displayed swipe differs, the message was rewritten in place: keep it.
+    if (logSlotMatches(chat, origin, entry, false)) return origin;
     let best = null;
     let bestDistance = Infinity;
     let ambiguous = false;

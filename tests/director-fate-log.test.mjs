@@ -710,6 +710,21 @@ test('a swipe id outside the recorded list is not recovered', async () => {
     assert.equal(recordedFixture.controller.log()[0].status, 'ok');
 });
 
+test('a row rewritten in place by an unrecorded swipe is not moved to an identical earlier reply', async () => {
+    const line = anchor();
+    const held = entry('in-place', {
+        slotIndex: 3, generationId: null, prevFingerprint: messageFingerprint(line), swipeIds: [0],
+    });
+    const fixture = lab({ metadata: { director: { fate: { version: 1, log: [held] } } } });
+    fixture.context.chat = [line, aiLine(1, 0), line, aiLine(2, 1)];
+    assert.equal(fixture.controller.log()[0].status, 'changed');
+    assert.equal(await fixture.controller.recoverLog(), false);
+    assert.equal(fixture.saves.length, 0);
+    assert.equal(fixture.metadata.director.fate.log[0].slotIndex, 3);
+    fixture.context.chat[3].swipe_id = 0;
+    assert.equal(fixture.controller.log()[0].status, 'ok');
+});
+
 test('recoverLog can scan a long chat, and log() still reads at most two indexes', async () => {
     const chat = Array.from({ length: 2000 }, (_, index) => index % 2 ? reply(index) : anchor());
     const aligned = entry('aligned', { slotIndex: 1, generationId: 1, prevFingerprint: messageFingerprint(anchor()) });

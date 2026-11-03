@@ -63,6 +63,16 @@
 | S6 | 两版 README 明确采用命运牌会在同次请求中带上并按原规则消耗待生效普通导演指令，单独抽牌不会消耗它。 |
 | S7 | 390px 普通导演指令 chip 溢出独立登记 [issue #2](https://github.com/inthediatance4-dev/sillytavern-perf-lab/issues/2)，未把命运牌面板通过写成整页移动端通过。 |
 
+## CI coverage
+
+`.github/workflows/perf-matrix.yml` runs only `npm run lint` and `npm run test:perf`. `test:perf` includes the Fate node tests named in `package.json`. That workflow does not install Python, Playwright, or Chromium, so it does not run the browser suites. A green CI run does not mean those suites passed. Run them manually before merge:
+
+- `--fate-only` — Fate card scenarios in `tests/browser_fate_cases.py`
+- `--fate-review-only` — FC1/FC2/FC3 browser regressions in `tests/browser_fate_review_cases.py`
+- no mode flag — full Director browser regression
+
+`--fate-review-only` has failed on the fate-cards branch while this CI stayed green, because CI never runs it.
+
 ## 验证与证据
 
 只运行相关 Director 测试和定向 lint。本地浏览器使用已有 Node v24.22.1、Chrome 和 Python Playwright；所有模型请求均为仓库合成 OpenAI 夹具，不调用付费模型。命令中的 `$labNode` 指已有的该版本 Node 可执行文件，通过 `LAB_BROWSER_EXECUTABLE` 选择浏览器。

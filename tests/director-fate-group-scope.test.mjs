@@ -18,6 +18,7 @@ function fixture(onStart = () => {}, onFinish = () => {}) {
     const deps = {
         selected_group:'group', chat_metadata:{}, chat:[{is_user:true,extra:{gen_id:100}}],
         is_send_press:false, is_group_generating:false,
+        document: { body: { dataset: {} } },
         chatId:'chat', getCurrentChatId:() => deps.chatId,
         getLastMessageGenerationId:() => {
             const message = deps.chat.at(-1);
@@ -171,6 +172,7 @@ for (const [name, changeOwner] of [
                 changeOwner(deps);
                 deps.is_send_press = sending;
                 deps.is_group_generating = sending;
+                if (sending) deps.document.body.dataset.generating = 'true';
             });
             const originalMessages = [
                 {is_user:true,mes:'original user message'},
@@ -185,9 +187,41 @@ for (const [name, changeOwner] of [
             assert.equal(lab.generationCalls,0);
             assert.deepEqual(lab.deps.chat,originalMessages);
             assert.deepEqual(lab.events,['start','finish']);
-            assert.deepEqual(lab.sendButtonStates,[true]);
+            assert.deepEqual(lab.sendButtonStates,sending ? [true] : [true,false]);
             assert.equal(lab.sendInProgress,sending);
             assert.equal(lab.deps.is_group_generating,sending);
+        });
+    }
+}
+
+for (const phase of ['start', 'deletion', 'finish']) {
+    for (const marker of [undefined, 'true', '']) {
+        const generating = marker !== undefined;
+        test(`regeneration ${generating ? 'keeps' : 'releases'} its lock after an owner switch during ${phase} with generating=${JSON.stringify(marker)}`, async () => {
+            const changeOwner = deps => {
+                deps.chatId = 'other-chat';
+                if (generating) deps.document.body.dataset.generating = marker;
+            };
+            const lab = fixture((deps, operation) => {
+                if (phase === 'start') changeOwner(deps);
+                if (phase === 'finish') operation.cancelled = true;
+            }, deps => {
+                if (phase === 'finish') changeOwner(deps);
+            });
+            if (phase === 'deletion') {
+                lab.deps.chat.push({ is_user: false, extra: { gen_id: 100 } });
+                lab.deps.deleteLastMessage = async () => {
+                    lab.deps.chat.pop();
+                    changeOwner(lab.deps);
+                };
+            }
+
+            assert.equal(await lab.regenerate(), undefined);
+            assert.equal(lab.generationCalls, 0);
+            assert.deepEqual(lab.events, ['start', 'finish']);
+            assert.deepEqual(lab.sendButtonStates, generating ? [true] : [true, false]);
+            assert.equal(lab.sendInProgress, generating);
+            assert.equal(lab.deps.is_group_generating, false);
         });
     }
 }
@@ -227,6 +261,7 @@ test('regeneration stops deleting and preserves another chat generation when own
         lab.deps.chat = structuredClone(otherChat);
         lab.deps.is_send_press = true;
         lab.deps.is_group_generating = true;
+        lab.deps.document.body.dataset.generating = 'true';
     };
 
     assert.equal(await lab.regenerate(),undefined);

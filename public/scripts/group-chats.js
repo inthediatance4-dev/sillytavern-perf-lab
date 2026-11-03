@@ -208,7 +208,8 @@ async function regenerateGroup() {
         return await generateGroupWrapper(false, 'normal', { signal: abortController.signal });
     } finally {
         await eventSource.emit(event_types.GROUP_REGENERATION_FINISHED, operation);
-        if (ownsSendLock && isCurrentOwner()) setSendButtonState(false);
+        // A switched chat may inherit our lock; native generation marks the body while it owns it.
+        if (ownsSendLock && (isCurrentOwner() || document.body.dataset.generating === undefined)) setSendButtonState(false);
     }
 }
 

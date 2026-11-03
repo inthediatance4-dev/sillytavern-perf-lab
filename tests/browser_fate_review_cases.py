@@ -483,8 +483,10 @@ def run_fate_review_checks(page, sample, fake_url, result, connect_api):
                         out.listenerRan=true;
                         out.markerMatches=operation.groupId===fixture.groupId && operation.chatId===fixture.chatId;
                         if(mode==='chat-switch') {
-                            // The destination is loaded through the real selection API.
-                            // Reassert the controlled UI lock after navigation unlocks it.
+                            // regenerateGroup holds the send lock before this event, and the
+                            // real selection API will not leave the chat while that lock is
+                            // held. Release it only for the navigation, then take it back.
+                            main.setSendButtonState(false);
                             await c.selectCharacterById(c.characters.findIndex(x=>x.avatar===fixture.secondAvatar));
                         } else {
                             main.updateChatMetadata({...c.chatMetadata,fc3Replacement:true},true);

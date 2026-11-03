@@ -85,7 +85,8 @@ export function createFateController(getContext, options = {}) {
     const { isGenerating = () => false, hasDraft = () => false, uuid = () => crypto.randomUUID(),
         random = Math.random, generate = context => context.generate('normal'), onChange = () => {},
         save = context => context.saveMetadata(), setSendButtonState = () => {},
-        deactivateSendButtons = () => {}, activateSendButtons = () => {}, onRegenerateStart = () => {}, onError = () => {} } = options;
+        deactivateSendButtons = () => {}, activateSendButtons = () => {}, onRegenerateStart = () => {},
+        onError = () => {}, onReveal = () => {} } = options;
     let revision = 0;
     let nonce = 0;
     let tokenSerial = 0;
@@ -112,10 +113,15 @@ export function createFateController(getContext, options = {}) {
     };
     const anchorMatches = (context, bound) => messageFingerprint(context.chat?.[bound.slotIndex - 1]) === bound.prevFingerprint;
     const publicCard = card => card ? { id: card.id, title: card.title, strength: card.strength } : null;
+    const publicReveal = card => ({ ...publicCard(card), rarity: card.rarity ?? 'common', slotIndex: card.slotIndex });
     const view = () => {
-        const value = state(getContext().chatMetadata);
+        const context = getContext();
+        const value = state(context.chatMetadata);
         const visibleBusy = busy && current(busy.snapshot);
-        return { held: publicCard(value.held), bound: publicCard(value.bound), busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle' };
+        const reveal = value.bound && anchorMatches(context, value.bound) && isAi(context.chat[value.bound.slotIndex])
+            ? { ...publicReveal(value.bound), event: value.bound.event } : null;
+        return { held: publicCard(value.held), bound: publicCard(value.bound), reveal,
+            busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle' };
     };
 
     async function retrySave() {
@@ -351,7 +357,13 @@ export function createFateController(getContext, options = {}) {
         if (record.attempt) record.attempt.consumed = true;
         if (record.scope) record.scope.card = bound;
         try {
-            await commit(record.snapshot, { ...value, held: record.attempt ? null : value.held, bound }, false);
+            const saving = commit(record.snapshot, { ...value, held: record.attempt ? null : value.held, bound }, false);
+            // The binding is now visible in memory. Announce a new consumption
+            // before persistence settles, without passing private event text.
+            if (record.attempt) {
+                try { onReveal(publicReveal(bound)); } catch { /* UI failures cannot undo a generated reply. */ }
+            }
+            await saving;
         } catch {
             if (current(record.snapshot)) {
                 notify();

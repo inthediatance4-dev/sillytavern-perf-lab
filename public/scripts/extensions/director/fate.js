@@ -84,7 +84,8 @@ function contains(data, text) {
 export function createFateController(getContext, options = {}) {
     const { isGenerating = () => false, hasDraft = () => false, uuid = () => crypto.randomUUID(),
         random = Math.random, generate = context => context.generate('normal'), onChange = () => {},
-        save = context => context.saveMetadata(), setSendButtonState = () => {}, onRegenerateStart = () => {}, onError = () => {} } = options;
+        save = context => context.saveMetadata(), setSendButtonState = () => {},
+        deactivateSendButtons = () => {}, activateSendButtons = () => {}, onRegenerateStart = () => {}, onError = () => {} } = options;
     let revision = 0;
     let nonce = 0;
     let tokenSerial = 0;
@@ -204,6 +205,7 @@ export function createFateController(getContext, options = {}) {
         try {
             // Generate awaits preflight work before taking the native send lock.
             setSendButtonState(true);
+            deactivateSendButtons();
             notify();
             await generate(context);
             return attempt.consumed;
@@ -211,7 +213,10 @@ export function createFateController(getContext, options = {}) {
             if (!current(snapshot)) return false;
             throw new Error('命运卡采用失败，请重试。');
         } finally {
-            if (operation.ownsSendLock && current(snapshot)) setSendButtonState(false);
+            if (operation.ownsSendLock && current(snapshot)) {
+                setSendButtonState(false);
+                activateSendButtons();
+            }
             if (armed === attempt) armed = null;
             for (const record of activeRequests) if (record.attempt === attempt && !attempt.consumed) record.invalid = true;
             clearPrompt();

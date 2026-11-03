@@ -1,5 +1,5 @@
 import { Popper } from '../../../lib.js';
-import { doNavbarIconClick, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
+import { activateSendButtons, deactivateSendButtons, doNavbarIconClick, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { hasPendingFileAttachment } from '../../chats.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
@@ -549,7 +549,7 @@ export async function init() {
     const context = getContext();
     const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
     const fate = createFateController(getContext, {
-        isGenerating, hasDraft, setSendButtonState, uuid:uuidv4, random:Math.random,
+        isGenerating, hasDraft, setSendButtonState, deactivateSendButtons, activateSendButtons, uuid:uuidv4, random:Math.random,
         generate: current => current.generate('normal'),
         save: (_current, shouldSave) => saveChatConditional({ shouldSave }),
         onRegenerateStart: () => setSendButtonState(true),

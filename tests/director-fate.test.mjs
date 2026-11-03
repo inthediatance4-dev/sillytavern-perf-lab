@@ -80,6 +80,7 @@ function lab({ group = false, save } = {}) {
     let changes = 0;
     let serial = 0;
     const sendButtonStates = [];
+    const sendButtonUiStates = [];
     let response = JSON.stringify({ event: privateEvent });
     let generator = async () => {};
     const quietCalls = [];
@@ -98,6 +99,8 @@ function lab({ group = false, save } = {}) {
     const controller = createFateController(() => context, {
         isGenerating: () => generating, hasDraft: () => draft, save, onRegenerateStart:() => { generating=true; },
         setSendButtonState: value => { generating = value; sendButtonStates.push(value); },
+        deactivateSendButtons: () => { sendButtonUiStates.push(true); },
+        activateSendButtons: () => { generating = false; sendButtonUiStates.push(false); },
         uuid: () => `fate-${++serial}`, random: () => 0,
         generate: async capture => generator(capture), onChange: () => { changes++; },
     });
@@ -108,7 +111,7 @@ function lab({ group = false, save } = {}) {
     const api = {
         controller, metadata, quietCalls, eventSource, emit,
         get context() { return context; }, get saves() { return saves; }, get changes() { return changes; },
-        get generating() { return generating; }, sendButtonStates,
+        get generating() { return generating; }, sendButtonStates, sendButtonUiStates,
         get preparedChat() { return preparedChat; },
         get preparedToken() { return preparedChat.find(message => message.extra?.directorFatePrompt)?.mes; },
         prepare(type) { preparedChat = context.chat.map(message => ({ ...message })); return controller.prepare(type, preparedChat); },
@@ -427,7 +430,7 @@ test('adopt rejects a draft and failed, stopped or early requests retain held wi
     }
 });
 
-test('adopt locks startup against a second apply and native Send, then unlocks on return or error', async () => {
+test('adopt locks startup and updates the send UI, then unlocks both on return or error', async () => {
     const source = readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
     const begin = source.indexOf('export async function sendTextareaMessage() {');
     assert.ok(begin >= 0);
@@ -438,14 +441,17 @@ test('adopt locks startup against a second apply and native Send, then unlocks o
         const fixture = lab();
         assert.equal(await fixture.controller.apply(), false);
         assert.deepEqual(fixture.sendButtonStates, []);
+        assert.deepEqual(fixture.sendButtonUiStates, []);
         await fixture.controller.draw();
         const held = fixture.metadata.director.fate.held;
         const startup = deferred();
         fixture.setGenerator(() => startup.promise);
         const applying = fixture.controller.apply();
         assert.equal(fixture.generating, true, outcome);
+        assert.deepEqual(fixture.sendButtonUiStates, [true]);
         await assert.rejects(fixture.controller.apply(), /正在生成/);
         assert.equal(fixture.generating, true, 'the rejected apply must preserve the first lock');
+        assert.deepEqual(fixture.sendButtonUiStates, [true]);
         await nativeSend(fixture.generating, 0, { NONE: 0, EDITING: 1 }, () => assert.fail('Send passed its generation guard'));
         if (outcome === 'throw') {
             startup.reject(new Error('startup failure'));
@@ -457,6 +463,7 @@ test('adopt locks startup against a second apply and native Send, then unlocks o
         }
         assert.equal(fixture.generating, false, outcome);
         assert.deepEqual(fixture.sendButtonStates, [true, false]);
+        assert.deepEqual(fixture.sendButtonUiStates, [true, false]);
         assert.equal(fixture.metadata.director.fate.held, held);
         assert.equal(fixture.controller.view().busy, false);
     }
@@ -469,6 +476,7 @@ test('adopt never clears an existing generation lock', async () => {
     await assert.rejects(fixture.controller.apply(), /正在生成/);
     assert.equal(fixture.generating, true);
     assert.deepEqual(fixture.sendButtonStates, []);
+    assert.deepEqual(fixture.sendButtonUiStates, []);
 });
 
 test('adopt cleanup preserves a new generation lock after a chat switch or native unlock', async () => {
@@ -490,6 +498,7 @@ test('adopt cleanup preserves a new generation lock after a chat switch or nativ
         assert.equal(await applying, false);
         assert.equal(fixture.generating, true, transition);
         assert.deepEqual(fixture.sendButtonStates, [true]);
+        assert.deepEqual(fixture.sendButtonUiStates, [true], transition);
     }
 });
 

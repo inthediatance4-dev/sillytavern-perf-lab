@@ -55,6 +55,36 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         page.locator('dialog[open] .popup-button-cancel').click()
         page.locator('#director_fate_panel').wait_for(state='hidden')
 
+    def tab(name):
+        page.locator('#director_fate_tab_' + name).click()
+        assert page.locator('#director_fate_tab_' + name).get_attribute('aria-selected') == 'true'
+        page.locator('#director_fate_' + name).wait_for(state='visible')
+
+    def log_entry(card):
+        return page.locator('.director_fate_log_entry[data-entry-id="' + card['id'] + '"]')
+
+    def mark(slot):
+        return page.locator('#chat .mes[mesid="' + str(slot) + '"] .director_fate_mark')
+
+    def assert_mark(card, slot):
+        target = mark(slot)
+        target.wait_for(state='visible')
+        assert target.text_content() == '🎴'
+        assert target.get_attribute('aria-label') == '命运牌：〈' + card['title'] + '〉'
+        assert target.get_attribute('data-rarity') == card['rarity']
+        assert target.evaluate("node => Boolean(node.closest('.ch_name')) && node.previousElementSibling?.classList.contains('name_text') && !node.closest('.mes_text')")
+        markup = target.evaluate('(node) => node.outerHTML')
+        assert card['event'] not in markup and card['event'].partition(':')[0] not in markup
+        assert page.locator('#chat .mes[mesid="' + str(slot) + '"] .mes_text .director_fate_mark').count() == 0
+
+    def assert_mark_motion_suppressed(card, slot):
+        assert_mark(card, slot)
+        # Completion schedules mark painting in a microtask. Check after the
+        # next frame as well so a suppressed animation cannot leave is_fresh.
+        page.evaluate('() => new Promise(requestAnimationFrame)')
+        assert not mark(slot).evaluate("node => node.classList.contains('is_fresh')")
+        assert mark(slot).evaluate('node => getComputedStyle(node).animationName') == 'none'
+
     def idle():
         page.wait_for_function("!window.__fateLabMain.isGenerating() && !window.__fateLabMain.isChatSaving", timeout=30000)
 
@@ -118,6 +148,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     def draw(text=secret):
         configure(json.dumps({'event':text}))
         open_panel()
+        tab('current')
         previous = (fate().get('held') or {}).get('id')
         ensure_offer()
         hidden(text)
@@ -150,7 +181,14 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
                 page.wait_for_function("document.querySelector('.director_fate_card')?.dataset.state === 'applying'")
                 assert page.locator('#director_fate_status').inner_text() == '命运在转动…'
                 ritual_hidden(held['event'])
+                assert all(entry['id'] != held['id'] for entry in fate().get('log', []))
+                assert page.locator('#chat .director_fate_mark').count() == 0
+                tab('log')
+                hidden(held['event'])
+                assert log_entry(held).count() == 0
+                tab('current')
                 result['checks']['fateApplyingMarkupAndToastsKeepEventPrivate'] = True
+                result['checks']['fateBeforeCompletionHasNoLogOrMessageMark'] = True
                 page.emulate_media(reduced_motion='reduce')
                 fade_only()
                 page.emulate_media(reduced_motion='no-preference')
@@ -264,8 +302,73 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     open_panel()
     result['checks']['fatePendingAttachmentStaysUnsentAndPreserved'] = True
 
+    # Observe the live row before completion so the short pulse cannot finish
+    # before Python inspects it. Count newly fresh nodes and real animation ends.
+    page.evaluate("""() => {
+        const chat = document.querySelector('#chat');
+        const seen = new WeakSet();
+        window.__fateMarkPulse = { fresh: 0, starts: 0, ends: 0 };
+        const noteFresh = () => {
+            for (const node of chat.querySelectorAll('.director_fate_mark.is_fresh')) {
+                if (seen.has(node)) continue;
+                seen.add(node);
+                window.__fateMarkPulse.fresh++;
+            }
+        };
+        window.__fateMarkObserver = new MutationObserver(noteFresh);
+        window.__fateMarkObserver.observe(chat, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        window.__fateMarkAnimation = event => {
+            if (!event.target.matches('.director_fate_mark')) return;
+            window.__fateMarkPulse[event.type === 'animationstart' ? 'starts' : 'ends']++;
+        };
+        chat.addEventListener('animationstart', window.__fateMarkAnimation);
+        chat.addEventListener('animationend', window.__fateMarkAnimation);
+    }""")
     apply(held, inspect_ritual=True)
     hidden(secret)
+    slot = fate()['bound']['slotIndex']
+    assert_mark(held, slot)
+    assert page.locator('#chat .mes[mesid="' + str(slot) + '"] .mes_text').inner_text() == reply
+    page.wait_for_function("() => window.__fateMarkPulse.ends === 1 && !document.querySelector('#chat .director_fate_mark')?.classList.contains('is_fresh')")
+    assert page.evaluate('window.__fateMarkPulse') == {'fresh':1, 'starts':1, 'ends':1}
+    mark(slot).click()
+    page.locator('#director_fate_panel').wait_for(state='visible')
+    entry = log_entry(held)
+    assert page.locator('#director_fate_tab_log').get_attribute('aria-selected') == 'true'
+    assert entry.evaluate('node => node === document.activeElement')
+    assert entry.locator('.director_fate_log_event').text_content() == ''
+    assert entry.locator('.director_fate_log_flip').inner_text() == '翻开'
+    hidden(secret)
+    assert page.locator('#director_fate_tab_current').get_attribute('role') == 'tab'
+    assert page.locator('#director_fate_tab_log').get_attribute('role') == 'tab'
+    assert page.locator('.director_fate_tab').count() == 2
+    assert page.locator('.director_fate_tab').evaluate_all("nodes => nodes.every(node => !node.classList.contains('menu_button'))")
+    assert page.locator('#director_fate_tab_log').evaluate("node => node.parentElement.getAttribute('role') === 'tablist'")
+    page.locator('#director_fate_tab_log').focus()
+    page.keyboard.press('ArrowLeft')
+    page.wait_for_function("document.activeElement?.id === 'director_fate_tab_current' && document.activeElement.getAttribute('aria-selected') === 'true'")
+    page.keyboard.press('ArrowRight')
+    page.wait_for_function("document.activeElement?.id === 'director_fate_tab_log' && document.activeElement.getAttribute('aria-selected') === 'true'")
+    page.keyboard.press('ArrowRight')
+    page.wait_for_function("document.activeElement?.id === 'director_fate_tab_current' && document.activeElement.getAttribute('aria-selected') === 'true'")
+    page.keyboard.press('End')
+    page.wait_for_function("document.activeElement?.id === 'director_fate_tab_log' && document.activeElement.getAttribute('aria-selected') === 'true'")
+    page.keyboard.press('Home')
+    page.wait_for_function("document.activeElement?.id === 'director_fate_tab_current' && document.activeElement.getAttribute('aria-selected') === 'true'")
+    assert page.locator('#director_fate_tab_current').get_attribute('tabindex') == '0'
+    assert page.locator('#director_fate_tab_log').get_attribute('tabindex') == '-1'
+    # The native accessibility observer processes dynamically inserted controls.
+    # Their dedicated class must keep their tab roles after another mutation.
+    tab('log')
+    log_entry(held).locator('.director_fate_log_flip').focus()
+    assert page.locator('#director_fate_tab_current').get_attribute('role') == 'tab'
+    assert page.locator('#director_fate_tab_log').get_attribute('role') == 'tab'
+    page.keyboard.press('Escape')
+    page.locator('#director_fate_panel').wait_for(state='hidden')
+    page.wait_for_function("document.activeElement?.id === 'director_fate_open'")
+    result['checks']['fateMessageMarkPrivatePlacedOutsideTextAndPulsesOnce'] = True
+    result['checks']['fateMarkOpensFocusedLogAndTabsKeyboardEscRestoreFocus'] = True
+    result['checks']['fateTabsKeepRolesThroughNativeAccessibilityObserverAndWrapHomeEnd'] = True
     reveal_toast(held).click()
     page.locator('#director_fate_panel').wait_for(state='visible')
     assert page.locator('.director_fate_card').get_attribute('data-state') == 'revealed'
@@ -273,9 +376,13 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     ritual_hidden(secret)
     page.locator('#director_fate_flip').click()
     page.wait_for_function('event => document.querySelector(".director_fate_face")?.textContent === event', arg=secret)
+    tab('log')
+    assert log_entry(held).locator('.director_fate_log_event').text_content() == secret
+    assert log_entry(held).locator('.director_fate_log_flip').is_hidden()
+    tab('current')
     result['checks']['fateTitleOnlyCompletionToastAndExplicitTapReveal'] = True
+    result['checks']['fateCurrentFlipAlsoRevealsSameLogEntry'] = True
 
-    slot = fate()['bound']['slotIndex']
     close_panel()
     anchor = page.evaluate('slot => SillyTavern.getContext().chat[slot - 1].mes', slot)
     try:
@@ -322,6 +429,34 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.evaluate("async () => { await SillyTavern.getContext().generate('normal'); }")
     assert secret not in body()
     result['checks']['fateAdoptAndExactSwipeRegenerateWithoutNormalRetrigger'] = True
+    idle()
+    assert not fate().get('bound')
+    assert len([entry for entry in fate().get('log', []) if entry['id'] == held['id']]) == 1
+    # Solo replies have no generation id. Swipe/regenerate leave this binding
+    # unchanged, so completion must preserve the entry without counting a write.
+    assert next(entry for entry in fate()['log'] if entry['id'] == held['id'])['replays'] == 0
+    assert_mark(held, slot)
+    assert page.evaluate('window.__fateMarkPulse') == {'fresh':1, 'starts':1, 'ends':1}
+    page.evaluate("""() => {
+        window.__fateMarkObserver.disconnect();
+        const chat = document.querySelector('#chat');
+        chat.removeEventListener('animationstart', window.__fateMarkAnimation);
+        chat.removeEventListener('animationend', window.__fateMarkAnimation);
+    }""")
+    reload_browser()
+    assert_mark(held, slot)
+    assert not mark(slot).evaluate("node => node.classList.contains('is_fresh')")
+    open_panel()
+    tab('log')
+    entry = log_entry(held)
+    assert entry.locator('.director_fate_log_jump').is_enabled()
+    assert entry.locator('.director_fate_log_event').text_content() == ''
+    hidden(secret)
+    entry.locator('.director_fate_log_flip').click()
+    assert entry.locator('.director_fate_log_event').text_content() == secret
+    close_panel()
+    result['checks']['fateLogAndMessageMarkPersistAfterNextMessageAndBrowserReload'] = True
+    result['checks']['fateUnchangedReplayKeepsLogAndDoesNotRepeatMessagePulse'] = True
 
     held = draw('FATE_PRIVATE_02: An unexpected invitation offers a new route.')
     configure('MALFORMED_PRIVATE_BODY not valid JSON')
@@ -463,9 +598,24 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert [json.dumps(r).count(held['event']) for r in batch] == [1,0]
     names = page.evaluate('SillyTavern.getContext().chat.filter(m=>!m.is_user&&!m.is_system).map(m=>m.name)')
     assert set(names) == {'Director Synthetic','Fate Synthetic Two'}, names
+    group_slot = fate()['bound']['slotIndex']
+    assert_mark(held, group_slot)
+    assert mark(group_slot + 1).count() == 0
+    assert page.locator('#chat .director_fate_mark').count() == 1
+    assert len(fate()['log']) == 1 and fate()['log'][0]['id'] == held['id']
+    group_generation = fate()['log'][0]['generationId']
+    assert group_generation is not None and fate()['log'][0]['replays'] == 0
+    result['checks']['fateGroupOnlyFirstBatchMemberGetsLogAndMessageMark'] = True
     page.evaluate("async () => { await (await import('/scripts/group-chats.js')).regenerateGroup(); }")
     assert [json.dumps(r).count(held['event']) for r in requests()[-2:]] == [1,0]
     assert fate()['bound']['id'] == held['id']
+    assert len(fate()['log']) == 1 and fate()['log'][0]['id'] == held['id']
+    assert fate()['log'][0]['generationId'] != group_generation
+    assert fate()['log'][0]['generationId'] == fate()['bound']['generationId']
+    assert fate()['log'][0]['replays'] == 1
+    assert_mark(held, group_slot)
+    assert mark(group_slot + 1).count() == 0
+    result['checks']['fateGroupReplayUpdatesExistingLogOnceForChangedGeneration'] = True
     page.evaluate("async () => { const m=await import('/script.js');await m.deleteLastMessage();await m.deleteLastMessage();await m.Generate('normal'); }")
     assert all(held['event'] not in json.dumps(r) for r in requests()[-2:])
     result['checks']['fateRealGroupBatchReplayAndManualDeletionDoesNotRetrigger'] = True
@@ -519,25 +669,49 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.locator('#director_fate_reveal').select_option('auto')
     auto = draw('FATE_AUTO_PRIVATE: An old keepsake returns in an unexpected place.')
     ritual_hidden(auto['event'])
-    apply(auto)
+    was_reduced = page.evaluate("document.body.classList.contains('reduced-motion')")
+    page.evaluate("document.body.classList.add('reduced-motion')")
+    try:
+        apply(auto)
+        assert_mark_motion_suppressed(auto, fate()['bound']['slotIndex'])
+    finally:
+        page.evaluate("reduced => document.body.classList.toggle('reduced-motion', reduced)", was_reduced)
+    result['checks']['fateAppReducedMotionSkipsMessageMarkPulse'] = True
     reveal_toast(auto)
     open_panel()
     page.wait_for_function('event => document.querySelector(".director_fate_face")?.textContent === event', arg=auto['event'])
     assert not page.locator('#director_fate_flip').is_visible()
+    tab('log')
+    assert log_entry(auto).locator('.director_fate_log_event').text_content() == auto['event']
+    assert log_entry(auto).locator('.director_fate_log_flip').is_hidden()
+    tab('current')
     result['checks']['fateAutoShowsOnlyCompletedEventWithoutFlip'] = True
+    result['checks']['fateLogAutoRevealsCompletedEventWithoutFlip'] = True
 
     settings()
     page.locator('#director_fate_reveal').select_option('off')
     off = draw('FATE_OFF_PRIVATE: A hidden stairway opens beyond the ruined gate.')
     ritual_hidden(off['event'])
-    apply(off)
+    page.emulate_media(reduced_motion='reduce')
+    try:
+        apply(off)
+        assert_mark_motion_suppressed(off, fate()['bound']['slotIndex'])
+    finally:
+        page.emulate_media(reduced_motion='no-preference')
+    result['checks']['fateSystemReducedMotionSkipsMessageMarkPulse'] = True
     reveal_toast(off).click()
     page.locator('#director_fate_panel').wait_for(state='visible')
     assert page.locator('.director_fate_card').get_attribute('data-state') == 'revealed'
     assert not page.locator('#director_fate_flip').is_visible()
     ritual_hidden(off['event'])
     hidden(off['event'])
+    tab('log')
+    assert log_entry(off).locator('.director_fate_log_event').text_content() == ''
+    assert log_entry(off).locator('.director_fate_log_flip').is_hidden()
+    hidden(off['event'])
+    tab('current')
     result['checks']['fateOffStillToastsTitleAndNeverShowsEvent'] = True
+    result['checks']['fateLogOffNeverPutsEventInMarkup'] = True
 
     settings()
     with page.expect_response(lambda response: saved_settings_match(response, reveal='off', sound=True, motion='off')) as saved_settings:
@@ -561,8 +735,14 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         page.locator('#director_fate_reveal').select_option('tap')
     assert saved_tap.value.ok
     ritual_hidden(off['event'])
-    page.locator('#director_fate_flip').click()
+    tab('log')
+    hidden(off['event'])
+    log_entry(off).locator('.director_fate_log_flip').click()
+    assert log_entry(off).locator('.director_fate_log_event').text_content() == off['event']
+    tab('current')
     assert page.locator('.director_fate_face').text_content() == off['event']
+    assert not page.locator('#director_fate_flip').is_visible()
+    result['checks']['fateLogTapFlipAlsoRevealsCurrentCard'] = True
     page.set_viewport_size({'width':390,'height':844})
     assert page.locator('#director_fate_panel').evaluate('node => node.scrollWidth <= node.clientWidth')
     assert page.locator('.director_fate_card').evaluate('node => { const rect=node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth; }')
@@ -640,7 +820,11 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     hidden(offer_secret)
     held = fate()['held']
     assert held['event'] == offer_secret
+    settings()
+    page.locator('#director_fate_motion').select_option('off')
     apply(held)
+    assert_mark_motion_suppressed(held, fate()['bound']['slotIndex'])
+    result['checks']['fateMotionOffSkipsMessageMarkPulse'] = True
     reveal_toast(held).click()
     page.locator('#director_fate_panel').wait_for(state='visible')
     assert page.locator('.director_fate_face').text_content() == ''
@@ -648,6 +832,213 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.wait_for_function('event => document.querySelector(".director_fate_face")?.textContent === event', arg=offer_secret)
     result['checks']['fateDealPickSealApplyReveal'] = True
     result['checks']['fateOfferMarkupKeepsEventPrivate'] = True
+    tab('log')
+    entries = fate()['log']
+    assert page.locator('#director_fate_tab_log').inner_text() == '本局命运（' + str(len(entries)) + '）'
+    assert page.locator('.director_fate_log_entry').evaluate_all('nodes => nodes.map(node => node.dataset.entryId)') == [entry['id'] for entry in entries]
+    assert log_entry(held).get_by_text('第 ' + str(entries[0]['slotIndex'] + 1) + ' 条', exact=True).count() == 1
+    for logged in entries:
+        row = log_entry(logged)
+        assert row.locator('.director_fate_log_heading strong').inner_text() == logged['title']
+        assert row.locator('.director_fate_rarity_dot').get_attribute('data-rarity') == logged['rarity']
+        strength = {'light':'轻微波澜', 'medium':'明显转折', 'strong':'重大变故'}[logged['strength']]
+        assert row.locator('.director_fate_log_details').get_by_text(strength, exact=True).count() == 1
+        assert row.locator('.director_fate_log_status').count() == 0
+    assert page.locator('#director_fate_panel').evaluate('node => node.scrollWidth <= node.clientWidth')
+    assert page.locator('.director_fate_log_entry').evaluate_all("nodes => nodes.every(node => { const rect=node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth; })")
+    assert page.locator('.director_fate_log_entry').evaluate_all("nodes => { const rows=nodes.map(node => node.getBoundingClientRect()); return rows.every((row, index) => Math.abs(row.left - rows[0].left) <= 1 && (index === 0 || row.top >= rows[index - 1].bottom - 1)); }")
+    page.screenshot(path=str(screenshots / 'log-mobile.png'))
+    result['checks']['fateLogNewestFirstMobileSingleColumnHasNoOverflow'] = True
+    result['checks']['fateLogListsRarityTitleStrengthAndOmitsOkStatus'] = True
     page.set_viewport_size({'width':1440,'height':1000})
     close_panel()
-    print('Fate sealed draw, adoption, replay, failure/stop, groups, stale chats and reveal ritual checks passed', flush=True)
+
+    # Give the real lazy-loading chat renderer a valid historical entry near
+    # the start. Derive its card fields from a completed card, and fingerprint
+    # the actual preceding row with the production helper.
+    idle()
+    old_entry = page.evaluate("""async ({sample, suffix}) => {
+        const c = SillyTavern.getContext();
+        const { messageFingerprint } = await import('/scripts/extensions/director/instruct.js');
+        const template = structuredClone(c.chatMetadata.director.fate.log[0]);
+        const file = 'FateLogLong-' + suffix;
+        const rows = [];
+        for (let index = 0; index < 2000; index++) {
+            rows.push({ name: index % 2 ? 'Director Synthetic' : 'Synthetic Tester',
+                is_user: index % 2 === 0, is_system: false, mes: 'Synthetic Fate history ' + index,
+                extra: {}, send_date: '2026-01-01T00:00:00.000Z' });
+        }
+        const entry = { ...template, id: 'fate-history-' + suffix, slotIndex: 1,
+            prevFingerprint: messageFingerprint(rows[0]), generationId: null, replays: 0 };
+        const metadata = { integrity: file, director: { fate: { version: 1, log: [entry] } } };
+        const response = await fetch('/api/chats/save', { method: 'POST', headers: c.getRequestHeaders(),
+            body: JSON.stringify({ avatar_url: sample.avatar, file_name: file, chat: [
+                { user_name: 'Synthetic Tester', character_name: 'Director Synthetic', chat_metadata: metadata },
+                ...rows,
+            ] }) });
+        if (!response.ok) throw new Error('Fate history fixture failed');
+        if (await c.openCharacterChat(file) === false) throw new Error('Fate history chat did not open');
+        return entry;
+    }""", {'sample':sample, 'suffix':uuid.uuid4().hex[:10]})
+    page.wait_for_function("() => SillyTavern.getContext().chat.length === 2000 && document.querySelectorAll('#chat .mes').length === 100 && !!document.querySelector('#show_more_messages')", timeout=60000)
+    assert mark(old_entry['slotIndex']).count() == 0
+    first_loaded = page.evaluate("Number(document.querySelector('#chat .mes').getAttribute('mesid'))")
+    distance = first_loaded - old_entry['slotIndex']
+    assert distance > 500
+    open_panel()
+    tab('log')
+    hidden(old_entry['event'])
+    assert log_entry(old_entry).locator('.director_fate_log_jump').is_enabled()
+    log_entry(old_entry).locator('.director_fate_log_jump').click()
+    confirmation = page.locator('dialog[open]').filter(has_text='需要加载约 ' + str(distance) + ' 条消息')
+    confirmation.wait_for(state='visible')
+    confirmation.get_by_text('取消', exact=True).click()
+    confirmation.wait_for(state='hidden')
+    assert mark(old_entry['slotIndex']).count() == 0
+    assert page.locator('#chat .mes').count() == 100
+    open_panel()
+    tab('log')
+    log_entry(old_entry).locator('.director_fate_log_jump').click()
+    confirmation.get_by_text('加载', exact=True).click()
+    page.wait_for_function("""slot => {
+        const node = document.querySelector('#chat .mes[mesid="' + slot + '"]');
+        if (!node?.classList.contains('director-fate-highlight')) return false;
+        const rect = node.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < innerHeight && !document.querySelector('dialog[open]');
+    }""", arg=old_entry['slotIndex'], timeout=180000)
+    assert_mark(old_entry, old_entry['slotIndex'])
+    assert page.locator('#chat .mes[mesid="1"] .mes_text').inner_text() == 'Synthetic Fate history 1'
+    assert not mark(old_entry['slotIndex']).evaluate("node => node.classList.contains('is_fresh')")
+    hidden(old_entry['event'])
+    result['checks']['fateLogJumpConfirmsLoadsAndHighlightsUnloadedOldMessage'] = True
+    result['fateLogLongChat'] = {'messages':2000, 'loadedBeforeJump':100, 'confirmDistance':distance}
+
+    # This historical jump runs with Fate motion disabled. The pre-existing
+    # chapter highlight timer must still clear it without animation events.
+    page.wait_for_function("!document.querySelector('#chat .mes[mesid=\"1\"]')?.classList.contains('director-fate-highlight')")
+    result['checks']['fateLogJumpHighlightClearsWithoutAnimationEvents'] = True
+
+    # Editing the predecessor emits the native MESSAGE_EDITED/MESSAGE_UPDATED
+    # events. Restoring it must validate and repaint the existing mark again.
+    victim = page.locator('#chat .mes[mesid="0"]')
+    if victim.count() == 0:
+        page.locator('#show_more_messages').click()
+        victim.wait_for(state='attached')
+    victim.scroll_into_view_if_needed()
+    victim.hover()
+    victim.locator('.mes_edit').click()
+    victim.locator('#curEditTextarea').fill('Edited Fate history predecessor')
+    victim.locator('.mes_edit_done').click()
+    page.wait_for_function("SillyTavern.getContext().chat[0].mes === 'Edited Fate history predecessor' && document.querySelectorAll('#chat .director_fate_mark').length === 0")
+    open_panel()
+    tab('log')
+    assert log_entry(old_entry).locator('.director_fate_log_status').inner_text() == '消息已改写'
+    assert log_entry(old_entry).locator('.director_fate_log_jump').is_disabled()
+    hidden(old_entry['event'])
+    close_panel()
+    victim.scroll_into_view_if_needed()
+    victim.hover()
+    victim.locator('.mes_edit').click()
+    victim.locator('#curEditTextarea').fill('Synthetic Fate history 0')
+    victim.locator('.mes_edit_done').click()
+    page.wait_for_function("SillyTavern.getContext().chat[0].mes === 'Synthetic Fate history 0'")
+    assert_mark(old_entry, old_entry['slotIndex'])
+    open_panel()
+    tab('log')
+    assert log_entry(old_entry).locator('.director_fate_log_status').count() == 0
+    assert log_entry(old_entry).locator('.director_fate_log_jump').is_enabled()
+    close_panel()
+    result['checks']['fateEditingPredecessorInvalidatesAndRestoringRepaintsMark'] = True
+
+    # Remove the real predecessor through the native message editor. The log
+    # retains the history while invalidating the old position and its mark.
+    victim = page.locator('#chat .mes[mesid="0"]')
+    if victim.count() == 0:
+        page.locator('#show_more_messages').click()
+        victim.wait_for(state='attached')
+    victim.scroll_into_view_if_needed()
+    victim.hover()
+    victim.locator('.mes_edit').click()
+    victim.locator('.mes_edit_delete').click()
+    page.locator('dialog[open]').get_by_text('Delete Message', exact=True).click()
+    page.wait_for_function("() => SillyTavern.getContext().chat.length === 1999 && SillyTavern.getContext().chat[0].mes === 'Synthetic Fate history 1'")
+    page.wait_for_function("document.querySelectorAll('#chat .director_fate_mark').length === 0")
+    open_panel()
+    tab('log')
+    entry = log_entry(old_entry)
+    assert entry.locator('.director_fate_log_status').inner_text() == '消息已改写'
+    assert entry.locator('.director_fate_log_jump').is_disabled()
+    hidden(old_entry['event'])
+    result['checks']['fateDeletingPredecessorChangesLogDisablesJumpAndRemovesMark'] = True
+
+    # Clearing history has its own confirmation, and leaves the transcript.
+    page.locator('#director_fate_clear_log').click()
+    confirmation = page.locator('dialog[open]').filter(has_text='清空本局命运日志？')
+    confirmation.wait_for(state='visible')
+    confirmation.locator('.popup-button-cancel').click()
+    assert len(fate()['log']) == 1
+    page.locator('#director_fate_clear_log').click()
+    confirmation.locator('.popup-button-ok').click()
+    page.wait_for_function("() => (SillyTavern.getContext().chatMetadata.director.fate.log ?? []).length === 0 && document.querySelectorAll('.director_fate_log_entry').length === 0")
+    assert page.locator('.director_fate_log_entry').count() == 0
+    assert page.locator('#director_fate_tab_log').inner_text() == '本局命运（0）'
+    assert page.evaluate('SillyTavern.getContext().chat.length') == 1999
+    result['checks']['fateLogClearConfirmsAndKeepsChatMessages'] = True
+    close_panel()
+
+    # A short native fixture keeps one valid mark while its last target is
+    # deleted. This distinguishes missing from a shifted/changed anchor, then
+    # proves clearing a log also removes a still-valid loaded message mark.
+    short_entries = page.evaluate("""async ({sample, template, suffix}) => {
+        const c = SillyTavern.getContext();
+        const { messageFingerprint } = await import('/scripts/extensions/director/instruct.js');
+        const file = 'FateLogMissing-' + suffix;
+        const rows = [
+            { name: 'Synthetic Tester', is_user: true, is_system: false, mes: 'A short Fate history.', extra: {} },
+            { name: 'Director Synthetic', is_user: false, is_system: false, mes: 'A surviving Fate target.', extra: {} },
+            { name: 'Director Synthetic', is_user: false, is_system: false, mes: 'A removed Fate target.', extra: {} },
+        ];
+        const entries = [2, 1].map(slotIndex => ({ ...template, id: 'fate-target-' + slotIndex + '-' + suffix,
+            slotIndex, prevFingerprint: messageFingerprint(rows[slotIndex - 1]), generationId: null, replays: 0 }));
+        const metadata = { integrity: file, director: { fate: { version: 1, log: entries } } };
+        const response = await fetch('/api/chats/save', { method: 'POST', headers: c.getRequestHeaders(),
+            body: JSON.stringify({ avatar_url: sample.avatar, file_name: file, chat: [
+                { user_name: 'Synthetic Tester', character_name: 'Director Synthetic', chat_metadata: metadata },
+                ...rows,
+            ] }) });
+        if (!response.ok) throw new Error('Fate missing-target fixture failed');
+        if (await c.openCharacterChat(file) === false) throw new Error('Fate missing-target chat did not open');
+        return entries;
+    }""", {'sample':sample, 'template':old_entry, 'suffix':uuid.uuid4().hex[:10]})
+    page.wait_for_function('SillyTavern.getContext().chat.length === 3')
+    for logged in short_entries:
+        assert_mark(logged, logged['slotIndex'])
+    page.evaluate('async () => { await window.__fateLabMain.deleteLastMessage(); }')
+    page.wait_for_function("SillyTavern.getContext().chat.length === 2 && document.querySelectorAll('#chat .director_fate_mark').length === 1")
+    missing, surviving = short_entries
+    assert_mark(surviving, surviving['slotIndex'])
+    assert mark(missing['slotIndex']).count() == 0
+    open_panel()
+    tab('log')
+    assert log_entry(missing).locator('.director_fate_log_status').inner_text() == '消息已删除'
+    assert log_entry(missing).locator('.director_fate_log_jump').is_disabled()
+    assert log_entry(surviving).locator('.director_fate_log_status').count() == 0
+    assert log_entry(surviving).locator('.director_fate_log_jump').is_enabled()
+    hidden(missing['event'])
+    result['checks']['fateDeletingTargetShowsMissingKeepsEntryAndDisablesJump'] = True
+    page.locator('#director_fate_clear_log').click()
+    confirmation = page.locator('dialog[open]').filter(has_text='清空本局命运日志？')
+    confirmation.locator('.popup-button-cancel').click()
+    assert len(fate()['log']) == 2
+    assert_mark(surviving, surviving['slotIndex'])
+    page.locator('#director_fate_clear_log').click()
+    confirmation.locator('.popup-button-ok').click()
+    page.wait_for_function("() => (SillyTavern.getContext().chatMetadata.director.fate.log ?? []).length === 0 && document.querySelectorAll('#chat .director_fate_mark').length === 0")
+    assert page.evaluate('SillyTavern.getContext().chat.length') == 2
+    close_panel()
+    idle()
+    page.evaluate('async () => { await SillyTavern.getContext().reloadCurrentChat(); }')
+    assert not fate().get('log')
+    assert page.locator('#chat .director_fate_mark').count() == 0
+    result['checks']['fateClearLogImmediatelyRemovesValidMarksAndPersistsAfterReload'] = True
+    print('Fate sealed draw, adoption, replay, failure/stop, groups, reveal ritual, history and message mark checks passed', flush=True)

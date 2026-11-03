@@ -17,15 +17,115 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         else panel?.querySelector('.director_fate_card').focus();
     }
 
+    let choosing = false;
+    let endPickMotion = () => {};
+
+    function rarityLabel(id) {
+        return rarities[id] ?? rarities.common;
+    }
+
+    function syncOffer(view) {
+        const box = panel.querySelector('.director_fate_offer');
+        const offer = view.offer;
+        const show = Boolean(offer) && view.phase !== 'applying';
+        if (!show) {
+            box.hidden = true;
+            endPickMotion();
+            box.replaceChildren();
+            delete box.dataset.offerId;
+            delete box.dataset.picking;
+            box.classList.remove('is_picking');
+            return;
+        }
+        box.hidden = false;
+        if (box.dataset.offerId === offer.id && box.childElementCount === offer.cards.length) {
+            // Keep the in-flight pick animation. A finished draw clears it without rebuilding.
+            if (!view.busy && !choosing) {
+                endPickMotion();
+                box.classList.remove('is_picking');
+                delete box.dataset.picking;
+                for (const choice of box.querySelectorAll('.director_fate_choice')) choice.classList.remove('is_picked', 'is_drawing');
+            }
+            return;
+        }
+        endPickMotion();
+        box.classList.remove('is_picking');
+        delete box.dataset.picking;
+        box.dataset.offerId = offer.id;
+        box.replaceChildren();
+        offer.cards.forEach((card, index) => {
+            const choice = document.createElement('button');
+            choice.type = 'button';
+            choice.className = 'director_fate_choice';
+            choice.dataset.rarity = card.rarity;
+            choice.setAttribute('aria-label', `第 ${index + 1} 张：〈${card.title}〉，〈${rarityLabel(card.rarity)}〉`);
+            const seal = document.createElement('span');
+            seal.className = 'director_fate_choice_seal';
+            seal.textContent = '◇';
+            seal.setAttribute('aria-hidden', 'true');
+            const title = document.createElement('span');
+            title.className = 'director_fate_choice_title';
+            title.textContent = card.title;
+            const rarity = document.createElement('span');
+            rarity.className = 'director_fate_choice_rarity';
+            rarity.textContent = rarityLabel(card.rarity);
+            choice.append(seal, title, rarity);
+            choice.addEventListener('click', () => choose(index));
+            box.append(choice);
+        });
+    }
+
+    function choose(index) {
+        if (choosing || !panel) return;
+        const view = controller.view();
+        if (view.busy || !view.offer || !Number.isInteger(index) || index < 0 || index > 2) return;
+        choosing = true;
+        const box = panel.querySelector('.director_fate_offer');
+        const choices = [...box.querySelectorAll('.director_fate_choice')];
+        choices.forEach((choice, choiceIndex) => {
+            choice.classList.toggle('is_picked', choiceIndex === index);
+            choice.disabled = true;
+        });
+        box.classList.add('is_picking');
+        box.dataset.picking = String(index);
+        const picked = choices[index];
+        // The center card does not move. A sibling fade (or the picked card's
+        // own move) is what starts the seal crack. No timer.
+        endPickMotion();
+        const onEnd = event => {
+            if (event.type === 'transitionend' && event.propertyName !== 'transform' && event.propertyName !== 'opacity') return;
+            if (box.classList.contains('is_picking') && picked.isConnected) picked.classList.add('is_drawing');
+            endPickMotion();
+        };
+        endPickMotion = () => {
+            box.removeEventListener('transitionend', onEnd);
+            box.removeEventListener('animationend', onEnd);
+            endPickMotion = () => {};
+        };
+        box.addEventListener('transitionend', onEnd);
+        box.addEventListener('animationend', onEnd);
+        const strength = panel.querySelector('#director_fate_strength').value;
+        action(async () => {
+            try {
+                if (await controller.pick(index, strength)) sound.play('seal');
+            } finally {
+                choosing = false;
+            }
+        }, '未抽到有效事件，请重试。');
+    }
+
     function refresh() {
         if (!panel) return;
         const view = controller.view();
-        const card = view.held ?? view.bound;
         const applying = view.phase === 'applying';
-        const reveal = !view.held && !applying && view.reveal?.id === card?.id ? view.reveal : null;
+        const showOffer = Boolean(view.offer) && !applying;
+        // An open offer is the choice being made. Do not show a previous reveal behind it.
+        const card = view.held ?? (showOffer ? null : view.bound);
+        const reveal = !view.held && !applying && !showOffer && view.reveal?.id === card?.id ? view.reveal : null;
         const shown = Boolean(reveal && (settings.reveal === 'auto' || (settings.reveal === 'tap' && flipped.has(reveal.id))));
-        const state = applying ? 'applying' : view.held ? 'sealed' : reveal ? 'revealed' : view.bound ? 'stale' : 'empty';
+        const state = applying ? 'applying' : view.held ? 'sealed' : reveal ? 'revealed' : view.bound && !showOffer ? 'stale' : 'empty';
         const element = panel.querySelector('.director_fate_card');
+        element.hidden = showOffer && !view.held;
         element.dataset.state = state;
         element.classList.toggle('director_fate_flipped', shown);
         panel.classList.toggle('director_fate_nomotion', settings.motion === 'off');
@@ -36,18 +136,20 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         face.setAttribute('aria-hidden', String(!shown));
         panel.querySelector('#director_fate_title').textContent = card?.title ?? '故事的下一次转折';
         panel.querySelector('#director_fate_strength_label').textContent = card ? labels[card.strength] : '尚未抽牌';
-        panel.querySelector('#director_fate_rarity').textContent = card ? rarities[reveal?.rarity ?? card.rarity] ?? rarities.common : '';
+        panel.querySelector('#director_fate_rarity').textContent = card ? rarityLabel(reveal?.rarity ?? card.rarity) : '';
+        syncOffer(view);
         panel.querySelector('#director_fate_status').textContent = error || (view.busy
             ? applying ? '命运在转动…' : '正在为当前剧情抽牌…'
-            : state === 'sealed' ? '牌已封存。'
-                : state === 'revealed' ? shown ? '命运已揭晓。' : settings.reveal === 'off' ? '命运已降临，翻牌已关闭。' : '命运已降临，点击翻牌。'
-                    : state === 'stale' ? '这张牌的消息已变化，无法翻牌。' : '抽取一张牌，让故事迎来转折。');
-        panel.querySelector('#director_fate_draw').textContent = view.held ? '换一张' : '抽一张';
+            : showOffer ? '三张牌已备好，请选择一张。'
+                : state === 'sealed' ? '牌已封存。'
+                    : state === 'revealed' ? shown ? '命运已揭晓。' : settings.reveal === 'off' ? '命运已降临，翻牌已关闭。' : '命运已降临，点击翻牌。'
+                        : state === 'stale' ? '这张牌的消息已变化，无法翻牌。' : '抽取一张牌，让故事迎来转折。');
+        panel.querySelector('#director_fate_draw').textContent = view.offer ? '换一组' : '发牌';
         panel.querySelector('#director_fate_apply').hidden = !view.held;
         panel.querySelector('#director_fate_discard').hidden = !view.held;
         panel.querySelector('#director_fate_flip').hidden = !reveal || settings.reveal !== 'tap' || shown;
         panel.querySelector('#director_fate_jump').hidden = !shown;
-        for (const control of panel.querySelectorAll('.director_fate_actions button, #director_fate_strength')) control.disabled = view.busy;
+        for (const control of panel.querySelectorAll('.director_fate_actions button, #director_fate_strength, .director_fate_choice')) control.disabled = view.busy;
         panel.setAttribute('aria-busy', String(view.busy));
     }
 
@@ -116,6 +218,11 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         back.setAttribute('aria-hidden', 'false');
         face.setAttribute('aria-hidden', 'true');
         card.append(back, face);
+        const offer = document.createElement('div');
+        offer.className = 'director_fate_offer';
+        offer.hidden = true;
+        offer.setAttribute('role', 'group');
+        offer.setAttribute('aria-label', '三张命运牌');
         const strength = select('director_fate_strength', labels, 'medium');
         const status = document.createElement('p');
         status.id = 'director_fate_status';
@@ -123,11 +230,10 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         status.setAttribute('aria-live', 'polite');
         const controls = document.createElement('div');
         controls.className = 'director_fate_actions';
-        const draw = button('director_fate_draw', '抽一张', () => {
+        const draw = button('director_fate_draw', '发牌', () => {
+            // play() has to run inside the click, before the deal save yields.
             sound.play('draw');
-            action(async () => {
-                if (await controller.draw(strength.value)) sound.play('seal');
-            }, '未抽到有效事件，请重试。');
+            action(() => controller.deal(), '未能发牌，请重试。');
         });
         const apply = button('director_fate_apply', '让意外发生', () => {
             if (hasDraft()) {
@@ -164,7 +270,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         });
         controls.append(draw, apply, discard, flip, jump);
         const cost = document.createElement('small');
-        cost.textContent = '每次抽牌使用当前连接，额外生成一次；采用后立即生成剧情。';
+        cost.textContent = '发牌在本地完成。选定一张后使用当前连接，额外生成一次；采用后立即生成剧情。';
         const preferences = document.createElement('div');
         preferences.id = 'director_fate_settings';
         preferences.hidden = true;
@@ -188,7 +294,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             });
             preferences.append(labelFor(control, text), control);
         }
-        panel.append(heading, card, labelFor(strength, '下一张的强度'), strength, status, controls, cost, gear, preferences);
+        panel.append(heading, card, offer, labelFor(strength, '下一张的强度'), strength, status, controls, cost, gear, preferences);
         popup = new Popup(panel, POPUP_TYPE.TEXT, '', {
             okButton: false, cancelButton: '关闭', onOpen: () => { if (shouldFocusReveal) focusReveal(); },
         });

@@ -23,6 +23,7 @@ function cardCategoryId(card) {
 }
 
 function readCard(value) {
+    // TODO: custom decks (item 4) need per-deck validation.
     if (!value || typeof value.id !== 'string' || value.id.length === 0 || value.id.length > 200) return null;
     if (!ALL_TITLES.has(value.title) || !Object.hasOwn(STRENGTHS, value.strength) || !validEvent(value.event)) return null;
     if (!cardCategoryId(value)) return null;
@@ -260,8 +261,8 @@ export function createFateController(getContext, options = {}) {
         }
     }
 
-    // Compat path stays one quiet call and one commit. Persisting deal() first would
-    // add a save and would not yet have held.event, which existing callers assert.
+    // Internal/test-only compat path. Stays one quiet call and one commit. Persisting
+    // deal() first would add a save and would not yet have held.event, which existing callers assert.
     async function draw(strength = 'medium') {
         checkAvailable();
         if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择有效的命运强度。');

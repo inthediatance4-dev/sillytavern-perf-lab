@@ -1,6 +1,7 @@
 import { Popper } from '../../../lib.js';
 import { doNavbarIconClick, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
+import { hasPendingFileAttachment } from '../../chats.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
 import { SlashCommand } from '../../slash-commands/SlashCommand.js';
@@ -546,7 +547,7 @@ export async function init() {
         seeded = true;
     }
     const context = getContext();
-    const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim();
+    const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
     const fate = createFateController(getContext, {
         isGenerating, hasDraft, uuid:uuidv4, random:Math.random,
         generate: current => current.generate('normal'),

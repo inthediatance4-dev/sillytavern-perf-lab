@@ -34,8 +34,26 @@ function state(metadata) {
 
 function parseEvent(raw) {
     if (typeof raw !== 'string' || raw.length > 16000) throw new Error();
-    const source = raw.trim().replace(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i, '$1').trim();
-    const value = JSON.parse(source);
+    const start = raw.indexOf('{');
+    if (start < 0) throw new Error();
+    let depth = 0;
+    let quoted = false;
+    let escaped = false;
+    let end = -1;
+    for (let index = start; index < raw.length; index++) {
+        const character = raw[index];
+        if (quoted) {
+            if (escaped) escaped = false;
+            else if (character === '\\') escaped = true;
+            else if (character === '"') quoted = false;
+        } else if (character === '"') quoted = true;
+        else if (character === '{') depth++;
+        else if (character === '}' && --depth === 0) { end = index + 1; break; }
+    }
+    if (end < 0) throw new Error();
+    // Keep strict validation of the first complete object; never skip a bad
+    // object to select a later response with different private content.
+    const value = JSON.parse(raw.slice(start, end));
     if (!value || Array.isArray(value) || Object.keys(value).length !== 1 || !validEvent(value.event)) throw new Error();
     return value.event.trim();
 }
@@ -100,7 +118,6 @@ export function createFateController(getContext, options = {}) {
     async function commit(snapshot, next) {
         if (!current(snapshot)) return false;
         const metadata = snapshot.metadata;
-        const previousDirector = metadata.director;
         if (!metadata.director || typeof metadata.director !== 'object' || Array.isArray(metadata.director)) metadata.director = {};
         const previous = metadata.director.fate;
         metadata.director.fate = next;
@@ -108,8 +125,7 @@ export function createFateController(getContext, options = {}) {
             if (await save(snapshot.context, () => current(snapshot)) === false) throw new Error();
         } catch {
             if (metadata.director?.fate === next) {
-                if (previousDirector !== metadata.director) metadata.director = previousDirector;
-                else if (previous === undefined) delete metadata.director.fate;
+                if (previous === undefined) delete metadata.director.fate;
                 else metadata.director.fate = previous;
             }
             throw new Error('命运卡保存失败，请重试。');
@@ -300,6 +316,11 @@ export function createFateController(getContext, options = {}) {
         const target = context.chat[record.slotIndex];
         const bound = { ...record.card, slotIndex: record.slotIndex, prevFingerprint: messageFingerprint(context.chat[record.slotIndex - 1]),
             generationId: target.extra?.gen_id ?? null, batchEndIndex: record.slotIndex, groupRetry: false };
+        if (!record.attempt && value.bound && Object.keys(bound).length === Object.keys(value.bound).length
+            && Object.keys(bound).every(key => Object.is(bound[key], value.bound[key]))) {
+            if (record.scope) record.scope.card = value.bound;
+            return;
+        }
         const saved = await commit(record.snapshot, { ...value, held: record.attempt ? null : value.held, bound });
         if (saved && record.attempt) record.attempt.consumed = true;
         if (saved && record.scope) record.scope.card = bound;

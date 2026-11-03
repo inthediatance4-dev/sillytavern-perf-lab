@@ -69,7 +69,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         apply.textContent = '让意外发生';
         apply.addEventListener('click', () => {
             if (hasDraft()) {
-                error = '请先发送或清空输入框中的草稿，再让意外发生。';
+                error = '请先发送或清空草稿及待发送的附件，再让意外发生。';
                 refresh();
                 return;
             }

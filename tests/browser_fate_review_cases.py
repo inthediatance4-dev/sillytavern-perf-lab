@@ -64,7 +64,17 @@ def run_fate_review_checks(page, sample, fake_url, result, connect_api):
         configure(json.dumps({'event': event}, ensure_ascii=False))
         open_panel()
         previous = (fate().get('held') or {}).get('id')
-        page.locator('#director_fate_draw').click()
+        # 发牌 only stores three local backs. The quiet generation is the pick.
+        offer = page.locator('.director_fate_offer')
+        if offer.count() == 0 or not offer.is_visible():
+            page.locator('#director_fate_draw').click()
+        page.locator('.director_fate_offer').wait_for(state='visible')
+        page.wait_for_function("""() => {
+            const cards = [...document.querySelectorAll('.director_fate_choice')];
+            return cards.length === 3 && cards.every(card => !card.disabled);
+        }""")
+        assert event not in page.locator('body').evaluate('node => node.outerHTML'), 'Sealed event leaked to DOM'
+        page.locator('.director_fate_choice').first.click()
         page.wait_for_function("""id => {
             const held = SillyTavern.getContext().chatMetadata.director?.fate?.held;
             return held && held.id !== id;
@@ -72,6 +82,7 @@ def run_fate_review_checks(page, sample, fake_url, result, connect_api):
         page.wait_for_function("!document.querySelector('#director_fate_draw').disabled")
         held = fate()['held']
         assert held['event'] == event
+        assert not fate().get('offer')
         assert event not in page.locator('body').evaluate('node => node.outerHTML'), 'Sealed event leaked to DOM'
         return held
 

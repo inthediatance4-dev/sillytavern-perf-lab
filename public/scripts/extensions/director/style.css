@@ -94,6 +94,109 @@
 #director_fate_settings select { min-width: 0; max-width: 100%; }
 #director_fate_panel [hidden] { display: none; }
 
+.director_fate_tabs {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+    padding-bottom: 8px;
+}
+
+.director_fate_tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    padding: 3px 5px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 7px;
+    background-color: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    filter: grayscale(0.5);
+    text-align: center;
+    white-space: normal;
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.director_fate_tab:hover { background-color: var(--white30a); }
+
+.director_fate_tabs [aria-selected="true"] {
+    border-color: var(--SmartThemeQuoteColor);
+    color: var(--SmartThemeQuoteColor);
+}
+
+#director_fate_log_list {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    margin: 16px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.director_fate_log_entry {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 8px;
+    background: var(--SmartThemeBlurTintColor);
+}
+
+.director_fate_log_entry:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    outline-offset: 2px;
+}
+
+.director_fate_log_heading,
+.director_fate_log_details,
+.director_fate_log_actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    min-width: 0;
+}
+
+.director_fate_log_heading strong { min-width: 0; }
+.director_fate_log_details { margin-top: 6px; font-size: 0.85em; opacity: 0.85; }
+.director_fate_log_status { padding: 2px 6px; border: 1px solid var(--SmartThemeBorderColor); border-radius: 4px; }
+.director_fate_log_event { margin: 12px 0; white-space: pre-wrap; }
+.director_fate_log_actions { margin-top: 10px; }
+.director_fate_log_actions .menu_button { min-width: 0; margin: 0; white-space: normal; }
+#director_fate_clear_log { display: block; margin: 12px 0 0; }
+
+.director_fate_rarity_dot { flex: 0 0 auto; font-size: 0.7em; }
+.director_fate_rarity_dot[data-rarity="common"], .director_fate_mark[data-rarity="common"] { color: var(--SmartThemeBodyColor); }
+.director_fate_rarity_dot[data-rarity="rare"], .director_fate_mark[data-rarity="rare"] { color: #c0c6d0; }
+.director_fate_rarity_dot[data-rarity="legendary"], .director_fate_mark[data-rarity="legendary"] { color: #d4af37; }
+
+.director_fate_mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    margin: 0 0 0 6px;
+    padding: 0 3px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    background: transparent;
+    font: inherit;
+    font-size: 0.8em;
+    line-height: 1.4;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+.director_fate_mark.is_fresh { animation: director_fate_mark_pulse 700ms ease-out; }
+
+@keyframes director_fate_mark_pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    45% { transform: scale(1.25); opacity: 0.65; }
+}
+
 .director_fate_offer {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -151,19 +254,27 @@
 .director_fate_nomotion .director_fate_card ::before,
 .director_fate_nomotion .director_fate_card ::after,
 .director_fate_nomotion .director_fate_choice,
-.director_fate_nomotion .director_fate_choice_seal { animation: none !important; }
+.director_fate_nomotion .director_fate_choice_seal,
+.director_fate_nomotion .director_fate_mark { animation: none !important; }
 .director_fate_nomotion .director_fate_back,
 .director_fate_nomotion .director_fate_face { transform: none; transition: opacity 150ms ease; }
 .director_fate_nomotion .director_fate_choice { transform: none; transition: opacity 150ms ease; }
+.director_fate_nomotion .director_fate_tab,
+body.reduced-motion .director_fate_tab,
+body.reduced-motion .director_fate_mark {
+    animation: none !important;
+    transition: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
     .director_fate_card *, .director_fate_card ::before, .director_fate_card ::after,
-    .director_fate_choice, .director_fate_choice_seal { animation: none !important; }
+    .director_fate_choice, .director_fate_choice_seal, .director_fate_mark { animation: none !important; }
     .director_fate_back, .director_fate_face { transform: none !important; transition: opacity 150ms ease; }
     .director_fate_choice, .director_fate_offer.is_picking .director_fate_choice.is_picked {
         transform: none !important;
         transition: opacity 150ms ease;
     }
+    .director_fate_tab { animation: none !important; transition: none; }
 }
 
 #directorPopover {
@@ -294,7 +405,8 @@
     user-select: none;
 }
 
-.mes.director-chapter-highlight {
+.mes.director-chapter-highlight,
+.mes.director-fate-highlight {
     box-shadow: inset 0 0 0 2px var(--SmartThemeQuoteColor);
 }
 

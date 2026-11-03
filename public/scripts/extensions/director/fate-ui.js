@@ -1,10 +1,11 @@
 /** Events cross into the face only after completion and the user's reveal policy. */
 export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn,
     settings = { reveal: 'tap', sound: false, motion: 'system' }, sound = { play() {} },
-    saveSettings = () => {}, restoreFocus = () => document.getElementById('director_fate_open')?.focus() }) {
+    saveSettings = () => {}, restoreFocus = () => document.getElementById('director_fate_open')?.focus(), jumpToMessage }) {
     let panel = null;
     let popup = null;
     let error = '';
+    let activeTab = 'current';
     const flipped = new Set();
     const labels = { light: '轻微波澜', medium: '明显转折', strong: '重大变故' };
     const rarities = { common: '寻常', rare: '稀有', legendary: '传说' };
@@ -22,6 +23,118 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
 
     function rarityLabel(id) {
         return rarities[id] ?? rarities.common;
+    }
+
+    function selectTab(tab, focus = false) {
+        const next = tab === 'log' ? 'log' : 'current';
+        const changed = next !== activeTab;
+        activeTab = next;
+        for (const name of ['current', 'log']) {
+            const selected = name === activeTab;
+            const control = panel.querySelector(`#director_fate_tab_${name}`);
+            control.setAttribute('aria-selected', String(selected));
+            control.tabIndex = selected ? 0 : -1;
+            panel.querySelector(`#director_fate_${name}`).hidden = !selected;
+            if (selected && focus) control.focus();
+        }
+        if (changed) syncLog(controller.view());
+    }
+
+    function focusEntry(id) {
+        const entry = [...panel.querySelectorAll('.director_fate_log_entry')].find(item => item.dataset.entryId === id);
+        if (entry) {
+            entry.focus();
+            entry.scrollIntoView({ block: 'nearest' });
+        } else panel.querySelector('#director_fate_tab_log').focus();
+    }
+
+    async function jumpToEntry(entry) {
+        // Resolve the destination while the dialog is open so a cancelled long
+        // jump keeps the log available. The helper also loads older messages.
+        if (jumpToMessage) {
+            const activePopup = popup;
+            await jumpToMessage(entry.slotIndex, 'director-fate-highlight', () => activePopup?.complete(POPUP_RESULT.AFFIRMATIVE), { warnMissing: true });
+            return;
+        }
+        const message = document.querySelector(`#chat [mesid="${entry.slotIndex}"]`);
+        if (!message) { warn('该消息未加载，请向上滚动'); return; }
+        await popup?.complete(POPUP_RESULT.AFFIRMATIVE);
+        message.scrollIntoView({ block: 'center' });
+    }
+
+    function syncLog(view) {
+        const list = panel.querySelector('#director_fate_log_list');
+        const entries = controller.log();
+        const focused = document.activeElement;
+        const focusedEntry = focused?.closest?.('.director_fate_log_entry');
+        const focusedId = focusedEntry?.dataset.entryId;
+        const focusedAction = focused?.dataset.fateAction;
+        list.replaceChildren();
+        for (const entry of entries) {
+            const item = document.createElement('li');
+            item.className = 'director_fate_log_entry';
+            item.dataset.entryId = entry.id;
+            item.tabIndex = -1;
+            const heading = document.createElement('div');
+            heading.className = 'director_fate_log_heading';
+            const dot = document.createElement('span');
+            dot.className = 'director_fate_rarity_dot';
+            dot.dataset.rarity = entry.rarity;
+            dot.textContent = '●';
+            dot.setAttribute('aria-label', rarityLabel(entry.rarity));
+            const title = document.createElement('strong');
+            title.textContent = entry.title;
+            heading.append(dot, title);
+            const details = document.createElement('div');
+            details.className = 'director_fate_log_details';
+            const strength = document.createElement('span');
+            strength.textContent = labels[entry.strength];
+            const position = document.createElement('span');
+            position.textContent = `第 ${entry.slotIndex + 1} 条`;
+            details.append(strength, position);
+            if (entry.status !== 'ok') {
+                const status = document.createElement('span');
+                status.className = 'director_fate_log_status';
+                status.textContent = entry.status === 'missing' ? '消息已删除' : '消息已改写';
+                details.append(status);
+            }
+            const event = document.createElement('p');
+            event.className = 'director_fate_log_event';
+            const revealed = settings.reveal === 'auto' || (settings.reveal === 'tap' && flipped.has(entry.id));
+            const shown = activeTab === 'log' && revealed;
+            // Leave hidden tabs empty, including when the current anchor has
+            // changed. The current card and visible log share flip memory.
+            event.textContent = shown ? entry.event : '';
+            event.hidden = !shown;
+            const actions = document.createElement('div');
+            actions.className = 'director_fate_log_actions';
+            const flip = button('', '翻开', () => {
+                if (settings.reveal !== 'tap' || flipped.has(entry.id)) return;
+                flipped.add(entry.id);
+                sound.play('flip');
+                refresh();
+                focusEntry(entry.id);
+            });
+            flip.classList.add('director_fate_log_flip');
+            flip.dataset.fateAction = 'flip';
+            flip.hidden = settings.reveal !== 'tap' || revealed;
+            actions.append(flip);
+            const jump = button('', '跳转', () => action(() => jumpToEntry(entry), '未能跳转到该消息。'));
+            jump.classList.add('director_fate_log_jump');
+            jump.dataset.fateAction = 'jump';
+            jump.disabled = entry.status !== 'ok';
+            actions.append(jump);
+            item.append(heading, details, event, actions);
+            list.append(item);
+        }
+        panel.querySelector('#director_fate_log_empty').hidden = entries.length > 0;
+        panel.querySelector('#director_fate_clear_log').disabled = view.busy || !entries.length;
+        panel.querySelector('#director_fate_tab_log').textContent = `本局命运（${view.logCount}）`;
+        if (focusedId && activeTab === 'log') {
+            const item = [...list.querySelectorAll('.director_fate_log_entry')].find(node => node.dataset.entryId === focusedId);
+            const control = item && [...item.querySelectorAll('button')].find(node => node.dataset.fateAction === focusedAction);
+            (control ?? item)?.focus();
+        }
     }
 
     function syncOffer(view) {
@@ -129,6 +242,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         element.dataset.state = state;
         element.classList.toggle('director_fate_flipped', shown);
         panel.classList.toggle('director_fate_nomotion', settings.motion === 'off');
+        document.documentElement?.classList.toggle('director_fate_nomotion', settings.motion === 'off');
         panel.querySelector('.director_fate_back').setAttribute('aria-hidden', String(shown));
         const face = panel.querySelector('.director_fate_face');
         // Do not prefill hidden text, attributes, accessibility names or tooltips.
@@ -151,6 +265,8 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         panel.querySelector('#director_fate_jump').hidden = !shown;
         for (const control of panel.querySelectorAll('.director_fate_actions button, #director_fate_strength, .director_fate_choice')) control.disabled = view.busy;
         panel.setAttribute('aria-busy', String(view.busy));
+        syncLog(view);
+        selectTab(activeTab);
     }
 
     function action(operation, failure) {
@@ -187,16 +303,41 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         return label;
     }
 
-    async function open({ focusReveal: shouldFocusReveal = false } = {}) {
+    async function open({ focusReveal: shouldFocusReveal = false, tab = 'current', entryId } = {}) {
         if (popup) {
+            selectTab(tab);
+            if (tab === 'log') focusEntry(entryId);
             if (shouldFocusReveal) focusReveal();
             return;
         }
         error = '';
+        activeTab = tab === 'log' ? 'log' : 'current';
         panel = document.createElement('div');
         panel.id = 'director_fate_panel';
         const heading = document.createElement('h3');
         heading.textContent = '🎴 盲抽命运牌';
+        const tabs = document.createElement('div');
+        tabs.className = 'director_fate_tabs';
+        tabs.setAttribute('role', 'tablist');
+        tabs.setAttribute('aria-label', '命运牌');
+        for (const [name, text] of [['current', '当前'], ['log', '本局命运（0）']]) {
+            const control = button(`director_fate_tab_${name}`, text, () => selectTab(name));
+            // Core a11y turns .menu_button into role="button"; tabs keep their own styling.
+            control.className = 'director_fate_tab';
+            control.setAttribute('role', 'tab');
+            control.setAttribute('aria-controls', `director_fate_${name}`);
+            control.addEventListener('keydown', event => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const next = event.key === 'Home' ? 'current' : event.key === 'End' ? 'log' : name === 'current' ? 'log' : 'current';
+                selectTab(next, true);
+            });
+            tabs.append(control);
+        }
+        const current = document.createElement('div');
+        current.id = 'director_fate_current';
+        current.setAttribute('role', 'tabpanel');
+        current.setAttribute('aria-labelledby', 'director_fate_tab_current');
         const card = document.createElement('div');
         card.className = 'director_fate_card';
         card.tabIndex = -1;
@@ -262,15 +403,27 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const jump = button('director_fate_jump', '跳到该消息', () => {
             const reveal = controller.view().reveal;
             if (!reveal) return;
-            const message = document.querySelector(`#chat [mesid="${reveal.slotIndex}"]`);
-            if (!message) { warn('该消息未加载，请向上滚动'); return; }
-            // Close the modal so the message being scrolled to is visible.
-            const closing = popup?.complete(POPUP_RESULT.AFFIRMATIVE);
-            Promise.resolve(closing).then(() => message.scrollIntoView({ block: 'center' }));
+            action(() => jumpToEntry(reveal), '未能跳转到该消息。');
         });
         controls.append(draw, apply, discard, flip, jump);
         const cost = document.createElement('small');
         cost.textContent = '发牌在本地完成。选定一张后使用当前连接，额外生成一次；采用后立即生成剧情。';
+        current.append(card, offer, labelFor(strength, '下一张的强度'), strength, status, controls, cost);
+        const log = document.createElement('div');
+        log.id = 'director_fate_log';
+        log.setAttribute('role', 'tabpanel');
+        log.setAttribute('aria-labelledby', 'director_fate_tab_log');
+        const logList = document.createElement('ol');
+        logList.id = 'director_fate_log_list';
+        const empty = document.createElement('p');
+        empty.id = 'director_fate_log_empty';
+        empty.textContent = '本局尚无已降临的命运。';
+        const clear = button('director_fate_clear_log', '清空日志', () => action(async () => {
+            const result = await Popup.show.confirm('清空本局命运日志？', '已记录的命运将被移除，当前的牌和剧情消息会保留。');
+            if (result !== POPUP_RESULT.AFFIRMATIVE) return;
+            await controller.clearLog();
+        }, '未能清空日志，请重试。'));
+        log.append(logList, empty, clear);
         const preferences = document.createElement('div');
         preferences.id = 'director_fate_settings';
         preferences.hidden = true;
@@ -294,14 +447,54 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             });
             preferences.append(labelFor(control, text), control);
         }
-        panel.append(heading, card, offer, labelFor(strength, '下一张的强度'), strength, status, controls, cost, gear, preferences);
+        panel.append(heading, tabs, current, log, gear, preferences);
+        // The dialog focuses its autofocus control inside showModal. onOpen runs
+        // only after the opening animation, which is too late for a caller that
+        // reads document.activeElement as soon as the panel is visible.
+        function openedFocusTarget() {
+            if (activeTab === 'log') {
+                const entry = [...panel.querySelectorAll('.director_fate_log_entry')].find(item => item.dataset.entryId === entryId);
+                return entry ?? panel.querySelector('#director_fate_tab_log');
+            }
+            if (!shouldFocusReveal) return null;
+            const flip = panel.querySelector('#director_fate_flip');
+            const jump = panel.querySelector('#director_fate_jump');
+            if (flip && !flip.hidden) return flip;
+            if (jump && !jump.hidden) return jump;
+            return panel.querySelector('.director_fate_card');
+        }
+        function focusOpened() {
+            const target = openedFocusTarget();
+            if (!target || typeof target.focus !== 'function') return;
+            target.focus();
+            if (target.classList.contains('director_fate_log_entry') && typeof target.scrollIntoView === 'function') {
+                target.scrollIntoView({ block: 'nearest' });
+            }
+        }
         popup = new Popup(panel, POPUP_TYPE.TEXT, '', {
-            okButton: false, cancelButton: '关闭', onOpen: () => { if (shouldFocusReveal) focusReveal(); },
+            okButton: false, cancelButton: '关闭', onOpen: () => {
+                const target = openedFocusTarget();
+                if (!target) return;
+                const active = document.activeElement;
+                if (active === target) return;
+                // Leave a tab or control the user already reached during the animation.
+                if (active && panel.contains(active)) return;
+                focusOpened();
+            },
         });
         let escaped = false;
         popup.dlg.addEventListener('cancel', () => { escaped = true; });
         refresh();
-        try { await popup.show(); }
+        const initialTarget = openedFocusTarget();
+        if (initialTarget && typeof popup.dlg.querySelectorAll === 'function') {
+            for (const node of popup.dlg.querySelectorAll('[autofocus]')) node.removeAttribute('autofocus');
+            initialTarget.setAttribute('autofocus', '');
+        }
+        try {
+            const shown = popup.show();
+            focusOpened();
+            await shown;
+        }
         finally {
             popup = null;
             panel = null;

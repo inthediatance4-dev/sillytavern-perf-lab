@@ -4,7 +4,7 @@ import { messageFingerprint } from './instruct.js';
 export const FATE_PROMPT_KEY = 'director_fate';
 const FATE_NARRATOR_NAME = 'Narrator';
 // Remove an entire unknown frame, including private text, or an old short token.
-const FATE_FRAMES = /\uE000(directorfate\d+x[a-zA-Z0-9]+)\uE001[\s\S]*?\uE002\1\uE003|\uE000directorfate\d+x[a-zA-Z0-9]+\uE001[\s\S]*$|directorfate\d+x[a-zA-Z0-9]+/g;
+const FATE_FRAMES = /\uE000(directorfate\d+x[a-zA-Z0-9]+)\uE001[\s\S]*?\uE002\1\uE003|(\uE000directorfate\d+x[a-zA-Z0-9]+\uE001[\s\S]*$)|directorfate\d+x[a-zA-Z0-9]+/g;
 const CATEGORIES = [
     { title: '意外的回声', theme: 'a surprising discovery or new information' },
     { title: '不期而遇', theme: 'an unexpected encounter or arrival' },
@@ -304,7 +304,8 @@ export function createFateController(getContext, options = {}) {
         const matched = new Set();
         const seen = new WeakSet();
         for (const key of ['prompt', 'input']) if (Object.hasOwn(data, key)) {
-            data[key] = visit(data[key], value => value.replace(FATE_FRAMES, frame => {
+            data[key] = visit(data[key], value => value.replace(FATE_FRAMES, (frame, _tag, malformedFrame) => {
+                if (malformedFrame) console.warn('Director Fate stripped a malformed frame and the remaining prompt');
                 const record = tokens.get(frame);
                 if (!record || record.invalid || !current(record.snapshot)) return '';
                 matched.add(record);

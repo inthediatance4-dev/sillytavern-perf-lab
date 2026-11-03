@@ -279,7 +279,8 @@ test('quiet completion preserves a normal request that was already assembled', a
     assert.equal(await fixture.controller.apply(), true);
 });
 
-test('unrecognized, stopped and stale Fate frames are removed with their entire private body', async () => {
+test('unrecognized, stopped and stale Fate frames are removed with their entire private body', async t => {
+    const warn = t.mock.method(console, 'warn', () => {});
     for (const kind of ['unknown', 'stopped', 'stale']) {
         const fixture = lab();
         await fixture.controller.draw();
@@ -301,6 +302,21 @@ test('unrecognized, stopped and stale Fate frames are removed with their entire 
     const data = { prompt: 'ordinary directorfate123xdeadbeef remainder' };
     await fixture.emit('GENERATE_AFTER_DATA', data, false);
     assert.equal(data.prompt, 'ordinary  remainder');
+    assert.equal(warn.mock.callCount(), 0);
+});
+
+test('malformed Fate frames warn without private text and strip the remaining prompt', async t => {
+    const warn = t.mock.method(console, 'warn', () => {});
+    const fixture = lab();
+    for (const ending of ['', '\uE002directorfate456xmismatch\uE003']) {
+        const data = { prompt: `before \uE000directorfate123xdeadbeef\uE001${privateEvent}${ending} after output sequence` };
+        await fixture.emit('GENERATE_AFTER_DATA', data, false);
+        assert.equal(data.prompt, 'before ');
+    }
+    assert.equal(warn.mock.callCount(), 2);
+    for (const call of warn.mock.calls) {
+        assert.deepEqual(call.arguments, ['Director Fate stripped a malformed frame and the remaining prompt']);
+    }
 });
 
 test('Generate excludes only the temporary Fate row from world-info scanning', () => {

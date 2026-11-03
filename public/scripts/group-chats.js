@@ -169,28 +169,29 @@ async function _save(group, reload = true) {
 
 // Group chats
 async function regenerateGroup() {
+    if (is_send_press || is_group_generating) return;
+
     // This operation deletes the previous batch before its normal Generate calls.
     // Let extensions distinguish an explicit replay from an ordinary deletion.
     const operation = { groupId: selected_group, chatId: getCurrentChatId(), generationId: getLastMessageGenerationId() };
     const ownerMetadata = chat_metadata;
+    const isCurrentOwner = () => selected_group === operation.groupId && getCurrentChatId() === operation.chatId && chat_metadata === ownerMetadata;
+    // Extension listeners may save metadata before the group wrapper takes over.
+    setSendButtonState(true);
+    let ownsSendLock = true;
     try {
         await eventSource.emit(event_types.GROUP_REGENERATION_STARTED, operation);
-        if (selected_group !== operation.groupId || getCurrentChatId() !== operation.chatId || chat_metadata !== ownerMetadata) {
-            setSendButtonState(false);
+        if (!isCurrentOwner() || operation.cancelled || getLastMessageGenerationId() !== operation.generationId) {
             return;
         }
-        if (operation.cancelled) {
-            setSendButtonState(false);
-            return;
-        }
-        let generationId = getLastMessageGenerationId();
 
         while (chat.length > 0) {
+            if (!isCurrentOwner()) return;
             const lastMes = chat[chat.length - 1];
             const this_generationId = lastMes.extra?.gen_id;
 
             // for new generations after the update
-            if ((generationId && this_generationId) && generationId !== this_generationId) {
+            if ((operation.generationId && this_generationId) && operation.generationId !== this_generationId) {
                 break;
             } else if (lastMes.is_user || lastMes.is_system) {
                 // legacy for generations before the update
@@ -200,11 +201,14 @@ async function regenerateGroup() {
             await deleteLastMessage();
         }
 
+        if (!isCurrentOwner()) return;
         const abortController = new AbortController();
         setExternalAbortController(abortController);
+        ownsSendLock = false;
         return await generateGroupWrapper(false, 'normal', { signal: abortController.signal });
     } finally {
         await eventSource.emit(event_types.GROUP_REGENERATION_FINISHED, operation);
+        if (ownsSendLock && isCurrentOwner()) setSendButtonState(false);
     }
 }
 

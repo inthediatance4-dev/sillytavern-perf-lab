@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../public/scripts/group-chats.js', import.m
 const begin = source.indexOf('async function regenerateGroup() {');
 const fn = source.slice(begin, source.indexOf('\n}\n', begin) + 2);
 
-function fixture(onStart = () => {}) {
+function fixture(onStart = () => {}, onFinish = () => {}) {
     let resolve;
     let reject;
     const gate = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -14,22 +14,38 @@ function fixture(onStart = () => {}) {
     const started = new Promise(yes => { entered = yes; });
     const events = [];
     const sendButtonStates = [];
-    let sendInProgress = true;
     let generationCalls = 0;
     const deps = {
         selected_group:'group', chat_metadata:{}, chat:[{is_user:true,extra:{gen_id:100}}],
-        chatId:'chat', getCurrentChatId:() => deps.chatId, getLastMessageGenerationId:() => 100,
+        is_send_press:false, is_group_generating:false,
+        chatId:'chat', getCurrentChatId:() => deps.chatId,
+        getLastMessageGenerationId:() => {
+            const message = deps.chat.at(-1);
+            return message && !message.is_user && !message.is_system && message.extra ? message.extra.gen_id : null;
+        },
         event_types:{GROUP_REGENERATION_STARTED:'start',GROUP_REGENERATION_FINISHED:'finish'},
-        eventSource:{emit:async name => { events.push(name); if(name === 'start') onStart(deps); }},
+        eventSource:{emit:async (name,operation) => {
+            events.push(name);
+            if(name === 'start') await onStart(deps,operation);
+            if(name === 'finish') await onFinish(deps,operation);
+        }},
         deleteLastMessage:async () => { throw new Error('must not delete the user message'); },
         setExternalAbortController:() => {},
-        setSendButtonState:value => { sendInProgress = value; sendButtonStates.push(value); },
-        generateGroupWrapper:() => { generationCalls++; entered(); return gate; },
+        setSendButtonState:value => { deps.is_send_press = value; sendButtonStates.push(value); },
+        generateGroupWrapper:async () => {
+            generationCalls++;
+            entered();
+            try {
+                return await gate;
+            } finally {
+                deps.setSendButtonState(false);
+            }
+        },
     };
     // Module bindings can change while emit is awaited; resolve them from the mutable environment.
     const regenerate = new Function('environment', 'with (environment) { return (' + fn + '); }')(deps);
     return {regenerate,events,resolve,reject,started,deps,sendButtonStates,
-        get sendInProgress() { return sendInProgress; },
+        get sendInProgress() { return deps.is_send_press; },
         get generationCalls() { return generationCalls; },
     };
 }
@@ -39,9 +55,11 @@ test('real group regeneration keeps its scope until asynchronous generation comp
     const pending = lab.regenerate();
     await lab.started;
     assert.deepEqual(lab.events,['start']);
+    assert.equal(lab.sendInProgress,true);
     lab.resolve('done');
     assert.equal(await pending,'done');
     assert.deepEqual(lab.events,['start','finish']);
+    assert.deepEqual(lab.sendButtonStates,[true,false]);
 });
 
 test('real group regeneration always finishes its scope on a rejected generation', async () => {
@@ -51,57 +69,175 @@ test('real group regeneration always finishes its scope on a rejected generation
     lab.reject(new Error('synthetic failure'));
     await assert.rejects(pending,/synthetic failure/);
     assert.deepEqual(lab.events,['start','finish']);
+    assert.deepEqual(lab.sendButtonStates,[true,false]);
 });
 
+for (const rejected of [false,true]) {
+    test(`regeneration preserves a new same-chat generation lock while its finish listener waits after ${rejected ? 'failure' : 'success'}`, async () => {
+        let finishListener;
+        const waiting = new Promise(resolve => { finishListener = resolve; });
+        let enteredFinish;
+        const finishing = new Promise(resolve => { enteredFinish = resolve; });
+        const lab = fixture(undefined, async () => { enteredFinish(); await waiting; });
+        const pending = lab.regenerate();
+        await lab.started;
+        if (rejected) lab.reject(new Error('synthetic failure'));
+        else lab.resolve('done');
+        await finishing;
+
+        assert.deepEqual(lab.sendButtonStates,[true,false]);
+        assert.equal(lab.sendInProgress,false);
+        lab.deps.setSendButtonState(true);
+        lab.deps.is_group_generating = true;
+        finishListener();
+        if (rejected) await assert.rejects(pending,/synthetic failure/);
+        else assert.equal(await pending,'done');
+
+        assert.deepEqual(lab.events,['start','finish']);
+        assert.deepEqual(lab.sendButtonStates,[true,false,true]);
+        assert.equal(lab.sendInProgress,true);
+        assert.equal(lab.deps.is_group_generating,true);
+    });
+}
+
 test('an extension can cancel regeneration before the old batch is deleted', async () => {
-    const lab = fixture();
-    let generated=false;lab.started.then(()=>{generated=true;});lab.resolve('unused');
-    lab.deps.eventSource.emit = async (name,operation) => {
-        lab.events.push(name);
-        if(name === 'start') operation.cancelled=true;
-    };
-    // fixture closes over the same eventSource object, not its emit function.
+    const lab = fixture((_deps,operation) => { operation.cancelled = true; });
     await lab.regenerate();
-    assert.equal(generated,false);
+    assert.equal(lab.generationCalls,0);
     assert.deepEqual(lab.events,['start','finish']);
+    assert.deepEqual(lab.sendButtonStates,[true,false]);
+    assert.equal(lab.sendInProgress,false);
 });
+
+test('rapid regenerations lock before the start listener saves and delete only the captured batch', async () => {
+    let finishStart;
+    const saving = new Promise(resolve => { finishStart = resolve; });
+    let operation;
+    const lab = fixture(async (_deps,marker) => { operation = marker; await saving; });
+    const previousBatch = [
+        {is_user:true,mes:'user message'},
+        {is_user:false,mes:'previous first response',extra:{gen_id:50}},
+        {is_user:false,mes:'previous second response',extra:{gen_id:50}},
+    ];
+    const targetBatch = [
+        {is_user:false,mes:'target first response',extra:{gen_id:100}},
+        {is_user:false,mes:'target second response',extra:{gen_id:100}},
+    ];
+    lab.deps.chat = structuredClone([...previousBatch,...targetBatch]);
+    const deleted = [];
+    lab.deps.deleteLastMessage = async () => { deleted.push(lab.deps.chat.pop()); };
+
+    const first = lab.regenerate();
+    assert.equal(lab.sendInProgress,true);
+    assert.equal(operation.generationId,100);
+    assert.equal(await lab.regenerate(),undefined);
+    assert.equal(lab.generationCalls,0);
+    assert.deepEqual(lab.events,['start']);
+    assert.deepEqual(lab.sendButtonStates,[true]);
+    assert.deepEqual(deleted,[]);
+
+    finishStart();
+    await lab.started;
+    assert.equal(lab.generationCalls,1);
+    assert.deepEqual(lab.deps.chat,previousBatch);
+    assert.deepEqual(deleted,targetBatch.toReversed());
+    lab.resolve('done');
+    assert.equal(await first,'done');
+    assert.deepEqual(lab.events,['start','finish']);
+    assert.deepEqual(lab.sendButtonStates,[true,false]);
+});
+
+for (const flag of ['is_send_press','is_group_generating']) {
+    test(`regeneration does not acquire or release a pre-existing ${flag} lock`, async () => {
+        const lab = fixture();
+        lab.deps[flag] = true;
+
+        assert.equal(await lab.regenerate(),undefined);
+        assert.equal(lab.deps[flag],true);
+        assert.equal(lab.generationCalls,0);
+        assert.deepEqual(lab.events,[]);
+        assert.deepEqual(lab.sendButtonStates,[]);
+    });
+}
 
 for (const [name, changeOwner] of [
     ['group', deps => { deps.selected_group = 'other-group'; }],
     ['chat ID', deps => { deps.chatId = 'other-chat'; }],
     ['metadata', deps => { deps.chat_metadata = {}; }],
 ]) {
-    test(`regeneration releases sending when ${name} changes during its start event`, async () => {
-        let changed = false;
-        const lab = fixture(deps => {
-            if (!changed) {
+    for (const sending of [true,false]) {
+        test(`regeneration preserves the new owner's sending=${sending} when ${name} changes during its start event`, async () => {
+            const lab = fixture(deps => {
                 changeOwner(deps);
-                changed = true;
-            }
+                deps.is_send_press = sending;
+                deps.is_group_generating = sending;
+            });
+            const originalMessages = [
+                {is_user:true,mes:'original user message'},
+                {is_user:false,mes:'original response',extra:{gen_id:100}},
+            ];
+            lab.deps.chat = structuredClone(originalMessages);
+            let deletions = 0;
+            lab.deps.deleteLastMessage = async () => { deletions++; lab.deps.chat.pop(); };
+
+            assert.equal(await lab.regenerate(),undefined);
+            assert.equal(deletions,0);
+            assert.equal(lab.generationCalls,0);
+            assert.deepEqual(lab.deps.chat,originalMessages);
+            assert.deepEqual(lab.events,['start','finish']);
+            assert.deepEqual(lab.sendButtonStates,[true]);
+            assert.equal(lab.sendInProgress,sending);
+            assert.equal(lab.deps.is_group_generating,sending);
         });
-        const originalMessages = [
-            {is_user:true,mes:'original user message',extra:{gen_id:100}},
-            {is_user:false,mes:'original response',extra:{gen_id:100}},
-        ];
-        lab.deps.chat = structuredClone(originalMessages);
-        let deletions = 0;
-        lab.deps.deleteLastMessage = async () => { deletions++; lab.deps.chat.pop(); };
-        lab.resolve('follow-up completed');
-
-        assert.equal(await lab.regenerate(),undefined);
-        assert.equal(deletions,0);
-        assert.equal(lab.generationCalls,0);
-        assert.deepEqual(lab.deps.chat,originalMessages);
-        assert.deepEqual(lab.events,['start','finish']);
-        assert.deepEqual(lab.sendButtonStates,[false]);
-        assert.equal(lab.sendInProgress,false);
-
-        assert.equal(await lab.regenerate(),'follow-up completed');
-        assert.equal(lab.generationCalls,1);
-        assert.equal(deletions,1);
-        assert.deepEqual(lab.events,['start','finish','start','finish']);
-    });
+    }
 }
+
+test('regeneration aborts without deleting when the last batch changes during its start event', async () => {
+    const replacement = {is_user:false,mes:'new response',extra:{gen_id:200}};
+    const lab = fixture(deps => { deps.chat.push(replacement); });
+    const originalMessages = [
+        {is_user:true,mes:'user message'},
+        {is_user:false,mes:'original response',extra:{gen_id:100}},
+    ];
+    lab.deps.chat = structuredClone(originalMessages);
+    let deletions = 0;
+    lab.deps.deleteLastMessage = async () => { deletions++; lab.deps.chat.pop(); };
+
+    assert.equal(await lab.regenerate(),undefined);
+    assert.equal(deletions,0);
+    assert.equal(lab.generationCalls,0);
+    assert.deepEqual(lab.deps.chat,[...originalMessages,replacement]);
+    assert.deepEqual(lab.events,['start','finish']);
+    assert.deepEqual(lab.sendButtonStates,[true,false]);
+});
+
+test('regeneration stops deleting and preserves another chat generation when ownership changes during deletion', async () => {
+    const lab = fixture();
+    lab.deps.chat = [
+        {is_user:true,mes:'user message'},
+        {is_user:false,mes:'first response',extra:{gen_id:100}},
+        {is_user:false,mes:'second response',extra:{gen_id:100}},
+    ];
+    const otherChat = [{is_user:false,mes:'other chat response',extra:{gen_id:200}}];
+    let deletions = 0;
+    lab.deps.deleteLastMessage = async () => {
+        deletions++;
+        lab.deps.chat.pop();
+        lab.deps.chatId = 'other-chat';
+        lab.deps.chat = structuredClone(otherChat);
+        lab.deps.is_send_press = true;
+        lab.deps.is_group_generating = true;
+    };
+
+    assert.equal(await lab.regenerate(),undefined);
+    assert.equal(deletions,1);
+    assert.equal(lab.generationCalls,0);
+    assert.deepEqual(lab.deps.chat,otherChat);
+    assert.deepEqual(lab.events,['start','finish']);
+    assert.deepEqual(lab.sendButtonStates,[true]);
+    assert.equal(lab.sendInProgress,true);
+    assert.equal(lab.deps.is_group_generating,true);
+});
 
 test('queued conditional save checks ownership at the write boundary', async () => {
     const text=readFileSync(new URL('../public/script.js',import.meta.url),'utf8');

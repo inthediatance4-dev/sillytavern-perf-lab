@@ -1,19 +1,19 @@
 <div id="director_settings" class="director_settings">
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
-            <b>🎬 Director</b>
+            <b>🎬 命运之笔</b>
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content">
-            <p>点击输入框左侧的 🎬 选择预设。弹出菜单获得焦点时可按 1–9，Esc 关闭。</p>
-            <p>导演指令不会写成聊天消息。只有包含该指令的一次生成成功完成后才会消耗；接口报错或手动停止时保留，供下次生成重试。成功消耗会保存到当前聊天，重新载入后也不会重复发送。</p>
-            <p>标记或取消章节时，章节元数据会同步到该消息的所有 swipe，切换 swipe 或重新载入聊天后仍保持一致。</p>
+            <p>点输入框左侧的 🎬 挑选预设。菜单打开后，按 1–9 选用前九则，Esc 关闭。</p>
+            <p>嘱咐下一笔不会写成聊天消息。只有带上这段嘱咐的一次生成顺利写完才会用掉；接口报错或中途停下时还留着，下次可以再试。用掉之后记在当前聊天里，重新打开也不会再当作新的嘱咐送出。</p>
+            <p>把一条消息标成章节或取消时，它的每一则备选回复都会一起带上或拿掉这处章节。换一条备选回复，或重新打开聊天，章节仍在。</p>
             <label for="director_hotkey">快捷键（默认关闭）</label>
             <input id="director_hotkey" class="text_pole" type="text" placeholder="Ctrl+Shift+D" autocomplete="off">
-            <small>留空关闭。输入文字时不触发快捷键。预设输入可留空；取消对话框不会插入内容。</small>
+            <small>留空即关闭。正在打字时不会触发。预设里的空栏可以不填；取消对话框则不会插入。</small>
             <hr>
-            <p>预设顺序对应菜单中的数字 1–9。拖动手柄或使用上移、下移按钮排序，最多 50 个。</p>
-            <ol id="director_presets" aria-label="Director 预设"></ol>
+            <p>预设的顺序就是菜单里的 1–9。拖动手柄，或点上移、下移来排序，最多 50 个。</p>
+            <ol id="director_presets" aria-label="命运之笔预设"></ol>
             <div class="director_manager_actions">
                 <button id="director_preset_add" type="button" class="menu_button">添加预设</button>
                 <button id="director_restore_defaults" type="button" class="menu_button">恢复默认</button>
@@ -21,10 +21,10 @@
                 <button id="director_export" type="button" class="menu_button">导出 JSON</button>
                 <input id="director_import_file" type="file" accept=".json,application/json" hidden>
             </div>
-            <small>导入会整份替换，校验失败则保持原样。文件须为 {"version":1,"presets":[…]}，不能是裸数组。每项只能包含 id、icon、name、mode、template、isChapter、autoGenerate，重复 id 会被拒绝。名称和 id 不可为空白，mode 只能是 narrator、comment、instruct。id / 图标 / 名称 / 模板长度上限分别为 128 / 64 / 200 / 20000 字符，最多 50 个预设。</small>
+            <small>导入会整份换掉现有预设；格式不对就保持原样。文件须为 {"version":1,"presets":[…]}，不能是裸数组。每项只能包含 id、icon、name、mode、template、isChapter、autoGenerate，重复 id 会被拒绝。名称和 id 不可为空白，mode 只能是 narrator（写入正文）、comment（只留给自己）或 instruct（嘱咐下一笔）。id / 图标 / 名称 / 模板长度上限分别为 128 / 64 / 200 / 20000 字符，最多 50 个预设。</small>
             <p id="director_preset_status" role="status" aria-live="polite"></p>
-            <p><code>/director &lt;名称或序号&gt; [文字]</code> 可用于 Quick Reply。文字填入第一个输入框，其余输入使用默认值；没有默认值的输入会弹出对话框。名称先精确匹配，再忽略大小写。纯数字始终表示序号。含空格的名称请加引号。</p>
-            <p>章节只保存在该消息的 extra.director 上，形如 id、preset 为 chapter、chapter.title。不保存章节序号，不写入 chat_metadata，也没有单独的章节文件。序号按整段聊天里带标题的消息顺序现算，删除中间章节后自动重排。章节预设的标题是模板里第一个 {{input}} 的原始输入（默认预设的提示是「章节标题」），后面的输入只进入正文；没有输入框时用预设名称。展开后的「第N章」文字不是标题。消息菜单「设为章节起点」可标记任意消息，标题框预填该消息首行；再点一次取消。取消后如果 director 只剩下章节外壳（id，且 preset 为 chapter）就整段删除，其他预设留下的 id 和 preset 会保留。弹出菜单里的「章节」列出序号和标题，点击跳到该消息；目标距当前已加载范围超过 500 条时会先确认。</p>
+            <p><code>/director &lt;名称或序号&gt; [文字]</code> 可用于快速回复。文字填入第一个输入框，其余用默认值；没有默认值的会再问你。名称先按原文匹配，再忽略大小写。纯数字始终是序号。名称里有空格时请加引号。</p>
+            <p>章节记在那条消息上，不另存序号，也没有单独的章节文件。序号按整段聊天里带标题的消息现算，删掉中间一章，后面会自动重排。标题是模板里第一个 {{input}} 的原文（默认预设的提示是「章节标题」），后面的输入只进正文；没有输入框时，用预设名称当标题。算出来的「第N章」不是标题。消息菜单「设为章节起点」可标记任意消息，标题框会先填上该消息的第一行；再点一次就取消。若这条消息只剩章节标记、没有别的预设留下的信息，取消时会整段去掉。菜单里的「章节」列出序号和标题，点一下就跳过去；还要往上加载超过 500 条时，会先问你。</p>
         </div>
     </div>
     <template id="director_preset_template">
@@ -40,9 +40,9 @@
                 <label>图标<input type="text" class="text_pole" data-field="icon"></label>
                 <label>名称<input type="text" class="text_pole" data-field="name" required></label>
                 <label>模式<select class="text_pole" data-field="mode">
-                    <option value="narrator">旁白（发送给模型）</option>
-                    <option value="comment">备注（仅自己可见）</option>
-                    <option value="instruct">指令（仅下次生成）</option>
+                    <option value="narrator">写入正文（模型看得到）</option>
+                    <option value="comment">只留给自己（模型看不到）</option>
+                    <option value="instruct">嘱咐下一笔（不写入聊天）</option>
                 </select></label>
             </div>
             <label>模板<textarea class="text_pole" rows="3" data-field="template"></textarea></label>

@@ -110,7 +110,7 @@ export function initPresetManager() {
         list.lastElementChild.querySelector('[data-field="name"]').focus();
     });
     document.getElementById('director_restore_defaults').addEventListener('click', async () => {
-        const result = await Popup.show.confirm('恢复 Director 默认预设？', '当前预设将被替换。建议先导出备份。');
+        const result = await Popup.show.confirm('恢复命运之笔的默认预设？', '现在这些预设会被换掉。建议先导出一份备份。');
         if (result !== POPUP_RESULT.AFFIRMATIVE) return;
         settings.presets = createDefaultPresets();
         render();
@@ -127,13 +127,19 @@ export function initPresetManager() {
         try {
             // Covers the largest valid config even with JSON Unicode escaping.
             if (file.size > 8 * 1024 * 1024) throw new Error('文件不能超过 8 MiB。');
-            const presets = validatePresetConfig(JSON.parse(await file.text()));
+            let parsed;
+            try {
+                parsed = JSON.parse(await file.text());
+            } catch {
+                throw new Error('文件不是有效的 JSON。');
+            }
+            const presets = validatePresetConfig(parsed);
             settings.presets = presets;
             render();
             save();
             status.textContent = `已导入 ${presets.length} 个预设。`;
         } catch (error) {
-            toastr.error(`无法导入 Director 预设：${error.message}`, '', { escapeHtml: true });
+            toastr.error(`无法导入命运之笔的预设：${error.message}`, '', { escapeHtml: true });
         } finally {
             fileInput.value = '';
         }

@@ -1,3 +1,5 @@
+import { createFateEmblem } from './fate-marks.js';
+
 // A view that predates the allowance, or a mock that omits it, still has the one free swap.
 function rerollsLeft(view) {
     return Number.isInteger(view?.rerolls) ? Math.max(0, view.rerolls) : 1;
@@ -103,14 +105,15 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             const item = document.createElement('li');
             item.className = 'director_fate_log_entry';
             item.dataset.entryId = entry.id;
+            item.dataset.rarity = entry.rarity;
             item.tabIndex = -1;
             const heading = document.createElement('div');
             heading.className = 'director_fate_log_heading';
             const dot = document.createElement('span');
             dot.className = 'director_fate_rarity_dot';
             dot.dataset.rarity = entry.rarity;
-            dot.textContent = '●';
             dot.setAttribute('aria-label', rarityLabel(entry.rarity));
+            dot.append(createFateEmblem(entry.rarity));
             const title = document.createElement('strong');
             title.textContent = entry.title;
             heading.append(dot, title);
@@ -286,6 +289,9 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const element = panel.querySelector('.director_fate_card');
         element.hidden = showOffer && !view.held;
         element.dataset.state = state;
+        // Card stock follows the rarity already printed on the back. No event text.
+        if (card) element.dataset.rarity = reveal?.rarity ?? card.rarity;
+        else delete element.dataset.rarity;
         element.classList.toggle('director_fate_flipped', shown);
         panel.classList.toggle('director_fate_nomotion', settings.motion === 'off');
         document.documentElement?.classList.toggle('director_fate_nomotion', settings.motion === 'off');
@@ -465,7 +471,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         });
         controls.append(draw, apply, discard, flip, jump);
         const cost = document.createElement('small');
-        cost.textContent = '发牌在本地完成。选定一张后使用当前连接，额外生成一次；采用后立即生成剧情。';
+        cost.textContent = '发牌在这台设备上完成，不连模型。选定一张后，会再用当前的模型连接生成一次，把牌面写出来；点「让意外发生」就立刻续写剧情。';
         current.append(card, offer, labelFor(strength, '下一张的强度'), strength, status, controls, cost);
         const log = document.createElement('div');
         log.id = 'director_fate_log';
@@ -476,11 +482,11 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const empty = document.createElement('p');
         empty.id = 'director_fate_log_empty';
         empty.textContent = '本局尚无已降临的命运。';
-        const clear = button('director_fate_clear_log', '清空日志', () => action(async () => {
-            const result = await Popup.show.confirm('清空本局命运日志？', '已记录的命运将被移除，当前的牌和剧情消息会保留。');
+        const clear = button('director_fate_clear_log', '清空记录', () => action(async () => {
+            const result = await Popup.show.confirm('清空本局的命运记录？', '记下的命运会清掉，当前的牌和剧情消息都留着。');
             if (result !== POPUP_RESULT.AFFIRMATIVE) return;
             await controller.clearLog();
-        }, '未能清空日志，请重试。'));
+        }, '未能清空记录，请重试。'));
         log.append(logList, empty, clear);
         const preferences = document.createElement('div');
         preferences.id = 'director_fate_settings';

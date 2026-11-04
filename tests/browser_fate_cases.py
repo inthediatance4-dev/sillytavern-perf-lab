@@ -69,13 +69,70 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     def assert_mark(card, slot):
         target = mark(slot)
         target.wait_for(state='visible')
-        assert target.text_content() == '🎴'
-        assert target.get_attribute('aria-label') == '命运牌：〈' + card['title'] + '〉'
+        silhouette, name = {
+            'common': ('seal', '寻常'),
+            'rare': ('gem', '稀有'),
+            'legendary': ('crown', '传说'),
+        }[card['rarity']]
+        emblem = target.locator('.director_fate_mark_emblem')
+        assert emblem.count() == 1
+        assert emblem.get_attribute('data-silhouette') == silhouette
+        assert emblem.get_attribute('aria-hidden') == 'true'
+        assert target.locator('.director_fate_mark_glyph').count() == 1
+        assert target.locator('.director_fate_mark_label').count() == 0
+        assert target.locator('.director_fate_mark_shape').count() == 0
+        assert target.locator('.director_fate_mark_sheen').count() == (1 if card['rarity'] == 'legendary' else 0)
+        visible = target.inner_text() or ''
+        assert visible.strip() == ''
+        for cheap in ('普', '稀', '传'):
+            assert cheap not in (target.text_content() or '')
+        caption = '命运牌：〈' + card['title'] + '〉，' + name
+        assert target.get_attribute('aria-label') == caption
+        assert target.get_attribute('title') == caption
         assert target.get_attribute('data-rarity') == card['rarity']
         assert target.evaluate("node => Boolean(node.closest('.ch_name')) && node.previousElementSibling?.classList.contains('name_text') && !node.closest('.mes_text')")
         markup = target.evaluate('(node) => node.outerHTML')
         assert card['event'] not in markup and card['event'].partition(':')[0] not in markup
         assert page.locator('#chat .mes[mesid="' + str(slot) + '"] .mes_text .director_fate_mark').count() == 0
+        # Computed size, not a mid-transition layout box. A global transition:all
+        # on some SillyTavern nodes can animate width after a viewport change.
+        metrics = target.evaluate("""node => {
+            const chip = node.getBoundingClientRect();
+            const header = node.closest('.ch_name');
+            const buttons = header?.querySelector('.mes_buttons');
+            const buttonRect = buttons ? buttons.getBoundingClientRect() : null;
+            const style = getComputedStyle(node, '::before');
+            const overlapsButtons = buttonRect ? !(chip.right <= buttonRect.left + 1 || chip.left >= buttonRect.right - 1
+                || chip.bottom <= buttonRect.top + 1 || chip.top >= buttonRect.bottom - 1) : false;
+            return {
+                chipWidth: chip.width,
+                chipHeight: chip.height,
+                beforeWidth: parseFloat(style.width),
+                beforeHeight: parseFloat(style.height),
+                content: style.content,
+                position: style.position,
+                headerOverflow: header ? header.scrollWidth - header.clientWidth : 0,
+                inViewport: chip.width > 0 && chip.left >= -1 && chip.right <= window.innerWidth + 1,
+                overlapsButtons,
+            };
+        }""")
+        assert metrics['inViewport'], metrics
+        assert metrics['chipWidth'] <= 64 and metrics['chipHeight'] <= 32, metrics
+        assert metrics['headerOverflow'] <= 1, metrics
+        assert metrics['overlapsButtons'] is False, metrics
+        alignment = target.evaluate("""node => {
+            const name = node.closest('.ch_name')?.querySelector('.name_text');
+            if (!name) return null;
+            const mark = node.getBoundingClientRect();
+            const text = name.getBoundingClientRect();
+            return (mark.top + mark.height / 2) - (text.top + text.height / 2);
+        }""")
+        assert alignment is not None and abs(alignment) <= 2, alignment
+        if page.viewport_size['width'] <= 480:
+            assert metrics['beforeWidth'] >= 44 and metrics['beforeHeight'] >= 44, metrics
+            assert metrics['position'] == 'absolute', metrics
+        else:
+            assert metrics['content'] == 'none', metrics
 
     def assert_mark_motion_suppressed(card, slot):
         assert_mark(card, slot)
@@ -83,7 +140,12 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         # next frame as well so a suppressed animation cannot leave is_fresh.
         page.evaluate('() => new Promise(requestAnimationFrame)')
         assert not mark(slot).evaluate("node => node.classList.contains('is_fresh')")
-        assert mark(slot).evaluate('node => getComputedStyle(node).animationName') == 'none'
+        assert mark(slot).evaluate("""node => {
+            const emblem = node.querySelector('.director_fate_mark_emblem');
+            return getComputedStyle(node).animationName === 'none'
+                && getComputedStyle(emblem, '::after').animationName === 'none'
+                && getComputedStyle(emblem.querySelector('.director_fate_mark_sheen') || emblem, '::after').animationName === 'none';
+        }""")
 
     def idle():
         page.wait_for_function("!window.__fateLabMain.isGenerating() && !window.__fateLabMain.isChatSaving", timeout=30000)
@@ -137,6 +199,60 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
             assert page.locator(face).evaluate("node => { const style=getComputedStyle(node); return style.transform==='none' && style.transitionProperty==='opacity' && style.transitionDuration==='0.15s'; }")
         for selector, pseudo in (('.director_fate_back', '::before'), ('.director_fate_seal', None), ('.director_fate_seal', '::after')):
             assert page.locator(selector).evaluate('(node, pseudo) => getComputedStyle(node, pseudo).animationName', pseudo) == 'none'
+
+    def assert_narrow_fate_controls(require_jumps=False):
+        report = page.evaluate("""(requireJumps) => {
+            const lineCount = (node) => {
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                const tops = [...range.getClientRects()].filter(rect => rect.height > 0).map(rect => rect.top).sort((a, b) => a - b);
+                let lines = 0;
+                let last = -Infinity;
+                for (const top of tops) {
+                    if (top - last > 4) lines += 1;
+                    last = top;
+                }
+                return lines;
+            };
+            const measure = (node) => {
+                const style = getComputedStyle(node);
+                const fontSize = parseFloat(style.fontSize) || 16;
+                const parsedLine = parseFloat(style.lineHeight);
+                const line = Number.isFinite(parsedLine) ? parsedLine : fontSize * 1.2;
+                const rect = node.getBoundingClientRect();
+                return {
+                    id: node.id,
+                    className: node.className,
+                    text: (node.textContent || '').trim(),
+                    width: rect.width,
+                    height: rect.height,
+                    lines: lineCount(node),
+                    line,
+                };
+            };
+            const visible = (node) => !!node && node.getClientRects().length > 0;
+            const singleLine = (box) => box.lines === 1 && box.height >= 44 && box.width >= 44 && box.height <= Math.max(64, box.line * 2 + 16);
+            const buttons = [...document.querySelectorAll('#director_fate_panel .menu_button')].filter(visible).map(measure);
+            const jumps = [...document.querySelectorAll('.director_fate_log_jump')].filter(visible).map(measure);
+            const tabs = [...document.querySelectorAll('.director_fate_tab')].filter(visible).map(measure);
+            const cards = [...document.querySelectorAll('.director_fate_choice')].filter(visible).map(measure);
+            const settings = buttons.find(box => box.id === 'director_fate_settings_toggle');
+            const panel = document.querySelector('#director_fate_panel');
+            const pageFits = document.documentElement.scrollWidth <= window.innerWidth;
+            const panelFits = !!panel && panel.scrollWidth <= panel.clientWidth;
+            const ok = pageFits && panelFits && !!settings && singleLine(settings)
+                && buttons.every(singleLine)
+                && tabs.every(box => box.height >= 44 && box.width >= 44)
+                && cards.every(box => box.height >= 44 && box.width >= 44)
+                && (!requireJumps || (jumps.length > 0 && jumps.every(singleLine)));
+            return {
+                ok, pageFits, panelFits,
+                scrollWidth: document.documentElement.scrollWidth,
+                innerWidth: window.innerWidth,
+                settings, jumps, buttons, tabs, cards,
+            };
+        }""", require_jumps)
+        assert report['ok'], report
 
     def ensure_offer():
         offer = page.locator('.director_fate_offer')
@@ -258,6 +374,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.set_viewport_size({'width':390,'height':844})
     assert page.locator('#director_fate_panel').evaluate('n => n.scrollWidth <= n.clientWidth')
     assert page.locator('.director_fate_card').evaluate('n => { const r=n.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }')
+    assert_narrow_fate_controls()
     hidden(secret)
     screenshots=Path(__file__).resolve().parents[1] / '.evidence' / 'fate'
     screenshots.mkdir(parents=True, exist_ok=True)
@@ -919,12 +1036,18 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         row = log_entry(logged)
         assert row.locator('.director_fate_log_heading strong').inner_text() == logged['title']
         assert row.locator('.director_fate_rarity_dot').get_attribute('data-rarity') == logged['rarity']
+        assert row.locator('.director_fate_rarity_dot .director_fate_mark_emblem').get_attribute('data-silhouette') == {
+            'common': 'seal', 'rare': 'gem', 'legendary': 'crown',
+        }[logged['rarity']]
+        assert row.locator('.director_fate_mark_label').count() == 0
         strength = {'light':'轻微波澜', 'medium':'明显转折', 'strong':'重大变故'}[logged['strength']]
         assert row.locator('.director_fate_log_details').get_by_text(strength, exact=True).count() == 1
         assert row.locator('.director_fate_log_status').count() == 0
     assert page.locator('#director_fate_panel').evaluate('node => node.scrollWidth <= node.clientWidth')
     assert page.locator('.director_fate_log_entry').evaluate_all("nodes => nodes.every(node => { const rect=node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth; })")
     assert page.locator('.director_fate_log_entry').evaluate_all("nodes => { const rows=nodes.map(node => node.getBoundingClientRect()); return rows.every((row, index) => Math.abs(row.left - rows[0].left) <= 1 && (index === 0 || row.top >= rows[index - 1].bottom - 1)); }")
+    assert_narrow_fate_controls(require_jumps=True)
+    result['checks']['fateNarrowControlsStaySingleLine'] = True
     page.screenshot(path=str(screenshots / 'log-mobile.png'))
     result['checks']['fateLogNewestFirstMobileSingleColumnHasNoOverflow'] = True
     result['checks']['fateLogListsRarityTitleStrengthAndOmitsOkStatus'] = True
@@ -1064,7 +1187,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
 
     # Clearing history has its own confirmation, and leaves the transcript.
     page.locator('#director_fate_clear_log').click()
-    confirmation = page.locator('dialog[open]').filter(has_text='清空本局命运日志？')
+    confirmation = page.locator('dialog[open]').filter(has_text='清空本局的命运记录？')
     confirmation.wait_for(state='visible')
     confirmation.locator('.popup-button-cancel').click()
     assert len(fate()['log']) == 1
@@ -1123,7 +1246,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     hidden(missing['event'])
     result['checks']['fateDeletingTargetShowsMissingKeepsEntryAndDisablesJump'] = True
     page.locator('#director_fate_clear_log').click()
-    confirmation = page.locator('dialog[open]').filter(has_text='清空本局命运日志？')
+    confirmation = page.locator('dialog[open]').filter(has_text='清空本局的命运记录？')
     confirmation.locator('.popup-button-cancel').click()
     assert len(fate()['log']) == 2
     assert_mark(surviving, surviving['slotIndex'])

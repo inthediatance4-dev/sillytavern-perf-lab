@@ -76,11 +76,11 @@ test('every preset field is required, with exact string and boolean types', () =
 
 test('unknown modes, empty names and empty IDs are rejected', () => {
     for (const mode of ['', 'system', 'Narrator', true]) {
-        assert.throws(() => validatePresetConfig(config([preset({ mode })])), /mode/);
+        assert.throws(() => validatePresetConfig(config([preset({ mode })])), /第 1 个预设：mode 无效。/);
     }
     for (const field of ['name', 'id']) {
         for (const value of ['', ' \t\n ']) {
-            assert.throws(() => validatePresetConfig(config([preset({ [field]: value })])), /empty/);
+            assert.throws(() => validatePresetConfig(config([preset({ [field]: value })])), /第 1 个预设：id 和 name 不能为空白。/);
         }
     }
     assert.deepEqual(validatePresetConfig(config([preset({ icon: '', template: '' })])), [preset({ icon: '', template: '' })]);
@@ -94,7 +94,7 @@ test('string size limits and the preset count limit accept the boundary and reje
     }
     const maximum = Array.from({ length: PRESET_LIMITS.maxPresets }, (_, index) => preset({ id: `preset-${index}` }));
     assert.equal(validatePresetConfig(config(maximum)).length, PRESET_LIMITS.maxPresets);
-    assert.throws(() => validatePresetConfig(config([...maximum, preset({ id: 'overflow' })])), /at most/);
+    assert.throws(() => validatePresetConfig(config([...maximum, preset({ id: 'overflow' })])), new RegExp(`最多 ${PRESET_LIMITS.maxPresets} 个预设。`));
 });
 
 test('duplicate IDs reject the complete import without changing the source', () => {
@@ -103,12 +103,12 @@ test('duplicate IDs reject the complete import without changing the source', () 
     source.presets.forEach(Object.freeze);
     Object.freeze(source.presets);
     Object.freeze(source);
-    assert.throws(() => validatePresetConfig(source), /duplicate id/);
+    assert.throws(() => validatePresetConfig(source), /第 2 个预设：id 重复。/);
     assert.deepEqual(source, before);
-    assert.throws(() => exportPresetConfig(source.presets), /duplicate id/);
+    assert.throws(() => exportPresetConfig(source.presets), /第 2 个预设：id 重复。/);
     const invalidLater = config([preset(), preset({ id: 'different', template: 3 })]);
     const invalidBefore = structuredClone(invalidLater);
-    assert.throws(() => validatePresetConfig(invalidLater), /template/);
+    assert.throws(() => validatePresetConfig(invalidLater), new RegExp(`第 2 个预设：template 必须是不超过 ${PRESET_LIMITS.template} 个字符的字符串。`));
     assert.deepEqual(invalidLater, invalidBefore);
 });
 

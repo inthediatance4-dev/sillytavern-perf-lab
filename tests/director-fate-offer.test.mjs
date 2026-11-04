@@ -184,7 +184,7 @@ test('a failed, invalid or stopped pick keeps the offer and the previous held ca
             pending.resolve(JSON.stringify({ event: 'A different private event.' }));
             assert.equal(await picking, false, kind);
         } else {
-            await assert.rejects(picking, error => error.message === '命运卡抽取失败，请重试。' && !error.message.includes(privateEvent));
+            await assert.rejects(picking, error => error.message === '命运牌抽取失败，请重试。' && !error.message.includes(privateEvent));
         }
         assert.equal(fixture.metadata.director.fate.offer, offer, kind);
         assert.equal(fixture.metadata.director.fate.held, held, kind);
@@ -600,6 +600,11 @@ function installDom(t) {
     const nodes = [];
     globalThis.document = {
         createElement(tag) {
+            const node = new MiniNode(tag);
+            nodes.push(node);
+            return node;
+        },
+        createElementNS(_namespace, tag) {
             const node = new MiniNode(tag);
             nodes.push(node);
             return node;

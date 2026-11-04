@@ -8,7 +8,7 @@ const DEFAULT_PRESETS = [
     { id: 'narration', icon: '📖', name: '旁白', mode: 'narrator', template: '{{input:旁白内容}}' },
     { id: 'chapter', icon: '🌙', name: '新章节', mode: 'narrator', template: '第{{chapter}}章　{{input:章节标题}}', isChapter: true },
     { id: 'event', icon: '⚡', name: '突发事件', mode: 'narrator', template: '（突然，{{input:发生了什么}}）' },
-    { id: 'direct', icon: '🎭', name: '导演指令', mode: 'instruct', template: '[导演指令：{{input:你希望接下来怎么发展}}]' },
+    { id: 'direct', icon: '🎭', name: '执笔嘱咐', mode: 'instruct', template: '[导演指令：{{input:你希望接下来怎么发展}}]' },
     { id: 'advance', icon: '🔁', name: '推进剧情', mode: 'instruct', template: '[导演指令：推动剧情向前发展，引入一个新的变化，不要重复之前的情节。]' },
     { id: 'note', icon: '📝', name: '备注', mode: 'comment', template: '{{input:写给自己的备注}}' },
 ];
@@ -38,32 +38,32 @@ function isObject(value) {
  */
 export function validatePresetConfig(config) {
     if (!isObject(config) || Object.keys(config).some(key => !['version', 'presets'].includes(key))) {
-        throw new Error('Director config must be an object with version and presets.');
+        throw new Error('文件须是对象，且只能包含 version 和 presets。');
     }
     if (config.version !== 1 || !Array.isArray(config.presets)) {
-        throw new Error('Director config requires version 1 and a presets array.');
+        throw new Error('version 须为 1，且 presets 须为数组。');
     }
     if (config.presets.length > PRESET_LIMITS.maxPresets) {
-        throw new Error(`Director supports at most ${PRESET_LIMITS.maxPresets} presets.`);
+        throw new Error(`最多 ${PRESET_LIMITS.maxPresets} 个预设。`);
     }
 
     const ids = new Set();
     return Array.from(config.presets, (preset, index) => {
-        const fail = message => { throw new Error(`Director preset ${index + 1}: ${message}`); };
+        const fail = message => { throw new Error(`第 ${index + 1} 个预设：${message}`); };
         if (!isObject(preset) || Object.keys(preset).some(key => !PRESET_FIELDS.includes(key))) {
-            fail('expected a preset object with supported fields.');
+            fail('须是预设对象，且只能包含支持的字段。');
         }
         for (const field of ['id', 'icon', 'name', 'template']) {
             if (typeof preset[field] !== 'string' || preset[field].length > PRESET_LIMITS[field]) {
-                fail(`${field} must be a string of at most ${PRESET_LIMITS[field]} characters.`);
+                fail(`${field} 必须是不超过 ${PRESET_LIMITS[field]} 个字符的字符串。`);
             }
         }
-        if (!preset.id.trim() || !preset.name.trim()) fail('id and name must not be empty.');
-        if (!PRESET_MODES.includes(preset.mode)) fail('unknown mode.');
+        if (!preset.id.trim() || !preset.name.trim()) fail('id 和 name 不能为空白。');
+        if (!PRESET_MODES.includes(preset.mode)) fail('mode 无效。');
         if (typeof preset.isChapter !== 'boolean' || typeof preset.autoGenerate !== 'boolean') {
-            fail('isChapter and autoGenerate must be booleans.');
+            fail('isChapter 和 autoGenerate 必须是 true 或 false。');
         }
-        if (ids.has(preset.id)) fail('duplicate id.');
+        if (ids.has(preset.id)) fail('id 重复。');
         ids.add(preset.id);
         return Object.fromEntries(PRESET_FIELDS.map(field => [field, preset[field]]));
     });

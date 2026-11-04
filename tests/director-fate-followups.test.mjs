@@ -124,7 +124,7 @@ for (const [name, raw] of [
         await fixture.controller.draw();
         const held = fixture.metadata.director.fate.held;
         fixture.setResponse(raw);
-        await assert.rejects(fixture.controller.draw(), error => error.message === '命运卡抽取失败，请重试。');
+        await assert.rejects(fixture.controller.draw(), error => error.message === '命运牌抽取失败，请重试。');
         assert.equal(fixture.metadata.director.fate.held, held);
         assert.equal(fixture.saves, 1);
         assert.equal(fixture.controller.view().busy, false);
@@ -163,7 +163,7 @@ test('S4 failed Fate save preserves a concurrently added Director instruction bi
     const boundInstruct = { text: 'A concurrently bound Director instruction.', slotIndex: 1 };
     fixture.metadata.director.boundInstruct = boundInstruct;
     persistence.reject(new Error('synthetic persistence failure'));
-    await assert.rejects(drawing, error => error.message === '命运卡抽取失败，请重试。');
+    await assert.rejects(drawing, error => error.message === '命运牌抽取失败，请重试。');
     assert.equal(fixture.metadata.director?.fate, undefined);
     assert.equal(fixture.metadata.director?.boundInstruct, boundInstruct);
     assert.equal(fixture.controller.view().held, null);

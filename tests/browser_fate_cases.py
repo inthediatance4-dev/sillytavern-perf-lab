@@ -1160,7 +1160,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
 
     # Clearing history has its own confirmation, and leaves the transcript.
     page.locator('#director_fate_clear_log').click()
-    confirmation = page.locator('dialog[open]').filter(has_text='清空本局命运日志？')
+    confirmation = page.locator('dialog[open]').filter(has_text='清空本局的命运记录？')
     confirmation.wait_for(state='visible')
     confirmation.locator('.popup-button-cancel').click()
     assert len(fate()['log']) == 1
@@ -1219,7 +1219,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     hidden(missing['event'])
     result['checks']['fateDeletingTargetShowsMissingKeepsEntryAndDisablesJump'] = True
     page.locator('#director_fate_clear_log').click()
-    confirmation = page.locator('dialog[open]').filter(has_text='清空本局命运日志？')
+    confirmation = page.locator('dialog[open]').filter(has_text='清空本局的命运记录？')
     confirmation.locator('.popup-button-cancel').click()
     assert len(fate()['log']) == 2
     assert_mark(surviving, surviving['slotIndex'])

@@ -322,7 +322,7 @@ export function createFateController(getContext, options = {}) {
                 if (previous === undefined) delete metadata.director.fate;
                 else metadata.director.fate = previous;
             }
-            throw new Error('命运卡保存失败，请重试。');
+            throw new Error('命运牌保存失败，请重试。');
         }
         if (!current(snapshot)) return false;
         if (metadata.director?.fate === next) dirtyMetadata.delete(metadata);
@@ -390,7 +390,7 @@ export function createFateController(getContext, options = {}) {
 
     async function pick(index, strength = 'medium') {
         checkAvailable();
-        if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择有效的命运强度。');
+        if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择轻微波澜、明显转折或重大变故。');
         const context = getContext();
         const offer = state(context.chatMetadata).offer;
         if (!offer || !Number.isInteger(index) || index < 0 || index > 2) throw new Error('请选择三张牌中的一张。');
@@ -402,7 +402,7 @@ export function createFateController(getContext, options = {}) {
             return await drawWith(snapshot, operation, offer.cards[index], strength);
         } catch {
             if (!current(snapshot) || operation.cancelled) return false;
-            throw new Error('命运卡抽取失败，请重试。');
+            throw new Error('命运牌抽取失败，请重试。');
         } finally {
             finishDrawing(operation, snapshot);
         }
@@ -413,7 +413,7 @@ export function createFateController(getContext, options = {}) {
     // not yet have held.event, which existing callers assert.
     async function draw(strength = 'medium') {
         checkAvailable();
-        if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择有效的命运强度。');
+        if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择轻微波澜、明显转折或重大变故。');
         nonce++;
         const context = getContext();
         const snapshot = capture(context);
@@ -426,7 +426,7 @@ export function createFateController(getContext, options = {}) {
             return await drawWith(snapshot, operation, cards[index], strength);
         } catch {
             if (!current(snapshot) || operation.cancelled) return false;
-            throw new Error('命运卡抽取失败，请重试。');
+            throw new Error('命运牌抽取失败，请重试。');
         } finally {
             finishDrawing(operation, snapshot);
         }
@@ -476,7 +476,7 @@ export function createFateController(getContext, options = {}) {
 
     async function apply() {
         checkAvailable();
-        if (hasDraft()) throw new Error('请先处理输入框中的草稿，再采用命运卡。');
+        if (hasDraft()) throw new Error('请先处理输入框里的草稿，再让意外发生。');
         const context = getContext();
         const card = state(context.chatMetadata).held;
         if (!card) return false;
@@ -493,7 +493,7 @@ export function createFateController(getContext, options = {}) {
             return attempt.consumed;
         } catch {
             if (!current(snapshot)) return false;
-            throw new Error('命运卡采用失败，请重试。');
+            throw new Error('命运牌采用失败，请重试。');
         } finally {
             if (operation.ownsSendLock && current(snapshot)) {
                 setSendButtonState(false);
@@ -573,7 +573,7 @@ export function createFateController(getContext, options = {}) {
         } catch {
             if (current(snapshot)) {
                 notify();
-                onError('剧情已生成，但命运牌状态保存失败。');
+                onError('剧情已经写下，但这张命运牌没能记下来。');
                 await retrySave();
             }
         }
@@ -737,7 +737,7 @@ export function createFateController(getContext, options = {}) {
             if (!await commit(snapshot, { ...value, bound: retry })) marker.cancelled = true;
         } catch {
             marker.cancelled = true;
-            onError('命运牌未能保存，未重新生成，请重试。');
+            onError('这张命运牌没能记下来，所以没有重新生成，请重试。');
         }
         if (marker.cancelled) groupScope = null;
     });

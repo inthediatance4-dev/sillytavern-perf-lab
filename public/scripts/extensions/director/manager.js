@@ -110,7 +110,7 @@ export function initPresetManager() {
         list.lastElementChild.querySelector('[data-field="name"]').focus();
     });
     document.getElementById('director_restore_defaults').addEventListener('click', async () => {
-        const result = await Popup.show.confirm('恢复导演默认预设？', '当前预设将被替换。建议先导出备份。');
+        const result = await Popup.show.confirm('恢复命运之笔的默认预设？', '现在这些预设会被换掉。建议先导出一份备份。');
         if (result !== POPUP_RESULT.AFFIRMATIVE) return;
         settings.presets = createDefaultPresets();
         render();
@@ -139,7 +139,7 @@ export function initPresetManager() {
             save();
             status.textContent = `已导入 ${presets.length} 个预设。`;
         } catch (error) {
-            toastr.error(`无法导入导演预设：${error.message}`, '', { escapeHtml: true });
+            toastr.error(`无法导入命运之笔的预设：${error.message}`, '', { escapeHtml: true });
         } finally {
             fileInput.value = '';
         }

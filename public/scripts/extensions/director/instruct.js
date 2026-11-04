@@ -491,7 +491,7 @@ export function instructPreview(text) {
  * @returns {string}
  */
 export function instructStatusText(state, text) {
-    const status = state === 'pending' ? '待生效' : '重生沿用';
+    const status = state === 'pending' ? '待落笔' : '重写沿用';
     return `🎭 ${status}：${instructPreview(text)}`;
 }
 

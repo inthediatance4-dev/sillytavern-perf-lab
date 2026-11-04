@@ -90,7 +90,7 @@ for (const failure of ['false', 'throw']) {
         assert.equal(fixture.persisted.at(-1).fate.held, null);
         assert.deepEqual(fixture.persisted.at(-1).fate.bound, fixture.metadata.director.fate.bound);
         assert.equal(fixture.errors.length, 1);
-        assert.ok(fixture.errors[0].includes('剧情已生成，但命运牌状态保存失败'));
+        assert.ok(fixture.errors[0].includes('剧情已经写下，但这张命运牌没能记下来'));
         assert.equal(fixture.errors[0].includes('牌仍保留'), false);
         assert.equal(fixture.errors[0].includes(privateEvent), false);
         assert.equal(await fixture.controller.apply(), false);

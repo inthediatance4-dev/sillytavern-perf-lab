@@ -357,7 +357,7 @@ def run_review_checks(page, sample, fake_url, result):
     def assert_bound(token):
         state = chip_state()
         assert state and state['hidden'] is False and state['display'] != 'none', state
-        assert state['state'] == 'bound' and token in state['title'] and '重生沿用' in state['label'], state
+        assert state['state'] == 'bound' and token in state['title'] and '重写沿用' in state['label'], state
         assert token in state['aria'] and '✕' in state['label']
 
 
@@ -444,7 +444,7 @@ def run_review_checks(page, sample, fake_url, result):
     def assert_pending(token):
         state = chip_state()
         assert state and state['hidden'] is False and state['state'] == 'pending', state
-        assert token in state['title'] and '待生效' in state['label'], state
+        assert token in state['title'] and '待落笔' in state['label'], state
         color = page.evaluate("""() => getComputedStyle(document.querySelector('#director_instruct_chip')).color""")
         assert color == 'rgb(196, 92, 18)', color
         found = [item for item in director_prompts() if token in item['value']]
@@ -2187,7 +2187,7 @@ def run(args, temporary):
                 def assert_bound(token):
                     state = chip_state()
                     assert state and state['hidden'] is False and state['display'] != 'none', state
-                    assert state['state'] == 'bound' and token in state['title'] and '重生沿用' in state['label'], state
+                    assert state['state'] == 'bound' and token in state['title'] and '重写沿用' in state['label'], state
                     assert token in state['aria'] and '✕' in state['label']
 
                 def assert_hidden_chip():
@@ -2204,7 +2204,7 @@ def run(args, temporary):
                 pending = chip_state()
                 assert pending['state'] == 'pending' and pending['hidden'] is False, pending
                 assert alpha in pending['title'] and '[导演指令：' in pending['title'], pending
-                assert '待生效' in pending['label'] and '…' in pending['label'] and '✕' in pending['label'], pending
+                assert '待落笔' in pending['label'] and '…' in pending['label'] and '✕' in pending['label'], pending
                 assert alpha not in pending['label']
                 shown_focus = snapshot(page)['focus']
                 # Intentional tab-order change while an instruction is visible: only #director_instruct_chip.

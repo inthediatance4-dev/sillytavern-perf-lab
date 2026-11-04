@@ -45,7 +45,7 @@ import {
 import { createDefaultPresets, presetForDigit, resolvePresetArgument } from './presets.js';
 import { collectPresetInputs, containsExpandableMacro, renderDirectorTemplate } from './template.js';
 
-const PRESET_MODE_LABELS = { narrator: '旁白', comment: '备注', instruct: '指令' };
+const PRESET_MODE_LABELS = { narrator: '写入正文', comment: '只留给自己', instruct: '嘱咐下一笔' };
 
 let button;
 let popover;
@@ -120,7 +120,7 @@ function refreshInstructChip() {
     instructChip.hidden = false;
     instructChip.dataset.state = active.state;
     instructChip.title = active.text;
-    const status = active.state === 'pending' ? '待生效' : '重生沿用';
+    const status = active.state === 'pending' ? '待落笔' : '重写沿用';
     instructChip.setAttribute('aria-label', `${status}：${active.text}`);
     if (label) label.textContent = instructStatusText(active.state, active.text);
 }
@@ -309,7 +309,7 @@ async function usePreset(preset, inputText) {
         }
     } catch (error) {
         console.error('Director preset failed', error);
-        toastr.error('无法应用导演预设。');
+        toastr.error('无法用上这则命运之笔预设。');
     } finally {
         executing = false;
         button?.removeAttribute('data-director-busy');
@@ -447,7 +447,7 @@ function showChapterList() {
     if (!chapters.length) {
         const empty = document.createElement('p');
         empty.className = 'director_empty';
-        empty.textContent = '暂无章节';
+        empty.textContent = '还没有章节';
         popover.append(empty);
     }
     for (const chapter of chapters) {
@@ -668,7 +668,7 @@ export async function init() {
         callback: async (_, value) => {
             const resolved = resolvePresetArgument(settings.presets, value);
             if (resolved) await usePreset(resolved.preset, resolved.text);
-            else toastr.error('找不到导演预设，请使用名称或从 1 开始的序号。');
+            else toastr.error('找不到命运之笔的预设，请用名称，或从 1 开始的序号。');
             return '';
         },
         unnamedArgumentList: [
@@ -680,7 +680,7 @@ export async function init() {
             }),
             SlashCommandArgument.fromProps({ description: '填入第一个输入框的文字', typeList: [ARGUMENT_TYPE.STRING] }),
         ],
-        helpString: '<p>应用导演预设，可用于快速回复。例如：<code>/director 1 三天</code> 插入「——三天后——」。文字填入第一个输入框，其余输入使用默认值；没有默认值的输入会弹出对话框。名称先精确匹配，再忽略大小写匹配。纯数字始终表示从 1 开始的序号；含空格的名称请加引号。</p>',
+        helpString: '<p>用一则命运之笔预设，也可放进快速回复。例如：<code>/director 1 三天</code> 会插入「——三天后——」。文字填进第一个输入框，其余用默认值；没有默认值的会再问你。名称先按原文匹配，再忽略大小写。纯数字始终是从 1 开始的序号；名称里有空格时请加引号。</p>',
         returns: '空字符串',
     }));
 
@@ -688,10 +688,10 @@ export async function init() {
     button.id = 'directorButton';
     button.className = 'interactable';
     button.textContent = '🎬';
-    button.title = '导演';
+    button.title = '命运之笔';
     button.tabIndex = 0;
     button.setAttribute('role', 'button');
-    button.setAttribute('aria-label', '导演');
+    button.setAttribute('aria-label', '命运之笔');
     button.setAttribute('aria-haspopup', 'dialog');
     button.setAttribute('aria-controls', 'directorPopover');
     button.setAttribute('aria-expanded', 'false');
@@ -704,7 +704,7 @@ export async function init() {
     popover.hidden = true;
     popover.tabIndex = -1;
     popover.setAttribute('role', 'dialog');
-    popover.setAttribute('aria-label', '导演预设');
+    popover.setAttribute('aria-label', '命运之笔预设');
     document.body.append(popover);
     popper = Popper.createPopper(button, popover, { placement: 'top-start', modifiers: [{ name: 'offset', options: { offset: [0, 8] } }] });
     button.addEventListener('click', togglePopover);

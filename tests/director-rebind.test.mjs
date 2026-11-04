@@ -131,8 +131,8 @@ test('message fingerprint ignores send_date and changes with mes, name, or is_us
     assert.equal(instructPreview('1234567890123456'), '1234567890123456');
     assert.equal(instructPreview('12345678901234567'), '1234567890123456…');
     assert.equal(instructPreview(emoji), `${'🙂'.repeat(16)}…`);
-    assert.equal(instructChipLabel('pending', 'short'), '🎭 待生效：short ✕');
-    assert.equal(instructChipLabel('bound', 'x'.repeat(20)), `🎭 重生沿用：${'x'.repeat(16)}… ✕`);
+    assert.equal(instructChipLabel('pending', 'short'), '🎭 待落笔：short ✕');
+    assert.equal(instructChipLabel('bound', 'x'.repeat(20)), `🎭 重写沿用：${'x'.repeat(16)}… ✕`);
 });
 
 test('bound instructions are created from the chat present at completion and cleared by every release rule', () => {

@@ -38,32 +38,32 @@ function isObject(value) {
  */
 export function validatePresetConfig(config) {
     if (!isObject(config) || Object.keys(config).some(key => !['version', 'presets'].includes(key))) {
-        throw new Error('Director config must be an object with version and presets.');
+        throw new Error('配置必须是包含 version 和 presets 的对象。');
     }
     if (config.version !== 1 || !Array.isArray(config.presets)) {
-        throw new Error('Director config requires version 1 and a presets array.');
+        throw new Error('配置需要 version 为 1，且 presets 为数组。');
     }
     if (config.presets.length > PRESET_LIMITS.maxPresets) {
-        throw new Error(`Director supports at most ${PRESET_LIMITS.maxPresets} presets.`);
+        throw new Error(`最多 ${PRESET_LIMITS.maxPresets} 个预设。`);
     }
 
     const ids = new Set();
     return Array.from(config.presets, (preset, index) => {
-        const fail = message => { throw new Error(`Director preset ${index + 1}: ${message}`); };
+        const fail = message => { throw new Error(`第 ${index + 1} 个预设：${message}`); };
         if (!isObject(preset) || Object.keys(preset).some(key => !PRESET_FIELDS.includes(key))) {
-            fail('expected a preset object with supported fields.');
+            fail('必须是仅包含支持字段的预设对象。');
         }
         for (const field of ['id', 'icon', 'name', 'template']) {
             if (typeof preset[field] !== 'string' || preset[field].length > PRESET_LIMITS[field]) {
-                fail(`${field} must be a string of at most ${PRESET_LIMITS[field]} characters.`);
+                fail(`${field} 必须是不超过 ${PRESET_LIMITS[field]} 个字符的字符串。`);
             }
         }
-        if (!preset.id.trim() || !preset.name.trim()) fail('id and name must not be empty.');
-        if (!PRESET_MODES.includes(preset.mode)) fail('unknown mode.');
+        if (!preset.id.trim() || !preset.name.trim()) fail('id 和 name 不能为空白。');
+        if (!PRESET_MODES.includes(preset.mode)) fail('mode 无效。');
         if (typeof preset.isChapter !== 'boolean' || typeof preset.autoGenerate !== 'boolean') {
-            fail('isChapter and autoGenerate must be booleans.');
+            fail('isChapter 和 autoGenerate 必须是布尔值。');
         }
-        if (ids.has(preset.id)) fail('duplicate id.');
+        if (ids.has(preset.id)) fail('id 重复。');
         ids.add(preset.id);
         return Object.fromEntries(PRESET_FIELDS.map(field => [field, preset[field]]));
     });

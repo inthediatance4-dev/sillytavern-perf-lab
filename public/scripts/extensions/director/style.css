@@ -460,127 +460,166 @@
 .director_fate_log_actions .director_fate_log_flip:active,
 .director_fate_log_actions .director_fate_log_flip:focus-visible { box-shadow: 0 0 12px var(--fate-glow); }
 
-/* Rarity markers differ in shape as well as color: circle, diamond, star.
-   The glyph stays in the DOM for its aria-label; the shape is drawn. */
+/* Log rail and chat header share one emblem: round seal, faceted gem, crowned star.
+   Color is extra. The silhouette is the rarity. No text on the mark. */
+.director_fate_mark,
+.director_fate_rarity_dot {
+    --fate-plate: #322b24;
+    --fate-edge: #e6dccb;
+    --fate-cut: #f7f1e6;
+    --fate-wax: #241c16;
+    --fate-rim: #1a1612;
+}
+
+.director_fate_mark[data-rarity="rare"],
+.director_fate_rarity_dot[data-rarity="rare"] {
+    --fate-plate: #243044;
+    --fate-edge: #f5f8fc;
+    --fate-cut: #ffffff;
+    --fate-wax: #0e1622;
+    --fate-rim: #101820;
+}
+
+.director_fate_mark[data-rarity="legendary"],
+.director_fate_rarity_dot[data-rarity="legendary"] {
+    --fate-plate: #e6b84a;
+    --fate-edge: #fff4cc;
+    --fate-cut: #fff8e6;
+    --fate-wax: #5a3810;
+    --fate-rim: #6a4514;
+}
+
 .director_fate_rarity_dot {
     position: absolute;
-    top: 15px;
+    top: 14px;
     left: -21px;
-    width: 14px;
-    height: 14px;
-    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--SmartThemeBlurTintColor);
+    box-shadow: 0 0 0 2px var(--SmartThemeBlurTintColor);
     color: transparent;
     font-size: 0;
+    line-height: 0;
+    pointer-events: none;
 }
 
-.director_fate_rarity_dot::before {
-    position: absolute;
-    inset: 2px;
-    border-radius: 50%;
-    background: var(--fate-node);
-    box-shadow: 0 0 0 3px var(--SmartThemeBlurTintColor);
-    content: '';
-}
-
-.director_fate_rarity_dot[data-rarity="rare"]::before { inset: 2.5px; border-radius: 1px; transform: rotate(45deg); }
-.director_fate_rarity_dot[data-rarity="legendary"]::before {
-    inset: -1px;
-    border-radius: 0;
-    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    filter: drop-shadow(0 0 3px rgba(224, 185, 85, 0.8));
-}
-
-/* Message mark: a compact foil chip. Hue is extra. The character and the same
-   circle / diamond / star as the log timeline carry the rarity on their own. */
+/* The name row aligns on the text baseline, which drops a button below the
+   glyphs. Center the emblem on that line instead. The border box stays 18px;
+   the 44px hit pad is a separate layer. */
 .director_fate_mark {
-    --fate-chip: #b9b1a1;
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    align-self: center;
     flex: 0 0 auto;
-    gap: 2px;
-    margin: 0 0 0 6px;
-    padding: 1px 4px;
-    border: 1px solid var(--fate-chip);
-    border-radius: 5px;
-    background: linear-gradient(160deg, #2a2832, #141318);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.35);
-    color: var(--fate-chip);
-    font: inherit;
-    font-size: 0.8em;
-    font-weight: 600;
-    line-height: 1;
-    letter-spacing: 0;
-    white-space: nowrap;
-    vertical-align: middle;
-    cursor: pointer;
-    transition: box-shadow 160ms ease;
-}
-
-.director_fate_mark_shape {
-    position: relative;
-    display: block;
-    width: 12px;
-    height: 12px;
-    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    appearance: none;
     color: transparent;
     font-size: 0;
     line-height: 0;
+    letter-spacing: 0;
+    vertical-align: middle;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: box-shadow 160ms ease;
 }
 
-/* Glyph stays in the DOM. The drawn shape matches the log dot and stays put
-   when reduced motion cancels animation: the diamond's rotation is the shape. */
-.director_fate_mark_shape::before {
+.director_fate_mark_emblem {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 18px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.director_fate_rarity_dot .director_fate_mark_emblem {
+    width: 16px;
+    height: 16px;
+}
+
+.director_fate_mark_glyph {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.director_fate_emblem_plate { fill: var(--fate-plate); }
+.director_fate_emblem_cut { fill: var(--fate-cut); }
+.director_fate_emblem_wax { fill: var(--fate-wax); }
+.director_fate_emblem_gloss { fill: var(--fate-cut); opacity: 0.2; }
+.director_fate_emblem_facet { fill: var(--fate-cut); opacity: 0.78; }
+.director_fate_emblem_facet_soft { fill: var(--fate-cut); opacity: 0.32; }
+.director_fate_emblem_shade { fill: var(--fate-wax); opacity: 0.55; }
+.director_fate_emblem_rim { fill: none; stroke: var(--fate-rim); stroke-linejoin: miter; stroke-miterlimit: 3; }
+.director_fate_emblem_edge { fill: none; stroke: var(--fate-edge); stroke-linejoin: miter; stroke-miterlimit: 3; }
+
+.director_fate_mark[data-rarity="legendary"] .director_fate_mark_glyph,
+.director_fate_rarity_dot[data-rarity="legendary"] .director_fate_mark_glyph {
+    filter: drop-shadow(0 0 0.6px rgba(224, 185, 85, 0.85));
+}
+
+/* Sheen is clipped to the star. It rests off the emblem so reduced motion,
+   which only cancels the animation, leaves a still gilt star. */
+.director_fate_mark_sheen {
     position: absolute;
-    inset: 1.5px;
-    border-radius: 50%;
-    background: var(--fate-chip);
-    content: '';
-}
-
-.director_fate_mark[data-rarity="rare"] .director_fate_mark_shape::before {
-    inset: 2.5px;
-    border-radius: 1px;
-    transform: rotate(45deg);
-}
-
-.director_fate_mark[data-rarity="legendary"] .director_fate_mark_shape::before {
     inset: 0;
-    border-radius: 0;
-    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    filter: drop-shadow(0 0 2px rgba(224, 185, 85, 0.8));
+    overflow: hidden;
+    pointer-events: none;
 }
 
-.director_fate_mark_label {
-    flex: 0 0 auto;
-    font-weight: 600;
-    line-height: 1;
+.director_fate_mark[data-rarity="legendary"] .director_fate_mark_sheen::after {
+    content: '';
+    position: absolute;
+    top: -15%;
+    bottom: -15%;
+    left: -70%;
+    width: 42%;
+    background: linear-gradient(100deg, transparent, rgba(255, 248, 220, 0.82), transparent);
+    animation: director_fate_mark_sheen 4.4s ease-in-out infinite;
+    pointer-events: none;
 }
-
-.director_fate_mark[data-rarity="rare"] {
-    --fate-chip: #a9bde0;
-    background: linear-gradient(160deg, #22324d, #0f1624);
-    box-shadow: inset 0 0 0 1px var(--fate-chip), inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-.director_fate_mark[data-rarity="rare"] .director_fate_mark_label { font-weight: 700; }
-.director_fate_mark[data-rarity="legendary"] {
-    --fate-chip: #e6c46f;
-    background: linear-gradient(160deg, #3a1d20, #140909);
-    box-shadow: inset 0 0 0 1px var(--fate-chip), inset 0 1px 0 rgba(255, 233, 170, 0.25), 0 0 8px rgba(230, 186, 90, 0.55);
-}
-.director_fate_mark[data-rarity="legendary"] .director_fate_mark_label { font-weight: 800; }
 
 .director_fate_mark:hover,
 .director_fate_mark:active,
-.director_fate_mark:focus-visible { box-shadow: 0 0 0 2px var(--fate-chip); outline: none; }
+.director_fate_mark:focus-visible {
+    box-shadow: 0 0 0 1px var(--fate-edge), 0 0 0 2px var(--fate-rim);
+    outline: none;
+}
+
+.director_fate_mark:hover .director_fate_mark_glyph,
+.director_fate_mark:active .director_fate_mark_glyph,
+.director_fate_mark:focus-visible .director_fate_mark_glyph {
+    filter: drop-shadow(0 0 1px var(--fate-edge));
+}
 
 .director_fate_mark.is_fresh { animation: director_fate_mark_pulse 700ms ease-out; }
 
 /* One pulse with a ring when the card lands. Not repeated. */
 @keyframes director_fate_mark_pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
-    45% { transform: scale(1.25); opacity: 0.65; box-shadow: 0 0 0 6px transparent, 0 0 12px var(--fate-chip); }
+    45% { transform: scale(1.25); opacity: 0.65; box-shadow: 0 0 0 6px transparent, 0 0 12px var(--fate-edge); }
+}
+
+@keyframes director_fate_mark_sheen {
+    0%, 62% { transform: translateX(0); }
+    82%, 100% { transform: translateX(420%); }
 }
 
 /* Three across down to a 360px phone. Titles wrap inside each card. */
@@ -747,11 +786,14 @@ body.reduced-motion .director_fate_mark {
     animation: none !important;
     transition: none;
 }
+.director_fate_nomotion .director_fate_mark_sheen::after,
+body.reduced-motion .director_fate_mark_sheen::after { animation: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
     .director_fate_card *, .director_fate_card ::before, .director_fate_card ::after,
     .director_fate_choice, .director_fate_choice > *, .director_fate_choice::after,
     .director_fate_choice_seal, .director_fate_mark { animation: none !important; }
+    .director_fate_mark_sheen::after { animation: none !important; }
     .director_fate_choice { translate: none; }
     .director_fate_choice:not(:disabled):hover,
     .director_fate_choice:not(:disabled):active,

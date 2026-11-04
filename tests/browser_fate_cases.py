@@ -69,13 +69,23 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     def assert_mark(card, slot):
         target = mark(slot)
         target.wait_for(state='visible')
-        shape, short, name = {
-            'common': ('●', '普', '寻常'),
-            'rare': ('◆', '稀', '稀有'),
-            'legendary': ('★', '传', '传说'),
+        silhouette, name = {
+            'common': ('seal', '寻常'),
+            'rare': ('gem', '稀有'),
+            'legendary': ('crown', '传说'),
         }[card['rarity']]
-        assert target.locator('.director_fate_mark_shape').text_content() == shape
-        assert target.locator('.director_fate_mark_label').text_content() == short
+        emblem = target.locator('.director_fate_mark_emblem')
+        assert emblem.count() == 1
+        assert emblem.get_attribute('data-silhouette') == silhouette
+        assert emblem.get_attribute('aria-hidden') == 'true'
+        assert target.locator('.director_fate_mark_glyph').count() == 1
+        assert target.locator('.director_fate_mark_label').count() == 0
+        assert target.locator('.director_fate_mark_shape').count() == 0
+        assert target.locator('.director_fate_mark_sheen').count() == (1 if card['rarity'] == 'legendary' else 0)
+        visible = target.inner_text() or ''
+        assert visible.strip() == ''
+        for cheap in ('普', '稀', '传'):
+            assert cheap not in (target.text_content() or '')
         caption = '命运牌：〈' + card['title'] + '〉，' + name
         assert target.get_attribute('aria-label') == caption
         assert target.get_attribute('title') == caption
@@ -110,6 +120,14 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         assert metrics['chipWidth'] <= 64 and metrics['chipHeight'] <= 32, metrics
         assert metrics['headerOverflow'] <= 1, metrics
         assert metrics['overlapsButtons'] is False, metrics
+        alignment = target.evaluate("""node => {
+            const name = node.closest('.ch_name')?.querySelector('.name_text');
+            if (!name) return null;
+            const mark = node.getBoundingClientRect();
+            const text = name.getBoundingClientRect();
+            return (mark.top + mark.height / 2) - (text.top + text.height / 2);
+        }""")
+        assert alignment is not None and abs(alignment) <= 2, alignment
         if page.viewport_size['width'] <= 480:
             assert metrics['beforeWidth'] >= 44 and metrics['beforeHeight'] >= 44, metrics
             assert metrics['position'] == 'absolute', metrics
@@ -122,7 +140,12 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         # next frame as well so a suppressed animation cannot leave is_fresh.
         page.evaluate('() => new Promise(requestAnimationFrame)')
         assert not mark(slot).evaluate("node => node.classList.contains('is_fresh')")
-        assert mark(slot).evaluate('node => getComputedStyle(node).animationName') == 'none'
+        assert mark(slot).evaluate("""node => {
+            const emblem = node.querySelector('.director_fate_mark_emblem');
+            return getComputedStyle(node).animationName === 'none'
+                && getComputedStyle(emblem, '::after').animationName === 'none'
+                && getComputedStyle(emblem.querySelector('.director_fate_mark_sheen') || emblem, '::after').animationName === 'none';
+        }""")
 
     def idle():
         page.wait_for_function("!window.__fateLabMain.isGenerating() && !window.__fateLabMain.isChatSaving", timeout=30000)
@@ -1013,6 +1036,10 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         row = log_entry(logged)
         assert row.locator('.director_fate_log_heading strong').inner_text() == logged['title']
         assert row.locator('.director_fate_rarity_dot').get_attribute('data-rarity') == logged['rarity']
+        assert row.locator('.director_fate_rarity_dot .director_fate_mark_emblem').get_attribute('data-silhouette') == {
+            'common': 'seal', 'rare': 'gem', 'legendary': 'crown',
+        }[logged['rarity']]
+        assert row.locator('.director_fate_mark_label').count() == 0
         strength = {'light':'轻微波澜', 'medium':'明显转折', 'strong':'重大变故'}[logged['strength']]
         assert row.locator('.director_fate_log_details').get_by_text(strength, exact=True).count() == 1
         assert row.locator('.director_fate_log_status').count() == 0

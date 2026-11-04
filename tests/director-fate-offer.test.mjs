@@ -604,6 +604,11 @@ function installDom(t) {
             nodes.push(node);
             return node;
         },
+        createElementNS(_namespace, tag) {
+            const node = new MiniNode(tag);
+            nodes.push(node);
+            return node;
+        },
         getElementById(id) { return nodes.find(node => node.id === id) ?? null; },
     };
     globalThis.Option = function Option(text, value) {

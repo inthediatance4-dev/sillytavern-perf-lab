@@ -135,6 +135,7 @@ function lab(t, { entries = [entry('first')], reveal = 'tap', motion = 'system' 
     const document = {
         documentElement: html, body, activeElement: opener,
         createElement: tag => new Element(tag),
+        createElementNS: (_namespace, tag) => new Element(tag),
         getElementById: id => html.querySelector(`#${id}`),
         querySelector: selector => html.querySelector(selector),
     };
@@ -344,6 +345,10 @@ test('log preserves newest order, labels and status tags; only an ok entry can j
     assert.equal(items[0].querySelector('strong').textContent, '命运 newest');
     assert.equal(items[0].querySelector('.director_fate_rarity_dot').dataset.rarity, 'legendary');
     assert.equal(items[0].querySelector('.director_fate_rarity_dot').getAttribute('aria-label'), '传说');
+    assert.equal(items[0].querySelector('.director_fate_mark_emblem').dataset.silhouette, 'crown');
+    assert.equal(items[0].querySelector('.director_fate_mark_label'), null);
+    assert.equal(/[普稀传●◆★]/.test(items[0].querySelector('.director_fate_rarity_dot').textContent), false);
+    assert.deepEqual(items.map(node => node.querySelector('.director_fate_mark_emblem').dataset.silhouette), ['crown', 'gem', 'gem']);
     assert.equal(items[0].querySelector('.director_fate_log_details').textContent, '重大变故第 21 条');
     assert.equal(items[0].querySelector('.director_fate_log_status'), null);
     assert.equal(items[1].querySelector('.director_fate_log_status').textContent, '消息已改写');
@@ -446,8 +451,16 @@ test('polish motion stays off under every reduced-motion path and nothing loops 
     assert.equal(/transform|translate|scale/.test(deal), false);
     for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
         if (!/infinite/.test(body)) continue;
+        if (selector.includes('.director_fate_mark_sheen::after')) {
+            assert.equal(selector.includes('.director_fate_mark[data-rarity="legendary"]'), true, selector.trim());
+            continue;
+        }
         assert.equal(/director_fate_mark|\.mes\b/.test(selector), false, selector.trim());
     }
+    for (const needle of ['.director_fate_nomotion .director_fate_mark_sheen::after', 'body.reduced-motion .director_fate_mark_sheen::after']) {
+        assert.equal(css.includes(needle), true, needle);
+    }
+    assert.equal(media.includes('.director_fate_mark_sheen::after'), true);
 });
 
 test('narrow fate controls keep short labels on one line and mirror hover on touch', () => {

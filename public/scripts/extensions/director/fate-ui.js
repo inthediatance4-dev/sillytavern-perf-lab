@@ -1,3 +1,5 @@
+import { createFateEmblem } from './fate-marks.js';
+
 // A view that predates the allowance, or a mock that omits it, still has the one free swap.
 function rerollsLeft(view) {
     return Number.isInteger(view?.rerolls) ? Math.max(0, view.rerolls) : 1;
@@ -110,8 +112,8 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             const dot = document.createElement('span');
             dot.className = 'director_fate_rarity_dot';
             dot.dataset.rarity = entry.rarity;
-            dot.textContent = '●';
             dot.setAttribute('aria-label', rarityLabel(entry.rarity));
+            dot.append(createFateEmblem(entry.rarity));
             const title = document.createElement('strong');
             title.textContent = entry.title;
             heading.append(dot, title);

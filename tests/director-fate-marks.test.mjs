@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { createFateMarks } from '../public/scripts/extensions/director/fate-marks.js';
+import { createFateEmblem, createFateMarks } from '../public/scripts/extensions/director/fate-marks.js';
 import { createFateController } from '../public/scripts/extensions/director/fate.js';
 import { EventEmitter } from '../public/lib/eventemitter.js';
 import { messageFingerprint } from '../public/scripts/extensions/director/instruct.js';
@@ -100,6 +100,7 @@ function dom(t) {
         documentElement: html,
         body,
         createElement: tag => new Element(tag),
+        createElementNS: (_namespace, tag) => new Element(tag),
         querySelector: selector => html.querySelector(selector),
         querySelectorAll: selector => html.querySelectorAll(selector),
     };
@@ -177,10 +178,11 @@ test('marks paint only valid headers, expose public labels and open their curren
     const mark = rows[0].header.querySelector('.director_fate_mark');
     assert.ok(mark);
     assert.equal(mark.type, 'button');
-    assert.equal(mark.querySelector('.director_fate_mark_shape').textContent, '◆');
-    assert.equal(mark.querySelector('.director_fate_mark_shape').getAttribute('aria-hidden'), 'true');
-    assert.equal(mark.querySelector('.director_fate_mark_label').textContent, '稀');
-    assert.equal(mark.textContent, '◆稀');
+    assert.equal(mark.querySelector('.director_fate_mark_label'), null);
+    assert.equal(mark.querySelector('.director_fate_mark_shape'), null);
+    assert.equal(mark.querySelector('.director_fate_mark_emblem').dataset.silhouette, 'gem');
+    assert.equal(mark.querySelector('.director_fate_mark_emblem').getAttribute('aria-hidden'), 'true');
+    assert.equal(mark.textContent.trim(), '');
     assert.equal(mark.dataset.rarity, 'rare');
     assert.equal(mark.getAttribute('aria-label'), '命运牌：〈涟漪〉，稀有');
     assert.equal(mark.getAttribute('title'), '命运牌：〈涟漪〉，稀有');
@@ -201,8 +203,8 @@ test('marks paint only valid headers, expose public labels and open their curren
     lab.marks.invalidate();
     assert.equal(lab.marks.paintOne(1), mark);
     assert.equal(mark.dataset.rarity, 'legendary');
-    assert.equal(mark.querySelector('.director_fate_mark_shape').textContent, '★');
-    assert.equal(mark.querySelector('.director_fate_mark_label').textContent, '传');
+    assert.equal(mark.querySelector('.director_fate_mark_emblem').dataset.silhouette, 'crown');
+    assert.equal(mark.querySelector('.director_fate_mark_label'), null);
     assert.equal(mark.getAttribute('aria-label'), '命运牌：〈回声〉，传说');
     assert.equal(mark.getAttribute('title'), '命运牌：〈回声〉，传说');
     mark.fire('click');
@@ -210,7 +212,7 @@ test('marks paint only valid headers, expose public labels and open their curren
     assert.equal(serialized(lab.html).includes(secret), false);
 });
 
-test('each rarity renders a distinct timeline shape and a one-character Chinese label', t => {
+test('each rarity renders a distinct wordless emblem and keeps the rarity in the accessible name', t => {
     const lab = fixture(t, [
         entry(1, { rarity: 'common', title: '涟漪' }),
         entry(2, { rarity: 'rare', title: '回声' }),
@@ -219,31 +221,59 @@ test('each rarity renders a distinct timeline shape and a one-character Chinese 
     const rows = [1, 2, 3].map(lab.addMessage);
     lab.marks.paintAll();
     const faces = [
-        ['common', '●', '普', '寻常', '涟漪'],
-        ['rare', '◆', '稀', '稀有', '回声'],
-        ['legendary', '★', '传', '传说', '尘封的低语'],
+        ['common', 'seal', ['disc', 'nib'], '寻常', '涟漪'],
+        ['rare', 'gem', ['gem', 'facet'], '稀有', '回声'],
+        ['legendary', 'crown', ['crown', 'seal'], '传说', '尘封的低语'],
     ];
-    const seen = new Set();
-    faces.forEach(([rarity, shape, short, name, title], index) => {
+    const outlines = [];
+    faces.forEach(([rarity, silhouette, parts, name, title], index) => {
         const mark = rows[index].header.querySelector('.director_fate_mark');
+        const emblem = mark.querySelector('.director_fate_mark_emblem');
         assert.equal(mark.dataset.rarity, rarity);
-        assert.equal(mark.querySelector('.director_fate_mark_shape').textContent, shape);
-        assert.equal(mark.querySelector('.director_fate_mark_label').textContent, short);
-        assert.equal(short.length, 1);
+        assert.equal(emblem.dataset.silhouette, silhouette);
+        assert.equal(emblem.getAttribute('aria-hidden'), 'true');
+        assert.equal(mark.querySelector('.director_fate_mark_glyph').getAttribute('aria-hidden'), 'true');
+        assert.equal(mark.querySelector('.director_fate_mark_label'), null);
+        assert.equal(mark.querySelector('.director_fate_mark_shape'), null);
+        assert.equal(/[普稀传●◆★]/.test(mark.textContent), false);
+        assert.deepEqual([...mark.querySelectorAll('.director_fate_emblem_part')].map(part => part.dataset.part), parts);
+        outlines.push(mark.querySelector('.director_fate_emblem_part').dataset.geometry);
         const caption = `命运牌：〈${title}〉，${name}`;
         assert.equal(mark.getAttribute('aria-label'), caption);
         assert.equal(mark.getAttribute('title'), caption);
-        seen.add(`${shape}${short}${name}`);
+        const sheen = mark.querySelector('.director_fate_mark_sheen');
+        if (silhouette === 'crown') {
+            const geometry = mark.querySelector('.director_fate_emblem_part').dataset.geometry;
+            const clip = sheen.getAttribute('style');
+            for (const pair of geometry.split(' ')) {
+                const [x, y] = pair.split(',').map(Number);
+                assert.equal(clip.includes(`${(x / 32 * 100).toFixed(2)}% ${(y / 32 * 100).toFixed(2)}%`), true, pair);
+            }
+        } else {
+            assert.equal(sheen, null);
+        }
     });
-    assert.equal(seen.size, 3);
+    assert.equal(new Set(outlines).size, 3);
+    const kept = rows[1].header.querySelector('.director_fate_mark_emblem');
+    lab.marks.paintAll();
+    assert.equal(rows[1].header.querySelector('.director_fate_mark_emblem'), kept);
     assert.equal(serialized(lab.html).includes(secret), false);
     const css = readFileSync(new URL('../public/scripts/extensions/director/style.css', import.meta.url), 'utf8');
-    const dotStar = css.match(/\.director_fate_rarity_dot\[data-rarity="legendary"\]::before\s*\{([^}]*)\}/)[1];
-    const markStar = css.match(/\.director_fate_mark\[data-rarity="legendary"\] \.director_fate_mark_shape::before\s*\{([^}]*)\}/)[1];
-    const polygon = /clip-path:\s*polygon\([^;]+\)/;
-    assert.equal(polygon.exec(markStar)[0], polygon.exec(dotStar)[0]);
-    assert.match(css, /\.director_fate_mark\[data-rarity="rare"\] \.director_fate_mark_shape::before\s*\{[^}]*transform:\s*rotate\(45deg\)/);
-    assert.match(css, /\.director_fate_rarity_dot\[data-rarity="rare"\]::before\s*\{[^}]*transform:\s*rotate\(45deg\)/);
+    const ui = readFileSync(new URL('../public/scripts/extensions/director/fate-ui.js', import.meta.url), 'utf8');
+    assert.equal(css.includes('director_fate_mark_label'), false);
+    assert.equal(css.includes('director_fate_mark_shape'), false);
+    assert.match(css, /\.director_fate_mark,\s*\n\.director_fate_rarity_dot\s*\{[^}]*--fate-plate:/);
+    assert.match(css, /\.director_fate_mark\[data-rarity="rare"\],\s*\n\.director_fate_rarity_dot\[data-rarity="rare"\]/);
+    assert.match(css, /\.director_fate_mark\[data-rarity="legendary"\],\s*\n\.director_fate_rarity_dot\[data-rarity="legendary"\]/);
+    assert.match(css, /\.director_fate_mark\s*\{[^}]*align-self:\s*center/);
+    assert.match(css, /\.director_fate_mark:hover,\s*\n\.director_fate_mark:active,\s*\n\.director_fate_mark:focus-visible\s*\{/);
+    assert.match(css, /\.director_fate_mark\[data-rarity="legendary"\] \.director_fate_mark_sheen::after\s*\{[^}]*animation:[^;]*director_fate_mark_sheen[^;]*infinite/);
+    assert.match(ui, /dot\.append\(createFateEmblem\(entry\.rarity\)\)/);
+    assert.equal(ui.includes("textContent = '●'"), false);
+    const lone = createFateEmblem('legendary');
+    assert.equal(lone.dataset.silhouette, 'crown');
+    assert.equal(createFateEmblem('rare').dataset.silhouette, 'gem');
+    assert.equal(createFateEmblem('nope').dataset.silhouette, 'seal');
     const touchAt = css.indexOf('@media (max-width: 480px), ((pointer: coarse) and (max-width: 900px))');
     const touch = css.slice(touchAt);
     const hit = touch.match(/\.director_fate_mark::before\s*\{([^}]*)\}/)[1];
@@ -254,7 +284,10 @@ test('each rarity renders a distinct timeline shape and a one-character Chinese 
     assert.equal(/transition-property:[^;]*\b(?:all|width|height|min-height|min-width)\b/.test(hit), false);
     const quiet = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
     assert.match(quiet, /\.director_fate_mark\s*\{[^}]*animation:\s*none !important/);
-    assert.equal(/director_fate_mark_shape[^}]*transform:\s*none/.test(quiet), false);
+    assert.match(quiet, /\.director_fate_mark_sheen::after\s*\{[^}]*animation:\s*none !important/);
+    assert.equal(/director_fate_mark_glyph[^}]*transform:\s*none/.test(quiet), false);
+    assert.equal(css.includes('.director_fate_nomotion .director_fate_mark_sheen::after'), true);
+    assert.equal(css.includes('body.reduced-motion .director_fate_mark_sheen::after'), true);
 });
 
 test('slot cache rebuilds lazily, prefers newest fate and removes stale or unloaded marks', t => {
@@ -503,8 +536,8 @@ test('a displayed swipe without the recorded event drops the mark until that swi
     const restored = tree.document.querySelector('#chat .director_fate_mark');
     assert.ok(restored);
     assert.equal(restored.getAttribute('aria-label'), '命运牌：〈尘封的低语〉，稀有');
-    assert.equal(restored.querySelector('.director_fate_mark_shape').textContent, '◆');
-    assert.equal(restored.querySelector('.director_fate_mark_label').textContent, '稀');
+    assert.equal(restored.querySelector('.director_fate_mark_emblem').dataset.silhouette, 'gem');
+    assert.equal(restored.querySelector('.director_fate_mark_label'), null);
     assert.equal(controller.log()[0].status, 'ok');
     assert.equal(serialized(tree.document.querySelector('#chat .mes_text')).includes(secret), false);
 });

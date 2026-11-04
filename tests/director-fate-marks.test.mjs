@@ -177,9 +177,13 @@ test('marks paint only valid headers, expose public labels and open their curren
     const mark = rows[0].header.querySelector('.director_fate_mark');
     assert.ok(mark);
     assert.equal(mark.type, 'button');
-    assert.equal(mark.textContent, '🎴');
+    assert.equal(mark.querySelector('.director_fate_mark_shape').textContent, '◆');
+    assert.equal(mark.querySelector('.director_fate_mark_shape').getAttribute('aria-hidden'), 'true');
+    assert.equal(mark.querySelector('.director_fate_mark_label').textContent, '稀');
+    assert.equal(mark.textContent, '◆稀');
     assert.equal(mark.dataset.rarity, 'rare');
-    assert.equal(mark.getAttribute('aria-label'), '命运牌：〈涟漪〉');
+    assert.equal(mark.getAttribute('aria-label'), '命运牌：〈涟漪〉，稀有');
+    assert.equal(mark.getAttribute('title'), '命运牌：〈涟漪〉，稀有');
     assert.equal(rows[0].name.nextElementSibling, mark);
     assert.equal(mark.previousElementSibling, rows[0].name);
     assert.equal(mark.closest('.ch_name'), rows[0].header);
@@ -197,10 +201,60 @@ test('marks paint only valid headers, expose public labels and open their curren
     lab.marks.invalidate();
     assert.equal(lab.marks.paintOne(1), mark);
     assert.equal(mark.dataset.rarity, 'legendary');
-    assert.equal(mark.getAttribute('aria-label'), '命运牌：〈回声〉');
+    assert.equal(mark.querySelector('.director_fate_mark_shape').textContent, '★');
+    assert.equal(mark.querySelector('.director_fate_mark_label').textContent, '传');
+    assert.equal(mark.getAttribute('aria-label'), '命运牌：〈回声〉，传说');
+    assert.equal(mark.getAttribute('title'), '命运牌：〈回声〉，传说');
     mark.fire('click');
     assert.deepEqual(lab.opened, ['fate-1', 'replacement']);
     assert.equal(serialized(lab.html).includes(secret), false);
+});
+
+test('each rarity renders a distinct timeline shape and a one-character Chinese label', t => {
+    const lab = fixture(t, [
+        entry(1, { rarity: 'common', title: '涟漪' }),
+        entry(2, { rarity: 'rare', title: '回声' }),
+        entry(3, { rarity: 'legendary', title: '尘封的低语' }),
+    ]);
+    const rows = [1, 2, 3].map(lab.addMessage);
+    lab.marks.paintAll();
+    const faces = [
+        ['common', '●', '普', '寻常', '涟漪'],
+        ['rare', '◆', '稀', '稀有', '回声'],
+        ['legendary', '★', '传', '传说', '尘封的低语'],
+    ];
+    const seen = new Set();
+    faces.forEach(([rarity, shape, short, name, title], index) => {
+        const mark = rows[index].header.querySelector('.director_fate_mark');
+        assert.equal(mark.dataset.rarity, rarity);
+        assert.equal(mark.querySelector('.director_fate_mark_shape').textContent, shape);
+        assert.equal(mark.querySelector('.director_fate_mark_label').textContent, short);
+        assert.equal(short.length, 1);
+        const caption = `命运牌：〈${title}〉，${name}`;
+        assert.equal(mark.getAttribute('aria-label'), caption);
+        assert.equal(mark.getAttribute('title'), caption);
+        seen.add(`${shape}${short}${name}`);
+    });
+    assert.equal(seen.size, 3);
+    assert.equal(serialized(lab.html).includes(secret), false);
+    const css = readFileSync(new URL('../public/scripts/extensions/director/style.css', import.meta.url), 'utf8');
+    const dotStar = css.match(/\.director_fate_rarity_dot\[data-rarity="legendary"\]::before\s*\{([^}]*)\}/)[1];
+    const markStar = css.match(/\.director_fate_mark\[data-rarity="legendary"\] \.director_fate_mark_shape::before\s*\{([^}]*)\}/)[1];
+    const polygon = /clip-path:\s*polygon\([^;]+\)/;
+    assert.equal(polygon.exec(markStar)[0], polygon.exec(dotStar)[0]);
+    assert.match(css, /\.director_fate_mark\[data-rarity="rare"\] \.director_fate_mark_shape::before\s*\{[^}]*transform:\s*rotate\(45deg\)/);
+    assert.match(css, /\.director_fate_rarity_dot\[data-rarity="rare"\]::before\s*\{[^}]*transform:\s*rotate\(45deg\)/);
+    const touchAt = css.indexOf('@media (max-width: 480px), ((pointer: coarse) and (max-width: 900px))');
+    const touch = css.slice(touchAt);
+    const hit = touch.match(/\.director_fate_mark::before\s*\{([^}]*)\}/)[1];
+    assert.match(hit, /position:\s*absolute/);
+    assert.match(hit, /width:\s*44px/);
+    assert.match(hit, /height:\s*44px/);
+    assert.match(hit, /transition:\s*none/);
+    assert.equal(/transition-property:[^;]*\b(?:all|width|height|min-height|min-width)\b/.test(hit), false);
+    const quiet = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    assert.match(quiet, /\.director_fate_mark\s*\{[^}]*animation:\s*none !important/);
+    assert.equal(/director_fate_mark_shape[^}]*transform:\s*none/.test(quiet), false);
 });
 
 test('slot cache rebuilds lazily, prefers newest fate and removes stale or unloaded marks', t => {
@@ -448,7 +502,9 @@ test('a displayed swipe without the recorded event drops the mark until that swi
     marks.paintOne(1);
     const restored = tree.document.querySelector('#chat .director_fate_mark');
     assert.ok(restored);
-    assert.equal(restored.getAttribute('aria-label'), '命运牌：〈尘封的低语〉');
+    assert.equal(restored.getAttribute('aria-label'), '命运牌：〈尘封的低语〉，稀有');
+    assert.equal(restored.querySelector('.director_fate_mark_shape').textContent, '◆');
+    assert.equal(restored.querySelector('.director_fate_mark_label').textContent, '稀');
     assert.equal(controller.log()[0].status, 'ok');
     assert.equal(serialized(tree.document.querySelector('#chat .mes_text')).includes(secret), false);
 });

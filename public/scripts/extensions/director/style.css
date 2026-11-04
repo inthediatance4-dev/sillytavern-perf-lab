@@ -490,15 +490,18 @@
     filter: drop-shadow(0 0 3px rgba(224, 185, 85, 0.8));
 }
 
-/* Message mark: a small foil chip, colored and edged by rarity. */
+/* Message mark: a compact foil chip. Hue is extra. The character and the same
+   circle / diamond / star as the log timeline carry the rarity on their own. */
 .director_fate_mark {
     --fate-chip: #b9b1a1;
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
+    gap: 2px;
     margin: 0 0 0 6px;
-    padding: 0 4px;
+    padding: 1px 4px;
     border: 1px solid var(--fate-chip);
     border-radius: 5px;
     background: linear-gradient(160deg, #2a2832, #141318);
@@ -506,18 +509,67 @@
     color: var(--fate-chip);
     font: inherit;
     font-size: 0.8em;
-    line-height: 1.4;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
     vertical-align: middle;
     cursor: pointer;
     transition: box-shadow 160ms ease;
 }
 
-.director_fate_mark[data-rarity="rare"] { --fate-chip: #a9bde0; background: linear-gradient(160deg, #22324d, #0f1624); }
+.director_fate_mark_shape {
+    position: relative;
+    display: block;
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
+}
+
+/* Glyph stays in the DOM. The drawn shape matches the log dot and stays put
+   when reduced motion cancels animation: the diamond's rotation is the shape. */
+.director_fate_mark_shape::before {
+    position: absolute;
+    inset: 1.5px;
+    border-radius: 50%;
+    background: var(--fate-chip);
+    content: '';
+}
+
+.director_fate_mark[data-rarity="rare"] .director_fate_mark_shape::before {
+    inset: 2.5px;
+    border-radius: 1px;
+    transform: rotate(45deg);
+}
+
+.director_fate_mark[data-rarity="legendary"] .director_fate_mark_shape::before {
+    inset: 0;
+    border-radius: 0;
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 2px rgba(224, 185, 85, 0.8));
+}
+
+.director_fate_mark_label {
+    flex: 0 0 auto;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.director_fate_mark[data-rarity="rare"] {
+    --fate-chip: #a9bde0;
+    background: linear-gradient(160deg, #22324d, #0f1624);
+    box-shadow: inset 0 0 0 1px var(--fate-chip), inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.director_fate_mark[data-rarity="rare"] .director_fate_mark_label { font-weight: 700; }
 .director_fate_mark[data-rarity="legendary"] {
     --fate-chip: #e6c46f;
     background: linear-gradient(160deg, #3a1d20, #140909);
-    box-shadow: inset 0 1px 0 rgba(255, 233, 170, 0.25), 0 0 6px rgba(230, 186, 90, 0.45);
+    box-shadow: inset 0 0 0 1px var(--fate-chip), inset 0 1px 0 rgba(255, 233, 170, 0.25), 0 0 8px rgba(230, 186, 90, 0.55);
 }
+.director_fate_mark[data-rarity="legendary"] .director_fate_mark_label { font-weight: 800; }
 
 .director_fate_mark:hover,
 .director_fate_mark:active,
@@ -945,5 +997,17 @@ body.reduced-motion .director_fate_mark {
     #director_fate_settings input[type="checkbox"] {
         width: 22px;
         height: 22px;
+    }
+
+    /* Invisible pad. The chip's border box stays the small header glyph. */
+    .director_fate_mark::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+        transition: none;
     }
 }

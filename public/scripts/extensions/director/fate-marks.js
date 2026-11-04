@@ -4,6 +4,36 @@
  * chat length and never reads or changes a message body.
  * getEntries(slotIndex) limits status checks to one slot; getEntries() reads the full log.
  */
+
+// Same circle / diamond / star as the log timeline. The short label is what a
+// 390px header can show; the full name is the accessible name and tooltip.
+const rarityMarks = {
+    common: { shape: '●', short: '普', name: '寻常' },
+    rare: { shape: '◆', short: '稀', name: '稀有' },
+    legendary: { shape: '★', short: '传', name: '传说' },
+};
+
+function paintFace(mark, entry) {
+    const face = rarityMarks[entry.rarity] ?? rarityMarks.common;
+    let shape = mark.querySelector('.director_fate_mark_shape');
+    let label = mark.querySelector('.director_fate_mark_label');
+    if (!shape || !label) {
+        mark.textContent = '';
+        shape = document.createElement('span');
+        shape.className = 'director_fate_mark_shape';
+        shape.setAttribute('aria-hidden', 'true');
+        label = document.createElement('span');
+        label.className = 'director_fate_mark_label';
+        mark.append(shape, label);
+    }
+    shape.textContent = face.shape;
+    label.textContent = face.short;
+    mark.dataset.rarity = entry.rarity;
+    const caption = `命运牌：〈${entry.title}〉，${face.name}`;
+    mark.setAttribute('aria-label', caption);
+    mark.setAttribute('title', caption);
+}
+
 export function createFateMarks({ getContext, getEntries, onOpen }) {
     let dirty = true;
     let metadata;
@@ -71,7 +101,6 @@ export function createFateMarks({ getContext, getEntries, onOpen }) {
             mark = document.createElement('button');
             mark.type = 'button';
             mark.className = 'director_fate_mark';
-            mark.textContent = '🎴';
             mark.addEventListener('click', event => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -85,8 +114,7 @@ export function createFateMarks({ getContext, getEntries, onOpen }) {
             name.after(mark);
         }
         entryIds.set(mark, entry.id);
-        mark.dataset.rarity = entry.rarity;
-        mark.setAttribute('aria-label', `命运牌：〈${entry.title}〉`);
+        paintFace(mark, entry);
         if (motionReduced(mark)) mark.classList.remove('is_fresh');
         return mark;
     }

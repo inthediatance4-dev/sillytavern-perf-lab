@@ -69,13 +69,52 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     def assert_mark(card, slot):
         target = mark(slot)
         target.wait_for(state='visible')
-        assert target.text_content() == '🎴'
-        assert target.get_attribute('aria-label') == '命运牌：〈' + card['title'] + '〉'
+        shape, short, name = {
+            'common': ('●', '普', '寻常'),
+            'rare': ('◆', '稀', '稀有'),
+            'legendary': ('★', '传', '传说'),
+        }[card['rarity']]
+        assert target.locator('.director_fate_mark_shape').text_content() == shape
+        assert target.locator('.director_fate_mark_label').text_content() == short
+        caption = '命运牌：〈' + card['title'] + '〉，' + name
+        assert target.get_attribute('aria-label') == caption
+        assert target.get_attribute('title') == caption
         assert target.get_attribute('data-rarity') == card['rarity']
         assert target.evaluate("node => Boolean(node.closest('.ch_name')) && node.previousElementSibling?.classList.contains('name_text') && !node.closest('.mes_text')")
         markup = target.evaluate('(node) => node.outerHTML')
         assert card['event'] not in markup and card['event'].partition(':')[0] not in markup
         assert page.locator('#chat .mes[mesid="' + str(slot) + '"] .mes_text .director_fate_mark').count() == 0
+        # Computed size, not a mid-transition layout box. A global transition:all
+        # on some SillyTavern nodes can animate width after a viewport change.
+        metrics = target.evaluate("""node => {
+            const chip = node.getBoundingClientRect();
+            const header = node.closest('.ch_name');
+            const buttons = header?.querySelector('.mes_buttons');
+            const buttonRect = buttons ? buttons.getBoundingClientRect() : null;
+            const style = getComputedStyle(node, '::before');
+            const overlapsButtons = buttonRect ? !(chip.right <= buttonRect.left + 1 || chip.left >= buttonRect.right - 1
+                || chip.bottom <= buttonRect.top + 1 || chip.top >= buttonRect.bottom - 1) : false;
+            return {
+                chipWidth: chip.width,
+                chipHeight: chip.height,
+                beforeWidth: parseFloat(style.width),
+                beforeHeight: parseFloat(style.height),
+                content: style.content,
+                position: style.position,
+                headerOverflow: header ? header.scrollWidth - header.clientWidth : 0,
+                inViewport: chip.width > 0 && chip.left >= -1 && chip.right <= window.innerWidth + 1,
+                overlapsButtons,
+            };
+        }""")
+        assert metrics['inViewport'], metrics
+        assert metrics['chipWidth'] <= 64 and metrics['chipHeight'] <= 32, metrics
+        assert metrics['headerOverflow'] <= 1, metrics
+        assert metrics['overlapsButtons'] is False, metrics
+        if page.viewport_size['width'] <= 480:
+            assert metrics['beforeWidth'] >= 44 and metrics['beforeHeight'] >= 44, metrics
+            assert metrics['position'] == 'absolute', metrics
+        else:
+            assert metrics['content'] == 'none', metrics
 
     def assert_mark_motion_suppressed(card, slot):
         assert_mark(card, slot)

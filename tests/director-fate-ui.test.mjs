@@ -412,6 +412,44 @@ body.reduced-motion .director_fate_mark {
     assert.equal(css.includes('.director_fate_back, .director_fate_face { transform: none !important; transition: opacity 150ms ease; }'), true);
 });
 
+test('card and log rows carry rarity for their stock and never the event', async t => {
+    const fixture = lab(t, { entries: [entry('first', { rarity: 'legendary' }), entry('older', { rarity: 'common', slotIndex: 0 })] });
+    fixture.open();
+    const card = fixture.query('.director_fate_card');
+    assert.equal(card.dataset.rarity, 'legendary');
+    fixture.setView({ held: entry('picked', { rarity: 'rare' }) });
+    assert.equal(card.dataset.state, 'sealed');
+    assert.equal(card.dataset.rarity, 'rare');
+    assertSecretAbsent(fixture.popups.at(-1).content);
+    fixture.setView({ held: null, bound: null, reveal: null });
+    assert.equal(card.dataset.state, 'empty');
+    assert.equal('rarity' in card.dataset, false);
+    fixture.query('#director_fate_tab_log').click();
+    const items = fixture.query('#director_fate_log_list').children;
+    assert.deepEqual(items.map(node => node.dataset.rarity), ['legendary', 'common']);
+    await fixture.close();
+});
+
+test('polish motion stays off under every reduced-motion path and nothing loops in chat', () => {
+    const css = readFileSync(new URL('../public/scripts/extensions/director/style.css', import.meta.url), 'utf8');
+    const media = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    for (const selector of ['.director_fate_choice > *', '.director_fate_choice::after', '.director_fate_card ::after']) {
+        assert.equal(media.includes(selector), true, selector);
+        assert.equal(css.includes(`.director_fate_nomotion ${selector}`), true, selector);
+        assert.equal(css.includes(`body.reduced-motion ${selector}`), true, selector);
+    }
+    // The hover lift uses translate, which pick motion ignores. Reduced motion drops it.
+    assert.equal(media.includes('.director_fate_choice { translate: none; }'), true);
+    assert.equal(css.includes('.director_fate_nomotion .director_fate_choice,\nbody.reduced-motion .director_fate_choice { translate: none; }'), true);
+    // Dealing must not move the button box: the 390px layout is measured while it settles.
+    const deal = css.match(/@keyframes director_fate_deal \{([^}]*\}[^}]*)\}/)[1];
+    assert.equal(/transform|translate|scale/.test(deal), false);
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        if (!/infinite/.test(body)) continue;
+        assert.equal(/director_fate_mark|\.mes\b/.test(selector), false, selector.trim());
+    }
+});
+
 test('picking and revealing work with no animation events under app reduced motion and Fate motion off', async t => {
     const fixture = lab(t, { motion: 'off' });
     fixture.body.classList.add('reduced-motion');

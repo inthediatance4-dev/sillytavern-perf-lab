@@ -151,6 +151,7 @@
     font-size: 1.02em;
     line-height: 1.7;
     text-shadow: none;
+    overflow-wrap: anywhere;
     white-space: pre-wrap;
     transform: rotateY(-180deg);
     opacity: 0;
@@ -298,12 +299,37 @@
     letter-spacing: 0.2em;
 }
 #director_fate_rarity:empty { display: none; }
-#director_fate_status { min-height: 2.5em; }
+#director_fate_status { min-height: 2.5em; overflow-wrap: anywhere; }
 .director_fate_actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.director_fate_actions .menu_button { flex: 1 1 auto; min-width: 0; white-space: normal; }
+.director_fate_actions .menu_button { flex: 1 1 auto; }
 #director_fate_strength { width: 100%; }
-#director_fate_settings_toggle { display: block; margin: 12px 0 0; }
-#director_fate_settings:not([hidden]) { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin-top: 12px; }
+/*
+ * .menu_button is width: min-content. overflow-wrap: anywhere on this panel
+ * counts every glyph as a break, so that minimum is one character and short
+ * Chinese labels stack. nowrap keeps those labels on one line; a row that
+ * cannot fit wraps whole buttons instead of shrinking them.
+ */
+#director_fate_panel .menu_button {
+    flex-shrink: 0;
+    width: auto;
+    max-width: 100%;
+    white-space: nowrap;
+    /* .menu_button transitions every property. A resize into the 44px rule
+       would otherwise animate min-height up from auto, and the used height
+       stays near the content size until that transition ends. */
+    transition-property: background-color, border-color, filter, box-shadow;
+}
+#director_fate_panel .menu_button:not(.disabled):not([disabled]):active,
+#director_fate_panel .menu_button:not(.disabled):not([disabled]):focus-visible {
+    background-color: var(--white30a);
+}
+#director_fate_panel #director_fate_settings_toggle,
+#director_fate_panel #director_fate_clear_log {
+    width: 100%;
+    margin: 12px 0 0;
+}
+#director_fate_settings:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 12px; }
+#director_fate_settings label { min-width: 0; }
 #director_fate_settings select { min-width: 0; max-width: 100%; }
 #director_fate_panel [hidden] { display: none; }
 
@@ -334,7 +360,9 @@
     transition: border-color 140ms ease, background-color 140ms ease;
 }
 
-.director_fate_tab:hover { background-color: var(--white30a); }
+.director_fate_tab:hover,
+.director_fate_tab:active,
+.director_fate_tab:focus-visible { background-color: var(--white30a); }
 
 .director_fate_tabs [aria-selected="true"] {
     border-color: var(--SmartThemeQuoteColor);
@@ -410,11 +438,12 @@
     border-radius: 0 6px 6px 0;
     background: rgba(127, 127, 127, 0.08);
     font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    overflow-wrap: anywhere;
     line-height: 1.7;
     white-space: pre-wrap;
 }
 .director_fate_log_actions { margin-top: 10px; }
-.director_fate_log_actions .menu_button { min-width: 0; margin: 0; white-space: normal; }
+.director_fate_log_actions .menu_button { margin: 0; }
 
 /* Unflipped entries keep a strip of card back to tear open. */
 .director_fate_log_actions .director_fate_log_flip {
@@ -427,8 +456,9 @@
     letter-spacing: 0.3em;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
-.director_fate_log_actions .director_fate_log_flip:hover { box-shadow: 0 0 12px var(--fate-glow); }
-#director_fate_clear_log { display: block; margin: 12px 0 0; }
+.director_fate_log_actions .director_fate_log_flip:hover,
+.director_fate_log_actions .director_fate_log_flip:active,
+.director_fate_log_actions .director_fate_log_flip:focus-visible { box-shadow: 0 0 12px var(--fate-glow); }
 
 /* Rarity markers differ in shape as well as color: circle, diamond, star.
    The glyph stays in the DOM for its aria-label; the shape is drawn. */
@@ -490,6 +520,7 @@
 }
 
 .director_fate_mark:hover,
+.director_fate_mark:active,
 .director_fate_mark:focus-visible { box-shadow: 0 0 0 2px var(--fate-chip); outline: none; }
 
 .director_fate_mark.is_fresh { animation: director_fate_mark_pulse 700ms ease-out; }
@@ -500,6 +531,7 @@
     45% { transform: scale(1.25); opacity: 0.65; box-shadow: 0 0 0 6px transparent, 0 0 12px var(--fate-chip); }
 }
 
+/* Three across down to a 360px phone. Titles wrap inside each card. */
 .director_fate_offer {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -550,26 +582,41 @@
 .director_fate_choice:nth-child(3) { animation-delay: 220ms; }
 .director_fate_choice > * { animation: director_fate_deal_rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; animation-delay: inherit; }
 
-.director_fate_choice:not(:disabled):hover,
+.director_fate_choice:not(:disabled):active,
 .director_fate_choice:focus-visible {
     translate: 0 -4px;
     box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.28), 0 10px 20px rgba(0, 0, 0, 0.4), 0 0 16px var(--fate-glow);
+}
+
+/* The lift is hover-only. A finger tap must not leave the card raised. */
+@media (hover: hover) {
+    .director_fate_choice:not(:disabled):hover {
+        translate: 0 -4px;
+        box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.28), 0 10px 20px rgba(0, 0, 0, 0.4), 0 0 16px var(--fate-glow);
+    }
 }
 
 .director_fate_choice:focus-visible { outline: 2px solid var(--fate-line); outline-offset: -5px; }
 .director_fate_choice:disabled { cursor: default; }
 
 .director_fate_choice_title {
+    align-self: stretch;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
     font-weight: 700;
     letter-spacing: 0.04em;
+    text-align: center;
 }
 .director_fate_choice_rarity {
+    max-width: 100%;
     padding: 0 8px;
     border: 1px solid var(--fate-line-soft);
     border-radius: 999px;
     font-size: 0.78em;
     letter-spacing: 0.15em;
+    white-space: nowrap;
 }
 
 .director_fate_choice[data-rarity="legendary"] {
@@ -631,6 +678,8 @@
 .director_fate_nomotion .director_fate_mark { animation: none !important; }
 .director_fate_nomotion .director_fate_choice,
 body.reduced-motion .director_fate_choice { translate: none; }
+.director_fate_nomotion .director_fate_choice:is(:hover, :active, :focus-visible),
+body.reduced-motion .director_fate_choice:is(:hover, :active, :focus-visible) { translate: none; }
 body.reduced-motion .director_fate_card *,
 body.reduced-motion .director_fate_card ::before,
 body.reduced-motion .director_fate_card ::after,
@@ -652,6 +701,9 @@ body.reduced-motion .director_fate_mark {
     .director_fate_choice, .director_fate_choice > *, .director_fate_choice::after,
     .director_fate_choice_seal, .director_fate_mark { animation: none !important; }
     .director_fate_choice { translate: none; }
+    .director_fate_choice:not(:disabled):hover,
+    .director_fate_choice:not(:disabled):active,
+    .director_fate_choice:focus-visible { translate: none; }
     .director_fate_back, .director_fate_face { transform: none !important; transition: opacity 150ms ease; }
     .director_fate_choice, .director_fate_offer.is_picking .director_fate_choice.is_picked {
         transform: none !important;
@@ -663,8 +715,11 @@ body.reduced-motion .director_fate_mark {
 #directorPopover {
     z-index: 30000;
     width: min(260px, 90vw);
+    max-width: calc(100vw - 16px);
     max-height: 70vh;
+    overflow-x: hidden;
     overflow-y: auto;
+    overflow-wrap: anywhere;
     padding: 6px;
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 10px;
@@ -682,7 +737,9 @@ body.reduced-motion .director_fate_mark {
     align-items: center;
     gap: 8px;
     width: 100%;
+    min-width: 0;
     padding: 8px;
+    overflow-wrap: anywhere;
     border: 0;
     border-radius: 5px;
     background: transparent;
@@ -693,9 +750,12 @@ body.reduced-motion .director_fate_mark {
 }
 
 #directorPopover button:hover,
-#directorPopover button:focus-visible {
+#directorPopover button:focus-visible,
+#directorPopover button:not(:disabled):active {
     background: var(--black30a);
 }
+
+.director_footer button { white-space: nowrap; }
 
 #directorPopover button:disabled {
     opacity: 0.5;
@@ -862,4 +922,28 @@ body.reduced-motion .director_fate_mark {
 .director_instruct_full {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+/* 44px targets on a phone or a touch screen. Desktop pointers keep the compact controls. */
+@media (max-width: 480px), ((pointer: coarse) and (max-width: 900px)) {
+    #director_fate_panel .menu_button,
+    .director_fate_tab,
+    #directorPopover button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .director_fate_offer { gap: 6px; }
+    .director_fate_choice { padding-right: 4px; padding-left: 4px; }
+    .director_fate_choice_rarity { padding-right: 4px; padding-left: 4px; }
+
+    #director_fate_strength,
+    #director_fate_settings select { min-height: 44px; }
+
+    #director_fate_settings:not([hidden]) { grid-auto-rows: minmax(44px, auto); }
+
+    #director_fate_settings input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+    }
 }

@@ -138,6 +138,60 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         for selector, pseudo in (('.director_fate_back', '::before'), ('.director_fate_seal', None), ('.director_fate_seal', '::after')):
             assert page.locator(selector).evaluate('(node, pseudo) => getComputedStyle(node, pseudo).animationName', pseudo) == 'none'
 
+    def assert_narrow_fate_controls(require_jumps=False):
+        report = page.evaluate("""(requireJumps) => {
+            const lineCount = (node) => {
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                const tops = [...range.getClientRects()].filter(rect => rect.height > 0).map(rect => rect.top).sort((a, b) => a - b);
+                let lines = 0;
+                let last = -Infinity;
+                for (const top of tops) {
+                    if (top - last > 4) lines += 1;
+                    last = top;
+                }
+                return lines;
+            };
+            const measure = (node) => {
+                const style = getComputedStyle(node);
+                const fontSize = parseFloat(style.fontSize) || 16;
+                const parsedLine = parseFloat(style.lineHeight);
+                const line = Number.isFinite(parsedLine) ? parsedLine : fontSize * 1.2;
+                const rect = node.getBoundingClientRect();
+                return {
+                    id: node.id,
+                    className: node.className,
+                    text: (node.textContent || '').trim(),
+                    width: rect.width,
+                    height: rect.height,
+                    lines: lineCount(node),
+                    line,
+                };
+            };
+            const visible = (node) => !!node && node.getClientRects().length > 0;
+            const singleLine = (box) => box.lines === 1 && box.height >= 44 && box.width >= 44 && box.height <= Math.max(64, box.line * 2 + 16);
+            const buttons = [...document.querySelectorAll('#director_fate_panel .menu_button')].filter(visible).map(measure);
+            const jumps = [...document.querySelectorAll('.director_fate_log_jump')].filter(visible).map(measure);
+            const tabs = [...document.querySelectorAll('.director_fate_tab')].filter(visible).map(measure);
+            const cards = [...document.querySelectorAll('.director_fate_choice')].filter(visible).map(measure);
+            const settings = buttons.find(box => box.id === 'director_fate_settings_toggle');
+            const panel = document.querySelector('#director_fate_panel');
+            const pageFits = document.documentElement.scrollWidth <= window.innerWidth;
+            const panelFits = !!panel && panel.scrollWidth <= panel.clientWidth;
+            const ok = pageFits && panelFits && !!settings && singleLine(settings)
+                && buttons.every(singleLine)
+                && tabs.every(box => box.height >= 44 && box.width >= 44)
+                && cards.every(box => box.height >= 44 && box.width >= 44)
+                && (!requireJumps || (jumps.length > 0 && jumps.every(singleLine)));
+            return {
+                ok, pageFits, panelFits,
+                scrollWidth: document.documentElement.scrollWidth,
+                innerWidth: window.innerWidth,
+                settings, jumps, buttons, tabs, cards,
+            };
+        }""", require_jumps)
+        assert report['ok'], report
+
     def ensure_offer():
         offer = page.locator('.director_fate_offer')
         if offer.count() == 0 or not offer.is_visible():
@@ -258,6 +312,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.set_viewport_size({'width':390,'height':844})
     assert page.locator('#director_fate_panel').evaluate('n => n.scrollWidth <= n.clientWidth')
     assert page.locator('.director_fate_card').evaluate('n => { const r=n.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }')
+    assert_narrow_fate_controls()
     hidden(secret)
     screenshots=Path(__file__).resolve().parents[1] / '.evidence' / 'fate'
     screenshots.mkdir(parents=True, exist_ok=True)
@@ -925,6 +980,8 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert page.locator('#director_fate_panel').evaluate('node => node.scrollWidth <= node.clientWidth')
     assert page.locator('.director_fate_log_entry').evaluate_all("nodes => nodes.every(node => { const rect=node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth; })")
     assert page.locator('.director_fate_log_entry').evaluate_all("nodes => { const rows=nodes.map(node => node.getBoundingClientRect()); return rows.every((row, index) => Math.abs(row.left - rows[0].left) <= 1 && (index === 0 || row.top >= rows[index - 1].bottom - 1)); }")
+    assert_narrow_fate_controls(require_jumps=True)
+    result['checks']['fateNarrowControlsStaySingleLine'] = True
     page.screenshot(path=str(screenshots / 'log-mobile.png'))
     result['checks']['fateLogNewestFirstMobileSingleColumnHasNoOverflow'] = True
     result['checks']['fateLogListsRarityTitleStrengthAndOmitsOkStatus'] = True

@@ -450,6 +450,40 @@ test('polish motion stays off under every reduced-motion path and nothing loops 
     }
 });
 
+test('narrow fate controls keep short labels on one line and mirror hover on touch', () => {
+    const css = readFileSync(new URL('../public/scripts/extensions/director/style.css', import.meta.url), 'utf8');
+    const buttons = css.match(/#director_fate_panel \.menu_button \{([^}]*)\}/)[1];
+    assert.equal(/width:\s*auto/.test(buttons), true);
+    assert.equal(/white-space:\s*nowrap/.test(buttons), true);
+    assert.equal(/flex-shrink:\s*0/.test(buttons), true);
+    assert.equal(/transition-property:\s*background-color,\s*border-color,\s*filter,\s*box-shadow/.test(buttons), true);
+    assert.equal(/transition-property:[^;]*\b(?:all|min-height|height|width)\b/.test(buttons), false);
+    assert.equal(/#director_fate_panel #director_fate_settings_toggle,\s*#director_fate_panel #director_fate_clear_log \{[^}]*width:\s*100%/.test(css), true);
+    assert.equal(/\.director_fate_actions \.menu_button \{[^}]*white-space:\s*normal/.test(css), false);
+    assert.equal(/\.director_fate_log_actions \.menu_button \{[^}]*white-space:\s*normal/.test(css), false);
+    assert.equal(css.includes('.director_fate_choice:not(:disabled):hover,\n.director_fate_choice:focus-visible'), false);
+    const hoverAt = css.indexOf('@media (hover: hover)');
+    assert.equal(hoverAt > 0, true);
+    const hoverBlock = css.slice(hoverAt, hoverAt + 500);
+    assert.equal(/\.director_fate_choice:not\(:disabled\):hover \{[^}]*translate:\s*0 -4px/.test(hoverBlock), true);
+    assert.equal(/\.director_fate_choice:not\(:disabled\):active,\s*\.director_fate_choice:focus-visible \{[^}]*translate:\s*0 -4px/.test(css), true);
+    for (const selector of ['.director_fate_tab:active', '.director_fate_log_flip:active', '.director_fate_mark:active', '#directorPopover button:not(:disabled):active']) {
+        assert.equal(css.includes(selector), true, selector);
+    }
+    const narrowAt = css.indexOf('@media (max-width: 480px), ((pointer: coarse) and (max-width: 900px))');
+    assert.equal(narrowAt > 0, true);
+    const narrow = css.slice(narrowAt);
+    assert.equal(/min-height:\s*44px/.test(narrow), true);
+    assert.equal(/min-width:\s*44px/.test(narrow), true);
+    assert.equal(/\.director_fate_choice_title \{[^}]*align-self:\s*stretch/.test(css), true);
+    assert.equal(/\.director_fate_choice_title \{[^}]*overflow-wrap:\s*anywhere/.test(css), true);
+    assert.equal(/grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/.test(css), true);
+    assert.equal(/\.director_fate_choice \{[^}]*min-height:\s*150px/.test(css), true);
+    const motion = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+    assert.equal(motion.includes('.director_fate_choice:not(:disabled):active'), true);
+    assert.equal(motion.includes('.director_fate_choice { translate: none; }'), true);
+});
+
 test('picking and revealing work with no animation events under app reduced motion and Fate motion off', async t => {
     const fixture = lab(t, { motion: 'off' });
     fixture.body.classList.add('reduced-motion');

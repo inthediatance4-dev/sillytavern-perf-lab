@@ -7,7 +7,7 @@
     "css": "style.css",
     "generate_interceptor": "director_rebind_interceptor",
     "author": "SillyTavern",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "homePage": "https://github.com/SillyTavern/SillyTavern",
     "hooks": {
         "activate": "init"

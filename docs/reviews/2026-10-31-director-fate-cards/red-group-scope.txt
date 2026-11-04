@@ -1,0 +1,33 @@
+✖ real group regeneration keeps its scope until asynchronous generation completes (2.2367ms)
+✔ real group regeneration always finishes its scope on a rejected generation (0.7067ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 110.1131
+
+✖ failing tests:
+
+test at tests\director-fate-group-scope.test.mjs:30:1
+✖ real group regeneration keeps its scope until asynchronous generation completes (2.2367ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    [
+      'start',
+  +   'finish'
+    ]
+
+      at TestContext.<anonymous> (<repo>/tests/director-fate-group-scope.test.mjs:34:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'start', 'finish' ],
+    expected: [ 'start' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

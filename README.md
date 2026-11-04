@@ -179,6 +179,20 @@ pending → completed generation whose request contains the text → bound → c
 - Group-chat `regenerate` does not reuse a bound Director instruction (known limitation): upstream treats it as a `normal` generation, as it does the next group member's turn.
 - Template macros with side effects or randomness, such as `{{random}}`, `{{roll}}`, and counter macros such as `{{setvar}}`, are evaluated again on every generation, including `swipe` and `regenerate`. Narrator and comment text containing these macros is also evaluated again when a later generation builds the prompt; avoid these macros in those messages.
 
+### Blind Fate Cards
+
+Open 🎴 命运牌 from the Director menu, choose a light/medium/strong turn (medium by default), and draw. Each draw makes one additional request through the current connection and adapts an event to the current story. Only a curated vague title and strength are shown; the title hints at the broad category, while the specific event is revealed through the story. Failed redraws keep the previous card. New events are limited to 400 Unicode codepoints; cards exceeding this limit from earlier experimental builds need to be redrawn.
+
+Let the event happen immediately generates a story reply. Send or clear any compose draft and pending file attachment first; adoption preserves both without sending them automatically. A card is consumed only by a successfully completed request that actually included it. Failed or stopped generations keep the same held card for explicit retry. Stopping mid-generation may leave part of the event in a partial message, so reapplying may duplicate it; delete or edit that partial message before reapplying. Discard affects only the held card, leaving normal Director instructions intact.
+
+Refreshing or reloading the page after a completion-phase metadata save failure and before a retry or another metadata save persists consumption restores the card from disk as held, so the already-generated card can be applied again, potentially duplicating the event.
+
+If an ordinary Director instruction is pending, adoption includes it in the same story request and consumes it on success as usual. Drawing a card leaves that pending instruction untouched.
+
+The fixed event is reused for swipe/regenerate at its bound story point. Later normal replies and continue receive no new Fate prompt. Native group batch regeneration also reuses it, injecting it into only one member's request; manual deletion of the relevant messages or a changed preceding story ends replay. Manually deleting later members' messages in that batch intentionally clears the binding when the chat no longer reaches the batch's last recorded message, even if the event message remains. Held and bound cards are independent, so drawing another card preserves the previous replay. The group limit above concerns ordinary instructions.
+
+Cards persist with the chat. Creating a branch or checkpoint copies chat metadata, including any held card, so that card can be used in both chats. Blind presentation is not encryption: private events are stored in plaintext in the chat file's metadata, and exporting or sharing the JSONL chat file reveals them. Model requests also contain the event when it is used. Macro-looking text in an event remains literal across replays.
+
 ## Streaming
 
 ### Optimized streaming

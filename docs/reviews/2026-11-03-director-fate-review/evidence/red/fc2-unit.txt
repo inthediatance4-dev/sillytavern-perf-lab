@@ -1,0 +1,512 @@
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: CHAT_CHANGED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STOPPED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: CHAT_CHANGED
+Event emitted: GENERATION_STOPPED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STOPPED
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATION_STOPPED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: CHAT_CHANGED
+✔ a false save result rolls back held state just like a thrown persistence failure (4.2858ms)
+✖ native replay error unlocks actions and late success preserves a newly drawn card (3.7571ms)
+✖ an early-return regenerate cannot shield a later manual deletion (0.9575ms)
+✖ a stopped group-regenerate partial batch can explicitly replay the same card (1.4471ms)
+✔ draw persists a private event but exposes only curated title, strength and id (1.4915ms)
+✖ Fate assembly budgets the full 400-codepoint event while final macros remain literal (0.977ms)
+✔ the event limit counts Unicode codepoints and rejects 401 while preserving the previous card (0.7594ms)
+✖ text prompt newline normalization cannot shrink the budgeted event or strand its frame (0.5965ms)
+✖ two quiet assemblies cannot inherit or erase a prepared normal Fate request (5.4191ms)
+✖ quiet completion preserves a normal request that was already assembled (1.0027ms)
+✖ unrecognized, stopped and stale Fate frames are removed with their entire private body (1.4136ms)
+✖ Generate excludes only the temporary Fate row from world-info scanning (3.1595ms)
+✖ strict JSON validation never exposes invalid model text and failed redraw retains both cards (0.7454ms)
+✔ draw is blocked during generation and late draw results cannot cross chat, owner or revision changes (0.7148ms)
+✔ stopping a quiet draw preserves the old held card even when a valid partial response resolves (0.3339ms)
+✖ discard changes only held and a failed save restores the previous held card (0.5346ms)
+✔ adopt rejects a draft and failed, stopped or early requests retain held without activating later Send (2.5294ms)
+✖ adopt shields literal macros and binds only the exact assembled completed request after UI end (0.9254ms)
+✔ dry, excluded, changed-owner, missing-target and modified assembled data cannot consume held (1.4556ms)
+✔ a stop between preparation and assembled data cannot consume held (0.73ms)
+✖ only exact swipe/regenerate replay a bound event, with fingerprint and target checks (0.7083ms)
+✖ draw and Fate adoption coexist with pending and bound Director instructions (1.3799ms)
+✖ ordinary later replies and user messages clear old bound while preserving held (0.4713ms)
+✖ same-batch group speakers preserve binding and never activate another normal Fate request (0.6332ms)
+✖ explicit scoped group regeneration survives batch deletion and injects exactly once (0.4451ms)
+✖ failed scoped group regeneration retains explicit retry but ordinary normal cannot replay empty slot (0.4391ms)
+✖ manual deletion, mismatched group scope and deleted same-batch members clear old bound (0.4632ms)
+✖ failed group pre-save cancels the explicit operation and preserves its old binding (0.4113ms)
+✔ a queued owner-guarded save rolls back after switching chats (0.3161ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 9
+ℹ fail 20
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 195.841
+
+✖ failing tests:
+
+test at tests\director-fate.test.mjs:24:1
+✖ native replay error unlocks actions and late success preserves a newly drawn card (3.7571ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:27:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:38:1
+✖ an early-return regenerate cannot shield a later manual deletion (0.9575ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:40:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:48:1
+✖ a stopped group-regenerate partial batch can explicitly replay the same card (1.4471ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:50:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:157:1
+✖ Fate assembly budgets the full 400-codepoint event while final macros remain literal (0.977ms)
+  Error: 命运卡采用失败，请重试。
+      at Object.apply (file:///<repo>/public/scripts/extensions/director/fate.js:177:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:175:18)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate.test.mjs:189:1
+✖ text prompt newline normalization cannot shrink the budgeted event or strand its frame (0.5965ms)
+  Error: 命运卡采用失败，请重试。
+      at Object.apply (file:///<repo>/public/scripts/extensions/director/fate.js:177:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:205:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate.test.mjs:209:1
+✖ two quiet assemblies cannot inherit or erase a prepared normal Fate request (5.4191ms)
+  Error: 命运卡采用失败，请重试。
+      at Object.apply (file:///<repo>/public/scripts/extensions/director/fate.js:177:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:235:18)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate.test.mjs:239:1
+✖ quiet completion preserves a normal request that was already assembled (1.0027ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:249:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:252:1
+✖ unrecognized, stopped and stale Fate frames are removed with their entire private body (1.4136ms)
+  Error: 命运卡采用失败，请重试。
+      at Object.apply (file:///<repo>/public/scripts/extensions/director/fate.js:177:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:266:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate.test.mjs:275:1
+✖ Generate excludes only the temporary Fate row from world-info scanning (3.1595ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    [
+  +   'private Fate payload',
+      'stored Director narration',
+      'visible story'
+    ]
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:285:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'private Fate payload', 'stored Director narration', 'visible story' ],
+    expected: [ 'stored Director narration', 'visible story' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:289:1
+✖ strict JSON validation never exposes invalid model text and failed redraw retains both cards (0.7454ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:291:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:343:1
+✖ discard changes only held and a failed save restores the previous held card (0.5346ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:345:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:382:1
+✖ adopt shields literal macros and binds only the exact assembled completed request after UI end (0.9254ms)
+  Error: 命运卡采用失败，请重试。
+      at Object.apply (file:///<repo>/public/scripts/extensions/director/fate.js:177:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:399:18)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate.test.mjs:438:1
+✖ only exact swipe/regenerate replay a bound event, with fingerprint and target checks (0.7083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:441:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:463:1
+✖ draw and Fate adoption coexist with pending and bound Director instructions (1.3799ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:478:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:484:1
+✖ ordinary later replies and user messages clear old bound while preserving held (0.4713ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:487:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:501:1
+✖ same-batch group speakers preserve binding and never activate another normal Fate request (0.6332ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:514:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:520:1
+✖ explicit scoped group regeneration survives batch deletion and injects exactly once (0.4451ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:522:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:539:1
+✖ failed scoped group regeneration retains explicit retry but ordinary normal cannot replay empty slot (0.4391ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:541:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:560:1
+✖ manual deletion, mismatched group scope and deleted same-batch members clear old bound (0.4632ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:563:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate.test.mjs:583:1
+✖ failed group pre-save cancels the explicit operation and preserves its old binding (0.4113ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at Object.adopt (file:///<repo>/tests/director-fate.test.mjs:130:20)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate.test.mjs:584:37)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

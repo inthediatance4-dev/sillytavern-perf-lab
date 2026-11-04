@@ -1,0 +1,187 @@
+{
+    "base": "ffd5f4e",
+    "head": "60fdb33d873feec217f6149ee93bbdc22981bdee",
+    "runnerHead": "60fdb33d873feec217f6149ee93bbdc22981bdee",
+    "mode": "fate-only",
+    "thirdPartyEnabled": false,
+    "saveDuringDryRunProbe": false,
+    "testRunnerSha256": "2eafa09f35fc1ed2acecc358703f7c6051c9d4e515a5712a6538c8e0cf0d40bf",
+    "checks": {
+        "disabledBaseDomExact": {
+            "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+            "chatSha256": "d63bab6abad900ddaaaceac51d4a509f1dadc7ec2325d3a4c5737dc3655991d5",
+            "focusCount": 2
+        },
+        "fateEmptyCardHasNoFaceText": true,
+        "fateSystemReducedMotionUsesFadeWithoutBreathing": true,
+        "fateSealedMarkupPrivateAndDefaultRitualSettings": true,
+        "fateDrawSealedAndExistingInstructionPreserved": true,
+        "fateRitualMobileCardHasNoOverflow": true,
+        "fateMobileDraftAndReload": true,
+        "fatePendingAttachmentStaysUnsentAndPreserved": true,
+        "fateApplyingMarkupAndToastsKeepEventPrivate": true,
+        "fateBeforeCompletionHasNoLogOrMessageMark": true,
+        "fateApplyingReducedMotionAndMotionOffDisableAnimations": true,
+        "fateMessageMarkPrivatePlacedOutsideTextAndPulsesOnce": true,
+        "fateMarkOpensFocusedLogAndTabsKeyboardEscRestoreFocus": true,
+        "fateTabsKeepRolesThroughNativeAccessibilityObserverAndWrapHomeEnd": true,
+        "fateTitleOnlyCompletionToastAndExplicitTapReveal": true,
+        "fateCurrentFlipAlsoRevealsSameLogEntry": true,
+        "fateStaleAnchorHidesPreviouslyFlippedEvent": true,
+        "fateRevealJumpLoadedMissingAndEscFocus": true,
+        "fateAdoptAndExactSwipeRegenerateWithoutNormalRetrigger": true,
+        "fateLogAndMessageMarkPersistAfterNextMessageAndBrowserReload": true,
+        "fateUnchangedReplayKeepsLogAndDoesNotRepeatMessagePulse": true,
+        "fateMalformedDrawAndFailedApplyKeepSameCardForRetry": true,
+        "fateOnlyDirectRegenerateAndNativeFailureUnlock": true,
+        "fateStopRetainsCardAndDiscardDisarmsOrdinarySend": true,
+        "fateStopDuringPrepSendsNoProviderRequest": true,
+        "fateGroupOnlyFirstBatchMemberGetsLogAndMessageMark": true,
+        "fateGroupReplayUpdatesExistingLogOnceForChangedGeneration": true,
+        "fateRealGroupBatchReplayAndManualDeletionDoesNotRetrigger": true,
+        "fateStaleDrawDoesNotReplaceOrSaveIntoAnotherChat": true,
+        "fateAppReducedMotionSkipsMessageMarkPulse": true,
+        "fateAutoShowsOnlyCompletedEventWithoutFlip": true,
+        "fateLogAutoRevealsCompletedEventWithoutFlip": true,
+        "fateSystemReducedMotionSkipsMessageMarkPulse": true,
+        "fateOffStillToastsTitleAndNeverShowsEvent": true,
+        "fateLogOffNeverPutsEventInMarkup": true,
+        "fateRitualSettingsPersistAfterBrowserReload": true,
+        "fateLogTapFlipAlsoRevealsCurrentCard": true,
+        "fateTapFlipMemoryResetsOnBrowserReload": true,
+        "fateOfferSurvivesBrowserReload": true,
+        "fateOfferMobileRowHasNoOverflow": true,
+        "fateOfferKeptAfterQuietFailureAndRepick": true,
+        "fateMotionOffSkipsMessageMarkPulse": true,
+        "fateDealPickSealApplyReveal": true,
+        "fateOfferMarkupKeepsEventPrivate": true,
+        "fateLogNewestFirstMobileSingleColumnHasNoOverflow": true,
+        "fateLogListsRarityTitleStrengthAndOmitsOkStatus": true,
+        "fateLogJumpConfirmsLoadsAndHighlightsUnloadedOldMessage": true,
+        "fateLogJumpHighlightClearsWithoutAnimationEvents": true,
+        "fateEditingPredecessorInvalidatesAndRestoringRepaintsMark": true,
+        "fateDeletingPredecessorChangesLogDisablesJumpAndRemovesMark": true,
+        "fateLogClearConfirmsAndKeepsChatMessages": true,
+        "fateDeletingTargetShowsMissingKeepsEntryAndDisablesJump": true,
+        "fateClearLogImmediatelyRemovesValidMarksAndPersistsAfterReload": true
+    },
+    "failedRequests": [
+        {
+            "url": "http://<host>/api/backends/chat-completions/generate",
+            "method": "POST",
+            "failure": "net::ERR_ABORTED"
+        }
+    ],
+    "disabledThirdPartyExtensions": [
+        "third-party/JS-Slash-Runner",
+        "third-party/st-memory-enhancement"
+    ],
+    "thirdPartyRuntime": {
+        "loadedEntrypoints": [],
+        "tavernHelperAvailable": false
+    },
+    "fateInstructionState": {
+        "integrity": "director-99b46862de",
+        "note_prompt": "",
+        "note_interval": 1,
+        "note_position": 1,
+        "note_depth": 4,
+        "note_role": 0,
+        "script_injects": {},
+        "director": {
+            "fate": {
+                "version": 1,
+                "held": null,
+                "offer": null,
+                "pity": 1,
+                "recent": [
+                    "tidings"
+                ],
+                "bound": {
+                    "id": "b69fe307-6fb3-43aa-b84f-b05991246910",
+                    "title": "\u8fdc\u65b9\u6765\u8baf",
+                    "strength": "medium",
+                    "event": "FATE_PRIVATE_01: A stranger brings a sealed map bearing {{char}} and {{random::a,b}}.",
+                    "category": "tidings",
+                    "rarity": "common",
+                    "slotIndex": 2,
+                    "prevFingerprint": "acc13269",
+                    "generationId": null,
+                    "batchEndIndex": 2,
+                    "groupRetry": false
+                },
+                "log": [
+                    {
+                        "id": "b69fe307-6fb3-43aa-b84f-b05991246910",
+                        "title": "\u8fdc\u65b9\u6765\u8baf",
+                        "strength": "medium",
+                        "rarity": "common",
+                        "slotIndex": 2,
+                        "category": "tidings",
+                        "event": "FATE_PRIVATE_01: A stranger brings a sealed map bearing {{char}} and {{random::a,b}}.",
+                        "prevFingerprint": "acc13269",
+                        "generationId": null,
+                        "at": "2026-11-03T19:32:10.233Z",
+                        "replays": 0
+                    }
+                ]
+            },
+            "boundInstruct": {
+                "id": "director-1e67d3e2-9397-4270-9311-b8440012fb49",
+                "text": "[\u5bfc\u6f14\u6307\u4ee4\uff1aORDINARY_DIRECTOR_FATE_COEXIST]",
+                "slotIndex": 2,
+                "prevFingerprint": "acc13269",
+                "boundAt": 1793734330343
+            }
+        },
+        "tainted": true,
+        "timedWorldInfo": {
+            "sticky": {},
+            "cooldown": {}
+        },
+        "lastInContextMessageId": 0
+    },
+    "fateProviderFailures": {
+        "apply": {
+            "providerStatus": 500,
+            "proxyStatus": 200
+        },
+        "nativeSwipe": {
+            "providerStatus": 500,
+            "proxyStatus": 200
+        }
+    },
+    "fateLogLongChat": {
+        "messages": 2000,
+        "loadedBeforeJump": 100,
+        "confirmDistance": 1899
+    },
+    "pass": true,
+    "pageErrors": [],
+    "generationRequests": 31,
+    "chromium": "156.0.8078.47",
+    "sourceSha256": {
+        "public/script.js": "9f5c478a9b95c3a42d38b6fa8c660b083a55acaa9de60da493ce731b7519e176",
+        "public/scripts/events.js": "1b322db4a3fc9b4b7fa5af8b3d4de8eaba0ccfc551d76892849f81258fa413d5",
+        "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+        "public/scripts/extensions/director/fate-decks.js": "177156478df597867ed534b0856d22ba108edd01d2de0258b53308f7c1ebde40",
+        "public/scripts/extensions/director/fate-marks.js": "f9a437bacf6d220f2333cb94a8b28b3d1cac24d29b61ec5f06bfb4a79c4095ab",
+        "public/scripts/extensions/director/fate-sound.js": "ad635a0d34d191482a83852e9b97aa6d1c4a0f6b2a122f3c67fe3a3c8897b234",
+        "public/scripts/extensions/director/fate-ui.js": "890d9fabb699e31272ae0c3c66ea068420246ee5284a80b41c699cb197a24e08",
+        "public/scripts/extensions/director/fate.js": "399335967efac222fb410f2eed3a37c3365eae06d07f380b96f9d002b66cec10",
+        "public/scripts/extensions/director/index.js": "27bf1dc70b18a510407c8fff5d57ddb6088382194ec51f4c39f3a8ed0b0129ed",
+        "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+        "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+        "public/scripts/extensions/director/manifest.json": "b4118443a33dfdb8fe751b8b27d75e1c18cb0c4d20cc3e91dd53350538355200",
+        "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+        "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+        "public/scripts/extensions/director/style.css": "cdc9eb8514ff249cb057b8bde21fe65b8475f2acdb1925232739384e3da2720a",
+        "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+        "public/scripts/group-chats.js": "60c98f1434e1081c8ba4dd582a59a284a6c49e06d606d371ed813cf3fda3c545",
+        "tests/browser_fate_cases.py": "a8bf8647e271472f6850924dd8a448f51478e8f4f78e3218a299a5f8a58685eb",
+        "tests/browser_fate_review_cases.py": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6"
+    },
+    "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+    "fateReviewCaseSha256": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6",
+    "node": "v22.20.0"
+}

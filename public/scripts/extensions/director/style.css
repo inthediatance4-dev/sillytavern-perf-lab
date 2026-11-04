@@ -460,32 +460,44 @@
     filter: drop-shadow(0 0 3px rgba(224, 185, 85, 0.8));
 }
 
-.director_fate_mark[data-rarity="common"] { color: var(--SmartThemeBodyColor); }
-.director_fate_mark[data-rarity="rare"] { color: #c0c6d0; }
-.director_fate_mark[data-rarity="legendary"] { color: #d4af37; }
-
+/* Message mark: a small foil chip, colored and edged by rarity. */
 .director_fate_mark {
+    --fate-chip: #b9b1a1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
     margin: 0 0 0 6px;
-    padding: 0 3px;
-    border: 1px solid currentColor;
-    border-radius: 4px;
-    background: transparent;
+    padding: 0 4px;
+    border: 1px solid var(--fate-chip);
+    border-radius: 5px;
+    background: linear-gradient(160deg, #2a2832, #141318);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.35);
+    color: var(--fate-chip);
     font: inherit;
     font-size: 0.8em;
     line-height: 1.4;
     vertical-align: middle;
     cursor: pointer;
+    transition: box-shadow 160ms ease;
 }
+
+.director_fate_mark[data-rarity="rare"] { --fate-chip: #a9bde0; background: linear-gradient(160deg, #22324d, #0f1624); }
+.director_fate_mark[data-rarity="legendary"] {
+    --fate-chip: #e6c46f;
+    background: linear-gradient(160deg, #3a1d20, #140909);
+    box-shadow: inset 0 1px 0 rgba(255, 233, 170, 0.25), 0 0 6px rgba(230, 186, 90, 0.45);
+}
+
+.director_fate_mark:hover,
+.director_fate_mark:focus-visible { box-shadow: 0 0 0 2px var(--fate-chip); outline: none; }
 
 .director_fate_mark.is_fresh { animation: director_fate_mark_pulse 700ms ease-out; }
 
+/* One pulse with a ring when the card lands. Not repeated. */
 @keyframes director_fate_mark_pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
-    45% { transform: scale(1.25); opacity: 0.65; }
+    45% { transform: scale(1.25); opacity: 0.65; box-shadow: 0 0 0 6px transparent, 0 0 12px var(--fate-chip); }
 }
 
 .director_fate_offer {
@@ -776,9 +788,13 @@ body.reduced-motion .director_fate_mark {
     user-select: none;
 }
 
-.mes.director-chapter-highlight,
-.mes.director-fate-highlight {
+.mes.director-chapter-highlight {
     box-shadow: inset 0 0 0 2px var(--SmartThemeQuoteColor);
+}
+
+/* Jumping to a Fate message frames it in gold foil instead of the theme quote color. */
+.mes.director-fate-highlight {
+    box-shadow: inset 0 0 0 2px #d9b45a, inset 0 0 24px rgba(217, 180, 90, 0.18);
 }
 
 .extraMesButtons:has(> .mes_director_chapter) {

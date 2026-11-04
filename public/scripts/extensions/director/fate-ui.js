@@ -103,6 +103,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             const item = document.createElement('li');
             item.className = 'director_fate_log_entry';
             item.dataset.entryId = entry.id;
+            item.dataset.rarity = entry.rarity;
             item.tabIndex = -1;
             const heading = document.createElement('div');
             heading.className = 'director_fate_log_heading';

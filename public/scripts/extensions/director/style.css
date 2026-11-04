@@ -17,7 +17,9 @@
  * ink, the foil line and the glow. Text stays high contrast on every stock.
  */
 .director_fate_card,
-.director_fate_choice {
+.director_fate_choice,
+.director_fate_log_entry {
+    --fate-node: #b9b1a1;
     --fate-ink: #24222c;
     --fate-ink-deep: #131218;
     --fate-line: #d9d0bd;
@@ -28,7 +30,9 @@
 }
 
 .director_fate_card[data-rarity="rare"],
-.director_fate_choice[data-rarity="rare"] {
+.director_fate_choice[data-rarity="rare"],
+.director_fate_log_entry[data-rarity="rare"] {
+    --fate-node: #9fb4d8;
     --fate-ink: #1e2a3f;
     --fate-ink-deep: #0f1624;
     --fate-line: #cdd7e8;
@@ -39,7 +43,9 @@
 }
 
 .director_fate_card[data-rarity="legendary"],
-.director_fate_choice[data-rarity="legendary"] {
+.director_fate_choice[data-rarity="legendary"],
+.director_fate_log_entry[data-rarity="legendary"] {
+    --fate-node: #e0b955;
     --fate-ink: #2c1518;
     --fate-ink-deep: #120809;
     --fate-line: #e6c46f;
@@ -335,22 +341,40 @@
     color: var(--SmartThemeQuoteColor);
 }
 
+/* The log is a timeline: newest at the top, one node per card on the rail. */
 #director_fate_log_list {
+    position: relative;
     display: grid;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
     margin: 16px 0;
-    padding: 0;
+    padding: 0 0 0 22px;
     list-style: none;
 }
 
+#director_fate_log_list::before {
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 8px;
+    width: 2px;
+    border-radius: 1px;
+    background: linear-gradient(180deg, var(--SmartThemeBodyColor), transparent);
+    content: '';
+    opacity: 0.2;
+}
+
 .director_fate_log_entry {
+    position: relative;
     min-width: 0;
-    padding: 12px;
+    padding: 12px 12px 12px 14px;
     border: 1px solid var(--SmartThemeBorderColor);
+    border-left: 3px solid var(--fate-node);
     border-radius: 8px;
     background: var(--SmartThemeBlurTintColor);
 }
+
+.director_fate_log_entry[data-rarity="legendary"] { box-shadow: 0 0 14px rgba(224, 185, 85, 0.16); }
 
 .director_fate_log_entry:focus-visible {
     outline: 2px solid var(--SmartThemeQuoteColor);
@@ -367,18 +391,78 @@
     min-width: 0;
 }
 
-.director_fate_log_heading strong { min-width: 0; }
+.director_fate_log_heading strong {
+    min-width: 0;
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    letter-spacing: 0.04em;
+}
 .director_fate_log_details { margin-top: 6px; font-size: 0.85em; opacity: 0.85; }
-.director_fate_log_status { padding: 2px 6px; border: 1px solid var(--SmartThemeBorderColor); border-radius: 4px; }
-.director_fate_log_event { margin: 12px 0; white-space: pre-wrap; }
+.director_fate_log_status {
+    padding: 0 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: var(--SmartThemeQuoteColor);
+}
+.director_fate_log_event {
+    margin: 12px 0;
+    padding: 8px 12px;
+    border-left: 2px solid var(--fate-node);
+    border-radius: 0 6px 6px 0;
+    background: rgba(127, 127, 127, 0.08);
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
 .director_fate_log_actions { margin-top: 10px; }
 .director_fate_log_actions .menu_button { min-width: 0; margin: 0; white-space: normal; }
+
+/* Unflipped entries keep a strip of card back to tear open. */
+.director_fate_log_actions .director_fate_log_flip {
+    flex: 1 1 auto;
+    border: 1px solid var(--fate-line-soft);
+    background:
+        repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, 0.05) 6px 7px),
+        linear-gradient(160deg, var(--fate-ink), var(--fate-ink-deep));
+    color: var(--fate-line);
+    letter-spacing: 0.3em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.director_fate_log_actions .director_fate_log_flip:hover { box-shadow: 0 0 12px var(--fate-glow); }
 #director_fate_clear_log { display: block; margin: 12px 0 0; }
 
-.director_fate_rarity_dot { flex: 0 0 auto; font-size: 0.7em; }
-.director_fate_rarity_dot[data-rarity="common"], .director_fate_mark[data-rarity="common"] { color: var(--SmartThemeBodyColor); }
-.director_fate_rarity_dot[data-rarity="rare"], .director_fate_mark[data-rarity="rare"] { color: #c0c6d0; }
-.director_fate_rarity_dot[data-rarity="legendary"], .director_fate_mark[data-rarity="legendary"] { color: #d4af37; }
+/* Rarity markers differ in shape as well as color: circle, diamond, star.
+   The glyph stays in the DOM for its aria-label; the shape is drawn. */
+.director_fate_rarity_dot {
+    position: absolute;
+    top: 15px;
+    left: -21px;
+    width: 14px;
+    height: 14px;
+    flex: 0 0 auto;
+    color: transparent;
+    font-size: 0;
+}
+
+.director_fate_rarity_dot::before {
+    position: absolute;
+    inset: 2px;
+    border-radius: 50%;
+    background: var(--fate-node);
+    box-shadow: 0 0 0 3px var(--SmartThemeBlurTintColor);
+    content: '';
+}
+
+.director_fate_rarity_dot[data-rarity="rare"]::before { inset: 2.5px; border-radius: 1px; transform: rotate(45deg); }
+.director_fate_rarity_dot[data-rarity="legendary"]::before {
+    inset: -1px;
+    border-radius: 0;
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 3px rgba(224, 185, 85, 0.8));
+}
+
+.director_fate_mark[data-rarity="common"] { color: var(--SmartThemeBodyColor); }
+.director_fate_mark[data-rarity="rare"] { color: #c0c6d0; }
+.director_fate_mark[data-rarity="legendary"] { color: #d4af37; }
 
 .director_fate_mark {
     display: inline-flex;

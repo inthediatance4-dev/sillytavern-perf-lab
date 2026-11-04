@@ -286,6 +286,9 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const element = panel.querySelector('.director_fate_card');
         element.hidden = showOffer && !view.held;
         element.dataset.state = state;
+        // Card stock follows the rarity already printed on the back. No event text.
+        if (card) element.dataset.rarity = reveal?.rarity ?? card.rarity;
+        else delete element.dataset.rarity;
         element.classList.toggle('director_fate_flipped', shown);
         panel.classList.toggle('director_fate_nomotion', settings.motion === 'off');
         document.documentElement?.classList.toggle('director_fate_nomotion', settings.motion === 'off');

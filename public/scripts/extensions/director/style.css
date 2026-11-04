@@ -11,13 +11,57 @@
     overflow-wrap: anywhere;
 }
 
+/*
+ * Fate card stock. The card is a physical object with its own palette so it
+ * reads the same on light and dark SillyTavern themes. Rarity only swaps the
+ * ink, the foil line and the glow. Text stays high contrast on every stock.
+ */
+.director_fate_card,
+.director_fate_choice {
+    --fate-ink: #24222c;
+    --fate-ink-deep: #131218;
+    --fate-line: #d9d0bd;
+    --fate-line-soft: rgba(217, 208, 189, 0.38);
+    --fate-glow: rgba(217, 208, 189, 0.22);
+    --fate-wax: #8f3029;
+    --fate-wax-deep: #4d1511;
+}
+
+.director_fate_card[data-rarity="rare"],
+.director_fate_choice[data-rarity="rare"] {
+    --fate-ink: #1e2a3f;
+    --fate-ink-deep: #0f1624;
+    --fate-line: #cdd7e8;
+    --fate-line-soft: rgba(205, 215, 232, 0.45);
+    --fate-glow: rgba(150, 182, 230, 0.34);
+    --fate-wax: #2f527f;
+    --fate-wax-deep: #14263f;
+}
+
+.director_fate_card[data-rarity="legendary"],
+.director_fate_choice[data-rarity="legendary"] {
+    --fate-ink: #2c1518;
+    --fate-ink-deep: #120809;
+    --fate-line: #e6c46f;
+    --fate-line-soft: rgba(230, 196, 111, 0.55);
+    --fate-glow: rgba(230, 186, 90, 0.4);
+    --fate-wax: #b07d2a;
+    --fate-wax-deep: #5a3a0c;
+}
+
 .director_fate_card {
     display: grid;
-    width: 100%;
+    width: min(100%, 264px);
     min-width: 0;
-    margin: 16px 0;
+    margin: 18px auto;
     perspective: 900px;
     text-align: center;
+}
+
+.director_fate_card:focus-visible {
+    border-radius: 18px;
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    outline-offset: 4px;
 }
 
 .director_fate_back,
@@ -29,26 +73,99 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
-    min-height: 210px;
-    padding: 24px 16px;
-    border: 1px solid var(--SmartThemeBorderColor);
-    border-radius: 12px;
-    background-color: var(--SmartThemeBlurTintColor);
+    min-height: 300px;
+    padding: 28px 20px;
+    overflow: hidden;
+    border: 1px solid var(--fate-line-soft);
+    border-radius: 14px;
     backface-visibility: hidden;
     transition: transform 600ms ease, opacity 600ms ease;
 }
 
 .director_fate_back {
-    background-image: repeating-linear-gradient(135deg, transparent 0 12px, rgba(127, 127, 127, 0.06) 12px 13px);
+    color: var(--fate-line);
+    background:
+        radial-gradient(circle at 18px 18px, var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at calc(100% - 18px) 18px, var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 18px calc(100% - 18px), var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at calc(100% - 18px) calc(100% - 18px), var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(ellipse at 50% 38%, var(--fate-glow) 0, transparent 62%),
+        repeating-linear-gradient(45deg, transparent 0 9px, rgba(255, 255, 255, 0.035) 9px 10px),
+        repeating-linear-gradient(-45deg, transparent 0 9px, rgba(255, 255, 255, 0.035) 9px 10px),
+        linear-gradient(160deg, var(--fate-ink), var(--fate-ink-deep));
+    outline: 1px solid var(--fate-line-soft);
+    outline-offset: -9px;
+    box-shadow: inset 0 0 0 8px rgba(0, 0, 0, 0.28), 0 10px 24px rgba(0, 0, 0, 0.38);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     transform: rotateY(0deg);
 }
 
+.director_fate_card[data-rarity="rare"] .director_fate_back {
+    background-color: var(--fate-ink);
+    box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.28),
+        inset 0 48px 60px -40px rgba(205, 215, 232, 0.22),
+        0 10px 24px rgba(0, 0, 0, 0.38);
+}
+
+.director_fate_card[data-rarity="legendary"] .director_fate_back {
+    box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.32),
+        inset 0 0 40px rgba(230, 186, 90, 0.12),
+        0 10px 28px rgba(0, 0, 0, 0.42),
+        0 0 22px rgba(230, 186, 90, 0.2);
+}
+
+/* An empty slot is a face-down deck: two cards peek out behind the top one. */
+.director_fate_card[data-state="empty"] .director_fate_back {
+    box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.28),
+        4px 4px 0 -1px var(--fate-ink-deep),
+        4px 4px 0 0 var(--fate-line-soft),
+        8px 8px 0 -1px var(--fate-ink-deep),
+        8px 8px 0 0 rgba(217, 208, 189, 0.2),
+        0 14px 26px rgba(0, 0, 0, 0.35);
+}
+
+.director_fate_card[data-state="stale"] .director_fate_back { filter: grayscale(0.85) brightness(0.8); }
+
 .director_fate_face {
+    color: #2b2620;
+    border-color: #c8b993;
+    background:
+        radial-gradient(ellipse at 50% 0, rgba(255, 255, 255, 0.6), transparent 60%),
+        radial-gradient(ellipse at 50% 120%, rgba(150, 120, 70, 0.18), transparent 60%),
+        linear-gradient(180deg, #f7f2e7, #ebe1cc);
+    outline: 1px solid rgba(139, 109, 59, 0.35);
+    outline-offset: -8px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    font-size: 1.02em;
+    line-height: 1.7;
+    text-shadow: none;
     white-space: pre-wrap;
     transform: rotateY(-180deg);
     opacity: 0;
+}
+
+/* A hairline with a center pip, drawn so it never joins the event text. */
+.director_fate_face::before {
+    flex: 0 0 auto;
+    width: 72px;
+    height: 8px;
+    background:
+        radial-gradient(circle, #8b6d3b 0 2.5px, transparent 3px) center / 8px 8px no-repeat,
+        linear-gradient(90deg, transparent, rgba(139, 109, 59, 0.6), transparent) center / 100% 1px no-repeat;
+    content: '';
+}
+
+.director_fate_card[data-rarity="rare"] .director_fate_face { border-color: #9fb0cc; }
+.director_fate_card[data-rarity="legendary"] .director_fate_face {
+    border-color: #c99d3e;
+    outline-color: rgba(201, 157, 62, 0.65);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 24px rgba(230, 186, 90, 0.3);
 }
 
 .director_fate_flipped .director_fate_back { transform: rotateY(180deg); opacity: 0; }
@@ -58,7 +175,7 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 0 22px rgba(199, 156, 85, 0.3);
+    box-shadow: inset 0 0 26px var(--fate-glow), inset 0 0 0 1px var(--fate-line-soft);
     content: '';
     pointer-events: none;
     animation: director_fate_breathe 3s ease-in-out infinite;
@@ -83,8 +200,21 @@
     50% { transform: scale(1.08) rotate(-8deg); opacity: 1; }
 }
 
-#director_fate_title { font-size: 1.25em; }
-#director_fate_strength_label, #director_fate_rarity { font-size: 0.9em; opacity: 0.8; }
+#director_fate_title {
+    max-width: 100%;
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    font-size: 1.3em;
+    letter-spacing: 0.06em;
+}
+#director_fate_strength_label { font-size: 0.85em; letter-spacing: 0.12em; opacity: 0.75; }
+#director_fate_rarity {
+    padding: 1px 10px;
+    border: 1px solid var(--fate-line-soft);
+    border-radius: 999px;
+    font-size: 0.8em;
+    letter-spacing: 0.2em;
+}
+#director_fate_rarity:empty { display: none; }
 #director_fate_status { min-height: 2.5em; }
 .director_fate_actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .director_fate_actions .menu_button { flex: 1 1 auto; min-width: 0; white-space: normal; }

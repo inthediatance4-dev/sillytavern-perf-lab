@@ -1,3 +1,8 @@
+// A view that predates the allowance, or a mock that omits it, still has the one free swap.
+function rerollsLeft(view) {
+    return Number.isInteger(view?.rerolls) ? Math.max(0, view.rerolls) : 1;
+}
+
 /** Events cross into the face only after completion and the user's reveal policy. */
 export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn,
     settings = { reveal: 'tap', sound: false, motion: 'system' }, sound = { play() {} },
@@ -251,11 +256,28 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         }, '未抽到有效事件，请重试。');
     }
 
+    function syncDraw(view) {
+        const draw = panel.querySelector('#director_fate_draw');
+        const remaining = rerollsLeft(view);
+        const open = Boolean(view.offer);
+        const spent = open && remaining < 1;
+        draw.textContent = open ? `换一组 (${remaining})` : '发牌';
+        if (spent) {
+            draw.disabled = true;
+            draw.setAttribute('title', '本次已换过一组');
+            draw.setAttribute('aria-label', `换一组 (${remaining})，本次已换过一组`);
+        } else {
+            draw.removeAttribute('title');
+            draw.removeAttribute('aria-label');
+        }
+    }
+
     function refresh() {
         if (!panel) return;
         const view = controller.view();
         const applying = view.phase === 'applying';
         const showOffer = Boolean(view.offer) && !applying;
+        const rerollSpent = showOffer && rerollsLeft(view) < 1;
         // An open offer is the choice being made. Do not show a previous reveal behind it.
         const card = view.held ?? (showOffer ? null : view.bound);
         const reveal = !view.held && !applying && !showOffer && view.reveal?.id === card?.id ? view.reveal : null;
@@ -278,16 +300,17 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         syncOffer(view);
         panel.querySelector('#director_fate_status').textContent = error || (view.busy
             ? applying ? '命运在转动…' : '正在为当前剧情抽牌…'
-            : showOffer ? '三张牌已备好，请选择一张。'
+            : showOffer ? (rerollSpent ? '三张牌已备好，请选择一张。本次已换过一组。' : '三张牌已备好，请选择一张。')
                 : state === 'sealed' ? '牌已封存。'
                     : state === 'revealed' ? shown ? '命运已揭晓。' : settings.reveal === 'off' ? '命运已降临，翻牌已关闭。' : '命运已降临，点击翻牌。'
                         : state === 'stale' ? '这张牌的消息已变化，无法翻牌。' : '抽取一张牌，让故事迎来转折。');
-        panel.querySelector('#director_fate_draw').textContent = view.offer ? '换一组' : '发牌';
         panel.querySelector('#director_fate_apply').hidden = !view.held;
         panel.querySelector('#director_fate_discard').hidden = !view.held;
         panel.querySelector('#director_fate_flip').hidden = !reveal || settings.reveal !== 'tap' || shown;
         panel.querySelector('#director_fate_jump').hidden = !shown;
         for (const control of panel.querySelectorAll('.director_fate_actions button, #director_fate_strength, .director_fate_choice')) control.disabled = view.busy;
+        // After the busy pass, so a spent swap stays disabled once the deal settles.
+        syncDraw(view);
         panel.setAttribute('aria-busy', String(view.busy));
         syncLog(view);
         selectTab(activeTab);
@@ -397,9 +420,19 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const controls = document.createElement('div');
         controls.className = 'director_fate_actions';
         const draw = button('director_fate_draw', '发牌', () => {
+            const currentView = controller.view();
+            if (currentView.offer && rerollsLeft(currentView) < 1) return;
             // play() has to run inside the click, before the deal save yields.
             sound.play('draw');
-            action(() => controller.deal(), '未能发牌，请重试。');
+            action(async () => {
+                try {
+                    await controller.deal();
+                } catch (reason) {
+                    // The view refresh shows the spent hint. Do not replace it with the generic failure.
+                    if (reason?.message === '本次已换过一组') return;
+                    throw reason;
+                }
+            }, '未能发牌，请重试。');
         });
         const apply = button('director_fate_apply', '让意外发生', () => {
             if (hasDraft()) {

@@ -152,7 +152,8 @@ test('draw persists a private event but exposes only curated title, strength and
     const fixture = lab();
     assert.equal(await fixture.controller.draw(), true);
     const view = fixture.controller.view();
-    assert.deepEqual(Object.keys(view).sort(), ['bound', 'busy', 'held', 'logCount', 'offer', 'phase', 'reveal']);
+    assert.deepEqual(Object.keys(view).sort(), ['bound', 'busy', 'held', 'logCount', 'offer', 'phase', 'rerolls', 'reveal']);
+    assert.equal(view.rerolls, 1);
     assert.equal(view.logCount, 0);
     assert.deepEqual(Object.keys(view.held).sort(), ['id', 'rarity', 'strength', 'title']);
     assert.equal(view.held.rarity, 'common');

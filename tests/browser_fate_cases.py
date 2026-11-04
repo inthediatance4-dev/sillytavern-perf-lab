@@ -819,7 +819,8 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.locator('#director_fate_draw').click()
     page.locator('.director_fate_offer').wait_for(state='visible')
     page.wait_for_function("() => { const cards=[...document.querySelectorAll('.director_fate_choice')]; return cards.length===3 && cards.every(card => !card.disabled); }")
-    assert page.locator('#director_fate_draw').inner_text() == '换一组'
+    assert page.locator('#director_fate_draw').inner_text() == '换一组 (1)'
+    assert not page.locator('#director_fate_draw').is_disabled()
     labels = page.locator('.director_fate_choice').evaluate_all("nodes => nodes.map(node => node.getAttribute('aria-label'))")
     assert [label.startswith('第 ' + str(index) + ' 张：〈') and '，〈' in label for index, label in enumerate(labels, start=1)] == [True, True, True]
     layout = page.locator('.director_fate_offer').evaluate("""node => {
@@ -836,6 +837,29 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert layout['row'] and layout['fits'] and layout['separated'] and layout['panelFits'], layout
     assert all(70 <= width <= 140 for width in layout['widths']), layout
     hidden(offer_secret)
+    first_offer = fate()['offer']['id']
+    assert fate().get('rerolls', 1) == 1
+    page.locator('#director_fate_draw').click()
+    page.wait_for_function("""id => {
+        const draw = document.querySelector('#director_fate_draw');
+        const state = SillyTavern.getContext().chatMetadata.director?.fate;
+        const cards = [...document.querySelectorAll('.director_fate_choice')];
+        return state?.offer?.id && state.offer.id !== id && state.rerolls === 0
+            && draw?.textContent === '换一组 (0)' && draw.disabled
+            && draw.getAttribute('title') === '本次已换过一组'
+            && (draw.getAttribute('aria-label') || '').includes('本次已换过一组')
+            && document.querySelector('#director_fate_status')?.textContent === '三张牌已备好，请选择一张。本次已换过一组。'
+            && cards.length === 3 && cards.every(card => !card.disabled);
+    }""", arg=first_offer)
+    hidden(offer_secret)
+    close_panel()
+    open_panel()
+    assert page.locator('#director_fate_draw').inner_text() == '换一组 (0)'
+    assert page.locator('#director_fate_draw').is_disabled()
+    assert page.locator('#director_fate_draw').get_attribute('title') == '本次已换过一组'
+    assert '本次已换过一组' in page.locator('#director_fate_draw').get_attribute('aria-label')
+    assert page.locator('#director_fate_status').inner_text() == '三张牌已备好，请选择一张。本次已换过一组。'
+    result['checks']['fateOneFreeRerollThenDisabledAcrossReopen'] = True
     offer_id = fate()['offer']['id']
     close_panel()
     idle()
@@ -843,6 +867,10 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.set_viewport_size({'width':390,'height':844})
     open_panel()
     assert fate()['offer']['id'] == offer_id
+    assert fate()['rerolls'] == 0
+    assert page.locator('#director_fate_draw').inner_text() == '换一组 (0)'
+    assert page.locator('#director_fate_draw').is_disabled()
+    assert page.locator('#director_fate_draw').get_attribute('title') == '本次已换过一组'
     assert page.locator('.director_fate_choice').count() == 3
     page.locator('.director_fate_offer').wait_for(state='visible')
     hidden(offer_secret)
@@ -901,6 +929,17 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     result['checks']['fateLogNewestFirstMobileSingleColumnHasNoOverflow'] = True
     result['checks']['fateLogListsRarityTitleStrengthAndOmitsOkStatus'] = True
     page.set_viewport_size({'width':1440,'height':1000})
+    tab('current')
+    assert page.locator('#director_fate_draw').inner_text() == '发牌'
+    assert not page.locator('#director_fate_draw').is_disabled()
+    page.locator('#director_fate_draw').click()
+    page.wait_for_function("""() => {
+        const draw = document.querySelector('#director_fate_draw');
+        const state = SillyTavern.getContext().chatMetadata.director?.fate;
+        return draw?.textContent === '换一组 (1)' && !draw.disabled && state?.rerolls === 1 && state.offer?.cards?.length === 3
+            && document.querySelector('#director_fate_status')?.textContent === '三张牌已备好，请选择一张。';
+    }""")
+    result['checks']['fateRerollResetsAfterApply'] = True
     close_panel()
 
     # Give the real lazy-loading chat renderer a valid historical entry near

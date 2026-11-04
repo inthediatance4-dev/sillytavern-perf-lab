@@ -48,6 +48,7 @@ function lab({ onReveal = () => {}, metadata = {} } = {}) {
     let saves = 0;
     let generations = 0;
     let generate = async () => {};
+    let persist = async () => true;
     const quietCalls = [];
     let context = {
         eventSource, eventTypes, chatId: 'chat-one', chatMetadata: metadata,
@@ -65,7 +66,7 @@ function lab({ onReveal = () => {}, metadata = {} } = {}) {
     const controller = createFateController(() => context, {
         uuid: () => `offer-${++serial}`, random: () => 0,
         generate: () => { generations++; return generate(); },
-        save: async () => { saves++; return true; },
+        save: async () => { saves++; return persist(); },
         onReveal: value => { reveals.push(value); onReveal(value); },
     });
     const api = {
@@ -75,6 +76,7 @@ function lab({ onReveal = () => {}, metadata = {} } = {}) {
         get generations() { return generations; },
         setResponse(value) { response = value; },
         setGenerate(value) { generate = value; },
+        setSave(value) { persist = value; },
         switchChat() {
             context = { ...context, chatId: 'chat-two', chatMetadata: {}, chat: [{ is_user: true, name: 'User', mes: 'Elsewhere.' }] };
         },
@@ -298,6 +300,193 @@ test('legacy cards without category or rarity still read, apply and replay', asy
     assert.equal(fixture.controller.view().held, null);
 });
 
+test('an open offer can be swapped once, and the spent allowance survives a reloaded view', async () => {
+    const fixture = lab();
+    fixture.metadata.director = { fate: { version: 1, pity: 5, recent: ['deadline'] } };
+    assert.equal(fixture.controller.view().rerolls, 1);
+    assert.equal(await fixture.controller.deal(), true);
+    const first = fixture.metadata.director.fate.offer.id;
+    assert.equal(fixture.metadata.director.fate.version, 1);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+    assert.equal(fixture.metadata.director.fate.pity, 5);
+    assert.deepEqual(fixture.metadata.director.fate.recent, ['deadline']);
+    assert.equal(fixture.controller.view().rerolls, 1);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.notEqual(fixture.metadata.director.fate.offer.id, first);
+    assert.equal(fixture.metadata.director.fate.offer.cards.length, 3);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(fixture.controller.view().rerolls, 0);
+    assert.equal(fixture.metadata.director.fate.pity, 5);
+    assert.deepEqual(fixture.metadata.director.fate.recent, ['deadline']);
+    const spentOffer = fixture.metadata.director.fate.offer.id;
+    const saves = fixture.saves;
+    await assert.rejects(fixture.controller.deal(), error => error.message === '本次已换过一组');
+    assert.equal(fixture.metadata.director.fate.offer.id, spentOffer);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(fixture.saves, saves);
+    assert.equal(fixture.controller.view().busy, false);
+    assert.equal(fixture.controller.view().phase, 'idle');
+
+    const metadata = structuredClone(fixture.metadata);
+    const eventSource = new EventEmitter();
+    const reloaded = createFateController(() => ({
+        eventSource, eventTypes, chatId: fixture.context.chatId, chatMetadata: metadata,
+        groupId: null, characterId: 0, chat: fixture.context.chat, extensionPrompts: {},
+        saveMetadataDebounced() {},
+    }), { random: () => 0, uuid: () => 'reloaded', save: async () => true });
+    assert.equal(reloaded.view().rerolls, 0);
+    assert.equal(reloaded.view().offer.id, spentOffer);
+    await assert.rejects(reloaded.deal(), error => error.message === '本次已换过一组');
+    assert.equal(metadata.director.fate.offer.id, spentOffer);
+    assert.equal(metadata.director.fate.rerolls, 0);
+    assert.equal(metadata.director.fate.version, 1);
+});
+
+test('legacy fate state without rerolls still allows one swap', async () => {
+    const fixture = lab();
+    fixture.metadata.director = { fate: { version: 1, pity: 4, recent: ['echo'], offer: fixedOffer() } };
+    assert.equal(Object.hasOwn(fixture.metadata.director.fate, 'rerolls'), false);
+    assert.equal(fixture.controller.view().rerolls, 1);
+    assert.equal(fixture.metadata.director.fate.version, 1);
+    const before = fixture.metadata.director.fate.offer.id;
+    assert.equal(await fixture.controller.deal(), true);
+    assert.notEqual(fixture.metadata.director.fate.offer.id, before);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(fixture.metadata.director.fate.version, 1);
+    assert.equal(fixture.metadata.director.fate.pity, 4);
+    assert.deepEqual(fixture.metadata.director.fate.recent, ['echo']);
+    await assert.rejects(fixture.controller.deal(), error => error.message === '本次已换过一组');
+    assert.equal(fixture.metadata.director.fate.pity, 4);
+});
+
+test('a failed deal save rolls the offer and the allowance back together', async () => {
+    const fixture = lab();
+    fixture.setSave(async () => false);
+    await assert.rejects(fixture.controller.deal(), /保存失败/);
+    assert.equal(fixture.metadata.director?.fate, undefined);
+    assert.equal(fixture.controller.view().rerolls, 1);
+    fixture.setSave(async () => true);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+
+    const before = structuredClone(fixture.metadata.director.fate);
+    fixture.setSave(async () => { throw new Error('disk full'); });
+    await assert.rejects(fixture.controller.deal(), /保存失败/);
+    assert.deepEqual(fixture.metadata.director.fate, before);
+    assert.equal(fixture.controller.view().rerolls, 1);
+    assert.equal(fixture.controller.view().offer.id, before.offer.id);
+    fixture.setSave(async () => true);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.notEqual(fixture.metadata.director.fate.offer.id, before.offer.id);
+    assert.equal(fixture.metadata.director.fate.pity, before.pity);
+});
+
+test('a deal with no offer does not spend the swap, and pick plus discard does not refill a spent one', async () => {
+    const fixture = lab();
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(await fixture.controller.pick(0), true);
+    assert.equal(await fixture.controller.discard(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+    assert.equal(fixture.metadata.director.fate.offer, null);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(await fixture.controller.pick(1, 'light'), true);
+    assert.equal(fixture.metadata.director.fate.offer, null);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(await fixture.controller.discard(), true);
+    assert.equal(fixture.metadata.director.fate.held, null);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(fixture.controller.view().rerolls, 0);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(fixture.metadata.director.fate.offer.cards.length, 3);
+    const locked = fixture.metadata.director.fate.offer.id;
+    await assert.rejects(fixture.controller.deal(), error => error.message === '本次已换过一组');
+    assert.equal(fixture.metadata.director.fate.offer.id, locked);
+    assert.equal(await fixture.controller.pick(0), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.ok(fixture.metadata.director.fate.held);
+});
+
+test('applying the held card restores one reroll, and a failed apply does not', async () => {
+    const fixture = lab();
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(await fixture.controller.pick(0), true);
+    fixture.setGenerate(async () => { throw new Error('provider down'); });
+    await assert.rejects(fixture.controller.apply(), /采用失败/);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.ok(fixture.metadata.director.fate.held);
+    assert.equal(fixture.metadata.director.fate.offer, null);
+    fixture.setGenerate(async () => { await fixture.complete(await fixture.request()); });
+    assert.equal(await fixture.controller.apply(), true);
+    assert.equal(fixture.metadata.director.fate.held, null);
+    assert.ok(fixture.metadata.director.fate.bound);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+    assert.equal(fixture.controller.view().rerolls, 1);
+    const pity = fixture.metadata.director.fate.pity;
+    const recent = fixture.metadata.director.fate.recent.slice();
+    await fixture.complete(await fixture.request('swipe'), { append: false });
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+    assert.equal(fixture.metadata.director.fate.pity, pity);
+    assert.deepEqual(fixture.metadata.director.fate.recent, recent);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+    assert.equal(fixture.controller.view().rerolls, 1);
+    const offer = fixture.metadata.director.fate.offer.id;
+    assert.equal(await fixture.controller.deal(), true);
+    assert.notEqual(fixture.metadata.director.fate.offer.id, offer);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+});
+
+test('applying restores the reroll for an offer that was dealt while the swap was spent', async () => {
+    const fixture = lab();
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(await fixture.controller.pick(0), true);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    const offer = fixture.metadata.director.fate.offer;
+    assert.ok(fixture.metadata.director.fate.held);
+    fixture.setGenerate(async () => { await fixture.complete(await fixture.request()); });
+    assert.equal(await fixture.controller.apply(), true);
+    assert.equal(fixture.metadata.director.fate.offer, offer);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.notEqual(fixture.metadata.director.fate.offer.id, offer.id);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.equal(await fixture.controller.pick(2), true);
+});
+
+test('draw still seals one card and does not spend or refill the reroll', async () => {
+    const fixture = lab();
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(await fixture.controller.draw(), true);
+    assert.equal(fixture.quietCalls.length, 1);
+    assert.equal(fixture.metadata.director.fate.offer, null);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1);
+    assert.ok(fixture.metadata.director.fate.held);
+    assert.equal(await fixture.controller.discard(), true);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(await fixture.controller.deal(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    const locked = fixture.metadata.director.fate.offer;
+    assert.equal(await fixture.controller.draw(), true);
+    assert.equal(fixture.quietCalls.length, 2);
+    assert.equal(fixture.metadata.director.fate.offer, null);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+    assert.notEqual(fixture.metadata.director.fate.held.id, undefined);
+    assert.equal(await fixture.controller.discard(), true);
+    assert.equal(await fixture.controller.deal(), true);
+    await assert.rejects(fixture.controller.deal(), error => error.message === '本次已换过一组');
+    assert.notEqual(fixture.metadata.director.fate.offer, locked);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0);
+});
+
 test('seeded rollOffer frequencies, distinct categories and pity stay inside the deal rules', () => {
     const counts = { common: 0, rare: 0, legendary: 0 };
     const random = lcg(20261031);
@@ -367,6 +556,7 @@ class MiniNode {
         this.append(...nodes);
     }
     add(option) { this.append(option); }
+    removeAttribute(name) { this.attributes.delete(name); }
     addEventListener(type, handler) {
         const list = this.listeners.get(type) ?? [];
         list.push(handler);

@@ -47,6 +47,12 @@ function readPity(value) {
     return Number.isInteger(value) && value >= 0 && value <= 99 ? value : 0;
 }
 
+// One free swap of an open offer since the last card was applied.
+// Only an explicit 0 is spent, so a version-1 save that omits the field can still swap once.
+function readRerolls(value) {
+    return value === 0 ? 0 : 1;
+}
+
 function readRecent(value) {
     if (!Array.isArray(value) || value.length > 2 || value.some(id => !CATEGORY_IDS.has(id))) return [];
     return value;
@@ -156,12 +162,12 @@ function readLog(value) {
 
 function state(metadata) {
     const value = metadata?.director?.fate;
-    if (value?.version !== 1) return { version: 1, held: null, bound: null, offer: null, pity: 0, recent: [], log: [] };
+    if (value?.version !== 1) return { version: 1, held: null, bound: null, offer: null, pity: 0, recent: [], log: [], rerolls: 1 };
     const bound = readCard(value.bound);
     return {
         version: 1, held: readCard(value.held), offer: readOffer(value.offer), pity: readPity(value.pity), recent: readRecent(value.recent),
         bound: bound && Number.isInteger(bound.slotIndex) && bound.slotIndex >= 0 && typeof bound.prevFingerprint === 'string' ? bound : null,
-        log: readLog(value.log),
+        log: readLog(value.log), rerolls: readRerolls(value.rerolls),
     };
 }
 
@@ -262,7 +268,8 @@ export function createFateController(getContext, options = {}) {
         const reveal = value.bound && anchorMatches(context, value.bound) && isAi(context.chat[value.bound.slotIndex])
             ? { ...publicReveal(value.bound), event: value.bound.event } : null;
         return { held: publicCard(value.held), bound: publicCard(value.bound), reveal, offer: publicOffer(value.offer),
-            busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle', logCount: value.log.length };
+            busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle', logCount: value.log.length,
+            rerolls: value.rerolls };
     };
     const log = slotIndex => {
         const context = getContext();
@@ -356,17 +363,23 @@ export function createFateController(getContext, options = {}) {
         if (busy === operation) { busy = null; if (current(snapshot)) notify(); }
     }
 
+    // No open offer: a new deal, always allowed, and it neither spends nor refills the swap.
+    // An open offer is the one free reroll. The allowance and the offer commit together,
+    // so a failed save rolls both back. The count resets only when a held card is applied.
     async function deal() {
         checkAvailable();
-        nonce++;
         const context = getContext();
+        const existing = state(context.chatMetadata);
+        if (existing.offer && existing.rerolls < 1) throw new Error('本次已换过一组');
+        nonce++;
         const snapshot = capture(context);
         const operation = busy = { snapshot, phase: 'drawing' };
         notify();
         try {
             const value = state(snapshot.metadata);
+            if (value.offer && value.rerolls < 1) throw new Error('本次已换过一组');
             const offer = { id: uuid(), cards: rollOffer(random, { recent: value.recent, pity: value.pity }) };
-            return await commit(snapshot, { ...value, offer });
+            return await commit(snapshot, { ...value, offer, rerolls: value.offer ? 0 : value.rerolls });
         } catch (error) {
             if (!current(snapshot)) return false;
             throw error;
@@ -395,8 +408,9 @@ export function createFateController(getContext, options = {}) {
         }
     }
 
-    // Internal/test-only compat path. Stays one quiet call and one commit. Persisting
-    // deal() first would add a save and would not yet have held.event, which existing callers assert.
+    // Internal/test-only compat path. Stays one quiet call and one commit, and does not
+    // spend or refill the free reroll. Persisting deal() first would add a save and would
+    // not yet have held.event, which existing callers assert.
     async function draw(strength = 'medium') {
         checkAvailable();
         if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择有效的命运强度。');
@@ -650,6 +664,8 @@ export function createFateController(getContext, options = {}) {
             bound.rarity = rarity;
             next.pity = rarity === 'common' ? Math.min(99, value.pity + 1) : 0;
             next.recent = categoryId ? [categoryId, ...value.recent].slice(0, 2) : value.recent.slice(0, 2);
+            // Binding the held card is the fresh deal for the next turn.
+            next.rerolls = 1;
             next.log = [publicEntry(rememberSwipe({ ...bound, at: new Date().toISOString(), replays: 0 }, swipeId)),
                 ...value.log.filter(entry => entry.id !== bound.id)].slice(0, 50);
         } else {

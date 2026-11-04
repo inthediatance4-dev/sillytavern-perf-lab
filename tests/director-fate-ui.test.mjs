@@ -501,3 +501,59 @@ test('the current card jump does not recover log slots', async t => {
     assert.equal(calls, 0);
     assert.equal(fixture.jumps[0][0], 1);
 });
+
+test('the draw button shows one free swap, then locks with a hint until the offer is gone', async t => {
+    const fixture = lab(t);
+    const deals = [];
+    fixture.controller.deal = async () => { deals.push('deal'); return true; };
+    fixture.open();
+    const draw = fixture.query('#director_fate_draw');
+    assert.equal(draw.textContent, '发牌');
+    assert.equal(draw.disabled, false);
+    assert.equal(draw.getAttribute('title'), null);
+    assert.equal(draw.getAttribute('aria-label'), null);
+    const offer = { id: 'offer', cards: [
+        { title: '一', rarity: 'common' }, { title: '二', rarity: 'rare' }, { title: '三', rarity: 'legendary' },
+    ] };
+    fixture.setView({ held: null, bound: null, reveal: null, offer });
+    assert.equal(draw.textContent, '换一组 (1)');
+    assert.equal(draw.disabled, false);
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌已备好，请选择一张。');
+    draw.click();
+    await settle();
+    assert.deepEqual(deals, ['deal']);
+    assert.deepEqual(fixture.sounds, ['draw']);
+
+    fixture.controller.deal = async () => { throw new Error('本次已换过一组'); };
+    draw.click();
+    await settle();
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌已备好，请选择一张。');
+    assert.equal(draw.disabled, false);
+
+    fixture.setView({ rerolls: 0 });
+    assert.equal(draw.textContent, '换一组 (0)');
+    assert.equal(draw.disabled, true);
+    assert.equal(draw.getAttribute('title'), '本次已换过一组');
+    assert.equal(draw.getAttribute('aria-label'), '换一组 (0)，本次已换过一组');
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌已备好，请选择一张。本次已换过一组。');
+    draw.click();
+    await settle();
+    assert.deepEqual(deals, ['deal']);
+    assert.deepEqual(fixture.sounds, ['draw', 'draw']);
+
+    fixture.setView({ busy: true, phase: 'drawing' });
+    assert.equal(draw.disabled, true);
+    assert.equal(fixture.query('#director_fate_status').textContent, '正在为当前剧情抽牌…');
+    fixture.setView({ busy: false, phase: 'idle' });
+    assert.equal(draw.textContent, '换一组 (0)');
+    assert.equal(draw.disabled, true);
+    assert.equal(draw.getAttribute('title'), '本次已换过一组');
+
+    fixture.setView({ offer: null, rerolls: 0 });
+    assert.equal(draw.textContent, '发牌');
+    assert.equal(draw.disabled, false);
+    assert.equal(draw.getAttribute('title'), null);
+    assert.equal(draw.getAttribute('aria-label'), null);
+    assert.equal(fixture.query('#director_fate_status').textContent, '抽取一张牌，让故事迎来转折。');
+    await fixture.close();
+});

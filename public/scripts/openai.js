@@ -504,7 +504,7 @@ const default_settings = {
     names_behavior: character_names_behavior.DEFAULT,
     continue_postfix: continue_postfix_types.SPACE,
     custom_prompt_post_processing: custom_prompt_post_processing_types.NONE,
-    show_thoughts: true,
+    show_thoughts: false,
     reasoning_effort: reasoning_effort_types.auto,
     verbosity: verbosity_levels.auto,
     enable_web_search: false,

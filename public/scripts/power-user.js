@@ -274,7 +274,7 @@ export const power_user = {
 
     reasoning: {
         name: DEFAULT_REASONING_TEMPLATE,
-        auto_parse: false,
+        auto_parse: true,
         add_to_prompts: false,
         auto_expand: false,
         show_hidden: false,
@@ -1565,6 +1565,11 @@ export async function loadPowerUserSettings(settings, data) {
             delete settings.power_user.auto_sort_tags;
         }
         Object.assign(power_user, settings.power_user);
+    }
+
+    // The settings merge is shallow; older reasoning objects may lack this preference.
+    if (power_user.reasoning.auto_parse === undefined) {
+        power_user.reasoning.auto_parse = true;
     }
 
     if (power_user.stscript === undefined) {

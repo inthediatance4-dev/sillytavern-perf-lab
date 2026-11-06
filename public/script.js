@@ -1962,6 +1962,12 @@ export function messageFormatting(mes, ch_name, isSystem, isUser, messageId, san
         return '';
     }
 
+    // Project tagged history for display without rewriting the saved message.
+    if (!isSystem && !isUser && !isReasoning && power_user.reasoning.auto_parse) {
+        mes = ReasoningHandler.parseMessage(mes)?.content ?? mes;
+        if (!mes) return '';
+    }
+
     // Greeting rewrite. Director messages already store the typed macros, so
     // this pass must not expand them into the saved text or the bubble.
     if (Number(messageId) === 0 && !isSystem && !isUser && !isReasoning && !chat[messageId]?.extra?.director) {
@@ -4225,7 +4231,7 @@ class StreamingProcessor {
                 chat[messageId].extra.time_to_first_token = this.timeToFirstToken;
 
                 // Update reasoning. process() may rewrite mes and must stay ahead of the paint.
-                await this.reasoningHandler.process(messageId, mesChanged, this.promptReasoning);
+                await this.reasoningHandler.process(messageId, mesChanged, this.promptReasoning, { isFinal });
                 if (generation !== this.#streamingDomGeneration) return;
                 processedText = chat[messageId].mes;
 

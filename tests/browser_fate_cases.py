@@ -186,11 +186,19 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     def reload_browser():
         page.reload()
         page.locator('#directorButton').wait_for(state='visible', timeout=30000)
+        page.evaluate("async () => { window.__fateLabMain = await import('/script.js'); }")
+        page.wait_for_function("""avatar => {
+            const c = SillyTavern.getContext();
+            return c.characters.some(card => card.avatar === avatar)
+                && !document.querySelector('.splash-screen')
+                && !window.__fateLabMain.isChatSaving && !window.__fateLabMain.isGenerating();
+        }""", arg=sample['avatar'], timeout=30000)
         page.evaluate("""async sample => {
-            window.__fateLabMain = await import('/script.js');
             const c=SillyTavern.getContext();
-            await c.selectCharacterById(c.characters.findIndex(card=>card.avatar===sample.avatar));
-            if(SillyTavern.getContext().chatId!==sample.chatName) await SillyTavern.getContext().openCharacterChat(sample.chatName);
+            const id = c.characters.findIndex(card=>card.avatar===sample.avatar);
+            if (id < 0 || await c.selectCharacterById(String(id), { chatFile:sample.chatName }) !== true) {
+                throw new Error('Fate reload did not select the expected character and chat');
+            }
         }""", sample)
         connect_api(page)
 

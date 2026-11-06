@@ -1148,12 +1148,16 @@ def finish_report(result, errors, requests, browser, node, provider):
         ROOT / 'public' / 'script.js', ROOT / 'public' / 'scripts' / 'events.js',
         ROOT / 'public' / 'scripts' / 'group-chats.js', ROOT / 'tests' / 'browser_fate_cases.py',
         ROOT / 'tests' / 'browser_fate_review_cases.py',
+        ROOT / 'public' / 'scripts' / 'isolated-quiet-prompt.js', ROOT / 'tests' / 'browser_affinity_cases.py',
+        ROOT / 'public' / 'scripts' / 'openai.js', ROOT / 'public' / 'scripts' / 'tokenizers.js',
+        ROOT / 'public' / 'scripts' / 'textgen-settings.js',
     ])
     result['sourceSha256'] = {source.relative_to(ROOT).as_posix():hashlib.sha256(source.read_bytes()).hexdigest()
         for source in source_paths if source.is_file()}
     result['fakeEndpointSha256'] = hashlib.sha256(provider.read_bytes()).hexdigest()
     result['testRunnerSha256'] = hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()
     result['fateReviewCaseSha256'] = hashlib.sha256(pathlib.Path(__file__).with_name('browser_fate_review_cases.py').read_bytes()).hexdigest()
+    result['affinityCaseSha256'] = hashlib.sha256(pathlib.Path(__file__).with_name('browser_affinity_cases.py').read_bytes()).hexdigest()
     result['node'] = subprocess.check_output([node, '--version'], text=True).strip()
     return result
 
@@ -1168,7 +1172,7 @@ def run(args, temporary):
     log_path = temp / 'server.log'
     result = {'base': args.base, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'runnerHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=RUNNER_ROOT,text=True).strip(),
-              'mode':'fate-review-only' if args.fate_review_only else 'fate-only' if args.fate_only else 'f3-only' if args.f3_only else 'chapter-only' if args.chapter_only else 'review-only' if args.review_only else 'full',
+              'mode':'affinity-only' if args.affinity_only else 'fate-review-only' if args.fate_review_only else 'fate-only' if args.fate_only else 'f3-only' if args.f3_only else 'chapter-only' if args.chapter_only else 'review-only' if args.review_only else 'full',
               'thirdPartyEnabled':args.enable_third_party, 'saveDuringDryRunProbe':args.f3_save_probe,
               'testRunnerSha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(), 'checks': {}}
     stage = 'start isolated lab'
@@ -1188,7 +1192,7 @@ def run(args, temporary):
         prepare_source = """import fs from 'node:fs/promises';
             import path from 'node:path';
             import { createRequire } from 'node:module';
-            const [repo,directory,port,fakeUrl,thirdParty] = process.argv.slice(1);
+            const [repo,directory,port,fakeUrl,thirdParty,affinity] = process.argv.slice(1);
             const require = createRequire(path.join(repo,'package.json'));
             const yaml = require('yaml');
             const { pathToFileURL } = await import('node:url');
@@ -1204,11 +1208,18 @@ def run(args, temporary):
             settings.power_user.auto_connect = false;
             settings.extension_settings.disabledExtensions = ['director',
                 ...(thirdParty === 'on' ? [] : (await fs.readdir(path.join(repo,'public/scripts/extensions/third-party'))).map(name => 'third-party/' + name))];
+            // Old feature regressions retain their exact request-count contract.
+            // The affinity mode exercises the actual unseeded enabled/10 default.
+            if (affinity === 'off') {
+                settings.extension_settings.director ??= {};
+                settings.extension_settings.director.affinity = { enabled: false, interval: 10 };
+            }
             await fs.mkdir(path.join(lab.dataRoot,'default-user'),{ recursive:true });
             await fs.writeFile(path.join(lab.dataRoot,'default-user','settings.json'),JSON.stringify(settings));
             console.log(JSON.stringify(lab));"""
         lab = json.loads(subprocess.check_output([node, '--input-type=module', '-e', prepare_source,
-            str(ROOT), str(lab_dir), str(port), fake_url, 'on' if args.enable_third_party else 'off'], cwd=ROOT, text=True))
+            str(ROOT), str(lab_dir), str(port), fake_url, 'on' if args.enable_third_party else 'off',
+            'on' if args.affinity_only else 'off'], cwd=ROOT, text=True))
         env = {key: value for key, value in os.environ.items() if not key.upper().startswith('SILLYTAVERN_')}
         with log_path.open('w', encoding='utf-8') as logs:
             server = subprocess.Popen([node, 'server.js', '--configPath', lab['configPath'], '--dataRoot', lab['dataRoot'],
@@ -1303,6 +1314,10 @@ def run(args, temporary):
                 ready(page, origin)
                 select_sample(page, sample)
                 page.locator('#directorButton').wait_for(state='visible')
+                result['affinityIsolation'] = {
+                    'mode':'native-default' if args.affinity_only else 'disabled-for-other-feature-regressions',
+                    'runtimeSettings':page.evaluate("structuredClone(SillyTavern.getContext().extensionSettings.director.affinity)")}
+                assert result['affinityIsolation']['runtimeSettings']['enabled'] is bool(args.affinity_only), result['affinityIsolation']
                 result['thirdPartyRuntime'] = {
                     'loadedEntrypoints':sorted(path for path in loaded_scripts if path.endswith(('/dist/index.js','st-memory-enhancement/index.js'))),
                     'tavernHelperAvailable':page.evaluate("typeof globalThis.TavernHelper === 'object'"),
@@ -1311,9 +1326,12 @@ def run(args, temporary):
                     assert not result['disabledThirdPartyExtensions'], result['disabledThirdPartyExtensions']
                     assert result['thirdPartyRuntime']['tavernHelperAvailable'], result['thirdPartyRuntime']
                     assert any(path.endswith('/st-memory-enhancement/index.js') for path in loaded_scripts), loaded_scripts
-                if args.fate_only or args.fate_review_only:
-                    stage = 'Fate Cards browser acceptance'
-                    if args.fate_review_only:
+                if args.affinity_only or args.fate_only or args.fate_review_only:
+                    stage = 'Affinity browser acceptance' if args.affinity_only else 'Fate Cards browser acceptance'
+                    if args.affinity_only:
+                        from browser_affinity_cases import run_affinity_checks
+                        run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_message, open_manager, args.affinity_cases)
+                    elif args.fate_review_only:
                         from browser_fate_review_cases import run_fate_review_checks
                         run_fate_review_checks(page, sample, fake_url, result, connect_api)
                     else:
@@ -2575,8 +2593,10 @@ def main():
     preferred_node = pathlib.Path('/tmp/node-v24.22.1-linux-x64/bin/node')
     parser.add_argument('--node', default=str(preferred_node) if preferred_node.is_file() else 'node')
     parser.add_argument('--fake-endpoint', default=str(ROOT / 'scripts' / 'fake-openai-endpoint.mjs'))
-    parser.add_argument('--base', default='ffd5f4e')
+    parser.add_argument('--base', help='Disabled UI comparison baseline (affinity: its parent; other modes: original Director baseline)')
     modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--affinity-only', action='store_true', help='Run hidden relationship memory against native browser generations')
+    parser.add_argument('--affinity-cases', help='Comma-separated affinity case keys; only with --affinity-only (default: all nine)')
     modes.add_argument('--fate-review-only', action='store_true', help='Run the FC1/FC2/FC3 real-browser regressions')
     modes.add_argument('--fate-only', action='store_true', help='Run sealed Fate Card browser scenarios')
     modes.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')
@@ -2587,6 +2607,16 @@ def main():
     parser.add_argument('--product-root', type=pathlib.Path, help='Read-only product checkout to test with this same runner')
     parser.add_argument('--output', type=pathlib.Path, default=ROOT / '.evidence' / 'director-d2' / 'results.json')
     args = parser.parse_args()
+    if args.affinity_cases is not None:
+        if not args.affinity_only:
+            parser.error('--affinity-cases requires --affinity-only')
+        from browser_affinity_cases import AFFINITY_CASE_KEYS
+        selected = [value.strip() for value in args.affinity_cases.split(',')]
+        if any(key not in AFFINITY_CASE_KEYS for key in selected) or len(set(selected)) != len(selected):
+            parser.error('--affinity-cases must select distinct keys from: ' + ','.join(AFFINITY_CASE_KEYS))
+        args.affinity_cases = selected
+    if args.base is None:
+        args.base = '698119e' if args.affinity_only else 'ffd5f4e'
     if args.f3_save_probe and not args.f3_only:
         parser.error('--f3-save-probe requires --f3-only')
     if args.product_root:

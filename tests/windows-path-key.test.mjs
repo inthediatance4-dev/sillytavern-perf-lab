@@ -136,7 +136,7 @@ test('DOS short-name lifecycle roots preserve retirement in both directions (nat
         // os.tmpdir() may already contain a short ancestor such as RUNNER~1.
         const shortRoot = temporary.toLowerCase() !== longRoot.toLowerCase()
             ? temporary
-            : execFileSync('cmd.exe', ['/d', '/c', `for %I in ("${longRoot}") do @echo %~sI`], { encoding: 'utf8' }).trim();
+            : execFileSync('cmd.exe', ['/d', '/c', `for %I in ("${longRoot}") do @echo %~sI`], { encoding: 'utf8', windowsVerbatimArguments: true }).trim();
         if (shortRoot.toLowerCase() === longRoot.toLowerCase()) {
             t.skip('The temporary directory has no distinct DOS 8.3 short name (short-name creation may be disabled)');
             return;

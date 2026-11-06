@@ -25,7 +25,7 @@ async function until(predicate, label) {
     assert.ok(predicate(), label);
 }
 
-function fixture({ interval = 10, group = false, reply, initial } = {}) {
+function fixture({ interval = 10, group = false, reply, initial, controllerOptions = {} } = {}) {
     const eventSource = new EventEmitter();
     const calls = [];
     const saves = [];
@@ -33,6 +33,7 @@ function fixture({ interval = 10, group = false, reply, initial } = {}) {
     let sequence = 0;
     const id = ++fixtureId;
     let generating = false;
+    let requestChat = [];
     let context;
     const extensionSettings = { director: { affinity: { enabled: true, interval } }, disabledExtensions: [] };
     const makeContext = (chatId = 'first', data = {}) => ({
@@ -65,17 +66,26 @@ function fixture({ interval = 10, group = false, reply, initial } = {}) {
     const controller = createAffinityController(() => context, {
         uuid: () => `host-${id}-${++sequence}`,
         isGenerating: () => generating,
+        ...controllerOptions,
     });
     const emit = (name, ...args) => eventSource.emit(eventTypes[name], ...args);
     const state = () => context.chatMetadata.director?.__affinity;
     const marker = message => message?.extra?.__affinity;
 
+    function prepare(type) {
+        requestChat = [];
+        controller.prepare(type, requestChat);
+    }
+
     async function begin(type = 'normal', { dry = false, params = {}, prepare = true } = {}) {
         generating = true;
         await emit('GENERATION_STARTED', type, params, dry);
-        if (prepare) controller.prepare(type);
-        const data = { prompt: `assembled ${type} request` };
-        await emit('GENERATE_AFTER_DATA', data, dry);
+        if (prepare) {
+            requestChat = [];
+            controller.prepare(type, requestChat);
+        }
+        const data = { prompt: `assembled ${type} request ` + requestChat.map(item => item.mes).join('\n') };
+        await emit('GENERATE_AFTER_DATA', data, dry, { type });
         return { data, type, chatId: context.chatId, chatMetadata: context.chatMetadata };
     }
 
@@ -115,6 +125,7 @@ function fixture({ interval = 10, group = false, reply, initial } = {}) {
 
     async function switchChat(chatId = 'second', data) {
         context = makeContext(chatId, data);
+        requestChat = [];
         generating = false;
         await emit('CHAT_CHANGED', chatId);
         controller.refresh();
@@ -122,6 +133,9 @@ function fixture({ interval = 10, group = false, reply, initial } = {}) {
 
     return {
         controller, eventSource, calls, saves, prompts, emit, state, marker, begin, receive, finalize, end, generate, switchChat,
+        prepare,
+        get requestChat() { return requestChat; },
+        get preparedMemory() { return requestChat.find(message => message.extra?.directorAffinityPrompt)?.mes; },
         get context() { return context; },
         get generating() { return generating; },
         set generating(value) { generating = value; },
@@ -150,11 +164,12 @@ test('all prompt fields restore affinity facts literally, including CFG and chat
     await settleMany(lab, 10);
     assert.equal(lab.state().events.length, 1);
     await lab.begin('normal', { prepare: false });
-    lab.controller.prepare('normal');
-    const token = lab.context.extensionPrompts[AFFINITY_PROMPT_KEY]?.value;
-    assert.ok(token.startsWith('AFFINITY_LITERAL_'));
+    lab.prepare('normal');
+    const token = lab.preparedMemory;
+    assert.ok(token.includes('directoraffinity'));
+    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
     const data = { prompt: token, negative_prompt: token, nested: { input: token }, messages: [{ content: token }] };
-    await lab.emit('GENERATE_AFTER_DATA', data);
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     assert.ok(data.prompt.includes('{{random::甲::乙}}') && data.negative_prompt.includes('[[输入]]'));
     assert.ok(data.nested.input.includes('记住') && data.messages[0].content.includes('[[输入]]'));
     for (const value of [data.prompt, data.negative_prompt, data.nested.input, data.messages[0].content]) assert.ok(!value.includes('AFFINITY_LITERAL_'));
@@ -189,7 +204,7 @@ for (const broken of [
         const metadata = structuredClone(lab.context.chatMetadata);
         const extra = structuredClone(lab.context.chat[0].extra);
         lab.controller.refresh();
-        lab.controller.prepare('normal');
+        lab.prepare('normal');
         await settleMany(lab, 5);
         assert.deepEqual(lab.context.chatMetadata, metadata);
         assert.deepEqual(lab.context.chat[0].extra, extra);
@@ -209,8 +224,8 @@ test('opening 2000 old messages does not scan or stamp the entire transcript, an
     assert.ok(chat.filter(item => item.extra.__affinity).length <= 32, 'opening must not stamp all historical messages');
     assert.ok(reads < 200, `opening read ${reads} historical message values`);
     const before = reads;
-    lab.controller.prepare('normal');
-    lab.controller.prepare('normal');
+    lab.prepare('normal');
+    lab.prepare('normal');
     assert.ok(reads - before < 20, 'unchanged prepare calls must reuse their projection');
 });
 test('only the tenth accepted reply starts a default evaluation and repeated completion is idempotent', async () => {
@@ -312,9 +327,9 @@ test('regenerate carries the replaced logical slot receipt across its physical d
     await lab.emit('GENERATION_STARTED', 'regenerate', {}, false);
     lab.context.chat.pop();
     await lab.emit('MESSAGE_DELETED', lab.context.chat.length);
-    lab.controller.prepare('regenerate');
+    lab.prepare('regenerate');
     const data = { prompt: 'regenerate assembled request' };
-    await lab.emit('GENERATE_AFTER_DATA', data, false);
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     const replacement = await lab.receive({ type: 'regenerate', text: '这是替代回复。' });
     await lab.end();
     await lab.emit('GENERATION_COMPLETED', { data, type: 'regenerate', chatId: lab.context.chatId, chatMetadata: lab.context.chatMetadata });
@@ -421,13 +436,13 @@ test('a group fact belongs to the source avatar even when character display name
     assert.equal(lab.state().events.length, 1);
     assert.equal(lab.state().events[0].owner, 'b.png');
     lab.context.characterId = 0;
-    lab.controller.prepare('normal');
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    lab.prepare('normal');
+    assert.equal(lab.preparedMemory, undefined);
     lab.context.characterId = 1;
-    lab.controller.prepare('normal');
-    const token = lab.context.extensionPrompts[AFFINITY_PROMPT_KEY].value;
+    lab.prepare('normal');
+    const token = lab.preparedMemory;
     const data = { prompt: token };
-    await lab.emit('GENERATE_AFTER_DATA', data, false);
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     assert.ok(data.prompt.includes(fact));
 });
 test('a new main generation cancels only the current sidecar and ignores its late result', async () => {
@@ -469,7 +484,7 @@ test('scope changes discard a late evaluator answer without writing into either 
     await lab.controller.settle();
     assert.equal(originalMetadata.director.__affinity.events.length, 0);
     assert.equal(currentMetadata.director?.__affinity?.events?.length ?? 0, 0);
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    assert.equal(lab.preparedMemory, undefined);
 });
 test('switching to a chat with a complete pending batch resumes it after stale work finishes', async () => {
     const gate = deferred();
@@ -498,8 +513,8 @@ test('editing a source while evaluation waits invalidates its answer before comm
     gate.resolve(JSON.stringify({ events: [proposal] }));
     await lab.controller.settle();
     assert.equal(lab.state().events.length, 0);
-    lab.controller.prepare('normal');
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    lab.prepare('normal');
+    assert.equal(lab.preparedMemory, undefined);
 });
 test('persistent receipts survive structuredClone reload and do not re-evaluate the old batch', async () => {
     const first = fixture({ interval: 5 });
@@ -525,11 +540,11 @@ test('a persisted completed fact is injected after reload before any further eva
     const reloaded = fixture({ interval: 5, initial: structuredClone({
         chat: first.context.chat, chatMetadata: first.context.chatMetadata,
     }) });
-    reloaded.controller.prepare('normal');
-    const token = reloaded.context.extensionPrompts[AFFINITY_PROMPT_KEY]?.value;
+    reloaded.prepare('normal');
+    const token = reloaded.preparedMemory;
     assert.equal(typeof token, 'string');
     const data = { prompt: token };
-    await reloaded.emit('GENERATE_AFTER_DATA', data, false);
+    await reloaded.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     assert.ok(data.prompt.includes(fact));
     assert.equal(reloaded.calls.length, 0);
 });
@@ -549,8 +564,8 @@ for (const mutation of ['MESSAGE_UPDATED', 'MESSAGE_EDITED', 'MESSAGE_SWIPED', '
         await lab.emit(mutation, mutation === 'MESSAGE_DELETED' ? lab.context.chat.length : index);
         await lab.controller.settle();
         assert.equal(lab.state().events.length, 0);
-        lab.controller.prepare('normal');
-        assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+        lab.prepare('normal');
+        assert.equal(lab.preparedMemory, undefined);
     });
 }
 test('prepare installs literal hidden memory before assembly and restores macros only in generated data', async () => {
@@ -558,20 +573,21 @@ test('prepare installs literal hidden memory before assembly and restores macros
     const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [factFor(context.chat.at(-1), { fact })] }) });
     await settleMany(lab, 5);
     assert.equal(lab.state().events.length, 1);
-    lab.controller.prepare('normal');
-    const token = lab.context.extensionPrompts[AFFINITY_PROMPT_KEY]?.value;
+    lab.prepare('normal');
+    const token = lab.preparedMemory;
     assert.equal(typeof token, 'string');
     assert.ok(token.length > 0);
-    assert.equal(token.includes('{{'), false, 'prompt assembly must see an opaque token');
+    assert.equal(token.includes('{{'), false, 'prompt assembly must see protected macro delimiters');
+    assert.ok(token.length >= fact.length, 'assembly must reserve the complete memory text');
     assert.equal(token.includes(fact), false);
     const data = { prompt: [{ role: 'system', content: [{ type: 'text', text: `prefix ${token}` }] }], input: token };
-    await lab.emit('GENERATE_AFTER_DATA', data, false);
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     assert.ok(data.prompt[0].content[0].text.includes(fact));
     assert.ok(data.input.includes('{{user}}'));
     assert.equal(data.input.includes('好感度：'), false);
     assert.equal(/[-+]\d+\s*(分|points)/i.test(data.input), false);
-    lab.controller.prepare('quiet');
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    lab.prepare('quiet');
+    assert.equal(lab.preparedMemory, undefined);
 });
 for (const verification of ['confirm', 'defer', 'reject']) {
     test(`major attitude evidence receives one isolated verification (${verification}) with no minor fallback`, async () => {
@@ -662,11 +678,12 @@ test('evaluation uses an isolated JSON quiet request and disabling affinity clea
     const options = lab.calls[0].find(value => value && typeof value === 'object' && !Array.isArray(value));
     assert.equal(options?.isolated, true);
     assert.ok(options?.jsonSchema, 'the current provider adapter must request structured JSON');
-    lab.controller.prepare('normal');
-    assert.ok(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY]);
+    lab.prepare('normal');
+    assert.ok(lab.preparedMemory);
     lab.context.extensionSettings.director.affinity.enabled = false;
     lab.controller.refresh();
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    lab.prepare('normal');
+    assert.equal(lab.preparedMemory, undefined);
     await settleMany(lab, 5);
     assert.equal(lab.calls.length, 1);
 });
@@ -676,7 +693,7 @@ test('a disabled Director extension also gates affinity generation and injection
     lab.controller.refresh();
     await settleMany(lab, 6);
     assert.equal(lab.calls.length, 0);
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    assert.equal(lab.preparedMemory, undefined);
 });
 test('evaluator rejection and malformed JSON are contained and the next complete batch still evaluates', async () => {
     for (const failure of ['reject', 'json']) {
@@ -717,15 +734,15 @@ test('roster unavailability freezes history without evaluation or injection and 
     assert.equal(lab.state().events[0].offline, true);
     assert.equal(lab.state().events[0].delta, 0);
     assert.equal(affinityScores(lab.state())['b.png'], 0);
-    lab.controller.prepare('normal');
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    lab.prepare('normal');
+    assert.equal(lab.preparedMemory, undefined);
     assert.equal(lab.calls.length, 1);
     lab.context.groups[0].members = ['a.png', 'b.png'];
     await lab.emit('GROUP_UPDATED');
     await lab.controller.settle();
     assert.equal(affinityScores(lab.state())['b.png'], 2);
-    lab.controller.prepare('normal');
-    assert.ok(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY]?.value);
+    lab.prepare('normal');
+    assert.ok(lab.preparedMemory);
     assert.equal(lab.calls.length, 1);
     lab.context.groups[0].members = [];
     await lab.emit('GROUP_UPDATED');
@@ -815,6 +832,360 @@ test('only canonical character avatars from the project can own relationships', 
     assert.deepEqual(affinityOwners({ characters: {}, groups: null, groupId: 'g' }), []);
 });
 
+for (const type of ['quiet', 'impersonate']) {
+    test(`concurrent ${type} cannot inherit memory or invalidate an accepted normal reply`, async () => {
+        const fact = '先问候再提问，保留 {{user}} 和 <uSeR>\r\n原样。';
+        const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [factFor(context.chat.at(-1), { fact })] }) });
+        await settleMany(lab, 5);
+        const issued = lab.state().issued;
+        await lab.emit('GENERATION_STARTED', 'normal', {}, false);
+        lab.prepare('normal');
+        const memory = lab.preparedMemory;
+        assert.ok(memory);
+        assert.ok(memory.length > fact.length);
+        assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+        await lab.emit('GENERATION_STARTED', type, {}, false);
+        const sideChat = [];
+        lab.controller.prepare(type, sideChat);
+        assert.equal(sideChat.length, 0);
+        // Even an accidentally copied frame must not disclose private evidence.
+        const sideData = { prompt: memory };
+        await lab.emit('GENERATE_AFTER_DATA', sideData, false, { type });
+        assert.equal(sideData.prompt, '');
+        await lab.emit('GENERATION_ENDED');
+        await lab.emit('GENERATION_COMPLETED', { data: sideData, type, chatId: lab.context.chatId, chatMetadata: lab.context.chatMetadata });
+        const data = { prompt: memory, negative_prompt: memory };
+        await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
+        assert.ok(data.prompt.includes(fact));
+        assert.ok(data.negative_prompt.includes(fact));
+        assert.equal(data.prompt.includes('directoraffinity'), false);
+        const message = await lab.receive({ text: 'A completed normal reply after the other request.' });
+        await lab.end();
+        await lab.emit('GENERATION_COMPLETED', { data, type: 'normal', chatId: lab.context.chatId, chatMetadata: lab.context.chatMetadata });
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, issued + 1);
+        assert.equal(lab.marker(message).receipt, issued + 1);
+    });
+}
+
+test('unknown and legacy memory frames fail closed without leaving their private body', async () => {
+    const lab = fixture();
+    const unknown = '\uE010directoraffinity999xunknown\uE011PRIVATE_UNKNOWN_BODY\uE012directoraffinity999xunknown\uE013';
+    const data = { prompt: unknown + ' / AFFINITY_LITERAL_old_marker_END', negative_prompt: unknown };
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
+    assert.equal(data.prompt, ' / ');
+    assert.equal(data.negative_prompt, '');
+});
+
+test('an overlapping dry run restores its own frame without taking the normal reply receipt', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [factFor(context.chat.at(-1))] }) });
+    await settleMany(lab, 5);
+    const issued = lab.state().issued;
+    await lab.emit('GENERATION_STARTED', 'normal', {}, false);
+    lab.prepare('normal');
+    const normalFrame = lab.preparedMemory;
+    await lab.emit('GENERATION_STARTED', 'normal', {}, true);
+    lab.prepare('normal');
+    const dryFrame = lab.preparedMemory;
+    const dryData = { prompt: dryFrame };
+    await lab.emit('GENERATE_AFTER_DATA', dryData, true, { type: 'normal' });
+    assert.equal(dryData.prompt.includes('directoraffinity'), false);
+    const data = { prompt: normalFrame };
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
+    assert.equal(data.prompt, dryData.prompt);
+    await lab.receive();
+    await lab.end();
+    await lab.emit('GENERATION_COMPLETED', { data, type: 'normal', chatId: lab.context.chatId, chatMetadata: lab.context.chatMetadata });
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, issued + 1);
+});
+
+test('a removed owner cancels pending extraction before a new major verification can start', async () => {
+    const gate = deferred();
+    let proposal;
+    const lab = fixture({ interval: 5, group: true, reply: ({ context, args }) => {
+        assert.equal(args[0].jsonSchema.name, 'relationship_evidence', 'absent owners cannot trigger verification');
+        proposal = { ...factFor(context.chat.at(-1), { owner: 'b.png' }), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true };
+        return gate.promise;
+    } });
+    await generateMany(lab, 5, { avatar: 'b.png' });
+    await until(() => lab.calls.length === 1, 'extraction starts');
+    const signal = lab.calls[0][0].signal;
+    lab.context.groups[0].members = ['a.png'];
+    await lab.emit('GROUP_UPDATED');
+    assert.equal(signal.aborted, true);
+    gate.resolve(JSON.stringify({ events: [proposal] }));
+    await lab.controller.settle();
+    assert.equal(lab.calls.length, 1);
+    assert.equal(lab.state().events.length, 0);
+});
+
+test('major verification includes actual tail quote context instead of only the first 2000 characters', async () => {
+    const quote = '经历这件大事后，我现在完全信任你。';
+    let checked = false;
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        if (args[0].jsonSchema.name === 'relationship_verification') {
+            const packet = JSON.parse(args[0].quietPrompt.split('\n').slice(1).join('\n'));
+            assert.ok(packet.messages.some(message => message.text.includes(quote)));
+            assert.ok(packet.messages.every(message => message.text.length <= 2400));
+            checked = true;
+            return JSON.stringify({ confirmed: packet.candidates.map(item => item.key) });
+        }
+        const proposal = { ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true };
+        proposal.source.quote = quote;
+        return JSON.stringify({ events: [proposal] });
+    } });
+    await generateMany(lab, 4);
+    await lab.generate({ text: '长'.repeat(4000) + quote });
+    await lab.controller.settle();
+    assert.equal(checked, true);
+    assert.equal(affinityScores(lab.state())['a.png'], 5);
+});
+
+test('a queued worker cannot save an empty reload gap or clear its ledger', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [factFor(context.chat.at(-1))] }) });
+    await settleMany(lab, 5);
+    const saves = [];
+    lab.context.saveChat = async options => { saves.push({ length: lab.context.chat.length, accepted: options.shouldSave() }); return true; };
+    await lab.generate();
+    const events = structuredClone(lab.state().events);
+    lab.context.chat.splice(0); // Native clearChat before its GET/CHAT_CHANGED boundary.
+    await lab.controller.settle();
+    assert.equal(saves.length, 0);
+    assert.deepEqual(lab.state().events, events);
+});
+
+test('a queued worker cannot reconcile a replaced transcript under the old metadata', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [factFor(context.chat.at(-1))] }) });
+    await settleMany(lab, 5);
+    const saves = [];
+    lab.context.saveChat = async () => { saves.push(true); return true; };
+    await lab.generate();
+    const events = structuredClone(lab.state().events);
+    lab.context.chat.splice(0, lab.context.chat.length, { is_user: true, name: '玩家', mes: 'The newly loading transcript.', extra: {} });
+    await lab.controller.settle();
+    assert.equal(saves.length, 0);
+    assert.deepEqual(lab.state().events, events);
+});
+
+test('the first generated logical slot survives regeneration and persists its receipt', async () => {
+    const lab = fixture({ initial: { chat: [] } });
+    const first = await lab.generate();
+    await lab.controller.settle();
+    const marker = structuredClone(lab.marker(first));
+    assert.equal(marker.receipt, 1);
+    lab.saves.length = 0;
+    await lab.emit('GENERATION_STARTED', 'regenerate', {}, false);
+    lab.context.chat.pop();
+    await lab.emit('MESSAGE_DELETED', 0);
+    lab.prepare('regenerate');
+    const data = { prompt: 'The first-slot regenerate request.' };
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
+    const replacement = await lab.receive({ type: 'regenerate', text: 'A replacement first logical reply.' });
+    await lab.end();
+    await lab.emit('GENERATION_COMPLETED', { data, type: 'normal', chatId: lab.context.chatId, chatMetadata: lab.context.chatMetadata });
+    await lab.controller.settle();
+    assert.equal(lab.marker(replacement).id, marker.id);
+    assert.equal(lab.marker(replacement).receipt, marker.receipt);
+    assert.equal(lab.state().issued, 1);
+    assert.ok(lab.saves.length > 0, 'the coalesced task must use the completed replacement snapshot');
+});
+
+async function completeWithOlderDiskSnapshot(lab, fields = {}) {
+    const completion = await lab.begin();
+    const message = await lab.receive(fields);
+    // Native Generate saves the physical reply before GENERATION_COMPLETED.
+    const disk = structuredClone({ chat: lab.context.chat, chatMetadata: lab.context.chatMetadata });
+    await lab.end();
+    await lab.emit('GENERATION_COMPLETED', completion);
+    return { disk, message };
+}
+
+for (const group of [false, true]) {
+    test(`an immediate ${group ? 'group' : 'single-chat'} reload restores the unsaved successful receipt exactly once`, async () => {
+        const lab = fixture({ interval: 5, group });
+        await settleMany(lab, 4);
+        const { disk } = await completeWithOlderDiskSnapshot(lab, { avatar: group ? 'b.png' : 'a.png' });
+        assert.equal(lab.state().issued, 5);
+        assert.equal(disk.chatMetadata.director.__affinity.issued, 4);
+        await lab.switchChat('first', disk);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 5);
+        assert.equal(lab.marker(lab.context.chat.at(-1)).receipt, 5);
+        assert.equal(lab.calls.length, 1);
+        const persisted = structuredClone({ chat: lab.context.chat, chatMetadata: lab.context.chatMetadata });
+        await lab.switchChat('first', persisted);
+        await lab.controller.settle();
+        assert.equal(lab.calls.length, 1);
+    });
+}
+
+for (const mutation of ['text', 'swipe', 'owner', 'logical marker']) {
+    test(`pending receipt recovery rejects a changed ${mutation} and cannot resurrect it later`, async () => {
+        const lab = fixture({ interval: 5, group: true });
+        await settleMany(lab, 4);
+        const { disk } = await completeWithOlderDiskSnapshot(lab, { avatar: 'a.png' });
+        const original = structuredClone(disk);
+        const message = disk.chat.at(-1);
+        if (mutation === 'text') { message.mes = 'Edited after the physical save.'; message.swipes[message.swipe_id] = message.mes; }
+        if (mutation === 'swipe') { message.swipe_id = 1; message.swipes[1] = message.mes; message.swipe_info[1] = { extra: {} }; }
+        if (mutation === 'owner') message.original_avatar = 'b.png';
+        if (mutation === 'logical marker') message.extra.__affinity = { version: 1, scope: disk.chatMetadata.director.__affinity.id, id: 'another-logical-slot', receipt: 0 };
+        await lab.switchChat('first', disk);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 4);
+        assert.equal(lab.marker(lab.context.chat.at(-1))?.receipt ?? 0, 0);
+        await lab.switchChat('first', original);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 4, 'a rejected branch must not recover on a later return');
+        assert.equal(lab.calls.length, 0);
+    });
+}
+
+test('an unsaved successful receipt belongs only to its exact chat scope', async () => {
+    const lab = fixture({ interval: 5 });
+    await settleMany(lab, 4);
+    const { disk } = await completeWithOlderDiskSnapshot(lab);
+    await lab.switchChat('different-chat', structuredClone(disk));
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 4);
+    assert.equal(lab.calls.length, 0);
+    await lab.switchChat('first', disk);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 5);
+    assert.equal(lab.calls.length, 1);
+});
+
+test('a confirmed save retires receipt recovery instead of overriding a later explicit disk rollback', async () => {
+    const lab = fixture({ interval: 5 });
+    await settleMany(lab, 4);
+    const { disk } = await completeWithOlderDiskSnapshot(lab);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 5);
+    await lab.switchChat('first', disk);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 4);
+    assert.equal(lab.marker(lab.context.chat.at(-1))?.receipt ?? 0, 0);
+});
+
+test('a save only confirms its starting receipt watermark, leaving a newer completion recoverable', async () => {
+    const lab = fixture();
+    await settleMany(lab, 4);
+    const firstSave = deferred();
+    const secondSave = deferred();
+    let saves = 0;
+    lab.context.saveChat = async () => {
+        saves++;
+        if (saves === 1) return firstSave.promise;
+        if (saves === 2) return secondSave.promise;
+        return true;
+    };
+    await completeWithOlderDiskSnapshot(lab);
+    await until(() => saves === 1, 'the fifth receipt save starts');
+    const { disk } = await completeWithOlderDiskSnapshot(lab);
+    assert.equal(disk.chatMetadata.director.__affinity.issued, 5);
+    firstSave.resolve(true);
+    await until(() => saves === 2, 'the sixth receipt save starts separately');
+    await lab.switchChat('first', disk);
+    secondSave.resolve(false);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 6);
+    assert.equal(lab.marker(lab.context.chat.at(-1)).receipt, 6);
+    assert.equal(lab.calls.length, 0);
+});
+
+test('a save finishing across reload cannot confirm a receipt for the new load', async () => {
+    const lab = fixture();
+    await settleMany(lab, 4);
+    const gate = deferred();
+    let started = false;
+    lab.context.saveChat = async () => { started = true; return gate.promise; };
+    const { disk } = await completeWithOlderDiskSnapshot(lab);
+    await until(() => started, 'the old load save starts');
+    await lab.switchChat('first', structuredClone(disk));
+    lab.context.saveChat = async () => false;
+    gate.resolve(true);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 5);
+    // The new load's save failed. A second reload must still recover the receipt.
+    await lab.switchChat('first', disk);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 5);
+    assert.equal(lab.marker(lab.context.chat.at(-1)).receipt, 5);
+    assert.equal(lab.calls.length, 0);
+});
+
+test('receipt recovery preserves evaluated evidence that a newer native save already persisted', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [factFor(context.chat.at(-1))] }) });
+    await settleMany(lab, 4);
+    lab.context.saveChat = async () => false;
+    await lab.generate();
+    await lab.controller.settle();
+    const marker = structuredClone(lab.marker(lab.context.chat.at(-1)));
+    assert.equal(typeof marker.evaluated, 'string');
+    const disk = structuredClone({ chat: lab.context.chat, chatMetadata: lab.context.chatMetadata });
+    await lab.switchChat('first', disk);
+    await lab.controller.settle();
+    assert.equal(lab.marker(lab.context.chat.at(-1)).evaluated, marker.evaluated);
+    assert.equal(lab.marker(lab.context.chat.at(-1)).receipt, marker.receipt);
+    assert.equal(lab.state().cursor, 5);
+    assert.equal(lab.calls.length, 1);
+});
+
+for (const disabled of ['affinity setting', 'Director extension']) {
+    test(`pending receipt survives reload while the ${disabled} is disabled and recovers before projection on enable`, async () => {
+        const lab = fixture({ interval: 5 });
+        await settleMany(lab, 4);
+        const { disk } = await completeWithOlderDiskSnapshot(lab);
+        if (disabled === 'affinity setting') lab.context.extensionSettings.director.affinity.enabled = false;
+        else lab.context.extensionSettings.disabledExtensions.push('director');
+        await lab.emit('SETTINGS_UPDATED');
+        await lab.switchChat('first', disk);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 4);
+        assert.equal(lab.calls.length, 0);
+        if (disabled === 'affinity setting') lab.context.extensionSettings.director.affinity.enabled = true;
+        else lab.context.extensionSettings.disabledExtensions.splice(0);
+        await lab.emit('SETTINGS_UPDATED');
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 5);
+        assert.equal(lab.marker(lab.context.chat.at(-1)).receipt, 5);
+        assert.equal(lab.state().cursor, 5);
+        assert.equal(lab.calls.length, 1);
+        await lab.emit('SETTINGS_UPDATED');
+        await lab.controller.settle();
+        assert.equal(lab.calls.length, 1);
+    });
+}
+
+test('an awaited prompt fitter cannot dispatch after a new foreground generation cancels it', async () => {
+    const gate = deferred();
+    let fitting;
+    const lab = fixture({ interval: 5, controllerOptions: {
+        fitPrompt: async (_render, refs, _value, _owners, signal) => { fitting = { refs, signal }; await gate.promise; return { prompt: 'fitted prompt', refs }; },
+    } });
+    await generateMany(lab, 5);
+    await until(() => !!fitting, 'the dynamic prompt fit starts');
+    const completion = await lab.begin();
+    assert.equal(fitting.signal.aborted, true);
+    gate.resolve();
+    await lab.receive();
+    await lab.end();
+    await lab.emit('GENERATION_COMPLETED', completion);
+    await lab.controller.settle();
+    assert.equal(lab.calls.length, 0);
+});
+
+test('a prompt fitter only marks evidence it actually included as evaluated', async () => {
+    const lab = fixture({ interval: 5, controllerOptions: {
+        fitPrompt: async (_render, refs) => ({ prompt: 'Only generated reply evidence is included.', refs: refs.filter(ref => ref.receipt > 0) }),
+    } });
+    await settleMany(lab, 5);
+    assert.equal(lab.calls.length, 1);
+    assert.equal(lab.marker(lab.context.chat[0]).evaluated, undefined);
+    assert.ok(lab.context.chat.slice(1).every(message => typeof lab.marker(message).evaluated === 'string'));
+});
+
 test('a temporarily unavailable single-chat character project retains frozen history and still revokes edits', async () => {
     const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [{
         ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', attitudeExplicit: true,
@@ -827,8 +1198,8 @@ test('a temporarily unavailable single-chat character project retains frozen his
     assert.equal(lab.state().events.length, 1);
     assert.equal(affinityScores(lab.state())['a.png'], 0);
     assert.equal(lab.state().events[0].offline, true);
-    lab.controller.prepare('normal');
-    assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
+    lab.prepare('normal');
+    assert.equal(lab.preparedMemory, undefined);
     assert.equal(lab.calls.length, 1);
     lab.context.characters = characters;
     lab.controller.refresh();

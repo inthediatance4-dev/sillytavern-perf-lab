@@ -1,9 +1,10 @@
 import { Popper } from '../../../lib.js';
-import { activateSendButtons, deactivateSendButtons, doNavbarIconClick, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
+import { activateSendButtons, createRawPrompt, deactivateSendButtons, doNavbarIconClick, getMaxContextTokens, getMaxPromptTokens, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { hasPendingFileAttachment } from '../../chats.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
+import { countTokensOpenAIAsync } from '../../tokenizers.js';
 import { SlashCommand } from '../../slash-commands/SlashCommand.js';
 import { ARGUMENT_TYPE, SlashCommandArgument } from '../../slash-commands/SlashCommandArgument.js';
 import { SlashCommandEnumValue } from '../../slash-commands/SlashCommandEnumValue.js';
@@ -25,7 +26,8 @@ import { createFateController } from './fate.js';
 import { createFatePanel } from './fate-ui.js';
 import { createFateSound } from './fate-sound.js';
 import { createFateMarks } from './fate-marks.js';
-import { createAffinityController } from './affinity.js';
+import { AFFINITY_SCHEMA, createAffinityController } from './affinity.js';
+import { affinityOutputTokenLimit, fitAffinityPrompt, fitAffinityVerificationPrompts } from './affinity-prompt-budget.js';
 import {
     activeInstruct,
     applyBoundReinject,
@@ -593,7 +595,30 @@ export async function init() {
     }
     const context = getContext();
     const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
-    const affinity = createAffinityController(getContext, { isGenerating, uuid: uuidv4 });
+    const countAffinityPromptTokens = async prompt => {
+        const current = getContext();
+        const formatted = createRawPrompt(prompt, current.mainApi, false, false, '', '', { literal: true });
+        const textTokens = Array.isArray(formatted)
+            ? await countTokensOpenAIAsync(formatted, true)
+            : await current.getTokenCountAsync(formatted, 0);
+        // Structured-output schemas also consume context on supported CC APIs.
+        const schemaTokens = current.mainApi === 'openai'
+            ? await current.getTokenCountAsync(JSON.stringify(AFFINITY_SCHEMA.value), 0) : 0;
+        return textTokens + schemaTokens + 64;
+    };
+    const affinityOutputLimit = () => affinityOutputTokenLimit(getMaxContextTokens());
+    const affinityBudget = signal => ({
+        maxTokens: () => getMaxPromptTokens(affinityOutputLimit()), countTokens: countAffinityPromptTokens, signal,
+    });
+    const affinity = createAffinityController(getContext, {
+        isGenerating, uuid: uuidv4,
+        maxOutputTokens: affinityOutputLimit,
+        fitPrompt: (render, refs, state, owners, signal) => fitAffinityPrompt(
+            (shown, memory) => render(shown, memory, owners), { refs, state },
+            affinityBudget(signal),
+        ),
+        fitVerificationPrompt: (render, candidates, signal) => fitAffinityVerificationPrompts(render, candidates, affinityBudget(signal)),
+    });
     let fateMarks;
     const fate = createFateController(getContext, {
         isGenerating, hasDraft, setSendButtonState, deactivateSendButtons, activateSendButtons, uuid:uuidv4, random:Math.random,
@@ -642,7 +667,7 @@ export async function init() {
         clearBoundDeleteSkip();
         try {
             const current = getContext();
-            affinity.prepare(type);
+            affinity.prepare(type, requestChat);
             // Quiet and impersonate must not send or consume a pending instruct,
             // and they must not copy boundInstruct back into the prompt.
             if (type === 'quiet' || type === 'impersonate') {

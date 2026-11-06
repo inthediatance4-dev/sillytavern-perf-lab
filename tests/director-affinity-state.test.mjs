@@ -154,6 +154,115 @@ test('evidence identity ignores paraphrasing, valence, impact and batch repetiti
     assert.equal(apply(fresh(), [inherited], [source]).events.length, 0);
 });
 
+test('overlapping quote aliases of one attitude cannot earn another score or major verification key', () => {
+    const source = ref(0, '甲说：“我开始信任你了。”');
+    const first = attitude(source, { source: { slot: source.slot, quote: '我开始信任你了。' } });
+    const wider = attitude(source, { impact: 'major' });
+    const narrower = attitude(source, { source: { slot: source.slot, quote: '开始信任你了' } });
+    const original = apply(fresh(), [first], [source]);
+    const key = candidateKey(wider, [source]);
+    const next = apply(JSON.parse(JSON.stringify(original)), [wider, narrower], [source], { verified: new Set([key]) });
+    assert.equal(all(next).length, 1);
+    assert.equal(next.events[0].id, original.events[0].id);
+    assert.equal(next.events[0].key, original.events[0].key, 'an alias cannot become a fresh major verification candidate');
+    assert.equal(next.nextId, original.nextId);
+    assert.equal(affinityScores(next)['a.png'], 2);
+    for (const batch of [[first, narrower], [narrower, first]]) {
+        const sameBatch = apply(fresh(), batch, [source]);
+        assert.equal(all(sameBatch).length, 1);
+        assert.equal(affinityScores(sameBatch)['a.png'], 2);
+    }
+});
+
+test('non-overlapping attitudes in the same logical message remain separate evidence', () => {
+    const source = ref(0, '甲先说：“我开始信任你了。”后来又说：“你这一次的坦诚让我更愿意相信你。”');
+    const items = ['我开始信任你了。', '你这一次的坦诚让我更愿意相信你。']
+        .map(quote => attitude(source, { source: { slot: source.slot, quote } }));
+    const state = apply(fresh(), items, [source]);
+    assert.equal(all(state).length, 2);
+    assert.equal(affinityScores(state)['a.png'], 4);
+});
+
+test('a wider or narrower promise quote does not create another open anchor', () => {
+    const source = ref(0, '玩家说：“我会把借走的书归还给甲。”', { owner: 'player' });
+    const result = ref(1, '玩家把借来的书交还给甲。', { owner: 'player' });
+    const ack = ref(2, '甲看见归还的书，说：“你说到做到了，我更信任你了。”');
+    const refs = [source, result, ack];
+    let state = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character',
+        source: { slot: source.slot, quote: '我会把借走的书归还给甲。' } })], refs);
+    const id = state.events[0].id;
+    state = apply(state, [promise(source, { actor: 'user', recipient: 'character' })], refs);
+    assert.equal(all(state).filter(event => event.kind === 'promise').length, 1);
+    assert.equal(state.events[0].id, id);
+    state = apply(state, [outcome(state.events[0], result, { acknowledgement: { slot: ack.slot, quote: ack.text } })], refs);
+    assert.equal(affinityScores(state)['a.png'], 2);
+    assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /尚待兑现的约定/);
+});
+
+test('reconcile collapses stored overlapping attitude aliases without amplifying their first score', () => {
+    const source = ref(0, '甲说：“我开始信任你了。”');
+    const first = apply(fresh(), [attitude(source, { source: { slot: source.slot, quote: '我开始信任你了。' } })], [source]);
+    const major = attitude(source, { impact: 'major' });
+    const alias = apply(fresh(), [major], [source], { verified: new Set([candidateKey(major, [source])]) });
+    alias.events[0].id = 'chat-scope:e:2';
+    const stored = { ...first, nextId: 3, events: [first.events[0]], archives: [alias.events[0]] };
+    const next = reconcileAffinity(JSON.parse(JSON.stringify(stored)), [source], owners);
+    assert.equal(all(next).length, 1);
+    assert.equal(next.events[0].id, first.events[0].id, 'canonical ownership follows the first host ID, not archive array order');
+    assert.equal(next.nextId, 3);
+    assert.equal(affinityScores(next)['a.png'], 2);
+});
+
+test('reconcile remaps a stored promise alias to its first host ID while preserving its valid outcome', () => {
+    const source = ref(0, '玩家说：“我会把借走的书归还给甲。”', { owner: 'player' });
+    const result = ref(1, '玩家归还了借来的书。', { owner: 'player' });
+    const ack = ref(2, '甲亲眼确认，说：“履约让我愿意再相信你。”');
+    const refs = [source, result, ack];
+    const first = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character',
+        source: { slot: source.slot, quote: '我会把借走的书归还给甲。' } })], refs);
+    const wider = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character' })], refs);
+    wider.events[0].id = 'chat-scope:p:2';
+    wider.nextId = 3;
+    const completedAlias = apply(wider, [outcome(wider.events[0], result, { acknowledgement: { slot: ack.slot, quote: ack.text } })], refs);
+    const stored = { ...completedAlias, events: [first.events[0]], archives: completedAlias.events };
+    const next = reconcileAffinity(JSON.parse(JSON.stringify(stored)), refs, owners);
+    const promises = all(next).filter(event => event.kind === 'promise');
+    const outcomes = all(next).filter(event => event.kind === 'outcome');
+    assert.equal(promises.length, 1);
+    assert.equal(promises[0].id, first.events[0].id);
+    assert.equal(outcomes.length, 1, 'an alias migration must not revoke a genuinely grounded completion');
+    assert.equal(outcomes[0].id, completedAlias.events.find(event => event.kind === 'outcome').id);
+    assert.equal(outcomes[0].anchorId, first.events[0].id);
+    assert.equal(next.nextId, 4);
+    assert.equal(affinityScores(next)['a.png'], 2);
+    assert.doesNotMatch(buildAffinityMemory(next, refs, 'a.png'), /尚待兑现的约定/);
+    assert.deepEqual(reconcileAffinity(next, refs, owners), next, 'migration is idempotent');
+});
+
+test('stored promise aliases with separate completions still resolve their canonical promise only once', () => {
+    const source = ref(0, '玩家说：“我会把借走的书归还给甲。”', { owner: 'player' });
+    const result = ref(1, '玩家归还了那本书。', { owner: 'player' });
+    const ack = ref(2, '甲说：“我看见了，你确实做到了，我更信任你了。”');
+    const repeated = ref(3, '玩家重述自己把借书还给了甲。', { owner: 'player' });
+    const laterAck = ref(4, '甲再次说自己知道书已经归还。');
+    const refs = [source, result, ack, repeated, laterAck];
+    const first = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character',
+        source: { slot: source.slot, quote: '我会把借走的书归还给甲。' } })], refs);
+    const completed = apply(first, [outcome(first.events[0], result, { acknowledgement: { slot: ack.slot, quote: ack.text } })], refs);
+    const alias = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character' })], refs);
+    alias.events[0].id = 'chat-scope:p:3';
+    alias.nextId = 4;
+    const completedAlias = apply(alias, [outcome(alias.events[0], repeated, { acknowledgement: { slot: laterAck.slot, quote: laterAck.text } })], refs);
+    const stored = { ...completedAlias, events: completed.events, archives: completedAlias.events };
+    const next = reconcileAffinity(JSON.parse(JSON.stringify(stored)), refs, owners);
+    assert.equal(all(next).filter(event => event.kind === 'promise').length, 1);
+    const outcomes = all(next).filter(event => event.kind === 'outcome');
+    assert.equal(outcomes.length, 1);
+    assert.equal(outcomes[0].id, completed.events.find(event => event.kind === 'outcome').id);
+    assert.equal(affinityScores(next)['a.png'], 2);
+    assert.equal(next.nextId, 5);
+});
+
 test('host promises award no points; completed result binds original promise and later literal evidence', () => {
     const promised = ref(0, '我答应把这本书还给你。');
     const delivered = ref(2, '甲把那本书还给了玩家。');
@@ -165,6 +274,8 @@ test('host promises award no points; completed result binds original promise and
     state = apply(state, [completed, completed], [promised, delivered]);
     assert.equal(state.events.length, 2);
     assert.equal(affinityScores(state)['a.png'], 0, 'character fulfilling its own promise records a fact only');
+    assert.doesNotMatch(buildAffinityMemory(state, [promised, delivered], 'a.png'), /尚待兑现的约定/,
+        'completion and earning relationship points are separate decisions');
     const old = structuredClone(state);
     const edited = reconcileAffinity(state, [promised, { ...delivered, fingerprint: 'result-edited' }], owners);
     assert.equal(edited.events.length, 1);
@@ -209,6 +320,107 @@ test('one message may contain a promise and a later separate result, but reverse
     const reversed = { ...source, text: '甲把书交给玩家。然后我答应还书。', fingerprint: 'reversed' };
     const reversedState = apply(fresh(), [promise(reversed, { source: { slot: source.slot, quote: '我答应还书。' } })], [reversed]);
     assert.equal(apply(reversedState, [outcome(reversedState.events[0], result)], [reversed]).events.length, 1);
+});
+
+test('narrowing an outcome source cannot turn words inside the canonical promise into a later result', () => {
+    const source = ref(0, '我答应还书，之后会说“书已经还了”，这仍是打算。', { owner: 'player' });
+    const ack = ref(1, '甲说：“我看到了履约，这使我更信任你。”');
+    const refs = [source, ack];
+    const state = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character' })], refs);
+    const anchor = state.events[0];
+    const item = outcome(anchor, { slot: source.slot, text: '书已经还了' }, {
+        source: { slot: source.slot, quote: '我答应还书' },
+        acknowledgement: { slot: ack.slot, quote: ack.text }, impact: 'major',
+    });
+    const next = apply(state, [item], refs, { verified: new Set([candidateKey(item, refs)]) });
+    assert.equal(all(next).length, 1, 'even a verified proposal cannot bypass canonical promise causality');
+    assert.equal(affinityScores(next)['a.png'], 0);
+    const bind = quote => {
+        const original = refs.find(ref => ref.slot === quote.slot);
+        return { ...quote, index: original.index, swipe: original.swipe, fingerprint: original.fingerprint, offset: original.text.indexOf(quote.quote) };
+    };
+    const stored = { ...state, nextId: 3, events: [anchor, { ...item, id: 'chat-scope:e:2',
+        key: candidateKey(item, refs), verified: true, delta: 5,
+        source: bind(item.source), result: bind(item.result), acknowledgement: bind(item.acknowledgement) }] };
+    assert.equal(all(reconcileAffinity(stored, refs, owners)).length, 1, 'old narrowed sources must fail the same causal check on reload');
+});
+
+test('widening an outcome source does not hide a real result after the canonical promise', () => {
+    const source = ref(0, '我答应还书。随后，我把书交还给甲。', { owner: 'player' });
+    const ack = ref(1, '甲说：“我亲眼看到了你履约，现在更愿意信任你。”');
+    const refs = [source, ack];
+    const state = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character',
+        source: { slot: source.slot, quote: '我答应还书。' } })], refs);
+    const anchor = state.events[0];
+    const item = outcome(anchor, { slot: source.slot, text: '我把书交还给甲。' }, {
+        source: { slot: source.slot, quote: source.text }, acknowledgement: { slot: ack.slot, quote: ack.text },
+    });
+    const next = apply(state, [item], refs);
+    assert.equal(all(next).length, 2);
+    assert.equal(affinityScores(next)['a.png'], 2);
+    const completion = next.events.find(event => event.kind === 'outcome');
+    assert.deepEqual(completion.source, anchor.source, 'the stored source is always the canonical promise quote');
+    assert.equal(completion.key, candidateKey(item, refs), 'the verdict key still identifies the actual proposed evidence');
+    assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(next)), refs, owners), next);
+});
+
+for (const [label, text, canonicalQuote, aliasQuote, acknowledgement, expected] of [
+    ['narrow', '我看到你还书了。“你说到做到，我更信任你”，但这只是我在练习的台词。',
+        '我看到你还书了。“你说到做到，我更信任你”，但这只是我在练习的台词。',
+        '我看到你还书了。', '你说到做到，我更信任你', 0],
+    ['wide', '甲亲眼看见玩家归还的书。随后，甲说：“这次履约让我更信任你。”',
+        '甲亲眼看见玩家归还的书。', '甲亲眼看见玩家归还的书。随后，甲说：“这次履约让我更信任你。”',
+        '这次履约让我更信任你。', 2],
+]) {
+    for (const mode of ['apply', 'reload']) {
+        test(`${mode}: a ${label} result alias uses the original physical result boundary for later acknowledgement`, () => {
+            const source = ref(0, '我答应把借来的书归还给甲。', { owner: 'player' });
+            const result = ref(1, text);
+            const refs = [source, result];
+            const promised = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character' })], refs);
+            const anchor = promised.events[0];
+            const completed = apply(promised, [outcome(anchor, { slot: result.slot, text: canonicalQuote })], refs);
+            assert.equal(affinityScores(completed)['a.png'], 0);
+            const proposal = outcome(anchor, { slot: result.slot, text: aliasQuote }, {
+                acknowledgement: { slot: result.slot, quote: acknowledgement },
+            });
+            let next;
+            if (mode === 'apply') next = apply(completed, [proposal], refs);
+            else {
+                const bind = quote => {
+                    const original = refs.find(ref => ref.slot === quote.slot);
+                    return { ...quote, index: original.index, swipe: original.swipe, fingerprint: original.fingerprint,
+                        offset: original.text.indexOf(quote.quote) };
+                };
+                next = reconcileAffinity({ ...completed, nextId: 4, events: [...completed.events, {
+                    ...proposal, id: 'chat-scope:e:3', key: candidateKey(proposal, refs), verified: false, delta: 2,
+                    source: bind(proposal.source), result: bind(proposal.result), acknowledgement: bind(proposal.acknowledgement),
+                }] }, refs, owners);
+            }
+            const outcomes = all(next).filter(event => event.kind === 'outcome');
+            assert.equal(outcomes.length, 1);
+            assert.equal(outcomes[0].id, completed.events.find(event => event.kind === 'outcome').id);
+            assert.equal(outcomes[0].result.quote, canonicalQuote);
+            assert.equal(affinityScores(next)['a.png'], expected);
+            assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(next)), refs, owners), next);
+        });
+    }
+}
+
+test('a character completing its own promise frees open-anchor capacity without gaining points', () => {
+    const sources = Array.from({ length: 65 }, (_, index) => ref(index, `甲答应归还第 ${index} 本书。`));
+    const result = ref(100, '甲把第 0 本书还给了玩家。');
+    const refs = [...sources, result];
+    let state = fresh();
+    for (let start = 0; start < 64; start += 20) state = apply(state, sources.slice(start, Math.min(64, start + 20)).map(source => promise(source)), refs);
+    const anchor = all(state).find(event => event.source.slot === sources[0].slot);
+    state = apply(state, [outcome(anchor, result)], refs);
+    state = apply(state, [promise(sources[64])], refs);
+    assert.equal(all(state).filter(event => event.kind === 'promise').length, 64);
+    assert.ok(all(state).some(event => event.source.slot === sources[64].slot), 'completed character anchors cannot occupy the unresolved cap forever');
+    assert.equal(all(state).some(event => event.id === anchor.id || event.anchorId === anchor.id), false,
+        'normal capacity recycling forgets a completed character dependency as one family');
+    assert.equal(affinityScores(state)['a.png'], 0);
 });
 
 test('completed user promises may support the target owner while another character cannot narrate the result', () => {
@@ -430,6 +642,33 @@ test('an unresolved player promise stays injectable when its owner has not spoke
     const player = ref(0, '我答应把借走的书还给甲。', { owner: 'player', generated: false });
     const state = apply(fresh(), [promise(player, { actor: 'user', recipient: 'character' })], [player]);
     assert.match(buildAffinityMemory(state, [player], 'a.png'), /尚待兑现的约定/);
+});
+
+for (const knownToCharacter of ['no', 'unknown']) {
+    for (const kind of ['fact', 'promise', 'attitude']) {
+        test(`${kind} evidence marked ${knownToCharacter} stays stored without leaking into character memory`, () => {
+            const source = ref(0, '玩家秘密把钥匙藏在树下，尚未告知甲。', { owner: kind === 'attitude' ? 'a.png' : 'player' });
+            const item = kind === 'promise'
+                ? promise(source, { actor: 'user', recipient: 'character', knownToCharacter })
+                : proposal(source, { kind, actor: kind === 'attitude' ? 'character' : 'user', recipient: 'character', knownToCharacter });
+            const state = apply(fresh(), [item], [source]);
+            assert.equal(all(state).length, 1, 'unknown facts are retained for possible later grounded knowledge');
+            assert.equal(affinityScores(state)['a.png'], 0);
+            assert.equal(buildAffinityMemory(state, [source], 'a.png'), '');
+        });
+    }
+}
+
+test('unknown evidence cannot crowd a known fact out of the five injected memories', () => {
+    const refs = Array.from({ length: 7 }, (_, index) => ref(index, `消息原文 ${index}。`, { owner: 'player' }));
+    const known = proposal(refs[0], { actor: 'user', recipient: 'character', fact: '甲已知的老约定之外的一项事实。' });
+    const hidden = refs.slice(1).map(source => proposal(source, { actor: 'user', recipient: 'character',
+        knownToCharacter: 'no', fact: `甲未知的秘密 ${source.index}。` }));
+    const state = apply(fresh(), [known, ...hidden], refs);
+    const memory = buildAffinityMemory(state, refs, 'a.png');
+    assert.match(memory, /甲已知的老约定之外的一项事实/);
+    assert.doesNotMatch(memory, /甲未知的秘密/);
+    assert.equal(all(state).length, 7);
 });
 
 test('memory stays owner-local, prioritizes open promises, hides score mechanics, and requires corroboration for a weak tendency', () => {

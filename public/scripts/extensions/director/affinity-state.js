@@ -106,9 +106,43 @@ function hash(text) {
 }
 
 function identity(owner, source, result) {
-    const fields = quote => quote ? [quote.slot, quote.swipe, quote.fingerprint, quote.quote] : null;
+    const fields = quote => quote ? [quote.slot, quote.swipe, quote.fingerprint] : null;
     // A later acknowledgement may enrich one physical outcome, never duplicate it.
     return JSON.stringify([owner, fields(source), fields(result)]);
+}
+
+function overlappingQuote(a, b) {
+    if (!a || !b) return !a && !b;
+    if (a.slot !== b.slot || a.swipe !== b.swipe || a.fingerprint !== b.fingerprint) return false;
+    if (a.quote === b.quote) return true;
+    if (natural(a.offset) && natural(b.offset)) {
+        return a.offset < b.offset + b.quote.length && b.offset < a.offset + a.quote.length;
+    }
+    // Older stored quotes may lack offsets while their owner is unavailable.
+    return a.quote.includes(b.quote) || b.quote.includes(a.quote);
+}
+
+function findEvidence(evidence, event) {
+    return evidence.get(identity(event.owner, event.source, event.result))?.find(previous =>
+        overlappingQuote(previous.source, event.source) && overlappingQuote(previous.result, event.result));
+}
+
+function rememberEvidence(evidence, event) {
+    const key = identity(event.owner, event.source, event.result);
+    const bucket = evidence.get(key) ?? [];
+    const index = bucket.findIndex(previous => previous.id === event.id);
+    if (index < 0) bucket.push(event);
+    else bucket[index] = event;
+    evidence.set(key, bucket);
+}
+
+function canEnrich(previous, event) {
+    const laterAcknowledgement = event.kind === 'outcome' && previous.kind === 'outcome'
+        && !previous.acknowledgement && event.acknowledgement && deltaFor(previous) === 0;
+    const firstAttitude = event.kind === 'attitude' && previous.kind === 'attitude'
+        && previous.valence === 'none' && deltaFor(previous) === 0;
+    return (laterAcknowledgement || firstAttitude) && previous.actor === event.actor
+        && previous.recipient === event.recipient && affinityScoreEligible(event);
 }
 
 export function affinityScoreEligible(event) {
@@ -145,7 +179,7 @@ function deltaFor(event, currentScore = 0) {
     return Math.min(positive, 100 - currentScore);
 }
 function isResolution(event) {
-    return event.actor === 'user' && event.kind === 'outcome' && event.status === 'completed' && event.outcomeKnown === true && event.confidence === 'high';
+    return event.kind === 'outcome' && event.status === 'completed' && event.outcomeKnown === true && event.confidence === 'high';
 }
 
 function order(a, b) {
@@ -269,7 +303,6 @@ export function reconcileAffinity(state, refs, owners, { retainOffline = true } 
     // A malformed/ambiguous live slot is a failed check, not an unavailable quote.
     const presentSlots = new Set((Array.isArray(refs) ? refs : []).filter(object).map(ref => ref.slot));
     const ids = new Set();
-    const evidence = new Set();
     const candidates = [];
     for (const event of records(state)) {
         const proposal = storedProposal(event);
@@ -293,18 +326,38 @@ export function reconcileAffinity(state, refs, owners, { retainOffline = true } 
         const sourceRef = map.get(source.slot);
         if (sourceRef && !validOwnerSource(proposal, source, map, new Set([event.owner]))) continue;
         if (!validStructure(proposal)) continue;
-        const evidenceKey = identity(event.owner, source, result);
-        if (evidence.has(evidenceKey)) continue;
         const record = { ...proposal, id: event.id, key: event.key, source,
             ...(result ? { result } : {}), ...(acknowledgement ? { acknowledgement } : {}),
             verified: own(event, 'verified') && event.verified === true, ...(offline ? { offline: true } : {}) };
         candidates.push(record);
         ids.add(record.id);
-        evidence.add(evidenceKey);
         next.nextId = Math.max(next.nextId, serial + 1);
     }
-    const promises = new Map(candidates.filter(event => event.kind === 'promise').map(event => [event.id, event]));
-    next.events = candidates.filter(event => event.kind !== 'outcome' || validOutcome(event, promises.get(event.anchorId), map, event.offline === true));
+    const evidence = new Map();
+    const aliases = new Map();
+    const retain = event => {
+        const previous = findEvidence(evidence, event);
+        aliases.set(event.id, previous?.id ?? event.id);
+        const kept = !previous ? event : canEnrich(previous, event) ? { ...event, id: previous.id } : previous;
+        rememberEvidence(evidence, kept);
+        return kept;
+    };
+    // Archive placement is not identity: the first host serial stays canonical.
+    candidates.sort((a, b) => Number(a.id.split(':').at(-1)) - Number(b.id.split(':').at(-1)));
+    candidates.filter(event => event.kind !== 'outcome').forEach(retain);
+    const promises = new Map([...evidence.values()].flat().filter(event => event.kind === 'promise').map(event => [event.id, event]));
+    const resolved = new Set();
+    for (const event of candidates.filter(event => event.kind === 'outcome')) {
+        const anchorId = aliases.get(event.anchorId) ?? event.anchorId;
+        const rebound = anchorId === event.anchorId ? event : { ...event, anchorId };
+        const previous = findEvidence(evidence, rebound);
+        if (!validOutcome(rebound, promises.get(anchorId), map, event.offline === true, previous)) continue;
+        // Previously separate aliases may each have been completed. Keep one
+        // resolution, while permitting its first later acknowledgement.
+        if (isResolution(rebound) && resolved.has(anchorId) && !findEvidence(evidence, rebound)) continue;
+        if (isResolution(retain(rebound))) resolved.add(anchorId);
+    }
+    next.events = [...evidence.values()].flat();
     for (const event of next.events) event.delta = deltaFor(event);
     return bounded(next);
 }
@@ -315,12 +368,18 @@ function validStructure(proposal) {
     return proposal.kind === 'outcome' || !(proposal.result || proposal.anchorId || proposal.acknowledgement);
 }
 
-function validOutcome(event, anchor, refs, offline = false) {
-    if (!anchor || anchor.owner !== event.owner || !sameQuote(anchor.source, event.source)
+function validOutcome(event, anchor, refs, offline = false, previous = null) {
+    // The first accepted result owns its full causal boundary. An alias cannot
+    // turn a quoted phrase inside that result into a later acknowledgement.
+    if (previous?.kind === 'outcome') event.result = { ...previous.result };
+    if (!anchor || anchor.owner !== event.owner || !overlappingQuote(anchor.source, event.source)
         || anchor.actor !== event.actor || anchor.recipient !== event.recipient || !event.result
-        || !laterThan(event.source, event.result, refs)) return false;
+        || !laterThan(anchor.source, event.result, refs)) return false;
     const resultRef = refs.get(event.result.slot);
     if (resultRef ? ![event.owner, 'player'].includes(resultRef.owner) : !offline) return false;
+    // An alias cannot shorten the causal boundary or swallow a later result.
+    // Keep the accepted host anchor as the outcome's persisted source as well.
+    event.source = { ...anchor.source };
     if (!event.acknowledgement) return true;
     const ackRef = refs.get(event.acknowledgement.slot);
     return event.actor === 'user' && event.recipient === 'character'
@@ -335,7 +394,8 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
     const allowedOwners = ownerIds(owners);
     const current = () => [...next.archives, ...next.events];
     const frozenOwners = new Set(current().filter(event => event.offline === true).map(event => event.owner));
-    const evidence = new Map(current().map(event => [identity(event.owner, event.source, event.result), event]));
+    const evidence = new Map();
+    current().forEach(event => rememberEvidence(evidence, event));
     for (const proposal of Array.isArray(proposals) ? proposals.slice(0, 24) : []) {
         if (!safeTree(proposal) || !proposalShape(proposal) || !validStructure(proposal) || frozenOwners.has(proposal.owner)) continue;
         const source = bindQuote(proposal.source, map);
@@ -347,23 +407,17 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
         const key = candidateKey(proposal, refs);
         const event = { ...proposal, id: `${next.id}:${proposal.kind === 'promise' ? 'p' : 'e'}:${next.nextId}`, key,
             source, ...(result ? { result } : {}), ...(acknowledgement ? { acknowledgement } : {}), verified: verified instanceof Set && verified.has(key) };
-        if (event.kind === 'outcome' && !validOutcome(event, anchor, map)) continue;
-        const evidenceKey = identity(proposal.owner, source, result);
-        const previous = evidence.get(evidenceKey);
+        const previous = findEvidence(evidence, event);
+        if (event.kind === 'outcome' && !validOutcome(event, anchor, map, false, previous)) continue;
         if (previous) {
             // Only zero evidence may gain its first grounded score. Never replace
             // an acknowledgement, or let a new description amplify scored evidence.
-            const laterAcknowledgement = event.kind === 'outcome' && previous.kind === 'outcome'
-                && !previous.acknowledgement && acknowledgement && previous.delta === 0;
-            const firstAttitude = event.kind === 'attitude' && previous.kind === 'attitude'
-                && previous.valence === 'none' && previous.delta === 0;
-            if (!(laterAcknowledgement || firstAttitude) || previous.actor !== event.actor || previous.recipient !== event.recipient
-                || !affinityScoreEligible(event)) continue;
+            if (!canEnrich(previous, event)) continue;
             event.id = previous.id;
             event.delta = deltaFor(event);
             next.events = next.events.filter(item => item.id !== previous.id).concat(event);
             next.archives = next.archives.filter(item => item.id !== previous.id);
-            evidence.set(evidenceKey, event);
+            rememberEvidence(evidence, event);
             continue;
         }
         if (event.kind === 'promise' && openPromises(current()).length >= MAX_OPEN) continue;
@@ -383,7 +437,7 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
         }
         next.nextId++;
         next.events.push(event);
-        evidence.set(evidenceKey, event);
+        rememberEvidence(evidence, event);
     }
     return bounded(next);
 }
@@ -414,7 +468,7 @@ export function buildAffinityMemory(state, refs, owner) {
     const open = new Set(openPromises(all).map(event => event.id));
     const query = words([...referenceMap(refs).values()].slice(-2).map(ref => ref.text).join('\n'));
     const overlap = event => [...words(event.fact)].filter(word => query.has(word)).length;
-    const candidates = all.filter(event => event.confidence === 'high' && (open.has(event.id)
+    const candidates = all.filter(event => event.knownToCharacter === 'yes' && event.confidence === 'high' && (open.has(event.id)
         || (event.kind !== 'promise' && event.outcomeKnown === true && ['observed', 'completed'].includes(event.status))));
     candidates.sort((a, b) => Number(open.has(b.id)) - Number(open.has(a.id)) || overlap(b) - overlap(a) || order(b, a));
     const seen = new Set();

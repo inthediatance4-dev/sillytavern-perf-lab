@@ -1,0 +1,63 @@
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATION_STOPPED
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+✔ isolated helper forwards only its own prompt, JSON mode, and caller signal (1.339954ms)
+✔ isolated helper rejects response-length mutation and malformed prompts before provider I/O (0.567901ms)
+✔ real quiet-to-raw chain uses current provider without touching main state or director lifecycle (3.291546ms)
+✔ isolated JSON mode parses actual response shapes from all current providers (6.640362ms)
+✔ text-completion JSON extraction preserves invalid text only when requested (7.495018ms)
+✔ isolated evidence reaches every provider with literal macros and bracket text intact (6.144364ms)
+✔ literal text-completion prompts retain instruct formatting without evaluating template macros (1.829556ms)
+✔ literal raw system and prefill text bypass expansion while default raw behavior still expands (1.70137ms)
+✔ an in-flight isolated error cannot release a newer foreground request (1.77452ms)
+✔ caller cancellation aborts only the local provider signal and removes its stop listener (1.741875ms)
+✔ native stop notification only cancels the raw request local controller (1.521706ms)
+✔ raw requests without an override preserve an existing foreground response-length override on every provider (11.998817ms)
+✔ legacy raw response-length overrides still restore after successful generation (5.131478ms)
+✔ abort signal linkage detaches after completion and propagates pre-aborted signals (0.214888ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 58.844182

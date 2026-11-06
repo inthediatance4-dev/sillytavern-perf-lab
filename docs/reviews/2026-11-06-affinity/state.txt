@@ -1,0 +1,29 @@
+✔ new state is chat-local, bounded metadata starts empty, and invalid scopes fail (1.460961ms)
+✔ parser accepts only complete JSON and complete json fences, without assistant prefixes (0.949479ms)
+✔ parser rejects prototype keys at every depth and exact own-field schema violations (0.74711ms)
+✔ application is immutable and exact quote/fingerprint/swipe binding survives JSON reload (2.304223ms)
+✔ source owner, allowed actors and group relationship ownership are enforced (1.041582ms)
+✔ facts and ambiguous, future, implicit or unknown attitudes never score (0.647277ms)
+✔ major changes require one-time host-key verification and never downgrade to minor points (1.155612ms)
+✔ evidence identity ignores paraphrasing, valence, impact and batch repetition (0.316235ms)
+✔ host promises award no points; completed result binds original promise and later literal evidence (1.498457ms)
+✔ a new promise or future/unknown/observed result cannot be mistaken for fulfillment (1.435714ms)
+✔ one message may contain a promise and a later separate result, but reverse/overlapping quotes fail (0.466452ms)
+✔ completed user promises may support the target owner while another character cannot narrate the result (0.296694ms)
+✔ reconcile removes departed group owners, accepts index shifts, and replays current branch only (0.314345ms)
+✔ scores clamp at both bounds and causally replay in message order, independent of evaluation order (23.337087ms)
+✔ storage caps active/archive evidence and pins unresolved promises without silently discarding them (83.359575ms)
+✔ capacity forgets resolved dependencies together; deleting an archived result really reopens the original promise (39.001926ms)
+✔ all retained anchors share a hard cap, replacing only the oldest completed dependency family (7.377634ms)
+✔ metadata character budgets reject new oversized open anchors and preserve every accepted unresolved promise (81.66169ms)
+✔ malformed metadata fields are skipped without resetting valid state or reading inherited ledgers (0.611546ms)
+✔ an unresolved player promise stays injectable when its owner has not spoken in the live chat (0.235889ms)
+✔ memory stays owner-local, prioritizes open promises, hides score mechanics, and requires corroboration for a weak tendency (1.017053ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 263.859665

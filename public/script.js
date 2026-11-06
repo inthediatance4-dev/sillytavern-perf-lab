@@ -187,6 +187,7 @@ import {
     createTimeout,
 } from './scripts/utils.js';
 import { debounce_timeout, GENERATION_TYPE_TRIGGERS, IGNORE_SYMBOL, inject_ids, MEDIA_DISPLAY, MEDIA_SOURCE, MEDIA_TYPE, OVERSWIPE_BEHAVIOR, SCROLL_BEHAVIOR, SWIPE_DIRECTION, SWIPE_SOURCE, SWIPE_STATE } from './scripts/constants.js';
+import { generateIsolatedQuietPrompt, linkQuietAbortSignal } from './scripts/isolated-quiet-prompt.js';
 
 import { cancelDebouncedMetadataSave, doDailyExtensionUpdatesCheck, extension_settings, initExtensions, loadExtensionSettings, runGenerationInterceptors } from './scripts/extensions.js';
 import { COMMENT_NAME_DEFAULT, CONNECT_API_MAP, executeSlashCommandsOnChatInput, initDefaultSlashCommands, initSlashCommandAutoComplete, isExecutingCommandsFromChatInput, pauseScriptExecution, stopScriptExecution, UNIQUE_APIS } from './scripts/slash-commands.js';
@@ -3350,13 +3351,19 @@ export function getStoppingStrings(isImpersonate, isContinue, api = main_api) {
  * @prop {object} [jsonSchema] JSON schema to use for the structured generation. Usually requires a special instruction.
  * @prop {boolean} [removeReasoning] Parses and removes the reasoning block according to reasoning format preferences
  * @prop {boolean} [trimToSentence] Whether to trim the response to the last complete sentence
+ * @prop {boolean} [isolated] Use only quietPrompt through the raw provider path, without chat lifecycle events or responseLength overrides
+ * @prop {AbortSignal} [signal] Caller-owned cancellation signal, supported only by the isolated path
  * @param {GenerateQuietPromptParams} params Parameters for the quiet prompt generation
  * @returns {Promise<string>} Generated text. If using structured output, will contain a serialized JSON object.
  */
-export async function generateQuietPrompt({ quietPrompt = '', quietToLoud = false, skipWIAN = false, quietImage = null, quietName = null, responseLength = null, forceChId = null, jsonSchema = null, removeReasoning = true, trimToSentence = false } = {}) {
+export async function generateQuietPrompt({ quietPrompt = '', quietToLoud = false, skipWIAN = false, quietImage = null, quietName = null, responseLength = null, forceChId = null, jsonSchema = null, removeReasoning = true, trimToSentence = false, isolated = false, signal = null } = {}) {
     if (arguments.length > 0 && typeof arguments[0] !== 'object') {
         console.trace('generateQuietPrompt called with positional arguments. Please use an object instead.');
         [quietPrompt, quietToLoud, skipWIAN, quietImage, quietName, responseLength, forceChId, jsonSchema] = arguments;
+    }
+
+    if (isolated) {
+        return generateIsolatedQuietPrompt({ quietPrompt, jsonSchema, responseLength, signal }, generateRaw);
     }
 
     const responseLengthCustomized = typeof responseLength === 'number' && responseLength > 0;
@@ -4488,10 +4495,12 @@ class StreamingProcessor {
  * @param {boolean} quietToLoud true to generate a message in system mode, false to generate a message in character mode
  * @param {string} [systemPrompt] System prompt to use.
  * @param {string} [prefill] Prefill for the prompt.
+ * @param {{literal?: boolean}} [options] Preserve supplied text without macro expansion or NovelAI bracket rewriting
  * @returns {string | object[]} Prompt ready for use in generation. If using TC, this will be a string. If using CC, this will be an array of chat-style messages.
  */
-export function createRawPrompt(prompt, api, instructOverride, quietToLoud, systemPrompt, prefill) {
+export function createRawPrompt(prompt, api, instructOverride, quietToLoud, systemPrompt, prefill, { literal = false } = {}) {
     const isInstruct = power_user.instruct.enabled && api !== 'openai' && api !== 'novel' && !instructOverride;
+    const instruct = literal && isInstruct ? { ...power_user.instruct, macro: false } : null;
 
     // If the prompt was given as a string, convert to a message-style object assuming user role
     if (typeof prompt === 'string') {
@@ -4502,7 +4511,7 @@ export function createRawPrompt(prompt, api, instructOverride, quietToLoud, syst
     }
 
     // Substitute the prefill if provided
-    prefill = substituteParams(prefill ?? '');
+    prefill = literal ? (prefill ?? '') : substituteParams(prefill ?? '');
 
     // Format each message in the prompt, accounting for the provided roles
     for (const message of prompt) {
@@ -4511,18 +4520,18 @@ export function createRawPrompt(prompt, api, instructOverride, quietToLoud, syst
         if (message.role === 'assistant') name = message.name ?? name2;
         if (message.role === 'system') name = message.name ?? '';
         const prefix = isInstruct || api === 'openai' ? '' : (name ? `${name}: ` : '');
-        message.content = prefix + substituteParams(message.content ?? '');
+        message.content = prefix + (literal ? (message.content ?? '') : substituteParams(message.content ?? ''));
         if (isInstruct) {  // instruct formatting for text completion
             const isUser = message.role === 'user';
             const isNarrator = message.role === 'system';
-            message.content = formatInstructModeChat(name, message.content, isUser, isNarrator, '', name1, name2, false);
+            message.content = formatInstructModeChat(name, message.content, isUser, isNarrator, '', name1, name2, false, instruct);
         }
     }
 
     // prepend system prompt, if provided
     if (systemPrompt) {
-        systemPrompt = substituteParams(systemPrompt);
-        systemPrompt = isInstruct ? formatInstructModeStoryString(systemPrompt) : systemPrompt.trim();
+        systemPrompt = literal ? systemPrompt : substituteParams(systemPrompt);
+        systemPrompt = isInstruct && !literal ? formatInstructModeStoryString(systemPrompt) : systemPrompt.trim();
         if (isInstruct && systemPrompt.length > 0 && !systemPrompt.endsWith('\n')) {
             if (power_user.instruct.wrap && !power_user.instruct.story_string_suffix) {
                 systemPrompt += '\n';
@@ -4540,8 +4549,8 @@ export function createRawPrompt(prompt, api, instructOverride, quietToLoud, syst
     if (api !== 'openai') {
         const joiner = isInstruct ? '' : '\n';
         prompt = prompt.map(message => message.content).join(joiner);
-        prompt = api === 'novel' ? adjustNovelInstructionPrompt(prompt) : prompt;
-        prompt = prompt + (isInstruct ? formatInstructModePrompt(name2, false, prefill, name1, name2, true, quietToLoud) : `\n${prefill}`);  // add last line
+        prompt = api === 'novel' && !literal ? adjustNovelInstructionPrompt(prompt) : prompt;
+        prompt = prompt + (isInstruct ? formatInstructModePrompt(name2, false, prefill, name1, name2, true, quietToLoud, instruct) : `\n${prefill}`);  // add last line
     }
 
     return prompt;
@@ -4558,6 +4567,8 @@ export function createRawPrompt(prompt, api, instructOverride, quietToLoud, syst
  * @prop {boolean} [trimNames] Whether to allow trimming "{{user}}:" and "{{char}}:" from the response.
  * @prop {string} [prefill] An optional prefill for the prompt.
  * @prop {JsonSchema} [jsonSchema] JSON schema to use for the structured generation. Usually requires a special instruction.
+ * @prop {AbortSignal} [signal] Caller-owned cancellation signal; never replaces the foreground controller
+ * @prop {boolean} [literal] Preserve prompt evidence without macro expansion or NovelAI bracket rewriting
  */
 
 /**
@@ -4566,7 +4577,7 @@ export function createRawPrompt(prompt, api, instructOverride, quietToLoud, syst
  * @param {GenerateRawParams} params Parameters for generating a message
  * @returns {Promise<object | string>} Raw API response data, or a JSON string extracted from the response when `jsonSchema` is provided.
  */
-export async function generateRawData({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, prefill = '', jsonSchema = null } = {}) {
+export async function generateRawData({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, prefill = '', jsonSchema = null, signal = null, literal = false } = {}) {
     if (!api) {
         api = main_api;
     }
@@ -4576,7 +4587,7 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
     let eventHook = () => { };
 
     // construct final prompt from the input. Can either be a string or an array of chat-style messages.
-    prompt = createRawPrompt(prompt, api, instructOverride, quietToLoud, systemPrompt, prefill);
+    prompt = createRawPrompt(prompt, api, instructOverride, quietToLoud, systemPrompt, prefill, { literal });
 
     // Allow extensions to stop generation before it happens
     const eventAbortController = new AbortController();
@@ -4584,9 +4595,11 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
         abortController.abort(new Error('Cancelled by stop event'));
         eventAbortController.abort(new Error('Cancelled by extension'));
     };
+    const unlinkSignal = linkQuietAbortSignal(signal, abortController);
     eventSource.on(event_types.GENERATION_STOPPED, abortHook);
 
     try {
+        abortController.signal.throwIfAborted();
         if (responseLengthCustomized) {
             TempResponseLength.save(api, responseLength);
         }
@@ -4597,18 +4610,19 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
         // 1. for text completion
         if (typeof prompt === 'string') {
             const eventData = { prompt: prompt, dryRun: false };
-            await eventSource.emit(event_types.GENERATE_AFTER_COMBINE_PROMPTS, eventData);
+            if (!literal) await eventSource.emit(event_types.GENERATE_AFTER_COMBINE_PROMPTS, eventData);
             prompt = eventData.prompt;
         }
         // 2. for chat completion
         if (Array.isArray(prompt)) {
             const eventData = { chat: prompt, dryRun: false };
-            await eventSource.emit(event_types.CHAT_COMPLETION_PROMPT_READY, eventData);
+            if (!literal) await eventSource.emit(event_types.CHAT_COMPLETION_PROMPT_READY, eventData);
             prompt = eventData.chat;
         }
 
         // Check if the generation was aborted during the event
         eventAbortController.signal.throwIfAborted();
+        abortController.signal.throwIfAborted();
 
         switch (api) {
             case 'kobold':
@@ -4620,21 +4634,21 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
                     const koboldSettings = koboldai_settings[koboldai_setting_names[kai_settings.preset_settings]];
                     generateData = getKoboldGenerationData(prompt.toString(), koboldSettings, amount_gen, max_context, isHorde, 'quiet');
                 }
-                TempResponseLength.restore(api);
+                if (responseLengthCustomized) TempResponseLength.restore(api);
                 break;
             case 'novel': {
                 const novelSettings = novelai_settings[novelai_setting_names[nai_settings.preset_settings_novel]];
                 generateData = getNovelGenerationData(prompt, novelSettings, amount_gen, false, false, null, 'quiet');
-                TempResponseLength.restore(api);
+                if (responseLengthCustomized) TempResponseLength.restore(api);
                 break;
             }
             case 'textgenerationwebui':
                 generateData = await getTextGenGenerationData(prompt, amount_gen, false, false, null, 'quiet');
-                TempResponseLength.restore(api);
+                if (responseLengthCustomized) TempResponseLength.restore(api);
                 break;
             case 'openai': {
                 generateData = prompt;  // generateData is just the chat message object
-                eventHook = TempResponseLength.setupEventHook(api);
+                if (responseLengthCustomized) eventHook = TempResponseLength.setupEventHook(api);
             } break;
         }
 
@@ -4674,6 +4688,7 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
 
         return data;
     } finally {
+        unlinkSignal();
         eventSource.removeListener(event_types.GENERATION_STOPPED, abortHook);
         if (responseLengthCustomized && TempResponseLength.isCustomized()) {
             TempResponseLength.restore(api);
@@ -4688,13 +4703,13 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
  * @param {GenerateRawParams} params Parameters for generating a message
  * @returns {Promise<string>} Generated output: a cleaned-up message string when `jsonSchema` is not provided, or an extracted JSON string conforming to `jsonSchema` when it is.
  */
-export async function generateRaw({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, trimNames = true, prefill = '', jsonSchema = null } = {}) {
+export async function generateRaw({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, trimNames = true, prefill = '', jsonSchema = null, signal = null, literal = false } = {}) {
     if (arguments.length > 0 && typeof arguments[0] !== 'object') {
         console.trace('generateRaw called with positional arguments. Please use an object instead.');
         [prompt, api, instructOverride, quietToLoud, systemPrompt, responseLength, trimNames, prefill, jsonSchema] = arguments;
     }
 
-    const data = await generateRawData({ prompt, api, instructOverride, quietToLoud, systemPrompt, responseLength, prefill, jsonSchema });
+    const data = await generateRawData({ prompt, api, instructOverride, quietToLoud, systemPrompt, responseLength, prefill, jsonSchema, signal, literal });
 
     // JSON string (matching the provided schema) will already be extracted.
     if (jsonSchema) {
@@ -6955,6 +6970,11 @@ export function extractJsonFromData(data, { mainApi = null, chatCompletionSource
                     }
                     break;
             }
+        } break;
+        default: {
+            const text = extractMessageFromData(data, mainApi);
+            result = tryParse(text);
+            if (!result && returnInvalidJson) return text;
         } break;
     }
 

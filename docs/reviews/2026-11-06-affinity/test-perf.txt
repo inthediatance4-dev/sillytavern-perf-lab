@@ -1,0 +1,259 @@
+
+> sillytavern@1.19.0 test:perf
+> node --test --test-timeout=120000 tests/director-affinity-state.test.mjs tests/director-affinity-lifecycle.test.mjs tests/director-affinity-provider.test.mjs tests/director-template.test.mjs tests/director-presets.test.mjs tests/director-chapters.test.mjs tests/director-instruct.test.mjs tests/director-rebind.test.mjs tests/director-fate.test.mjs tests/director-fate-followups.test.mjs tests/director-fate-group-scope.test.mjs tests/director-fate-persistence.test.mjs tests/director-fate-reveal.test.mjs tests/director-fate-sound.test.mjs tests/director-fate-decks.test.mjs tests/director-fate-offer.test.mjs tests/director-fate-log.test.mjs tests/director-fate-marks.test.mjs tests/director-fate-ui.test.mjs tests/longchat-older-slices.test.mjs tests/longchat-insert-path.test.mjs tests/longchat-keyboard.test.mjs tests/longchat-spread.test.mjs tests/longchat-measurement.test.mjs tests/deploy-check.test.mjs tests/staging-cache.test.mjs tests/round2-followups.test.mjs tests/windows-path-key.test.mjs tests/benchmark-statistics.test.mjs tests/streaming-measurement.test.mjs tests/data-endpoint-smoke.test.mjs tests/process-identity.test.mjs tests/historical-source.test.mjs tests/character-edit-routes.test.mjs tests/character-lifecycle.test.mjs tests/path-lock-fairness.test.mjs tests/data-root-owner.test.mjs tests/data-root-owner-budget.test.mjs tests/lab-launcher-isolation.test.mjs tests/group-history-path.test.mjs tests/request-drain.test.mjs tests/performance-lab.test.mjs tests/enabled-backups.test.mjs tests/backup-recycle-budget.test.mjs tests/retired-path-recreate.test.mjs tests/chat-lifecycle.test.mjs tests/tokenizer-initialization.test.mjs tests/tokenizer-model-compatibility.test.mjs tests/frontend-lifecycle.test.mjs tests/frontend-template-startup.test.mjs tests/startup-lazy-imports.test.mjs tests/startup-webpack.test.mjs tests/startup-compile-cache.test.mjs tests/startup-failure-exit.test.mjs tests/media-load-scroll.test.mjs tests/streaming-scroll.test.mjs tests/streaming-dom.test.mjs tests/reasoning-visibility.test.mjs tests/autocomplete-lifecycle.test.mjs tests/chat-transitions.test.mjs tests/chat-load-ownership.test.mjs tests/character-editor-flow.test.mjs tests/expression-mode-flow.test.mjs tests/itemized-prompts-ownership.test.mjs tests/recent-chat-info-cache.test.mjs tests/chat-file-safety.test.mjs tests/chat-backup-isolation.test.mjs tests/message-depth.test.mjs tests/vector-batch-cardinality.test.mjs tests/retired-publication-crash.test.mjs tests/lifecycle-reconcile.test.mjs tests/integrity-check.test.mjs tests/fake-openai-endpoint.test.mjs
+
+✔ tests/autocomplete-lifecycle.test.mjs (218.942767ms)
+✔ tests/backup-recycle-budget.test.mjs (547.185711ms)
+✔ tests/benchmark-statistics.test.mjs (221.984828ms)
+✔ tests/character-edit-routes.test.mjs (763.962796ms)
+✔ tests/character-editor-flow.test.mjs (683.989392ms)
+✔ tests/character-lifecycle.test.mjs (231.054183ms)
+node:net:2368
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted 127.0.0.1
+    at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    at listenInCluster (node:net:2499:12)
+    at node:net:2728:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '127.0.0.1'
+}
+
+Node.js v24.22.1
+✖ tests/chat-backup-isolation.test.mjs (484.6255ms)
+node:net:2368
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted 127.0.0.1
+    at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    at listenInCluster (node:net:2499:12)
+    at node:net:2728:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '127.0.0.1'
+}
+
+Node.js v24.22.1
+✖ tests/chat-file-safety.test.mjs (341.43442ms)
+node:net:2368
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted 127.0.0.1
+    at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    at listenInCluster (node:net:2499:12)
+    at node:net:2728:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '127.0.0.1'
+}
+
+Node.js v24.22.1
+✖ tests/chat-lifecycle.test.mjs (497.462839ms)
+✔ tests/chat-load-ownership.test.mjs (314.583852ms)
+✔ tests/chat-transitions.test.mjs (145.99179ms)
+node:net:2368
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted 127.0.0.1
+    at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    at listenInCluster (node:net:2499:12)
+    at node:net:2728:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '127.0.0.1'
+}
+
+Node.js v24.22.1
+✖ tests/data-endpoint-smoke.test.mjs (380.761592ms)
+✔ tests/data-root-owner-budget.test.mjs (80.921919ms)
+✖ tests/data-root-owner.test.mjs (7678.662586ms)
+✖ tests/deploy-check.test.mjs (308.648957ms)
+✔ tests/director-affinity-lifecycle.test.mjs (255.098592ms)
+✔ tests/director-affinity-provider.test.mjs (103.182775ms)
+✔ tests/director-affinity-state.test.mjs (347.094217ms)
+✔ tests/director-chapters.test.mjs (54.593512ms)
+✔ tests/director-fate-decks.test.mjs (95.98421ms)
+✔ tests/director-fate-followups.test.mjs (63.715621ms)
+✔ tests/director-fate-group-scope.test.mjs (52.102595ms)
+✔ tests/director-fate-log.test.mjs (127.162431ms)
+✔ tests/director-fate-marks.test.mjs (119.111424ms)
+✔ tests/director-fate-offer.test.mjs (117.978744ms)
+✔ tests/director-fate-persistence.test.mjs (56.946819ms)
+✔ tests/director-fate-reveal.test.mjs (64.38117ms)
+✔ tests/director-fate-sound.test.mjs (46.150572ms)
+✔ tests/director-fate-ui.test.mjs (140.918063ms)
+✔ tests/director-fate.test.mjs (83.070998ms)
+✔ tests/director-instruct.test.mjs (47.013335ms)
+✔ tests/director-presets.test.mjs (49.875105ms)
+✔ tests/director-rebind.test.mjs (51.784878ms)
+✔ tests/director-template.test.mjs (48.948125ms)
+✔ tests/enabled-backups.test.mjs (233.71021ms)
+✔ tests/expression-mode-flow.test.mjs (91.963913ms)
+✖ tests/fake-openai-endpoint.test.mjs (1152.489756ms)
+✔ tests/frontend-lifecycle.test.mjs (87.899993ms)
+✔ tests/frontend-template-startup.test.mjs (85.007973ms)
+✔ tests/group-history-path.test.mjs (193.423774ms)
+✔ tests/historical-source.test.mjs (56.986233ms)
+✖ tests/integrity-check.test.mjs (617.230274ms)
+✔ tests/itemized-prompts-ownership.test.mjs (121.336359ms)
+✔ tests/lab-launcher-isolation.test.mjs (79.893086ms)
+✔ tests/lifecycle-reconcile.test.mjs (1447.421387ms)
+✔ tests/longchat-insert-path.test.mjs (51.212536ms)
+✔ tests/longchat-keyboard.test.mjs (43.55735ms)
+✔ tests/longchat-measurement.test.mjs (544.040147ms)
+✔ tests/longchat-older-slices.test.mjs (65.168192ms)
+✔ tests/longchat-spread.test.mjs (1284.902435ms)
+✔ tests/media-load-scroll.test.mjs (1213.767019ms)
+✔ tests/message-depth.test.mjs (89.46028ms)
+✔ tests/path-lock-fairness.test.mjs (1049.689493ms)
+node:net:2368
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted 127.0.0.1
+    at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    at listenInCluster (node:net:2499:12)
+    at node:net:2728:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '127.0.0.1'
+}
+
+Node.js v24.22.1
+✖ tests/performance-lab.test.mjs (151.063693ms)
+✔ tests/process-identity.test.mjs (64.056542ms)
+✔ tests/reasoning-visibility.test.mjs (111.666317ms)
+node:net:2368
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted 127.0.0.1
+    at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    at listenInCluster (node:net:2499:12)
+    at node:net:2728:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '127.0.0.1'
+}
+
+Node.js v24.22.1
+✖ tests/recent-chat-info-cache.test.mjs (151.731522ms)
+✖ tests/request-drain.test.mjs (1373.122905ms)
+✔ tests/retired-path-recreate.test.mjs (456.512807ms)
+✔ tests/retired-publication-crash.test.mjs (497.393303ms)
+✔ tests/round2-followups.test.mjs (1183.855559ms)
+✔ tests/staging-cache.test.mjs (73.317235ms)
+✖ tests/startup-compile-cache.test.mjs (71.982188ms)
+✖ tests/startup-failure-exit.test.mjs (6378.367467ms)
+✖ tests/startup-lazy-imports.test.mjs (2050.240252ms)
+✔ tests/startup-webpack.test.mjs (12778.915387ms)
+✔ tests/streaming-dom.test.mjs (68.51992ms)
+✔ tests/streaming-measurement.test.mjs (41.974381ms)
+✔ tests/streaming-scroll.test.mjs (74.840265ms)
+✔ tests/tokenizer-initialization.test.mjs (66.526743ms)
+node:net:2368
+      const error = new UVExceptionWithHostPort(rval, 'listen', address, port);
+                    ^
+
+Error: listen EPERM: operation not permitted 127.0.0.1
+    at Server.setupListenHandle [as _listen2] (node:net:2368:21)
+    at listenInCluster (node:net:2499:12)
+    at node:net:2728:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '127.0.0.1'
+}
+
+Node.js v24.22.1
+✖ tests/tokenizer-model-compatibility.test.mjs (218.52564ms)
+✔ tests/vector-batch-cardinality.test.mjs (62.980701ms)
+✔ tests/windows-path-key.test.mjs (117.492409ms)
+ℹ tests 73
+ℹ suites 0
+ℹ pass 58
+ℹ fail 15
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15736.333235
+
+✖ failing tests:
+
+test at tests/chat-backup-isolation.test.mjs:1:1
+✖ tests/chat-backup-isolation.test.mjs (484.6255ms)
+  'test failed'
+
+test at tests/chat-file-safety.test.mjs:1:1
+✖ tests/chat-file-safety.test.mjs (341.43442ms)
+  'test failed'
+
+test at tests/chat-lifecycle.test.mjs:1:1
+✖ tests/chat-lifecycle.test.mjs (497.462839ms)
+  'test failed'
+
+test at tests/data-endpoint-smoke.test.mjs:1:1
+✖ tests/data-endpoint-smoke.test.mjs (380.761592ms)
+  'test failed'
+
+test at tests/data-root-owner.test.mjs:1:1
+✖ tests/data-root-owner.test.mjs (7678.662586ms)
+  'test failed'
+
+test at tests/deploy-check.test.mjs:1:1
+✖ tests/deploy-check.test.mjs (308.648957ms)
+  'test failed'
+
+test at tests/fake-openai-endpoint.test.mjs:1:1
+✖ tests/fake-openai-endpoint.test.mjs (1152.489756ms)
+  'test failed'
+
+test at tests/integrity-check.test.mjs:1:1
+✖ tests/integrity-check.test.mjs (617.230274ms)
+  'test failed'
+
+test at tests/performance-lab.test.mjs:1:1
+✖ tests/performance-lab.test.mjs (151.063693ms)
+  'test failed'
+
+test at tests/recent-chat-info-cache.test.mjs:1:1
+✖ tests/recent-chat-info-cache.test.mjs (151.731522ms)
+  'test failed'
+
+test at tests/request-drain.test.mjs:1:1
+✖ tests/request-drain.test.mjs (1373.122905ms)
+  'test failed'
+
+test at tests/startup-compile-cache.test.mjs:1:1
+✖ tests/startup-compile-cache.test.mjs (71.982188ms)
+  'test failed'
+
+test at tests/startup-failure-exit.test.mjs:1:1
+✖ tests/startup-failure-exit.test.mjs (6378.367467ms)
+  'test failed'
+
+test at tests/startup-lazy-imports.test.mjs:1:1
+✖ tests/startup-lazy-imports.test.mjs (2050.240252ms)
+  'test failed'
+
+test at tests/tokenizer-model-compatibility.test.mjs:1:1
+✖ tests/tokenizer-model-compatibility.test.mjs (218.52564ms)
+  'test failed'

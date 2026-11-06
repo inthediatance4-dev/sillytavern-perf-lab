@@ -25,6 +25,7 @@ import { createFateController } from './fate.js';
 import { createFatePanel } from './fate-ui.js';
 import { createFateSound } from './fate-sound.js';
 import { createFateMarks } from './fate-marks.js';
+import { createAffinityController } from './affinity.js';
 import {
     activeInstruct,
     applyBoundReinject,
@@ -564,6 +565,18 @@ export async function init() {
         settings.version = 1;
         seeded = true;
     }
+    if (!settings.affinity || typeof settings.affinity !== 'object' || Array.isArray(settings.affinity)) {
+        settings.affinity = { enabled: true, interval: 10 };
+        seeded = true;
+    }
+    if (typeof settings.affinity.enabled !== 'boolean') {
+        settings.affinity.enabled = true;
+        seeded = true;
+    }
+    if (![5, 10].includes(settings.affinity.interval)) {
+        settings.affinity.interval = 10;
+        seeded = true;
+    }
     if (!settings.fate || typeof settings.fate !== 'object' || Array.isArray(settings.fate)) {
         settings.fate = { reveal: 'tap', sound: false, motion: 'system' };
         seeded = true;
@@ -580,6 +593,7 @@ export async function init() {
     }
     const context = getContext();
     const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
+    const affinity = createAffinityController(getContext, { isGenerating, uuid: uuidv4 });
     let fateMarks;
     const fate = createFateController(getContext, {
         isGenerating, hasDraft, setSendButtonState, deactivateSendButtons, activateSendButtons, uuid:uuidv4, random:Math.random,
@@ -628,6 +642,7 @@ export async function init() {
         clearBoundDeleteSkip();
         try {
             const current = getContext();
+            affinity.prepare(type);
             // Quiet and impersonate must not send or consume a pending instruct,
             // and they must not copy boundInstruct back into the prompt.
             if (type === 'quiet' || type === 'impersonate') {
@@ -656,6 +671,17 @@ export async function init() {
     };
     if (seeded) context.saveSettingsDebounced();
     $('#extensions_settings').append(await renderExtensionTemplateAsync('director', 'settings'));
+    $('#director_affinity_enabled').prop('checked', settings.affinity.enabled).on('change', function () {
+        settings.affinity.enabled = this.checked;
+        affinity.refresh();
+        context.saveSettingsDebounced();
+    });
+    $('#director_affinity_interval').val(String(settings.affinity.interval)).on('change', function () {
+        settings.affinity.interval = Number($(this).val()) === 5 ? 5 : 10;
+        affinity.refresh();
+        context.saveSettingsDebounced();
+    });
+    affinity.refresh();
     $('#director_hotkey').val(settings.hotkey).on('input', function () {
         settings.hotkey = String($(this).val()).trim();
         context.saveSettingsDebounced();

@@ -1,0 +1,578 @@
+{
+  "base": "698119e",
+  "head": "dfaa7be63b39b4c39917eb035bd279b6cbe2a308",
+  "runnerHead": "dfaa7be63b39b4c39917eb035bd279b6cbe2a308",
+  "mode": "affinity-only",
+  "thirdPartyEnabled": true,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "ec93cd8adbdee75618680142ec232e28ccfea143ed574335c53e42d97e8d63ea",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "748dd8289fd4e572f3588339a78e600fbe6212e41304480c61a6d8ff01ed90fe",
+      "focusCount": 2
+    },
+    "affinityNativeTenthCompletionAndReplayIdempotence": true,
+    "affinityNativeFifthCompletionAndAutomaticPersistence": true,
+    "affinityReloadLiteralMemoryAndNativeEditWithdrawal": true,
+    "affinityConcurrentQuietKeepsLiteralMemoryAndCompletionReceipt": true,
+    "affinityImmediateNativeReloadPreservesReceiptAndNeverSavesEmptyChat": true,
+    "affinityMajorUsesIndependentNativeProviderRequest": true,
+    "affinity390pxControlsPersistAndExposeNoScore": true,
+    "affinitySidecarInputAndOutputBudgetNeverMutatesMainSettings": true,
+    "affinityNewMainCancelsOnlySidecarAndStillCompletes": true,
+    "affinityNativeFailureAndStopDoNotCountAndRetryWorks": true,
+    "affinityActualGroupAvatarsAndWholeBatchCadence": true,
+    "affinityGroupOwnerRemovalFreezesAndRejoinRestoresMemory": true
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [],
+  "affinityIsolation": {
+    "mode": "native-default",
+    "runtimeSettings": {
+      "enabled": true,
+      "interval": 10
+    }
+  },
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [
+      "/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+      "/scripts/extensions/third-party/st-memory-enhancement/index.js"
+    ],
+    "tavernHelperAvailable": true
+  },
+  "selectedCases": [
+    "cadence",
+    "persistence",
+    "overlap",
+    "reloadRace",
+    "majorAndMobile",
+    "sidecarBudget",
+    "cancellation",
+    "group"
+  ],
+  "affinityReview": {
+    "cadence": {
+      "defaults": {
+        "enabled": true,
+        "interval": "10"
+      },
+      "tenthReplyEvaluations": 1,
+      "replayIssued": 10,
+      "nativeReplays": [
+        "swipe",
+        "regenerate",
+        "continue"
+      ],
+      "passed": true
+    },
+    "persistence": {
+      "issuedAfterReload": 5,
+      "literalInRequestExactlyOnce": true,
+      "sourceEditedThroughUI": true,
+      "withdrawnBeforeNextRequest": true,
+      "passed": true
+    },
+    "overlap": {
+      "requests": 2,
+      "memoryOccurrences": [
+        0,
+        1
+      ],
+      "markerOccurrences": [
+        0,
+        0
+      ],
+      "issuedAfter": 6,
+      "quiet": {
+        "reply": "AFF_EXTERNAL_QUIET_DONE",
+        "completed": [
+          "quiet"
+        ],
+        "normalStillPaused": true
+      },
+      "passed": true
+    },
+    "reloadRace": {
+      "paused": {
+        "length": 0,
+        "oldIssued": 5
+      },
+      "emptySaves": [],
+      "passed": true
+    },
+    "majorAndMobile": {
+      "majorScore": 5,
+      "evaluatorRequests": 1,
+      "independentVerificationRequests": 1,
+      "extraGenerationLifecycleEvents": 0,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "controlBounds": {
+        "left": 6.046875,
+        "right": 383.953125,
+        "width": 377.90625,
+        "viewport": 390,
+        "overflow": 0
+      },
+      "settingsPersisted": true,
+      "scoreControlsVisible": false,
+      "physicalPhoneTested": false,
+      "screenshot": "affinity-mobile.png",
+      "passed": true
+    },
+    "sidecarBudget": {
+      "context": 4096,
+      "mainReplyTokensBeforeAndAfter": 64,
+      "sidecarOutputTokens": 1024,
+      "sidecarInputTokens": 2641,
+      "originalUserCharacters": 5285,
+      "shownUserCharacters": 1450,
+      "followingMainRequestTokens": 64,
+      "passed": true
+    },
+    "cancellation": {
+      "heldSidecarFailure": "net::ERR_ABORTED",
+      "mainCompletedWhileSidecarPending": true,
+      "issuedAfterNewMain": 6,
+      "staleEvents": 0,
+      "expectedMainRejections": {
+        "apiFailure": {
+          "rejected": true,
+          "message": "Internal Server Error"
+        },
+        "stop": {
+          "rejected": true,
+          "message": "Clicked stop button"
+        }
+      },
+      "passed": true
+    },
+    "group": {
+      "actualAvatars": [
+        "DirectorSynthetic-55a05a5898.png",
+        "AffinityTwin-5b8d60c56a.png",
+        "DirectorSynthetic-55a05a5898.png",
+        "AffinityTwin-5b8d60c56a.png",
+        "DirectorSynthetic-55a05a5898.png",
+        "AffinityTwin-5b8d60c56a.png"
+      ],
+      "members": [
+        "DirectorSynthetic-55a05a5898.png",
+        "AffinityTwin-5b8d60c56a.png"
+      ],
+      "initialIssued": 6,
+      "initialEvaluatorRequests": 1,
+      "offlineEvidenceIds": [
+        "bd3d5976-3cf0-4642-bcb1-d027157f3338:e:2"
+      ],
+      "restoredSameEvidence": true,
+      "passed": true
+    }
+  },
+  "pass": true,
+  "pageErrors": [],
+  "generationRequests": 74,
+  "chromium": "156.0.8078.76",
+  "sourceSha256": {
+    "public/script.js": "43f5acc9bcf4375043c1a9654820eef03678bd29d51e975e82499fd5bc5ff386",
+    "public/scripts/events.js": "1b322db4a3fc9b4b7fa5af8b3d4de8eaba0ccfc551d76892849f81258fa413d5",
+    "public/scripts/extensions/director/affinity-prompt-budget.js": "05d4bdae3aac7dbb1933c819a97b71fefec2f52761efe2f75b88e3fe7506ffbf",
+    "public/scripts/extensions/director/affinity-state.js": "ed6549a747ef8ecc6e1e6f7f65ba65e005fa7be7c31d795eeb4ac739bba3ce8b",
+    "public/scripts/extensions/director/affinity.js": "41e72ca809c1244fee5ddb0a18e3c190a284e7f77f142002d10037d0534ee7de",
+    "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+    "public/scripts/extensions/director/fate-decks.js": "177156478df597867ed534b0856d22ba108edd01d2de0258b53308f7c1ebde40",
+    "public/scripts/extensions/director/fate-marks.js": "0a11f8271e91061f59f44401ae177ac45edb1262026215652e0d39d0407fd32e",
+    "public/scripts/extensions/director/fate-sound.js": "ad635a0d34d191482a83852e9b97aa6d1c4a0f6b2a122f3c67fe3a3c8897b234",
+    "public/scripts/extensions/director/fate-ui.js": "f21251d40a0f0a7c04b8aa682116ef9171cb6d7b126b88c08acd1ca39b8909f6",
+    "public/scripts/extensions/director/fate.js": "50c09e08ff3ab919c3d6cee81cab32531e48fc9768b6ad46c083ae874254885e",
+    "public/scripts/extensions/director/index.js": "e8b4ebca27b6683fd8cd1f3bc64570eab82ac8500e233eea544532b93c806336",
+    "public/scripts/extensions/director/instruct.js": "3180eab345c964129508bd6ad1680d82c268f47dcd68ddcf72876e6c38be98f2",
+    "public/scripts/extensions/director/manager.js": "0d93113d97f21e6502d63187324f884e8c201f02eebe51d6eba79d7704f24628",
+    "public/scripts/extensions/director/manifest.json": "65316256f46b9ffd5eb6abfba2356ef7e053b20d81942c8cd1dbe9ad3edefdac",
+    "public/scripts/extensions/director/presets.js": "bfe185001d3364ed39a63631be43b1ba58db2d7b26fdddb4745d2fee455b16cf",
+    "public/scripts/extensions/director/settings.html": "a2b40fde634f85441e0abf591a714ef20178b9c896d64d3aa619ef4f5a6c5d28",
+    "public/scripts/extensions/director/style.css": "56873c67419ec372eb270249d6db343a0bee18b097cc71919db8cb64f9a37489",
+    "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+    "public/scripts/group-chats.js": "60c98f1434e1081c8ba4dd582a59a284a6c49e06d606d371ed813cf3fda3c545",
+    "public/scripts/isolated-quiet-prompt.js": "03e0b41b994a4cd1ee236084642ab57aa8ad1ececc982bb5a645c3a28a2c2712",
+    "public/scripts/openai.js": "8109c177a62ac849cc6b7c5834474495aa03fc401d2ce6f78e6d43c73f2cbece",
+    "public/scripts/textgen-settings.js": "b5f3bdaad780a79bd5877eab796121752480d0af0bf35f0a1f7991e158933c5d",
+    "public/scripts/tokenizers.js": "59abb66e4d2ad0ff7171c2ec9f3009d26ed79088e78b87eb0b60638eaae4d6f9",
+    "tests/browser_affinity_cases.py": "75b97853dd8972d841ed032b8c794323daddd58a5ffe2fe73de0d8d6a26e7e7a",
+    "tests/browser_fate_cases.py": "72c30ceb60da6ab6f767d453ff858ac72a6735ba36c4bff26368ac1f7b45fe8d",
+    "tests/browser_fate_review_cases.py": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6"
+  },
+  "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+  "fateReviewCaseSha256": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6",
+  "affinityCaseSha256": "75b97853dd8972d841ed032b8c794323daddd58a5ffe2fe73de0d8d6a26e7e7a",
+  "node": "v24.22.1"
+}

@@ -89,7 +89,7 @@ function harness(api = 'openai') {
         sendOpenAIRequest: async (type, messages, signal, options) => {
             const request = { type, messages, signal, options };
             requests.push(request);
-            await eventSource.emit(eventTypes.CHAT_COMPLETION_SETTINGS_READY, {});
+            if (!options.isolated) await eventSource.emit(eventTypes.CHAT_COMPLETION_SETTINGS_READY, {});
             return provider(request);
         },
         fetch: async (url, options) => {
@@ -333,4 +333,104 @@ test('abort signal linkage detaches after completion and propagates pre-aborted 
     const alreadyCancelled = new AbortController();
     linkQuietAbortSignal(owner.signal, alreadyCancelled)();
     assert.equal(alreadyCancelled.signal.reason, owner.signal.reason);
+});
+
+test('isolated evaluator output limits are request-local across all current providers', async () => {
+    for (const api of ['openai', 'kobold', 'koboldhorde', 'novel', 'textgenerationwebui']) {
+        const lab = harness(api);
+        lab.context.amount_gen = 64;
+        lab.context.oai_settings.openai_max_tokens = 64;
+        assert.equal(await lab.generate({ maxOutputTokens: 1024 }), fixtureJson, api);
+        const request = lab.requests[0];
+        const length = api === 'openai' ? request.options.maxOutputTokens
+            : api === 'koboldhorde' ? request.data.max_length
+                : JSON.parse(request.body)[api === 'textgenerationwebui' ? 'max_new_tokens' : 'max_length'];
+        assert.equal(length, 1024, api);
+        assert.equal(lab.context.amount_gen, 64, api);
+        assert.equal(lab.context.oai_settings.openai_max_tokens, 64, api);
+        assert.equal(lab.context.tempResponseLength.isCustomized(), false, api);
+        assert.equal(lab.context.abortController, lab.mainController, api);
+    }
+});
+
+test('isolated output limits are bounded and reject invalid values before I/O', async () => {
+    for (const maxOutputTokens of [0, -1, 0.5, NaN, Infinity, '1024', 2049]) {
+        const lab = harness();
+        await assert.rejects(lab.generate({ maxOutputTokens }), /output|Output/);
+        assert.equal(lab.requests.length, 0);
+    }
+});
+
+test('native OpenAI output override uses a settings copy and leaves the next foreground request unchanged', async () => {
+    const source = readFileSync(new URL('../public/scripts/openai.js', import.meta.url), 'utf8');
+    const settings = { openai_max_tokens: 64, custom_model: 'synthetic-current' };
+    const seen = [];
+    const eventSource = new EventEmitter();
+    const context = vm.createContext({
+        AbortController, oai_settings: settings, eventSource,
+        event_types: { CHAT_COMPLETION_SETTINGS_READY: 'settings' },
+        getChatCompletionModel: value => value.custom_model,
+        createGenerationParameters: async (value, _model, _type, messages) => ({
+            generate_data: { max_tokens: value.openai_max_tokens, messages }, stream: false, canMultiSwipe: false,
+        }),
+        getRequestHeaders: () => ({}), checkQuotaError() {}, checkModerationError() {},
+        parseChatCompletionLogprobs: () => null, delay: async () => {}, saveLogprobsForActiveMessage() {},
+        fetch: async (_url, request) => {
+            seen.push(JSON.parse(request.body));
+            return { ok: true, json: async () => ({ choices: [{ message: { content: fixtureJson } }] }) };
+        },
+    });
+    vm.runInContext(declaration('async function sendOpenAIRequest(', source), context);
+    await context.sendOpenAIRequest('quiet', [], null, { maxOutputTokens: 1024 });
+    await context.sendOpenAIRequest('normal', [], null);
+    assert.deepEqual(seen.map(data => data.max_tokens), [1024, 64]);
+    assert.equal(settings.openai_max_tokens, 64);
+});
+
+test('isolated OpenAI requests cannot consume another request response-length restoration hook', async () => {
+    const source = readFileSync(new URL('../public/scripts/openai.js', import.meta.url), 'utf8');
+    const settings = { openai_max_tokens: 777 };
+    const eventSource = new EventEmitter();
+    let restored = 0;
+    const sent = [];
+    eventSource.once('settings', () => { restored++; settings.openai_max_tokens = 64; });
+    const context = vm.createContext({
+        AbortController, oai_settings: settings, eventSource,
+        event_types: { CHAT_COMPLETION_SETTINGS_READY: 'settings' },
+        getChatCompletionModel: () => 'synthetic-current',
+        createGenerationParameters: async value => ({ generate_data: { max_tokens: value.openai_max_tokens }, stream: false }),
+        getRequestHeaders: () => ({}), checkQuotaError() {}, checkModerationError() {},
+        parseChatCompletionLogprobs: () => null, delay: async () => {}, saveLogprobsForActiveMessage() {},
+        fetch: async (_url, request) => {
+            sent.push(JSON.parse(request.body).max_tokens);
+            return { ok: true, json: async () => ({ choices: [{ message: { content: fixtureJson } }] }) };
+        },
+    });
+    vm.runInContext(declaration('async function sendOpenAIRequest(', source), context);
+    await context.sendOpenAIRequest('quiet', [], null, { maxOutputTokens: 1024, isolated: true });
+    assert.equal(restored, 0);
+    assert.equal(settings.openai_max_tokens, 777);
+    await context.sendOpenAIRequest('normal', [], null);
+    assert.deepEqual(sent, [1024, 777]);
+    assert.equal(restored, 1);
+    assert.equal(settings.openai_max_tokens, 64);
+});
+
+test('isolated text-completion parameters skip extension mutation hooks while legacy calls retain them', async () => {
+    const source = readFileSync(new URL('../public/scripts/textgen-settings.js', import.meta.url), 'utf8');
+    const eventSource = new EventEmitter();
+    let calls = 0;
+    eventSource.on('settings', params => { calls++; params.prompt += ' injected by extension'; });
+    const context = vm.createContext({
+        textgenerationwebui_settings: {}, eventSource, event_types: { TEXT_COMPLETION_SETTINGS_READY: 'settings' },
+        getTextGenModel: () => 'synthetic-current',
+        createTextGenGenerationData: (_settings, _model, prompt, length) => ({ prompt, max_new_tokens: length }),
+    });
+    vm.runInContext(declaration('export async function getTextGenGenerationData(', source), context);
+    const isolated = await context.getTextGenGenerationData('Own evidence', 1024, false, false, null, 'quiet', { isolated: true });
+    assert.equal(isolated.prompt, 'Own evidence');
+    assert.equal(calls, 0);
+    const legacy = await context.getTextGenGenerationData('Legacy prompt', 64, false, false, null, 'normal');
+    assert.equal(legacy.prompt, 'Legacy prompt injected by extension');
+    assert.equal(calls, 1);
 });

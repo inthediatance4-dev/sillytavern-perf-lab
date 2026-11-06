@@ -3353,17 +3353,18 @@ export function getStoppingStrings(isImpersonate, isContinue, api = main_api) {
  * @prop {boolean} [trimToSentence] Whether to trim the response to the last complete sentence
  * @prop {boolean} [isolated] Use only quietPrompt through the raw provider path, without chat lifecycle events or responseLength overrides
  * @prop {AbortSignal} [signal] Caller-owned cancellation signal, supported only by the isolated path
+ * @prop {number} [maxOutputTokens] Request-local isolated output limit; never changes foreground settings
  * @param {GenerateQuietPromptParams} params Parameters for the quiet prompt generation
  * @returns {Promise<string>} Generated text. If using structured output, will contain a serialized JSON object.
  */
-export async function generateQuietPrompt({ quietPrompt = '', quietToLoud = false, skipWIAN = false, quietImage = null, quietName = null, responseLength = null, forceChId = null, jsonSchema = null, removeReasoning = true, trimToSentence = false, isolated = false, signal = null } = {}) {
+export async function generateQuietPrompt({ quietPrompt = '', quietToLoud = false, skipWIAN = false, quietImage = null, quietName = null, responseLength = null, forceChId = null, jsonSchema = null, removeReasoning = true, trimToSentence = false, isolated = false, signal = null, maxOutputTokens } = {}) {
     if (arguments.length > 0 && typeof arguments[0] !== 'object') {
         console.trace('generateQuietPrompt called with positional arguments. Please use an object instead.');
         [quietPrompt, quietToLoud, skipWIAN, quietImage, quietName, responseLength, forceChId, jsonSchema] = arguments;
     }
 
     if (isolated) {
-        return generateIsolatedQuietPrompt({ quietPrompt, jsonSchema, responseLength, signal }, generateRaw);
+        return generateIsolatedQuietPrompt({ quietPrompt, jsonSchema, responseLength, signal, maxOutputTokens }, generateRaw);
     }
 
     const responseLengthCustomized = typeof responseLength === 'number' && responseLength > 0;
@@ -4569,6 +4570,7 @@ export function createRawPrompt(prompt, api, instructOverride, quietToLoud, syst
  * @prop {JsonSchema} [jsonSchema] JSON schema to use for the structured generation. Usually requires a special instruction.
  * @prop {AbortSignal} [signal] Caller-owned cancellation signal; never replaces the foreground controller
  * @prop {boolean} [literal] Preserve prompt evidence without macro expansion or NovelAI bracket rewriting
+ * @prop {number} [maxOutputTokens] Request-local output limit, independent of TempResponseLength
  */
 
 /**
@@ -4577,9 +4579,12 @@ export function createRawPrompt(prompt, api, instructOverride, quietToLoud, syst
  * @param {GenerateRawParams} params Parameters for generating a message
  * @returns {Promise<object | string>} Raw API response data, or a JSON string extracted from the response when `jsonSchema` is provided.
  */
-export async function generateRawData({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, prefill = '', jsonSchema = null, signal = null, literal = false } = {}) {
+export async function generateRawData({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, prefill = '', jsonSchema = null, signal = null, literal = false, maxOutputTokens } = {}) {
     if (!api) {
         api = main_api;
+    }
+    if (maxOutputTokens !== undefined && (!Number.isSafeInteger(maxOutputTokens) || maxOutputTokens < 1)) {
+        throw new RangeError('Invalid request-local output token limit.');
     }
 
     const abortController = new AbortController();
@@ -4628,22 +4633,22 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
             case 'kobold':
             case 'koboldhorde':
                 if (kai_settings.preset_settings === 'gui') {
-                    generateData = { prompt: prompt, gui_settings: true, max_length: amount_gen, max_context_length: max_context, api_server: kai_settings.api_server };
+                    generateData = { prompt: prompt, gui_settings: true, max_length: maxOutputTokens ?? amount_gen, max_context_length: max_context, api_server: kai_settings.api_server };
                 } else {
                     const isHorde = api === 'koboldhorde';
                     const koboldSettings = koboldai_settings[koboldai_setting_names[kai_settings.preset_settings]];
-                    generateData = getKoboldGenerationData(prompt.toString(), koboldSettings, amount_gen, max_context, isHorde, 'quiet');
+                    generateData = getKoboldGenerationData(prompt.toString(), koboldSettings, maxOutputTokens ?? amount_gen, max_context, isHorde, 'quiet');
                 }
                 if (responseLengthCustomized) TempResponseLength.restore(api);
                 break;
             case 'novel': {
                 const novelSettings = novelai_settings[novelai_setting_names[nai_settings.preset_settings_novel]];
-                generateData = getNovelGenerationData(prompt, novelSettings, amount_gen, false, false, null, 'quiet');
+                generateData = getNovelGenerationData(prompt, novelSettings, maxOutputTokens ?? amount_gen, false, false, null, 'quiet');
                 if (responseLengthCustomized) TempResponseLength.restore(api);
                 break;
             }
             case 'textgenerationwebui':
-                generateData = await getTextGenGenerationData(prompt, amount_gen, false, false, null, 'quiet');
+                generateData = await getTextGenGenerationData(prompt, maxOutputTokens ?? amount_gen, false, false, null, 'quiet', { isolated: literal });
                 if (responseLengthCustomized) TempResponseLength.restore(api);
                 break;
             case 'openai': {
@@ -4657,7 +4662,8 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
         if (api === 'koboldhorde') {
             data = await generateHorde(prompt.toString(), generateData, abortController.signal, false);
         } else if (api === 'openai') {
-            data = await sendOpenAIRequest('quiet', generateData, abortController.signal, { jsonSchema });
+            data = await sendOpenAIRequest('quiet', generateData, abortController.signal, { jsonSchema, ...(literal ? { isolated: true } : {}),
+                ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }) });
         } else {
             const generateUrl = getGenerateUrl(api);
             const response = await fetch(generateUrl, {
@@ -4703,13 +4709,13 @@ export async function generateRawData({ prompt = '', api = null, instructOverrid
  * @param {GenerateRawParams} params Parameters for generating a message
  * @returns {Promise<string>} Generated output: a cleaned-up message string when `jsonSchema` is not provided, or an extracted JSON string conforming to `jsonSchema` when it is.
  */
-export async function generateRaw({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, trimNames = true, prefill = '', jsonSchema = null, signal = null, literal = false } = {}) {
+export async function generateRaw({ prompt = '', api = null, instructOverride = false, quietToLoud = false, systemPrompt = '', responseLength = null, trimNames = true, prefill = '', jsonSchema = null, signal = null, literal = false, maxOutputTokens } = {}) {
     if (arguments.length > 0 && typeof arguments[0] !== 'object') {
         console.trace('generateRaw called with positional arguments. Please use an object instead.');
         [prompt, api, instructOverride, quietToLoud, systemPrompt, responseLength, trimNames, prefill, jsonSchema] = arguments;
     }
 
-    const data = await generateRawData({ prompt, api, instructOverride, quietToLoud, systemPrompt, responseLength, prefill, jsonSchema, signal, literal });
+    const data = await generateRawData({ prompt, api, instructOverride, quietToLoud, systemPrompt, responseLength, prefill, jsonSchema, signal, literal, maxOutputTokens });
 
     // JSON string (matching the provided schema) will already be extracted.
     if (jsonSchema) {
@@ -5207,7 +5213,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
     // Add WI to prompt (and also inject WI to AN value via hijack)
     // Make quiet prompt available for WIAN
     setExtensionPrompt(inject_ids.QUIET_PROMPT, quiet_prompt || '', extension_prompt_types.IN_PROMPT, 0, true);
-    const chatForWI = coreChat.filter(message => !message.extra?.directorFatePrompt).map(x => world_info_include_names ? `${x.name}: ${x.mes}` : x.mes).reverse();
+    const chatForWI = coreChat.filter(message => !message.extra?.directorFatePrompt && !message.extra?.directorAffinityPrompt).map(x => world_info_include_names ? `${x.name}: ${x.mes}` : x.mes).reverse();
     /** @type {import('./scripts/world-info.js').WIGlobalScanData} */
     const globalScanData = {
         personaDescription: persona,
@@ -5901,7 +5907,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
         }
     }
 
-    await eventSource.emit(event_types.GENERATE_AFTER_DATA, generate_data, dryRun);
+    await eventSource.emit(event_types.GENERATE_AFTER_DATA, generate_data, dryRun, { type });
 
     if (dryRun) {
         return Promise.resolve();
@@ -6714,6 +6720,8 @@ function setInContextMessages(msgInContextCount, type) {
 /**
  * @typedef {object} AdditionalRequestOptions
  * @property {JsonSchema} [jsonSchema]
+ * @property {number} [maxOutputTokens] Request-local output limit without changing shared settings
+ * @property {boolean} [isolated] Skip extension settings hooks for a self-contained raw request
  */
 
 /**

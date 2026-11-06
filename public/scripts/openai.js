@@ -3135,15 +3135,19 @@ export async function createGenerationParameters(settings, model, type, messages
  * @returns {Promise<unknown>}
  * @throws {Error}
  */
-async function sendOpenAIRequest(type, messages, signal, { jsonSchema = null } = {}) {
+async function sendOpenAIRequest(type, messages, signal, { jsonSchema = null, maxOutputTokens, isolated = false } = {}) {
     // Provide default abort signal
     if (!signal) {
         signal = new AbortController().signal;
     }
 
-    const model = getChatCompletionModel(oai_settings);
-    const { generate_data, stream, canMultiSwipe } = await createGenerationParameters(oai_settings, model, type, messages, { jsonSchema });
-    await eventSource.emit(event_types.CHAT_COMPLETION_SETTINGS_READY, generate_data);
+    if (maxOutputTokens !== undefined && (!Number.isSafeInteger(maxOutputTokens) || maxOutputTokens < 1)) {
+        throw new RangeError('Invalid request-local output token limit.');
+    }
+    const settings = maxOutputTokens === undefined ? oai_settings : { ...oai_settings, openai_max_tokens: maxOutputTokens };
+    const model = getChatCompletionModel(settings);
+    const { generate_data, stream, canMultiSwipe } = await createGenerationParameters(settings, model, type, messages, { jsonSchema });
+    if (!isolated) await eventSource.emit(event_types.CHAT_COMPLETION_SETTINGS_READY, generate_data);
 
     const generate_url = '/api/backends/chat-completions/generate';
     const response = await fetch(generate_url, {

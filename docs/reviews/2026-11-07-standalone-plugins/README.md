@@ -64,4 +64,4 @@ git -c core.whitespace=cr-at-eol diff --check
 
 兼容验证限定以上实际宿主与场景，不声称所有历史／未来版本或所有商业提供方均通过。真实模型质量与手机实机尚未验证。其他扩展直接调用上游 ESM `regenerateGroup()` 的不可观察路径，不能承诺重生成沿用；普通 UI 与 `/regenerate` 已实际验证。
 
-CI 工作流增加 `npm run test:standalone`，在原有 Node 20/22/24 × Ubuntu/Windows 矩阵中执行。本地 476 项与浏览器结果独立于 CI，不用历史运行代替最终提交的状态。
+独立插件测试已接入原有 `npm run test:perf` 命令，在既有 Node 20/22/24 × Ubuntu/Windows 矩阵中执行。`npm run test:standalone` 可单独运行同一组专项。本地 476 项与浏览器结果独立于 CI，不用历史运行代替最终提交的状态。

@@ -29,4 +29,3 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test:perf
-      - run: npm run test:standalone

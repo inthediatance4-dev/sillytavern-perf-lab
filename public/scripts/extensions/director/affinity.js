@@ -5,7 +5,7 @@ import {
 } from './affinity-state.js';
 
 export const AFFINITY_PROMPT_KEY = 'director_affinity_memory';
-const MEMORY_FRAMES = /\uE010(directoraffinity\d+x[a-zA-Z0-9]+)\uE011[\s\S]*?\uE012\1\uE013|\uE010directoraffinity\d+x[a-zA-Z0-9]+\uE011[\s\S]*$|AFFINITY_LITERAL_[a-zA-Z0-9_-]+_END|directoraffinity\d+x[a-zA-Z0-9]+/g;
+const MEMORY_FRAMES = /\uE010(directoraffinity[1-9]\d*x[a-zA-Z0-9]{1,12})\uE011[\s\S]*?\uE012\1\uE013/g;
 const MEMORY_DELIMITERS = { '{': '\uE014', '}': '\uE015', '<': '\uE016', '>': '\uE017', '\r': '\uE018', '\n': '\uE019' };
 const TYPES = new Set(['normal', 'swipe', 'regenerate', 'continue', 'appendFinal']);
 const actors = ['character', 'user', 'other'];
@@ -78,6 +78,7 @@ export function createAffinityController(getContext, options = {}) {
     const uuid = options.uuid ?? (() => crypto.randomUUID());
     const isGenerating = options.isGenerating ?? (() => false);
     let revision = 0;
+    let mutationRevision = 0;
     let attempt = null;
     let groupBusy = false;
     let groupReplay = null;
@@ -90,29 +91,51 @@ export function createAffinityController(getContext, options = {}) {
     let frameSerial = 0;
     let rerun = false;
     const requests = new WeakMap();
+    const continuationLineages = new WeakMap();
+    const pendingLineages = new Set();
+    const MAX_PENDING_LINEAGES = 128;
     // Bridge completion -> detached-save -> same-chat reload without retaining
     // whole chat graphs or trusting an arbitrary marker from loaded metadata.
     const pendingReceipts = new Map();
     const MAX_PENDING_RECEIPTS = 128;
+    const diagnosticCounts = Object.fromEntries(['parse_envelope', 'parse_unsafe', 'parse_schema', 'extraction_failed',
+        'verification_failed', 'persistence_failed', 'budget_failed'].map(category => [category, 0]));
+    let diagnosticTotal = 0;
+    const getDiagnostics = () => ({ total: diagnosticTotal, counts: { ...diagnosticCounts } });
+    function diagnose(category, count = 1) {
+        if (!Object.hasOwn(diagnosticCounts, category) || !Number.isSafeInteger(count) || count < 1) return;
+        diagnosticCounts[category] += count;
+        diagnosticTotal += count;
+        try { options.onDiagnostic?.({ category, count: diagnosticCounts[category], ...getDiagnostics() }); } catch { /* Diagnostics never affect generation. */ }
+    }
     const outputOptions = () => typeof options.maxOutputTokens === 'function'
         ? { maxOutputTokens: options.maxOutputTokens() } : {};
     const settings = () => getContext().extensionSettings?.director?.affinity ?? {};
     const enabled = () => !getContext().extensionSettings?.disabledExtensions?.includes('director')
         && getContext().extensionSettings?.director?.enabled !== false && settings().enabled !== false;
+    let previouslyEnabled = enabled();
+    let activationRevision = 0;
+    const syncActivation = () => {
+        const now = enabled();
+        if (now !== previouslyEnabled) { activationRevision++; previouslyEnabled = now; }
+    };
     const interval = () => settings().interval === 5 ? 5 : 10;
     const chatId = context => {
         try { return context.getCurrentChatId?.() ?? context.chatId; } catch { return context.chatId; }
     };
     const capture = () => {
+        syncActivation();
         const context = getContext();
-        return { revision, metadata: context.chatMetadata, chat: context.chat, firstMessage: context.chat?.[0], chatId: chatId(context),
-            groupId: context.groupId, characterId: isGroup(context) ? null : context.characterId };
+        return { revision, activationRevision, metadata: context.chatMetadata, chat: context.chat, firstMessage: context.chat?.[0], chatId: chatId(context),
+            groupId: context.groupId, characterId: isGroup(context) ? null : context.characterId,
+            characterAvatar: isGroup(context) ? null : context.characters?.[context.characterId]?.avatar };
     };
     const current = (snapshot, checkFirst = true) => {
         const now = capture();
-        return snapshot && snapshot.revision === now.revision && snapshot.metadata === now.metadata
+        return snapshot && snapshot.revision === now.revision && snapshot.activationRevision === now.activationRevision && snapshot.metadata === now.metadata
             && snapshot.chat === now.chat && snapshot.chatId === now.chatId && snapshot.groupId === now.groupId
-            && snapshot.characterId === now.characterId && (!checkFirst || snapshot.firstMessage === now.firstMessage);
+            && snapshot.characterId === now.characterId && snapshot.characterAvatar === now.characterAvatar
+            && (!checkFirst || snapshot.firstMessage === now.firstMessage);
     };
     const state = () => {
         const context = getContext();
@@ -276,13 +299,13 @@ export function createAffinityController(getContext, options = {}) {
         dirty = false;
         try {
             const saved = await getContext().saveChat({ shouldSave: () => !!getContext().chat.length && current(snapshot) });
-            if (saved === false && current(snapshot)) dirty = true;
+            if (saved === false && current(snapshot)) { dirty = true; diagnose('persistence_failed'); }
             else if (saved !== false && current(snapshot)) {
                 for (const [key, entry] of included) {
                     if (pendingReceipts.get(key) === entry && pendingMatches(entry, true)) pendingReceipts.delete(key);
                 }
             }
-        } catch { if (current(snapshot)) dirty = true; }
+        } catch { if (current(snapshot)) { dirty = true; diagnose('persistence_failed'); } }
     }
     const idle = () => enabled() && !isGenerating() && !groupBusy && !attempt;
     function schedule() {
@@ -306,17 +329,24 @@ export function createAffinityController(getContext, options = {}) {
     const ownerIdentity = () => affinityOwners(getContext()).map(owner => owner.id).sort().join('\n');
     const jobCurrent = record => {
         if (record.invalid || !enabled() || !current(record.snapshot) || record.owners !== ownerIdentity()) return false;
+        try { if (record.requestIdentity !== options.requestIdentity?.()) return false; } catch { return false; }
         const live = new Map(projection(true).map(ref => [ref.slot, ref]));
         return record.refs.every(ref => live.has(ref.slot) && sameRef(ref, live.get(ref.slot)));
     };
 
     function evaluationPrompt(refs, value, owners) {
-        const all = [...value.events, ...value.archives];
+        const all = [...new Map([...value.events, ...value.archives].map(event => [event.id, event])).values()].sort((a, b) => {
+            const first = a.result ?? a.source;
+            const second = b.result ?? b.source;
+            return first.index - second.index || (first.offset ?? 0) - (second.offset ?? 0)
+                || Number(a.id.split(':').at(-1)) - Number(b.id.split(':').at(-1)) || a.id.localeCompare(b.id);
+        });
         const promises = all.filter(event => event.kind === 'promise');
         const prior = [...promises, ...all.filter(event => event.kind !== 'promise').slice(-40)]
             .map(({ id, owner, kind, fact, actor, recipient, source, result, anchorId, acknowledgement }) => ({
                 id, owner, kind, fact, actor, recipient, source: { slot: source.slot, quote: source.quote },
                 ...(result ? { result: { slot: result.slot, quote: result.quote } } : {}), ...(anchorId ? { anchorId } : {}),
+                ...(acknowledgement ? { acknowledgement: { slot: acknowledgement.slot, quote: acknowledgement.quote } } : {}),
             }));
         const budget = Math.max(300, Math.floor(40000 / Math.max(1, refs.length)));
         const messages = refs.map(ref => ({ slot: ref.slot, index: ref.index, owner: ref.owner,
@@ -339,14 +369,30 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
     }
     async function evaluate(record, value, owners) {
         const context = getContext();
-        const fitted = options.fitPrompt
-            ? await options.fitPrompt(evaluationPrompt, record.refs, value, owners, record.controller.signal)
-            : { prompt: evaluationPrompt(record.refs, value, owners), refs: record.refs };
+        let fitted;
+        try {
+            fitted = options.fitPrompt
+                ? await options.fitPrompt(evaluationPrompt, record.refs, value, owners, record.controller.signal)
+                : { prompt: evaluationPrompt(record.refs, value, owners), refs: record.refs };
+        } catch {
+            if (jobCurrent(record)) diagnose('budget_failed');
+            return null;
+        }
         if (!jobCurrent(record)) return null;
-        const raw = await context.generateQuietPrompt({ isolated: true, signal: record.controller.signal, ...outputOptions(),
-            quietPrompt: fitted.prompt, jsonSchema: AFFINITY_SCHEMA });
+        let raw;
+        try {
+            raw = await context.generateQuietPrompt({ isolated: true, signal: record.controller.signal, ...outputOptions(),
+                quietPrompt: fitted.prompt, jsonSchema: AFFINITY_SCHEMA });
+        } catch {
+            if (jobCurrent(record)) diagnose('extraction_failed');
+            return null;
+        }
         if (!jobCurrent(record)) return null;
-        const proposals = parseAffinityResponse(raw).filter(proposal => candidateKey(proposal, record.refs));
+        let proposals;
+        try {
+            proposals = parseAffinityResponse(raw, { onRejected: ({ category, count }) => diagnose(`parse_${category}`, count) })
+                .filter(proposal => candidateKey(proposal, record.refs));
+        } catch { diagnose('parse_envelope'); return null; }
         // Validate before asking the verifier: no invented sources or owners may
         // earn a second request. Verification never downgrades a rejected major.
         const provisional = applyAffinityEvaluation(value, proposals, projection(), owners,
@@ -354,7 +400,7 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         const oldKeys = new Set([...value.events, ...value.archives].map(event => event.key));
         const acceptedKeys = new Set([...provisional.events, ...provisional.archives].map(event => event.key));
         const freshKeys = new Set([...acceptedKeys].filter(key => !oldKeys.has(key)));
-        const weightedKeys = new Set([...provisional.events, ...provisional.archives].filter(event => affinityScoreEligible(event)).map(event => event.key));
+        const weightedKeys = new Set([...provisional.events, ...provisional.archives].filter(event => event.delta !== 0 && affinityScoreEligible(event)).map(event => event.key));
         const distinct = proposals.filter((proposal, index, all) => all.findIndex(other => candidateKey(other, record.refs) === candidateKey(proposal, record.refs)) === index);
         const major = distinct.filter(proposal => proposal.impact === 'major' && proposal.confidence === 'high'
             && freshKeys.has(candidateKey(proposal, record.refs)) && weightedKeys.has(candidateKey(proposal, record.refs)));
@@ -366,20 +412,34 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
                 const batches = options.fitVerificationPrompt
                     ? await options.fitVerificationPrompt(render, candidates, record.controller.signal)
                     : [{ prompt: render(candidates), candidates }];
+                if (!jobCurrent(record)) return null;
+                const includedKeys = new Set(batches.flatMap(batch => batch.candidates.map(candidate => candidate.key)));
+                const omitted = candidates.filter(candidate => !includedKeys.has(candidate.key)).length;
+                if (omitted) diagnose('budget_failed', omitted);
                 for (const batch of batches) {
                     if (!jobCurrent(record)) return null;
+                    try {
+                        const fits = typeof batch.validate !== 'function' || await batch.validate();
+                        if (!jobCurrent(record)) return null;
+                        if (!fits) { diagnose('budget_failed'); continue; }
+                    } catch {
+                        if (!jobCurrent(record)) return null;
+                        diagnose('budget_failed');
+                        continue;
+                    }
                     try {
                         const result = await context.generateQuietPrompt({ isolated: true, signal: record.controller.signal, ...outputOptions(),
                             jsonSchema: VERIFY_SCHEMA, quietPrompt: batch.prompt });
                         const parsed = JSON.parse(result);
+                        if (!jobCurrent(record)) return null;
                         if (ownObject(parsed) && Object.keys(parsed).length === 1 && Object.hasOwn(parsed, 'confirmed')
                             && Array.isArray(parsed.confirmed) && parsed.confirmed.length <= batch.candidates.length
                             && parsed.confirmed.every(key => typeof key === 'string' && batch.candidates.some(candidate => candidate.key === key))) {
                             parsed.confirmed.forEach(key => verified.add(key));
-                        }
-                    } catch { /* A failed independent check never downgrades a major. */ }
+                        } else diagnose('verification_failed');
+                    } catch { if (jobCurrent(record)) diagnose('verification_failed'); }
                 }
-            } catch { /* Keep unverified evidence at zero, never at minor impact. */ }
+            } catch { if (jobCurrent(record)) diagnose('budget_failed'); }
         }
         return jobCurrent(record) ? { proposals: distinct.filter(proposal => acceptedKeys.has(candidateKey(proposal, record.refs))), verified, evaluatedRefs: fitted.refs } : null;
     }
@@ -408,10 +468,11 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
             // to the verifier, including results outside the current reply batch.
             refs.filter(ref => dependencySlots.has(ref.slot)).forEach(ref => selected.add(ref.slot));
             const evidence = refs.filter(ref => selected.has(ref.slot));
-            const record = { snapshot: capture(), refs: evidence, owners: ownerIdentity(), controller: new AbortController(), invalid: false };
+            const record = { snapshot: capture(), refs: evidence, owners: ownerIdentity(), requestIdentity: options.requestIdentity?.(),
+                controller: new AbortController(), invalid: false };
             job = record;
             let result = null;
-            try { result = await evaluate(record, value, affinityOwners(getContext())); } catch { /* Retry changed evidence with a later batch. */ }
+            try { result = await evaluate(record, value, affinityOwners(getContext())); } catch { if (jobCurrent(record)) diagnose('extraction_failed'); }
             job = null;
             if (!current(record.snapshot) || !enabled()) return;
             const latest = state();
@@ -453,11 +514,12 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
             extra: { type: 'narrator', directorAffinityPrompt: true } });
     }
     function refresh(options) {
+        syncActivation();
         invalidate();
         clearPrompt();
         frames.clear();
         if (job && job.owners !== ownerIdentity()) cancel();
-        if (!enabled()) { cancel(); return; }
+        if (!enabled()) { pendingLineages.clear(); cancel(); return; }
         // Re-enable may follow a disabled reload. Recover before projection can
         // mint a zero-receipt identity, but never treat a silent load gap as data.
         if (getContext().chat.length) recoverPendingReceipts();
@@ -471,21 +533,101 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         for (const key of Object.keys(value)) value[key] = transform(value[key], replace, seen);
         return value;
     }
+    const receivedTypeMatches = (record, type) => type === record.type
+        || (record.type === 'regenerate' && type === 'normal') || (record.type === 'continue' && type === 'appendFinal');
+    const messageOwner = message => isGroup(getContext()) ? message?.original_avatar : getContext().characters?.[getContext().characterId]?.avatar;
+    function finalizedCandidate(item) {
+        const message = getContext().chat[item.index];
+        const swipe = message?.swipe_id ?? 0;
+        return message === item.message && isCharacter(message) && messageOwner(message) === item.owner && message.mes === item.text && swipe === item.swipe
+            && message.swipes?.[swipe] === message.mes && !!message.swipe_info?.[swipe];
+    }
+    function lineageCandidate(lineage, requireFinalized = true) {
+        if (!lineage || lineage.invalid || lineage.mutationRevision !== mutationRevision || lineage.root.invalid
+            || !current(lineage.root.snapshot, false)) return null;
+        const item = lineage.source;
+        const message = getContext().chat[item.index];
+        const marker = markerFor(message, state());
+        const selectedText = message?.swipes?.[item.swipe];
+        if (message !== item.message || !isCharacter(message) || messageOwner(message) !== item.owner
+            || (message.swipe_id ?? 0) !== item.swipe || marker?.scope !== lineage.scope || marker?.id !== lineage.slot
+            || !message.mes.startsWith(item.text) || typeof selectedText !== 'string' || !selectedText.startsWith(item.text)
+            || !message.swipe_info?.[item.swipe] || (requireFinalized && selectedText !== message.mes)) return null;
+        if (message.mes !== item.text && (!lineage.active?.dispatched || !message.mes.startsWith(lineage.active.lineageBase)
+            || !selectedText.startsWith(lineage.active.lineageBase))) return null;
+        return { ...item, text: message.mes };
+    }
+    function continuationFor(previous, message) {
+        let lineage = continuationLineages.get(message);
+        if (lineage && !lineageCandidate(lineage)) return null;
+        if (!lineage && previous?.type === 'normal' && previous.dispatched && !previous.invalid && current(previous.snapshot, false)) {
+            const source = previous.received.find(item => item.message === message && finalizedCandidate(item));
+            const marker = markerFor(message, state());
+            if (source && marker?.receipt === 0) {
+                lineage = { root: previous, source, scope: marker.scope, slot: marker.id, mutationRevision, confirmed: false };
+                continuationLineages.set(message, lineage);
+            }
+        }
+        return lineage;
+    }
+    function recordReceipt(record, item, inherited) {
+        if (!finalizedCandidate(item) && !inherited) return false;
+        let value = state();
+        if (!value) return false;
+        const context = getContext();
+        const message = context.chat[item.index];
+        let marker = markerFor(message, value);
+        const replay = record.replay?.index === item.index ? record.replay : groupReplay?.get(item.index);
+        const owner = isGroup(context) ? message.original_avatar : affinityOwners(context)[0]?.id;
+        if (!affinityOwners(context).some(item => item.id === owner)) return false;
+        if (replay?.marker && (!isGroup(context) || replay.owner === message.original_avatar)) marker = replay.marker;
+        if (!marker) marker = { version: 1, scope: value.id, id: uuid(), receipt: 0 };
+        if (marker.receipt === 0 && (!['continue', 'appendFinal'].includes(record.type) || inherited)) {
+            value = { ...value, issued: value.issued + 1 };
+            marker = { ...marker, receipt: value.issued };
+        }
+        stamp(message, marker);
+        put(value);
+        rememberReceipt(message, item.index, marker, owner);
+        return true;
+    }
+    function flushPendingLineages() {
+        let recorded = false;
+        for (const lineage of pendingLineages) {
+            const inherited = enabled() && lineage.confirmed ? lineageCandidate(lineage) : null;
+            if (!inherited && enabled() && lineage.confirmed && lineageCandidate(lineage, false)) continue;
+            pendingLineages.delete(lineage);
+            if (inherited) recorded = recordReceipt(lineage.root, inherited, inherited) || recorded;
+        }
+        if (recorded) invalidate();
+        return recorded;
+    }
     const { eventSource, eventTypes } = getContext();
     const on = (name, listener) => { if (eventTypes[name]) eventSource.on(eventTypes[name], (...args) => { try { listener(...args); } catch { /* Fail closed, without logging private evidence. */ } }); };
     on('GENERATION_STARTED', (type, _params, dryRun) => {
         if (dryRun) return;
         if (type === 'quiet' || type === 'impersonate') { clearPrompt(); return; }
         cancel();
-        if (attempt) attempt.invalid = true;
+        const previous = attempt;
+        // A stream unlocks the UI before its native save resolves. Its exact,
+        // finalized reply still belongs to the request already in requests.
+        if (attempt && !attempt.received.some(finalizedCandidate)) attempt.invalid = true;
         clearPrompt();
         frames.clear();
         if (!enabled() || !TYPES.has(type)) { attempt = null; return; }
         projection();
         const context = getContext();
         const last = context.chat.at(-1);
-        attempt = { snapshot: capture(), type, received: [], replay: type === 'regenerate'
+        const lineage = ['continue', 'appendFinal'].includes(type) ? continuationFor(previous, last) : null;
+        attempt = { snapshot: capture(), type, received: [],
+            minimumIndex: type === 'normal' ? context.chat.length : context.chat.length - 1,
+            replay: type === 'regenerate'
             ? { index: context.chat.length - 1, marker: markerFor(last, state()), owner: last?.original_avatar } : null };
+        if (lineage) {
+            attempt.lineage = lineage;
+            attempt.lineageBase = last.mes;
+            lineage.active = attempt;
+        }
     });
     on('GENERATE_AFTER_DATA', (data, dryRun, request = {}) => {
         const requestType = request?.type;
@@ -498,47 +640,49 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         }));
         if (TYPES.has(requestType)) used.forEach(token => frames.delete(token));
         const matchesType = attempt && (requestType === attempt.type || (attempt.type === 'regenerate' && requestType === 'normal'));
-        if (!dryRun && matchesType && current(attempt.snapshot, false) && data && typeof data === 'object') requests.set(data, attempt);
+        if (!dryRun && matchesType && current(attempt.snapshot, false) && data && typeof data === 'object') {
+            attempt.dispatched = true;
+            requests.set(data, attempt);
+        }
     });
     on('MESSAGE_RECEIVED', (id, type) => {
-        if (!attempt || !TYPES.has(type) || !current(attempt.snapshot, false) || !Number.isInteger(id)) return;
+        if (flushPendingLineages()) schedule();
+        if (!attempt || !receivedTypeMatches(attempt, type) || !current(attempt.snapshot, false) || !Number.isInteger(id)
+            || id < attempt.minimumIndex || (attempt.type !== 'normal' && id !== attempt.minimumIndex)) return;
         const message = getContext().chat[id];
-        if (isCharacter(message)) attempt.received.push({ index: id, message, text: message.mes, swipe: message.swipe_id ?? 0 });
+        if (isCharacter(message)) attempt.received.push({ index: id, message, text: message.mes, swipe: message.swipe_id ?? 0, owner: messageOwner(message) });
     });
     on('GENERATION_COMPLETED', payload => {
         if (payload.type === 'quiet' || payload.type === 'impersonate') { schedule(); return; }
         const record = requests.get(payload.data);
         requests.delete(payload.data);
         if (attempt === record) attempt = null;
-        if (!record || record.invalid || !current(record.snapshot, false) || !enabled() || payload.chatMetadata !== record.snapshot.metadata
+        if (!record || record.invalid || !receivedTypeMatches(record, payload.type)
+            || !current(record.snapshot, false) || !enabled() || payload.chatMetadata !== record.snapshot.metadata
             || payload.chatId !== record.snapshot.chatId) return;
-        const context = getContext();
-        let value = state();
-        if (!value) return;
+        if (!state()) return;
         for (const item of record.received) {
-            const message = context.chat[item.index];
-            const swipe = message?.swipe_id ?? 0;
-            if (message !== item.message || !isCharacter(message) || message.mes !== item.text || swipe !== item.swipe
-                || message.swipes?.[swipe] !== message.mes || !message.swipe_info?.[swipe]) continue;
-            let marker = markerFor(message, value);
-            const replay = record.replay?.index === item.index ? record.replay : groupReplay?.get(item.index);
-            const owner = isGroup(context) ? message.original_avatar : affinityOwners(context)[0]?.id;
-            if (!affinityOwners(context).some(item => item.id === owner)) continue;
-            if (replay?.marker && (!isGroup(context) || replay.owner === message.original_avatar)) marker = replay.marker;
-            if (!marker) marker = { version: 1, scope: value.id, id: uuid(), receipt: 0 };
-            if (marker.receipt === 0 && !['continue', 'appendFinal'].includes(record.type)) {
-                value = { ...value, issued: value.issued + 1 };
-                marker = { ...marker, receipt: value.issued };
+            const originalLineage = continuationLineages.get(item.message);
+            const rootLineage = originalLineage?.root === record ? originalLineage : null;
+            if (rootLineage) rootLineage.confirmed = true;
+            const lineage = rootLineage ?? record.lineage;
+            const inherited = lineage?.confirmed ? lineageCandidate(lineage) : null;
+            if (rootLineage && !inherited) {
+                // Native progress can await reasoning between mes and swipe writes.
+                // Stop may unlock before that await, then finalize via RECEIVED.
+                if (lineageCandidate(rootLineage, false)) {
+                    pendingLineages.add(rootLineage);
+                    while (pendingLineages.size > MAX_PENDING_LINEAGES) pendingLineages.delete(pendingLineages.values().next().value);
+                }
+                continue;
             }
-            stamp(message, marker);
-            put(value);
-            rememberReceipt(message, item.index, marker, owner);
+            if (recordReceipt(record, item, inherited) && lineage) pendingLineages.delete(lineage);
         }
         invalidate();
         reconcile(projection(), options);
         schedule();
     });
-    on('GENERATION_ENDED', () => { clearPrompt(); schedule(); });
+    on('GENERATION_ENDED', () => { flushPendingLineages(); clearPrompt(); schedule(); });
     on('GENERATION_STOPPED', () => { cancel(); if (attempt) attempt.invalid = true; attempt = null; frames.clear(); clearPrompt(); schedule(); });
     on('GROUP_WRAPPER_STARTED', () => { groupBusy = true; });
     on('GROUP_WRAPPER_FINISHED', () => { groupBusy = false; schedule(); });
@@ -549,12 +693,14 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
     });
     on('GROUP_REGENERATION_FINISHED', () => { groupReplay = null; refresh(); });
     for (const name of ['MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_SWIPED', 'MESSAGE_DELETED', 'MESSAGE_SWIPE_DELETED']) on(name, () => {
+        mutationRevision++;
+        pendingLineages.clear();
         prunePendingReceipts();
         refresh({ retainOffline: false });
     });
     on('GROUP_UPDATED', () => { cancel(); refresh(); });
     on('CHAT_CHANGED', () => {
-        cancel(); clearPrompt(); frames.clear(); revision++; attempt = null; groupBusy = dirty = false; groupReplay = null;
+        cancel(); clearPrompt(); frames.clear(); pendingLineages.clear(); revision++; attempt = null; groupBusy = dirty = false; groupReplay = null;
         recoverPendingReceipts();
         refresh();
     });
@@ -565,5 +711,5 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         // evaluation or changes the cadence used by normal host events.
         while (scheduled || working) await (working ?? scheduled);
     }
-    return { prepare, refresh, settle };
+    return { prepare, refresh, settle, getDiagnostics };
 }

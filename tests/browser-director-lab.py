@@ -34,9 +34,13 @@ RUNNER_ROOT = ROOT
 
 def redact(value, temporary=''):
     text = json.dumps(value, ensure_ascii=False)
-    for source, replacement in [(str(ROOT), '<repo>'), (temporary, '<tmp>'),
-                                (str(pathlib.Path.home()), '<home>'),
-                                (socket.gethostname(), '<host>')]:
+    paths = [(ROOT, '<repo>'), (pathlib.Path.home(), '<home>')]
+    if temporary:
+        paths.insert(1, (pathlib.Path(temporary), '<tmp>'))
+    replacements = [(source, replacement) for path, replacement in paths
+                    for source in (str(path), path.as_posix(), path.as_uri())]
+    replacements.append((socket.gethostname(), '<host>'))
+    for source, replacement in replacements:
         if source:
             text = text.replace(source, replacement)
             text = text.replace(json.dumps(source, ensure_ascii=False)[1:-1], replacement)
@@ -2596,7 +2600,7 @@ def main():
     parser.add_argument('--base', help='Disabled UI comparison baseline (affinity: its parent; other modes: original Director baseline)')
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument('--affinity-only', action='store_true', help='Run hidden relationship memory against native browser generations')
-    parser.add_argument('--affinity-cases', help='Comma-separated affinity case keys; only with --affinity-only (default: all nine)')
+    parser.add_argument('--affinity-cases', help='Comma-separated affinity case keys; only with --affinity-only (default: all eleven)')
     modes.add_argument('--fate-review-only', action='store_true', help='Run the FC1/FC2/FC3 real-browser regressions')
     modes.add_argument('--fate-only', action='store_true', help='Run sealed Fate Card browser scenarios')
     modes.add_argument('--review-only', action='store_true', help='Run only the macro/instruct review checks in a fresh isolated fixture')

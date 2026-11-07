@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 AFFINITY_CASE_KEYS = ('cadence', 'persistence', 'overlap', 'budget', 'reloadRace',
-    'majorAndMobile', 'sidecarBudget', 'cancellation', 'group')
+    'majorAndMobile', 'sidecarBudget', 'cancellation', 'saveGap', 'saveGapContinue', 'group')
 
 
 def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_message, open_manager, selected_cases=None):
@@ -687,10 +687,238 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
                 except Exception:
                     pass
 
+    def save_gap():
+        observation = audit['saveGap'] = {}
+        for trigger in ('mouse', 'enter'):
+            reset(interval=10)
+            first_serial = state['serial'] + 1
+            expected_texts = [f'AFF_REPLY_{serial:03}: I remember the river promise and respect your boundary.'
+                for serial in (first_serial, first_serial + 1)]
+            page.evaluate("""async()=>{
+                (await import('/scripts/openai.js')).oai_settings.stream_openai=true;
+                const c=SillyTavern.getContext();
+                const s=window.__affinitySaveGap={events:[],started:0,received:0,completed:0,listeners:[]};
+                for(const name of ['GENERATION_STARTED','MESSAGE_RECEIVED','GENERATION_COMPLETED']) {
+                    const listener=(...args)=>{
+                        const type=name==='GENERATION_COMPLETED'?args[0].type:
+                            name==='MESSAGE_RECEIVED'?args[1]:args[0];
+                        const dryRun=name==='GENERATION_STARTED'&&args[2]===true;
+                        if(type==='normal'&&!dryRun) {
+                            if(name==='GENERATION_STARTED')s.started++;
+                            if(name==='MESSAGE_RECEIVED')s.received++;
+                            if(name==='GENERATION_COMPLETED')s.completed++;
+                        }
+                        s.events.push({event:name,type,dryRun,time:performance.now(),
+                            generating:window.__affinityMain.isGenerating(),saving:window.__affinityMain.isChatSaving});
+                    };
+                    c.eventSource.on(c.eventTypes[name],listener);
+                    s.listeners.push([c.eventTypes[name],listener]);
+                }
+            }""")
+            held = []
+
+            def hold_save(route):
+                raw = route.request.post_data_buffer or b''
+                if raw.startswith(b'\x1f\x8b'):
+                    raw = gzip.decompress(raw)
+                payload = json.loads(raw)
+                replies = [message for message in payload.get('chat', [])
+                    if str(message.get('mes', '')).startswith('AFF_REPLY_')]
+                if len(replies) == 1 and not held:
+                    # Let the real server persist the first stream. Only its
+                    # response is held, leaving the native completion pending.
+                    held.append({'route': route, 'response': route.fetch(), 'released': False})
+                    return
+                route.continue_()
+
+            def release_save():
+                for item in held:
+                    if not item['released']:
+                        item['route'].fulfill(response=item['response'])
+                        item['released'] = True
+
+            def snapshot():
+                return page.evaluate("""()=>{
+                    const c=SillyTavern.getContext(),s=window.__affinitySaveGap;
+                    return {events:structuredClone(s.events),started:s.started,received:s.received,completed:s.completed,
+                        isSendPress:window.__affinityMain.is_send_press,generating:window.__affinityMain.isGenerating(),
+                        saving:window.__affinityMain.isChatSaving,ledger:structuredClone(c.chatMetadata.director?.__affinity),
+                        replies:c.chat.filter(m=>m.mes.startsWith('AFF_REPLY_')).map(m=>({mes:m.mes,marker:m.extra?.__affinity})),
+                        textarea:document.querySelector('#send_textarea').value,
+                        sendVisible:!!document.querySelector('#send_but').getClientRects().length};
+                }""")
+
+            phase = observation[trigger] = {'trigger': 'native textarea Enter' if trigger == 'enter' else 'native send button'}
+            page.route('**/api/chats/save', hold_save)
+            try:
+                page.locator('#send_textarea').fill('AFF_FIRST_STREAM_SAVE_GAP_' + trigger)
+                page.locator('#send_but').click()
+                deadline = time.monotonic() + 20
+                while not held and time.monotonic() < deadline:
+                    page.wait_for_timeout(25)
+                assert held, 'First native stream did not reach the held final-save response'
+                before = phase['beforeSecondSend'] = snapshot()
+                assert before['isSendPress'] is False and not before['generating'] and before['saving'], before
+                assert before['sendVisible'] and before['received'] == 1 and before['completed'] == 0, before
+                assert [reply['mes'] for reply in before['replies']] == expected_texts[:1], before
+                page.locator('#send_textarea').fill('AFF_SECOND_STREAM_SAVE_GAP_' + trigger)
+                if trigger == 'enter':
+                    page.locator('#send_textarea').press('Enter')
+                    page.wait_for_function('window.__affinitySaveGap.started===2', timeout=10000)
+                else:
+                    page.locator('#send_but').click()
+                    page.wait_for_timeout(600)
+                during = phase['duringHeldSave'] = snapshot()
+                assert during['completed'] == 0, during
+                assert during['started'] == (2 if trigger == 'enter' else 1), during
+                release_save()
+                if trigger == 'mouse':
+                    page.wait_for_function('window.__affinitySaveGap.completed===1 && !window.__affinityMain.isChatSaving', timeout=30000)
+                    assert ledger()['issued'] == 1, ledger()
+                    assert page.locator('#send_textarea').input_value() == 'AFF_SECOND_STREAM_SAVE_GAP_mouse'
+                    page.locator('#send_but').click()
+                page.wait_for_function("""window.__affinitySaveGap.completed===2
+                    && !window.__affinityMain.isGenerating() && !window.__affinityMain.isChatSaving""", timeout=30000)
+                page.wait_for_timeout(100)
+                after = phase['afterBothComplete'] = snapshot()
+                assert [reply['mes'] for reply in after['replies']] == expected_texts, after
+                receipts = [(reply.get('marker') or {}).get('receipt', 0) for reply in after['replies']]
+                assert after['ledger']['issued'] == 2 and sorted(receipts) == [1, 2], after
+                ids = [(reply.get('marker') or {}).get('id') for reply in after['replies']]
+                assert all(ids) and len(set(ids)) == 2, after
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline:
+                    disk = read_disk()
+                    disk_ledger = disk[0].get('chat_metadata', {}).get('director', {}).get('__affinity', {}) if disk else {}
+                    disk_replies = [message for message in disk if str(message.get('mes', '')).startswith('AFF_REPLY_')]
+                    disk_receipts = [(message.get('extra', {}).get('__affinity') or {}).get('receipt', 0) for message in disk_replies]
+                    if disk_ledger.get('issued') == 2 and sorted(disk_receipts) == [1, 2]:
+                        break
+                    page.wait_for_timeout(50)
+                phase['persisted'] = {'issued': disk_ledger.get('issued'), 'receipts': disk_receipts,
+                    'texts': [message['mes'] for message in disk_replies]}
+                assert phase['persisted'] == {'issued': 2, 'receipts': receipts, 'texts': expected_texts}, phase
+                result['checks']['affinityNativeStreamSaveGap' + ('EnterKeepsBothReceipts' if trigger == 'enter' else 'MouseMutexControl')] = True
+            finally:
+                page.unroute('**/api/chats/save', hold_save)
+                release_save()
+                page.evaluate("""()=>{
+                    const c=SillyTavern.getContext();
+                    for(const [event,listener] of window.__affinitySaveGap.listeners)c.eventSource.removeListener(event,listener);
+                }""")
+
+    def save_gap_continue():
+        reset(interval=10)
+        first_serial = state['serial'] + 1
+        expected_parts = [f'AFF_REPLY_{serial:03}: I remember the river promise and respect your boundary.'
+            for serial in (first_serial, first_serial + 1)]
+        separator = page.evaluate("""async()=>{
+            const o=await import('/scripts/openai.js');o.oai_settings.stream_openai=true;
+            const c=SillyTavern.getContext();
+            const s=window.__affinitySaveGapContinue={events:[],started:[],received:[],completed:[],listeners:[]};
+            for(const name of ['GENERATION_STARTED','MESSAGE_RECEIVED','GENERATION_COMPLETED']) {
+                const listener=(...args)=>{
+                    const type=name==='GENERATION_COMPLETED'?args[0].type:
+                        name==='MESSAGE_RECEIVED'?args[1]:args[0];
+                    if(!['normal','continue'].includes(type)||(name==='GENERATION_STARTED'&&args[2]===true))return;
+                    s[name==='GENERATION_STARTED'?'started':name==='MESSAGE_RECEIVED'?'received':'completed'].push(type);
+                    s.events.push({event:name,type,time:performance.now(),
+                        generating:window.__affinityMain.isGenerating(),saving:window.__affinityMain.isChatSaving});
+                };
+                c.eventSource.on(c.eventTypes[name],listener);s.listeners.push([c.eventTypes[name],listener]);
+            }
+            return o.oai_settings.continue_postfix;
+        }""")
+        expected_text = expected_parts[0] + separator + expected_parts[1]
+        observation = audit['saveGapContinue'] = {'trigger': 'native options menu Continue',
+            'continueSeparator': separator, 'expectedText': expected_text}
+        held = []
+
+        def hold_save(route):
+            raw = route.request.post_data_buffer or b''
+            if raw.startswith(b'\x1f\x8b'):
+                raw = gzip.decompress(raw)
+            payload = json.loads(raw)
+            replies = [message for message in payload.get('chat', [])
+                if str(message.get('mes', '')).startswith('AFF_REPLY_')]
+            if len(replies) == 1 and replies[0]['mes'] == expected_parts[0] and not held:
+                # Persist through the native server, holding only its response.
+                held.append({'route': route, 'response': route.fetch(), 'released': False})
+                return
+            route.continue_()
+
+        def release_save():
+            for item in held:
+                if not item['released']:
+                    item['route'].fulfill(response=item['response'])
+                    item['released'] = True
+
+        def snapshot():
+            return page.evaluate("""()=>{
+                const c=SillyTavern.getContext(),s=window.__affinitySaveGapContinue;
+                return {events:structuredClone(s.events),started:s.started.slice(),received:s.received.slice(),
+                    completed:s.completed.slice(),isSendPress:window.__affinityMain.is_send_press,
+                    generating:window.__affinityMain.isGenerating(),saving:window.__affinityMain.isChatSaving,
+                    ledger:structuredClone(c.chatMetadata.director?.__affinity),
+                    replies:c.chat.filter(m=>m.mes.startsWith('AFF_REPLY_')).map(m=>({mes:m.mes,marker:m.extra?.__affinity}))};
+            }""")
+
+        page.route('**/api/chats/save', hold_save)
+        try:
+            page.locator('#send_textarea').fill('AFF_NORMAL_THEN_CONTINUE_DURING_HELD_SAVE')
+            page.locator('#send_but').click()
+            deadline = time.monotonic() + 20
+            while not held and time.monotonic() < deadline:
+                page.wait_for_timeout(25)
+            assert held, 'First native stream did not reach the held final-save response'
+            before = observation['beforeContinue'] = snapshot()
+            assert before['received'] == ['normal'] and before['completed'] == [], before
+            assert not before['isSendPress'] and not before['generating'] and before['saving'], before
+            assert [reply['mes'] for reply in before['replies']] == expected_parts[:1], before
+            page.locator('#options_button').click()
+            page.locator('#option_continue').click()
+            page.wait_for_function("window.__affinitySaveGapContinue.received.includes('continue')", timeout=30000)
+            during = observation['whileFirstSaveHeld'] = snapshot()
+            assert during['started'] == ['normal', 'continue'] and during['received'] == ['normal', 'continue'], during
+            assert during['completed'] == [] and during['saving'], during
+            assert [reply['mes'] for reply in during['replies']] == [expected_text], during
+            # Native isChatSaving serializes the continuation save; release the
+            # first response before waiting for either GENERATION_COMPLETED.
+            release_save()
+            page.wait_for_function("""window.__affinitySaveGapContinue.completed.length===2
+                && !window.__affinityMain.isGenerating() && !window.__affinityMain.isChatSaving""", timeout=30000)
+            after = observation['afterBothComplete'] = snapshot()
+            assert after['completed'] == ['normal', 'continue'], after
+            assert [reply['mes'] for reply in after['replies']] == [expected_text], after
+            receipts = [(reply.get('marker') or {}).get('receipt', 0) for reply in after['replies']]
+            assert after['ledger']['issued'] == 1 and receipts == [1], after
+            assert after['replies'][0]['marker'].get('id'), after
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                disk = read_disk()
+                disk_ledger = disk[0].get('chat_metadata', {}).get('director', {}).get('__affinity', {}) if disk else {}
+                disk_replies = [message for message in disk if str(message.get('mes', '')).startswith('AFF_REPLY_')]
+                disk_receipts = [(message.get('extra', {}).get('__affinity') or {}).get('receipt', 0) for message in disk_replies]
+                if disk_ledger.get('issued') == 1 and disk_receipts == [1]:
+                    break
+                page.wait_for_timeout(50)
+            observation['persisted'] = {'issued': disk_ledger.get('issued'), 'receipts': disk_receipts,
+                'texts': [message['mes'] for message in disk_replies]}
+            assert observation['persisted'] == {'issued': 1, 'receipts': [1], 'texts': [expected_text]}, observation
+            result['checks']['affinityNativeStreamSaveGapContinueKeepsOneLogicalReceipt'] = True
+        finally:
+            page.unroute('**/api/chats/save', hold_save)
+            release_save()
+            page.evaluate("""()=>{
+                const c=SillyTavern.getContext();
+                for(const [event,listener] of window.__affinitySaveGapContinue.listeners)c.eventSource.removeListener(event,listener);
+            }""")
+
     try:
         cases = {'cadence': cadence, 'persistence': persistence_and_edit, 'overlap': overlap, 'budget': budget,
             'reloadRace': reload_race, 'majorAndMobile': major_and_ui, 'sidecarBudget': sidecar_budget,
-            'cancellation': cancellation_and_failures, 'group': group_freeze}
+            'cancellation': cancellation_and_failures, 'group': group_freeze, 'saveGap': save_gap,
+            'saveGapContinue': save_gap_continue}
         for name in selection:
             print('Affinity browser ' + name + ' starting', flush=True)
             try:

@@ -1,10 +1,11 @@
 import { Popper } from '../../../lib.js';
-import { activateSendButtons, createRawPrompt, deactivateSendButtons, doNavbarIconClick, getMaxContextTokens, getMaxPromptTokens, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
+import { activateSendButtons, createRawPrompt, deactivateSendButtons, doNavbarIconClick, getGeneratingApi, getGeneratingModel, getMaxContextTokens, getMaxPromptTokens, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { hasPendingFileAttachment } from '../../chats.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
-import { countTokensOpenAIAsync } from '../../tokenizers.js';
+import { countTokensOpenAIAsync, getTokenizerBestMatch } from '../../tokenizers.js';
+import { getTextGenModel } from '../../textgen-settings.js';
 import { SlashCommand } from '../../slash-commands/SlashCommand.js';
 import { ARGUMENT_TYPE, SlashCommandArgument } from '../../slash-commands/SlashCommandArgument.js';
 import { SlashCommandEnumValue } from '../../slash-commands/SlashCommandEnumValue.js';
@@ -55,6 +56,11 @@ let popover;
 let popper;
 let instructChip;
 let fatePanel;
+let affinityDiagnostics = { total: 0, counts: {} };
+/** Aggregate sidecar failures only; contains no chat or model response data. */
+export function getAffinityDiagnostics() {
+    return structuredClone(affinityDiagnostics);
+}
 let executing = false;
 let chatRevision = 0;
 /** One regenerate's pre-interceptor delete. Not a sticky boolean. */
@@ -607,11 +613,21 @@ export async function init() {
         return textTokens + schemaTokens + 64;
     };
     const affinityOutputLimit = () => affinityOutputTokenLimit(getMaxContextTokens());
+    const affinityIdentity = () => {
+        const active = getContext();
+        return JSON.stringify([active.mainApi, getGeneratingApi(), getGeneratingModel(),
+            active.mainApi === 'textgenerationwebui' ? getTextGenModel() : null,
+            active.powerUserSettings?.tokenizer, active.mainApi === 'openai' ? active.getTokenizerModel() : getTokenizerBestMatch(active.mainApi),
+            active.mainApi === 'openai' ? active.chatCompletionSettings?.custom_url : active.getTextGenServer?.(),
+            active.powerUserSettings?.instruct, getMaxContextTokens(), affinityOutputLimit()]);
+    };
     const affinityBudget = signal => ({
-        maxTokens: () => getMaxPromptTokens(affinityOutputLimit()), countTokens: countAffinityPromptTokens, signal,
+        maxTokens: () => getMaxPromptTokens(affinityOutputLimit()), countTokens: countAffinityPromptTokens, signal, getIdentity: affinityIdentity,
     });
     const affinity = createAffinityController(getContext, {
         isGenerating, uuid: uuidv4,
+        requestIdentity: affinityIdentity,
+        onDiagnostic: snapshot => { affinityDiagnostics = { total: snapshot.total, counts: { ...snapshot.counts } }; },
         maxOutputTokens: affinityOutputLimit,
         fitPrompt: (render, refs, state, owners, signal) => fitAffinityPrompt(
             (shown, memory) => render(shown, memory, owners), { refs, state },
@@ -619,6 +635,7 @@ export async function init() {
         ),
         fitVerificationPrompt: (render, candidates, signal) => fitAffinityVerificationPrompts(render, candidates, affinityBudget(signal)),
     });
+    affinityDiagnostics = affinity.getDiagnostics();
     let fateMarks;
     const fate = createFateController(getContext, {
         isGenerating, hasDraft, setSendButtonState, deactivateSendButtons, activateSendButtons, uuid:uuidv4, random:Math.random,

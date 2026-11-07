@@ -3,7 +3,8 @@ import test, { after } from 'node:test';
 import { EventEmitter } from '../public/lib/eventemitter.js';
 import { event_types as eventTypes } from '../public/scripts/events.js';
 import { AFFINITY_PROMPT_KEY, createAffinityController, affinityOwners } from '../public/scripts/extensions/director/affinity.js';
-import { affinityScores } from '../public/scripts/extensions/director/affinity-state.js';
+import { affinityScores, applyAffinityEvaluation, createAffinityState } from '../public/scripts/extensions/director/affinity-state.js';
+import { messageFingerprint } from '../public/scripts/extensions/director/instruct.js';
 
 globalThis.localStorage = { getItem: () => null };
 const originalDebug = console.debug;
@@ -868,12 +869,12 @@ for (const type of ['quiet', 'impersonate']) {
     });
 }
 
-test('unknown and legacy memory frames fail closed without leaving their private body', async () => {
+test('unknown complete memory frames fail closed while ordinary legacy-looking text stays literal', async () => {
     const lab = fixture();
     const unknown = '\uE010directoraffinity999xunknown\uE011PRIVATE_UNKNOWN_BODY\uE012directoraffinity999xunknown\uE013';
     const data = { prompt: unknown + ' / AFFINITY_LITERAL_old_marker_END', negative_prompt: unknown };
     await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
-    assert.equal(data.prompt, ' / ');
+    assert.equal(data.prompt, ' / AFFINITY_LITERAL_old_marker_END');
     assert.equal(data.negative_prompt, '');
 });
 
@@ -1211,4 +1212,442 @@ test('a temporarily unavailable single-chat character project retains frozen his
     await lab.emit('MESSAGE_EDITED', lab.context.chat.length - 1);
     await lab.controller.settle();
     assert.equal(lab.state().events.length, 0);
+});
+
+for (const nextType of ['normal', 'continue']) {
+    test(`cross-review: a finalized stream waiting for save keeps its receipt when ${nextType} starts`, async () => {
+        const lab = fixture({ interval: 5 });
+        await settleMany(lab, 3);
+        const first = await lab.begin();
+        const firstMessage = await lab.receive({ text: 'A finished stream awaiting its native save.' });
+        await lab.end(); // Native streaming unlocks before saveChatConditional/COMPLETED.
+        const next = await lab.begin(nextType);
+        await lab.emit('GENERATION_COMPLETED', first);
+        assert.equal(lab.marker(firstMessage).receipt, 4, 'the exact old successful request still owns its reply');
+        if (nextType === 'continue') firstMessage.mes += ' A continued tail.';
+        const nextMessage = await lab.receive(nextType === 'continue'
+            ? { type: nextType, message: firstMessage } : { text: 'The next successful ordinary reply.' });
+        await lab.end();
+        await lab.emit('GENERATION_COMPLETED', next);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, nextType === 'normal' ? 5 : 4);
+        assert.equal(lab.marker(nextMessage).receipt, nextType === 'normal' ? 5 : 4);
+        assert.equal(lab.calls.length, nextType === 'normal' ? 1 : 0);
+    });
+}
+
+test('cross-review: a late previous stream callback cannot become the next normal request reply', async () => {
+    const lab = fixture({ interval: 5 });
+    await settleMany(lab, 3);
+    const first = await lab.begin();
+    const oldMessage = { is_user: false, name: '相同名字', mes: 'The previous stream placeholder.', extra: {} };
+    lab.context.chat.push(oldMessage);
+    lab.finalize(oldMessage);
+    await lab.end();
+    const next = await lab.begin();
+    await lab.receive({ message: oldMessage });
+    const nextMessage = await lab.receive({ text: 'The actual next request response.' });
+    await lab.end();
+    await lab.emit('GENERATION_COMPLETED', next);
+    await lab.emit('GENERATION_COMPLETED', first);
+    await lab.controller.settle();
+    assert.equal(lab.marker(oldMessage).receipt, 0);
+    assert.equal(lab.marker(nextMessage).receipt, 4);
+    assert.equal(lab.state().issued, 4);
+    assert.equal(lab.calls.length, 0);
+});
+
+for (const boundary of ['GENERATION_STOPPED', 'CHAT_CHANGED']) {
+    test(`cross-review: ${boundary} still rejects a retained old successful completion`, async () => {
+        const lab = fixture();
+        const first = await lab.begin();
+        const message = await lab.receive();
+        await lab.end();
+        if (boundary === 'GENERATION_STOPPED') {
+            await lab.emit(boundary, lab.context.chatId);
+            await lab.begin();
+        } else {
+            await lab.begin();
+            await lab.emit(boundary, lab.context.chatId);
+        }
+        await lab.emit('GENERATION_COMPLETED', first);
+        lab.generating = false;
+        await lab.controller.settle();
+        assert.equal(lab.marker(message).receipt, 0);
+        assert.equal(lab.state().issued, 0);
+    });
+}
+
+test('cross-review: stopping the new request cannot revoke the finalized previous request', async () => {
+    const lab = fixture();
+    const first = await lab.begin();
+    const message = await lab.receive();
+    await lab.end();
+    await lab.begin();
+    await lab.emit('GENERATION_STOPPED');
+    await lab.emit('GENERATION_COMPLETED', first);
+    lab.generating = false;
+    await lab.controller.settle();
+    assert.equal(lab.marker(message).receipt, 1);
+    assert.equal(lab.state().issued, 1);
+});
+
+test('cross-review: ordinary affinity-like literals survive while unknown complete frames are scrubbed', async () => {
+    const lab = fixture();
+    const literal = 'directoraffinity123xnormal AFFINITY_LITERAL_user_text_END directoraffinity';
+    const frame = '\uE010directoraffinity999xunknown\uE011PRIVATE_UNKNOWN_BODY\uE012directoraffinity999xunknown\uE013';
+    const incomplete = '\uE010directoraffinity77xincomplete\uE011literal without a closing frame';
+    const data = { prompt: `${literal} | ${frame} | ${incomplete}`, messages: [{ content: literal }] };
+    await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
+    assert.equal(data.prompt, `${literal} |  | ${incomplete}`);
+    assert.equal(data.messages[0].content, literal);
+});
+
+function seededHistory(amount) {
+    let ledger = createAffinityState('cross-review-scope');
+    ledger.issued = ledger.cursor = amount;
+    const chat = Array.from({ length: amount }, (_, index) => {
+        const marker = { version: 1, scope: ledger.id, id: `history-${index}`, receipt: index + 1 };
+        return { is_user: false, name: '相同名字', mes: `Independent literal evidence ${index}.`, extra: { __affinity: marker },
+            swipe_id: 0, swipes: [`Independent literal evidence ${index}.`], swipe_info: [{ extra: { __affinity: structuredClone(marker) } }] };
+    });
+    const refs = chat.map((message, index) => ({ slot: message.extra.__affinity.id, index, swipe: 0, owner: 'a.png',
+        fingerprint: messageFingerprint({ ...message, name: 'a.png' }), text: message.mes }));
+    for (let offset = 0; offset < amount; offset += 24) {
+        ledger = applyAffinityEvaluation(ledger, chat.slice(offset, offset + 24).map(message => factFor(message)), refs, [{ id: 'a.png' }]);
+    }
+    return { ledger, chat, refs };
+}
+
+function priorIn(prompt) {
+    return JSON.parse(prompt.split('已有记忆（避免重复；只有新结果可回指承诺）：')[1].split('\n消息：')[0]);
+}
+
+test('cross-review: archived placement cannot replace the most recent forty prior facts', async () => {
+    const { ledger, chat } = seededHistory(180);
+    assert.ok(ledger.archives.length > 0);
+    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: ledger } } } });
+    await settleMany(lab, 5);
+    const prior = priorIn(lab.calls[0][0].quietPrompt);
+    assert.equal(prior.length, 40);
+    assert.deepEqual(prior.map(event => event.source.slot), Array.from({ length: 40 }, (_, index) => `history-${140 + index}`));
+});
+
+test('cross-review: prior outcomes expose their already consumed acknowledgement verbatim', async () => {
+    const { ledger, chat, refs } = seededHistory(3);
+    const promise = { ...factFor(chat[0]), kind: 'promise', actor: 'user', recipient: 'character', status: 'agreed' };
+    chat[0].is_user = true;
+    refs[0].owner = 'player';
+    refs[0].fingerprint = messageFingerprint({ ...chat[0], name: 'player' });
+    let state = applyAffinityEvaluation({ ...ledger, events: [], archives: [] }, [promise], refs, [{ id: 'a.png' }]);
+    const anchor = state.events[0];
+    const outcome = { ...promise, kind: 'outcome', status: 'completed', valence: 'positive', attitudeExplicit: true,
+        anchorId: anchor.id, result: { slot: refs[1].slot, quote: refs[1].text }, acknowledgement: { slot: refs[2].slot, quote: refs[2].text } };
+    state = applyAffinityEvaluation(state, [outcome], refs, [{ id: 'a.png' }]);
+    assert.equal(state.events.length, 2);
+    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: state } } } });
+    await settleMany(lab, 5);
+    const prior = priorIn(lab.calls[0][0].quietPrompt);
+    const shown = prior.find(event => event.kind === 'outcome');
+    assert.deepEqual(shown.acknowledgement, outcome.acknowledgement);
+    assert.equal(prior.filter(event => event.id === anchor.id).length, 1);
+});
+
+for (const failure of ['extraction_failed', 'parse_envelope', 'parse_unsafe', 'parse_schema', 'persistence_failed', 'budget_failed', 'verification_failed']) {
+    test(`cross-review: ${failure} has a private local counter and cannot expose evidence`, async () => {
+        const diagnosticEvents = [];
+        const privateText = 'PRIVATE_RESPONSE_SECRET_CHAT_TEXT';
+        const lab = fixture({ interval: 5, controllerOptions: { onDiagnostic: event => { diagnosticEvents.push(event); throw new Error(privateText); },
+            ...(failure === 'budget_failed' ? { fitPrompt: async () => { throw new Error(privateText); } } : {}) }, reply: ({ context, args }) => {
+            if (failure === 'extraction_failed') throw new Error(privateText);
+            if (failure === 'parse_envelope') return privateText;
+            if (failure === 'parse_unsafe') return '{"events":[{"constructor":{"privateText":"PRIVATE_RESPONSE_SECRET_CHAT_TEXT"}}]}';
+            if (failure === 'parse_schema') return JSON.stringify({ events: [{ privateText }] });
+            if (failure === 'verification_failed') {
+                if (args[0].jsonSchema.name === 'relationship_verification') return JSON.stringify({ confirmed: [privateText] });
+                return JSON.stringify({ events: [{ ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true }] });
+            }
+            return '{"events":[]}';
+        } });
+        if (failure === 'persistence_failed') lab.context.saveChat = async () => false;
+        await settleMany(lab, 5);
+        assert.equal(typeof lab.controller.getDiagnostics, 'function');
+        const diagnostics = lab.controller.getDiagnostics();
+        assert.ok(diagnostics.counts[failure] > 0);
+        assert.ok(diagnostics.total > 0);
+        assert.ok(diagnosticEvents.some(event => event.category === failure));
+        assert.ok(!JSON.stringify({ diagnostics, diagnosticEvents }).includes(privateText));
+        for (const event of diagnosticEvents) {
+            assert.deepEqual(Object.keys(event).sort(), ['category', 'count', 'counts', 'total']);
+            event.counts[failure] = 99999;
+        }
+        diagnostics.counts[failure] = 99999;
+        assert.notEqual(lab.controller.getDiagnostics().counts[failure], 99999);
+        const before = lab.calls.length;
+        await lab.controller.settle();
+        assert.equal(lab.calls.length, before, 'diagnosis does not retry a failed batch');
+    });
+}
+
+test('cross-review: each major verifier batch validates its current budget before dispatch', async () => {
+    let validation = 0;
+    const lab = fixture({ interval: 5, controllerOptions: { fitVerificationPrompt: async (render, candidates) => [
+        { candidates, prompt: render(candidates), validate: async () => ++validation === 1 },
+        { candidates, prompt: render(candidates), validate: async () => ++validation === 1 },
+    ] }, reply: ({ context, args }) => {
+        if (args[0].jsonSchema.name === 'relationship_verification') return '{"confirmed":[]}';
+        return JSON.stringify({ events: [{ ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true }] });
+    } });
+    await settleMany(lab, 5);
+    assert.equal(validation, 2);
+    assert.equal(lab.calls.length, 2, 'the second, newly oversized verifier request is not dispatched');
+    assert.equal(lab.controller.getDiagnostics().counts.budget_failed, 1);
+});
+
+test('cross-review: an omitted oversized verifier candidate has a budget diagnostic', async () => {
+    const lab = fixture({ interval: 5, controllerOptions: { fitVerificationPrompt: async () => [] }, reply: ({ context }) =>
+        JSON.stringify({ events: [{ ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true }] }) });
+    await settleMany(lab, 5);
+    assert.equal(lab.calls.length, 1);
+    assert.equal(lab.controller.getDiagnostics().counts.budget_failed, 1);
+    assert.equal(affinityScores(lab.state())['a.png'] ?? 0, 0);
+});
+
+test('cross-review: cancellation during verifier budget validation neither dispatches nor diagnoses a failure', async () => {
+    const gate = deferred();
+    let validating = false;
+    const lab = fixture({ interval: 5, controllerOptions: { fitVerificationPrompt: async (render, candidates) => [{
+        candidates, prompt: render(candidates), validate: async () => { validating = true; return gate.promise; },
+    }] }, reply: ({ context }) => JSON.stringify({ events: [{ ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true }] }) });
+    await generateMany(lab, 5);
+    await until(() => validating, 'budget validation starts');
+    await lab.begin();
+    gate.resolve(false);
+    await lab.emit('GENERATION_STOPPED');
+    lab.generating = false;
+    await lab.controller.settle();
+    assert.equal(lab.calls.length, 1);
+    assert.equal(lab.controller.getDiagnostics().total, 0);
+});
+
+for (const order of ['normal-first', 'continue-first']) {
+    test(`cross-review lineage: a continued finished stream owns one receipt after either save order (${order})`, async () => {
+        const lab = fixture();
+        const original = await lab.begin();
+        const message = await lab.receive({ text: 'The original completed reply.' });
+        await lab.end();
+        const continuation = await lab.begin('continue');
+        message.mes += ' A successful continued tail.';
+        await lab.receive({ type: 'continue', message });
+        await lab.end();
+        for (const completion of order === 'normal-first' ? [original, continuation] : [continuation, original]) {
+            await lab.emit('GENERATION_COMPLETED', completion);
+        }
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 1);
+        assert.equal(lab.marker(message).receipt, 1);
+        await lab.emit('GENERATION_COMPLETED', original);
+        await lab.emit('GENERATION_COMPLETED', continuation);
+        assert.equal(lab.state().issued, 1, 'duplicate callbacks do not add another receipt');
+    });
+}
+
+test('cross-review lineage: a stopped partial continuation preserves its later-confirmed original reply', async () => {
+    const lab = fixture();
+    const original = await lab.begin();
+    const message = await lab.receive({ text: 'A complete original reply.' });
+    await lab.end();
+    const continuation = await lab.begin('continue');
+    message.mes += ' An unfinished appended tail';
+    lab.finalize(message);
+    await lab.emit('GENERATION_STOPPED');
+    await lab.end();
+    await lab.emit('GENERATION_COMPLETED', original);
+    await lab.emit('GENERATION_COMPLETED', continuation);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 1);
+    assert.equal(lab.marker(message).receipt, 1);
+});
+
+test('cross-review lineage: original completion during a continuation reasoning await survives its later stop', async () => {
+    const lab = fixture();
+    const original = await lab.begin();
+    const message = await lab.receive({ text: 'A complete original reply.' });
+    await lab.end();
+    await lab.begin('continue');
+    // Native progress writes mes before awaiting reasoning, then syncs the swipe.
+    message.mes += ' An unfinished appended tail';
+    assert.notEqual(message.mes, message.swipes[message.swipe_id]);
+    await lab.emit('GENERATION_COMPLETED', original);
+    assert.equal(lab.state().issued, 0, 'an unfinished swipe cannot mint a receipt');
+    lab.finalize(message);
+    await lab.emit('GENERATION_STOPPED');
+    await lab.end();
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 1, 'the successful original retains its receipt authority');
+    assert.equal(lab.marker(message).receipt, 1);
+    await lab.emit('GENERATION_COMPLETED', original);
+    await lab.end();
+    assert.equal(lab.state().issued, 1, 'repeated completion and end callbacks cannot add a receipt');
+});
+
+test('cross-review lineage: stopping during reasoning retains the confirmed original until late swipe finalization', async () => {
+    const lab = fixture();
+    const original = await lab.begin();
+    const message = await lab.receive({ text: 'A complete original reply.' });
+    await lab.end();
+    await lab.begin('continue');
+    message.mes += ' An unfinished appended tail';
+    await lab.emit('GENERATION_COMPLETED', original);
+    // Native stopGeneration unlocks first, while progress can still await reasoning.
+    await lab.end();
+    await lab.emit('GENERATION_STOPPED');
+    assert.equal(lab.state().issued, 0);
+    // Aborted native onFinishStreaming still syncs its swipe and emits RECEIVED.
+    lab.finalize(message);
+    await lab.emit('MESSAGE_RECEIVED', lab.context.chat.indexOf(message), 'continue');
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 1);
+    assert.equal(lab.marker(message).receipt, 1);
+});
+
+for (const boundary of ['MESSAGE_EDITED', 'owner', 'marker', 'nonappend', 'disable-enable', 'CHAT_CHANGED']) {
+    test(`cross-review lineage: ${boundary} rejects an original completion deferred during continuation progress`, async () => {
+        const lab = fixture({ group: boundary === 'owner' });
+        const original = await lab.begin();
+        const message = await lab.receive({ text: 'A complete original reply.' });
+        await lab.end();
+        await lab.begin('continue');
+        message.mes += ' An unfinished appended tail';
+        await lab.emit('GENERATION_COMPLETED', original);
+        if (boundary === 'MESSAGE_EDITED') await lab.emit(boundary, lab.context.chat.length - 1);
+        if (boundary === 'owner') message.original_avatar = 'b.png';
+        if (boundary === 'marker') message.extra.__affinity.id = 'changed-deferred-slot';
+        if (boundary === 'nonappend') message.mes = 'An unrelated replacement.';
+        if (boundary === 'disable-enable') {
+            lab.context.extensionSettings.director.affinity.enabled = false;
+            await lab.emit('SETTINGS_UPDATED');
+            lab.context.extensionSettings.director.affinity.enabled = true;
+            await lab.emit('SETTINGS_UPDATED');
+        }
+        lab.finalize(message);
+        if (boundary === 'CHAT_CHANGED') await lab.switchChat();
+        await lab.emit('GENERATION_STOPPED');
+        await lab.end();
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 0);
+        assert.equal(lab.marker(message).receipt, 0);
+    });
+}
+
+test('cross-review lineage: two continuations retain the same pending original logical receipt', async () => {
+    const lab = fixture();
+    const original = await lab.begin();
+    const message = await lab.receive({ text: 'A finished original reply.' });
+    await lab.end();
+    const continuations = [];
+    for (let index = 0; index < 2; index++) {
+        continuations.push(await lab.begin('continue'));
+        message.mes += ` Continued segment ${index}.`;
+        await lab.receive({ type: 'continue', message });
+        await lab.end();
+    }
+    for (const completion of [...continuations.reverse(), original]) await lab.emit('GENERATION_COMPLETED', completion);
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 1);
+    assert.equal(lab.marker(message).receipt, 1);
+});
+
+for (const mutation of ['MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_SWIPED', 'replacement', 'owner', 'marker', 'nonappend', 'unregistered']) {
+    test(`cross-review lineage: a changed ${mutation} cannot inherit a pending original receipt`, async () => {
+        const lab = fixture({ group: mutation === 'owner' });
+        const original = await lab.begin();
+        let message = await lab.receive({ text: 'A completed original reply.', avatar: 'a.png' });
+        await lab.end();
+        let continuation;
+        if (mutation === 'unregistered') {
+            await lab.emit('GENERATION_STARTED', 'continue', {}, false);
+        } else continuation = await lab.begin('continue');
+        message.mes += ' An appended tail.';
+        if (mutation === 'nonappend') message.mes = 'Unrelated replacement text.';
+        if (mutation === 'owner') message.original_avatar = 'b.png';
+        if (mutation === 'marker') message.extra.__affinity.id = 'different-logical-slot';
+        if (mutation === 'replacement') {
+            message = structuredClone(message);
+            lab.context.chat[lab.context.chat.length - 1] = message;
+        }
+        await lab.receive({ type: 'continue', message, avatar: message.original_avatar ?? 'a.png' });
+        if (mutation.startsWith('MESSAGE_')) await lab.emit(mutation, lab.context.chat.length - 1);
+        await lab.end();
+        await lab.emit('GENERATION_COMPLETED', original);
+        if (continuation) await lab.emit('GENERATION_COMPLETED', continuation);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 0);
+        assert.equal(lab.marker(message).receipt, 0);
+    });
+}
+
+for (const origin of ['stopped', 'historical']) {
+    test(`cross-review lineage: a continuation cannot authorize a ${origin} original reply`, async () => {
+        const lab = fixture();
+        let original;
+        let message;
+        if (origin === 'stopped') {
+            original = await lab.begin();
+            message = await lab.receive({ text: 'An original whose request was stopped.' });
+            await lab.emit('GENERATION_STOPPED');
+            await lab.end();
+        } else {
+            message = { is_user: false, name: '相同名字', mes: 'An ungenerated historical reply.', extra: {} };
+            lab.context.chat.push(message);
+            lab.finalize(message);
+        }
+        const continuation = await lab.begin('continue');
+        message.mes += ' A successful continued tail.';
+        await lab.receive({ type: 'continue', message });
+        await lab.end();
+        await lab.emit('GENERATION_COMPLETED', continuation);
+        if (original) await lab.emit('GENERATION_COMPLETED', original);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 0);
+        assert.equal(lab.marker(message).receipt, 0);
+    });
+}
+
+for (const boundary of ['owner', 'disable-enable']) {
+    test(`cross-review lineage: ${boundary} cannot reauthorize an old completed request`, async () => {
+        const lab = fixture();
+        const original = await lab.begin();
+        const message = await lab.receive();
+        await lab.end();
+        if (boundary === 'owner') lab.context.characters[0].avatar = 'b.png';
+        else lab.context.extensionSettings.director.affinity.enabled = false;
+        await lab.emit('SETTINGS_UPDATED');
+        if (boundary === 'disable-enable') {
+            lab.context.extensionSettings.director.affinity.enabled = true;
+            await lab.emit('SETTINGS_UPDATED');
+        }
+        await lab.emit('GENERATION_COMPLETED', original);
+        await lab.controller.settle();
+        assert.equal(lab.state().issued, 0);
+        assert.equal(lab.marker(message).receipt, 0);
+    });
+}
+
+test('cross-review lineage: a changed provider identity rejects an awaited evaluator without diagnosis', async () => {
+    let identity = 'provider-model-one';
+    const gate = deferred();
+    let proposal;
+    const lab = fixture({ interval: 5, controllerOptions: { requestIdentity: () => identity }, reply: ({ context }) => {
+        proposal = { ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true };
+        return gate.promise;
+    } });
+    await generateMany(lab, 5);
+    await until(() => lab.calls.length === 1, 'extraction starts');
+    identity = 'provider-model-two';
+    gate.resolve(JSON.stringify({ events: [proposal] }));
+    await lab.controller.settle();
+    assert.equal(lab.calls.length, 1, 'the old provider result cannot launch a verifier');
+    assert.equal(lab.state().events.length, 0);
+    assert.equal(lab.controller.getDiagnostics().total, 0);
 });

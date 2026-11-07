@@ -1053,3 +1053,28 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
         transition: none;
     }
 }
+
+.director_settings_help {
+    margin: 6px 0;
+    padding: 6px 10px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+}
+
+.director_settings_help summary {
+    cursor: pointer;
+    font-size: 0.9em;
+    opacity: 0.75;
+    user-select: none;
+}
+
+.director_settings_help[open] summary {
+    margin-bottom: 8px;
+    opacity: 1;
+}
+
+.director_settings_help p,
+.director_settings_help small {
+    margin: 6px 0;
+    line-height: 1.6;
+}

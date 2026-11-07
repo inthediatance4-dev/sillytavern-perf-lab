@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
     AFFINITY_KEY, createAffinityState, parseAffinityResponse, candidateKey,
     applyAffinityEvaluation, reconcileAffinity, affinityScores, buildAffinityMemory,
-} from '../public/scripts/extensions/director/affinity-state.js';
+} from '../public/scripts/extensions/affinity/affinity-state.js';
 
 const owners = [{ id: 'a.png', name: '甲' }, { id: 'b.png', name: '乙' }];
 const ref = (index, text, fields = {}) => ({

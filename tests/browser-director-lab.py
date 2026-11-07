@@ -1149,6 +1149,7 @@ def finish_report(result, errors, requests, browser, node, provider):
     result.update({'pass':True, 'pageErrors':errors, 'generationRequests':len(requests()), 'chromium':browser.version})
     source_paths = sorted([
         *(ROOT / 'public' / 'scripts' / 'extensions' / 'director').glob('*'),
+        *(ROOT / 'public' / 'scripts' / 'extensions' / 'affinity').glob('*'),
         ROOT / 'public' / 'script.js', ROOT / 'public' / 'scripts' / 'events.js',
         ROOT / 'public' / 'scripts' / 'group-chats.js', ROOT / 'tests' / 'browser_fate_cases.py',
         ROOT / 'tests' / 'browser_fate_review_cases.py',
@@ -1215,8 +1216,7 @@ def run(args, temporary):
             // Old feature regressions retain their exact request-count contract.
             // The affinity mode exercises the actual unseeded enabled/10 default.
             if (affinity === 'off') {
-                settings.extension_settings.director ??= {};
-                settings.extension_settings.director.affinity = { enabled: false, interval: 10 };
+                settings.extension_settings.affinity = { enabled: false, interval: 10 };
             }
             await fs.mkdir(path.join(lab.dataRoot,'default-user'),{ recursive:true });
             await fs.writeFile(path.join(lab.dataRoot,'default-user','settings.json'),JSON.stringify(settings));
@@ -1320,7 +1320,7 @@ def run(args, temporary):
                 page.locator('#directorButton').wait_for(state='visible')
                 result['affinityIsolation'] = {
                     'mode':'native-default' if args.affinity_only else 'disabled-for-other-feature-regressions',
-                    'runtimeSettings':page.evaluate("structuredClone(SillyTavern.getContext().extensionSettings.director.affinity)")}
+                    'runtimeSettings':page.evaluate("structuredClone(SillyTavern.getContext().extensionSettings.affinity)")}
                 assert result['affinityIsolation']['runtimeSettings']['enabled'] is bool(args.affinity_only), result['affinityIsolation']
                 result['thirdPartyRuntime'] = {
                     'loadedEntrypoints':sorted(path for path in loaded_scripts if path.endswith(('/dist/index.js','st-memory-enhancement/index.js'))),

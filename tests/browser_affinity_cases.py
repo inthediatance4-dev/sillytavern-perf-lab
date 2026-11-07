@@ -29,7 +29,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
     state = {'serial': 0, 'mode': 'fact', 'hold': False, 'holdStory': False, 'failStory': False,
         'held': [], 'heldStory': [], 'calls': [], 'saves': [], 'fixtureErrors': [], 'verify': True}
     literal = 'AFF_MEMORY_PRIVATE {{char}}: The character remembers the river promise.'
-    marker = re.compile(r'AFFINITY_LITERAL_|directoraffinity', re.IGNORECASE)
+    marker = re.compile(r'AFFINITY_LITERAL_|affinity', re.IGNORECASE)
 
     def configure(text, **extra):
         payload = {'reply': text, 'tokens': 8, 'rate': 10000, 'jitter': 0, **extra}
@@ -141,7 +141,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
     }""")
 
     def ledger():
-        return page.evaluate('structuredClone(SillyTavern.getContext().chatMetadata.director?.__affinity ?? {})')
+        return page.evaluate('structuredClone(SillyTavern.getContext().chatMetadata.affinity?.__affinity ?? {})')
 
     def idle():
         page.wait_for_function('!window.__affinityMain.isGenerating() && !window.__affinityMain.isChatSaving', timeout=30000)
@@ -151,8 +151,8 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
 
     def settings(enabled=True, interval=5):
         open_manager(page)
-        page.locator('#director_affinity_enabled').set_checked(enabled)
-        page.locator('#director_affinity_interval').select_option(str(interval))
+        page.locator('#affinity_enabled').set_checked(enabled)
+        page.locator('#affinity_interval').select_option(str(interval))
         close_settings()
 
     def reset(rows=None, interval=5):
@@ -194,7 +194,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
 
     def evaluated(receipt, events=1):
         page.wait_for_function("""({receipt,events})=>{
-            const value=SillyTavern.getContext().chatMetadata.director?.__affinity;
+            const value=SillyTavern.getContext().chatMetadata.affinity?.__affinity;
             return value?.issued===receipt && value.cursor===receipt && value.events.length>=events
                 && !window.__affinityMain.isChatSaving;
         }""", arg={'receipt': receipt, 'events': events}, timeout=30000)
@@ -214,7 +214,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:
             data = read_disk()
-            value = (data[0].get('chat_metadata', {}).get('director', {}).get('__affinity') or {}) if data else {}
+            value = (data[0].get('chat_metadata', {}).get('affinity', {}).get('__affinity') or {}) if data else {}
             if value.get('issued') == receipt and value.get('cursor') == receipt and len(value.get('events', [])) >= events:
                 return data
             page.wait_for_timeout(50)
@@ -229,8 +229,8 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
 
     def cadence():
         open_manager(page)
-        defaults = page.evaluate("""()=>({enabled:document.querySelector('#director_affinity_enabled').checked,
-            interval:document.querySelector('#director_affinity_interval').value})""")
+        defaults = page.evaluate("""()=>({enabled:document.querySelector('#affinity_enabled').checked,
+            interval:document.querySelector('#affinity_interval').value})""")
         close_settings()
         assert defaults == {'enabled': True, 'interval': '10'}, defaults
         reset(interval=10)
@@ -290,7 +290,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         row.locator('.mes_edit').click()
         row.locator('.edit_textarea').fill('AFF_EDITED_SOURCE: The original evidence is no longer present.')
         row.locator('.mes_edit_done').click()
-        page.wait_for_function('source=>!SillyTavern.getContext().chatMetadata.director.__affinity.events.some(e=>e.source.slot===source)', arg=source)
+        page.wait_for_function('source=>!SillyTavern.getContext().chatMetadata.affinity.__affinity.events.some(e=>e.source.slot===source)', arg=source)
         start = len(requests())
         send()
         assert literal not in serialized(requests()[start:])
@@ -311,23 +311,23 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         calls = state['calls'][before:]
         kinds = [call['kind'] for call in calls]
         score = page.evaluate("""async()=>{
-            const module=await import('/scripts/extensions/director/affinity-state.js');
-            const c=SillyTavern.getContext();return module.affinityScores(c.chatMetadata.director.__affinity)[c.characters[c.characterId].avatar];
+            const module=await import('/scripts/extensions/affinity/affinity-state.js');
+            const c=SillyTavern.getContext();return module.affinityScores(c.chatMetadata.affinity.__affinity)[c.characters[c.characterId].avatar];
         }""")
         assert kinds.count('relationship_evidence') == kinds.count('relationship_verification') == 1, kinds
         assert score == 5 and ledger()['events'][0]['verified'] is True, {'score': score, 'events': ledger()['events']}
         assert page.evaluate('offset=>window.__affinityBrowser.completed.slice(offset).map(item=>item.type)', completed) == ['normal'] * 5
         page.set_viewport_size({'width': 390, 'height': 844})
         open_manager(page)
-        enabled = page.locator('#director_affinity_enabled')
-        interval = page.locator('#director_affinity_interval')
+        enabled = page.locator('#affinity_enabled')
+        interval = page.locator('#affinity_interval')
         assert enabled.is_visible() and interval.is_visible()
         bounds = interval.evaluate("""node=>{
             const box=node.getBoundingClientRect();const holder=node.closest('.inline-drawer-content');
             return {left:box.left,right:box.right,width:box.width,viewport:innerWidth,overflow:holder.scrollWidth-holder.clientWidth};
         }""")
         assert bounds['width'] > 0 and bounds['left'] >= 0 and bounds['right'] <= 391 and bounds['overflow'] <= 1, bounds
-        text = page.locator('#director_settings').inner_text()
+        text = page.locator('#affinity_settings').inner_text()
         assert not re.search(r'分数|关系等级|好感度[：:]|score|level', text, re.IGNORECASE), text
         enabled.uncheck()
         interval.select_option('10')
@@ -336,7 +336,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
             stored = page.evaluate("""async()=>{
                 const r=await fetch('/api/settings/get',{method:'POST',headers:SillyTavern.getContext().getRequestHeaders(),body:'{}'});
                 if(!r.ok)throw new Error('Synthetic settings read failed');
-                return JSON.parse((await r.json()).settings).extension_settings.director.affinity;
+                return JSON.parse((await r.json()).settings).extension_settings.affinity;
             }""")
             if stored == {'enabled': False, 'interval': 10}:
                 break
@@ -508,7 +508,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         calls_before = len(state['calls'])
         for _ in range(3):
             send(2)
-        page.wait_for_function('SillyTavern.getContext().chatMetadata.director.__affinity.cursor===5')
+        page.wait_for_function('SillyTavern.getContext().chatMetadata.affinity.__affinity.cursor===5')
         value = ledger()
         assert value['issued'] == 6
         expected = set(fixture['members'])
@@ -710,7 +710,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
             assert held, 'Native reload did not reach the held chat load'
             page.wait_for_timeout(150)
             paused = page.evaluate("""()=>({length:SillyTavern.getContext().chat.length,
-                oldIssued:window.__affinityBrowser.oldMetadata?.director?.__affinity?.issued})""")
+                oldIssued:window.__affinityBrowser.oldMetadata?.affinity?.__affinity?.issued})""")
             empty_saves = [item for item in state['saves'][saves_before:] if item['messages'] <= 1]
             audit['reloadRace'] = {'paused': paused, 'emptySaves': empty_saves}
             assert not empty_saves, audit['reloadRace']
@@ -787,7 +787,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
                     const c=SillyTavern.getContext(),s=window.__affinitySaveGap;
                     return {events:structuredClone(s.events),started:s.started,received:s.received,completed:s.completed,
                         isSendPress:window.__affinityMain.is_send_press,generating:window.__affinityMain.isGenerating(),
-                        saving:window.__affinityMain.isChatSaving,ledger:structuredClone(c.chatMetadata.director?.__affinity),
+                        saving:window.__affinityMain.isChatSaving,ledger:structuredClone(c.chatMetadata.affinity?.__affinity),
                         replies:c.chat.filter(m=>m.mes.startsWith('AFF_REPLY_')).map(m=>({mes:m.mes,marker:m.extra?.__affinity})),
                         textarea:document.querySelector('#send_textarea').value,
                         sendVisible:!!document.querySelector('#send_but').getClientRects().length};
@@ -834,7 +834,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
                 deadline = time.monotonic() + 15
                 while time.monotonic() < deadline:
                     disk = read_disk()
-                    disk_ledger = disk[0].get('chat_metadata', {}).get('director', {}).get('__affinity', {}) if disk else {}
+                    disk_ledger = disk[0].get('chat_metadata', {}).get('affinity', {}).get('__affinity', {}) if disk else {}
                     disk_replies = [message for message in disk if str(message.get('mes', '')).startswith('AFF_REPLY_')]
                     disk_receipts = [(message.get('extra', {}).get('__affinity') or {}).get('receipt', 0) for message in disk_replies]
                     if disk_ledger.get('issued') == 2 and sorted(disk_receipts) == [1, 2]:
@@ -904,7 +904,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
                 return {events:structuredClone(s.events),started:s.started.slice(),received:s.received.slice(),
                     completed:s.completed.slice(),isSendPress:window.__affinityMain.is_send_press,
                     generating:window.__affinityMain.isGenerating(),saving:window.__affinityMain.isChatSaving,
-                    ledger:structuredClone(c.chatMetadata.director?.__affinity),
+                    ledger:structuredClone(c.chatMetadata.affinity?.__affinity),
                     replies:c.chat.filter(m=>m.mes.startsWith('AFF_REPLY_')).map(m=>({mes:m.mes,marker:m.extra?.__affinity}))};
             }""")
 
@@ -941,7 +941,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
             deadline = time.monotonic() + 15
             while time.monotonic() < deadline:
                 disk = read_disk()
-                disk_ledger = disk[0].get('chat_metadata', {}).get('director', {}).get('__affinity', {}) if disk else {}
+                disk_ledger = disk[0].get('chat_metadata', {}).get('affinity', {}).get('__affinity', {}) if disk else {}
                 disk_replies = [message for message in disk if str(message.get('mes', '')).startswith('AFF_REPLY_')]
                 disk_receipts = [(message.get('extra', {}).get('__affinity') or {}).get('receipt', 0) for message in disk_replies]
                 if disk_ledger.get('issued') == 1 and disk_receipts == [1]:

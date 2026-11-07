@@ -1,11 +1,9 @@
 import { Popper } from '../../../lib.js';
-import { activateSendButtons, createRawPrompt, deactivateSendButtons, doNavbarIconClick, getGeneratingApi, getGeneratingModel, getMaxContextTokens, getMaxPromptTokens, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
+import { activateSendButtons, deactivateSendButtons, doNavbarIconClick, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { hasPendingFileAttachment } from '../../chats.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
-import { countTokensOpenAIAsync, getTokenizerBestMatch } from '../../tokenizers.js';
-import { getTextGenModel } from '../../textgen-settings.js';
 import { SlashCommand } from '../../slash-commands/SlashCommand.js';
 import { ARGUMENT_TYPE, SlashCommandArgument } from '../../slash-commands/SlashCommandArgument.js';
 import { SlashCommandEnumValue } from '../../slash-commands/SlashCommandEnumValue.js';
@@ -27,8 +25,6 @@ import { createFateController } from './fate.js';
 import { createFatePanel } from './fate-ui.js';
 import { createFateSound } from './fate-sound.js';
 import { createFateMarks } from './fate-marks.js';
-import { AFFINITY_SCHEMA, createAffinityController } from './affinity.js';
-import { affinityOutputTokenLimit, fitAffinityPrompt, fitAffinityVerificationPrompts } from './affinity-prompt-budget.js';
 import {
     activeInstruct,
     applyBoundReinject,
@@ -56,11 +52,6 @@ let popover;
 let popper;
 let instructChip;
 let fatePanel;
-let affinityDiagnostics = { total: 0, counts: {} };
-/** Aggregate sidecar failures only; contains no chat or model response data. */
-export function getAffinityDiagnostics() {
-    return structuredClone(affinityDiagnostics);
-}
 let executing = false;
 let chatRevision = 0;
 /** One regenerate's pre-interceptor delete. Not a sticky boolean. */
@@ -573,18 +564,6 @@ export async function init() {
         settings.version = 1;
         seeded = true;
     }
-    if (!settings.affinity || typeof settings.affinity !== 'object' || Array.isArray(settings.affinity)) {
-        settings.affinity = { enabled: true, interval: 10 };
-        seeded = true;
-    }
-    if (typeof settings.affinity.enabled !== 'boolean') {
-        settings.affinity.enabled = true;
-        seeded = true;
-    }
-    if (![5, 10].includes(settings.affinity.interval)) {
-        settings.affinity.interval = 10;
-        seeded = true;
-    }
     if (!settings.fate || typeof settings.fate !== 'object' || Array.isArray(settings.fate)) {
         settings.fate = { reveal: 'tap', sound: false, motion: 'system' };
         seeded = true;
@@ -601,41 +580,6 @@ export async function init() {
     }
     const context = getContext();
     const hasDraft = () => !!String(document.getElementById('send_textarea')?.value ?? '').trim() || hasPendingFileAttachment();
-    const countAffinityPromptTokens = async prompt => {
-        const current = getContext();
-        const formatted = createRawPrompt(prompt, current.mainApi, false, false, '', '', { literal: true });
-        const textTokens = Array.isArray(formatted)
-            ? await countTokensOpenAIAsync(formatted, true)
-            : await current.getTokenCountAsync(formatted, 0);
-        // Structured-output schemas also consume context on supported CC APIs.
-        const schemaTokens = current.mainApi === 'openai'
-            ? await current.getTokenCountAsync(JSON.stringify(AFFINITY_SCHEMA.value), 0) : 0;
-        return textTokens + schemaTokens + 64;
-    };
-    const affinityOutputLimit = () => affinityOutputTokenLimit(getMaxContextTokens());
-    const affinityIdentity = () => {
-        const active = getContext();
-        return JSON.stringify([active.mainApi, getGeneratingApi(), getGeneratingModel(),
-            active.mainApi === 'textgenerationwebui' ? getTextGenModel() : null,
-            active.powerUserSettings?.tokenizer, active.mainApi === 'openai' ? active.getTokenizerModel() : getTokenizerBestMatch(active.mainApi),
-            active.mainApi === 'openai' ? active.chatCompletionSettings?.custom_url : active.getTextGenServer?.(),
-            active.powerUserSettings?.instruct, getMaxContextTokens(), affinityOutputLimit()]);
-    };
-    const affinityBudget = signal => ({
-        maxTokens: () => getMaxPromptTokens(affinityOutputLimit()), countTokens: countAffinityPromptTokens, signal, getIdentity: affinityIdentity,
-    });
-    const affinity = createAffinityController(getContext, {
-        isGenerating, uuid: uuidv4,
-        requestIdentity: affinityIdentity,
-        onDiagnostic: snapshot => { affinityDiagnostics = { total: snapshot.total, counts: { ...snapshot.counts } }; },
-        maxOutputTokens: affinityOutputLimit,
-        fitPrompt: (render, refs, state, owners, signal) => fitAffinityPrompt(
-            (shown, memory) => render(shown, memory, owners), { refs, state },
-            affinityBudget(signal),
-        ),
-        fitVerificationPrompt: (render, candidates, signal) => fitAffinityVerificationPrompts(render, candidates, affinityBudget(signal)),
-    });
-    affinityDiagnostics = affinity.getDiagnostics();
     let fateMarks;
     const fate = createFateController(getContext, {
         isGenerating, hasDraft, setSendButtonState, deactivateSendButtons, activateSendButtons, uuid:uuidv4, random:Math.random,
@@ -684,7 +628,6 @@ export async function init() {
         clearBoundDeleteSkip();
         try {
             const current = getContext();
-            affinity.prepare(type, requestChat);
             // Quiet and impersonate must not send or consume a pending instruct,
             // and they must not copy boundInstruct back into the prompt.
             if (type === 'quiet' || type === 'impersonate') {
@@ -713,17 +656,6 @@ export async function init() {
     };
     if (seeded) context.saveSettingsDebounced();
     $('#extensions_settings').append(await renderExtensionTemplateAsync('director', 'settings'));
-    $('#director_affinity_enabled').prop('checked', settings.affinity.enabled).on('change', function () {
-        settings.affinity.enabled = this.checked;
-        affinity.refresh();
-        context.saveSettingsDebounced();
-    });
-    $('#director_affinity_interval').val(String(settings.affinity.interval)).on('change', function () {
-        settings.affinity.interval = Number($(this).val()) === 5 ? 5 : 10;
-        affinity.refresh();
-        context.saveSettingsDebounced();
-    });
-    affinity.refresh();
     $('#director_hotkey').val(settings.hotkey).on('input', function () {
         settings.hotkey = String($(this).val()).trim();
         context.saveSettingsDebounced();

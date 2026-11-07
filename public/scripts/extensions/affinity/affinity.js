@@ -1,11 +1,26 @@
-import { messageFingerprint } from './instruct.js';
 import {
     AFFINITY_KEY, createAffinityState, parseAffinityResponse, candidateKey, affinityScoreEligible,
     applyAffinityEvaluation, reconcileAffinity, buildAffinityMemory,
 } from './affinity-state.js';
 
-export const AFFINITY_PROMPT_KEY = 'director_affinity_memory';
-const MEMORY_FRAMES = /\uE010(directoraffinity[1-9]\d*x[a-zA-Z0-9]{1,12})\uE011[\s\S]*?\uE012\1\uE013/g;
+function fnv1a(text) {
+    let hash = 0x811c9dc5;
+    for (let index = 0; index < text.length; index++) {
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+export function messageFingerprint(message) {
+    const isUser = message && Object.prototype.hasOwnProperty.call(message, 'is_user') ? message.is_user : null;
+    const name = message && Object.prototype.hasOwnProperty.call(message, 'name') ? message.name : null;
+    const mes = message && Object.prototype.hasOwnProperty.call(message, 'mes') ? message.mes : null;
+    return fnv1a(JSON.stringify([isUser, name, mes]));
+}
+
+export const AFFINITY_PROMPT_KEY = 'affinity_memory';
+const MEMORY_FRAMES = /\uE010(affinity[1-9]\d*x[a-zA-Z0-9]{1,12})\uE011[\s\S]*?\uE012\1\uE013/g;
 const MEMORY_DELIMITERS = { '{': '\uE014', '}': '\uE015', '<': '\uE016', '>': '\uE017', '\r': '\uE018', '\n': '\uE019' };
 const TYPES = new Set(['normal', 'swipe', 'regenerate', 'continue', 'appendFinal']);
 const actors = ['character', 'user', 'other'];
@@ -136,9 +151,9 @@ export function createAffinityController(getContext, options = {}) {
     }
     const outputOptions = () => typeof options.maxOutputTokens === 'function'
         ? { maxOutputTokens: options.maxOutputTokens() } : {};
-    const settings = () => getContext().extensionSettings?.director?.affinity ?? {};
-    const enabled = () => !getContext().extensionSettings?.disabledExtensions?.includes('director')
-        && getContext().extensionSettings?.director?.enabled !== false && settings().enabled !== false;
+    const settings = () => getContext().extensionSettings?.affinity ?? {};
+    const enabled = () => !getContext().extensionSettings?.disabledExtensions?.includes('affinity')
+        && settings().enabled !== false;
     let previouslyEnabled = enabled();
     let activationRevision = 0;
     const syncActivation = () => {
@@ -166,9 +181,18 @@ export function createAffinityController(getContext, options = {}) {
     const state = () => {
         const context = getContext();
         if (!enabled() || !context.chatMetadata || !Array.isArray(context.chat) || !chatId(context)) return null;
-        const director = context.chatMetadata.director;
-        if (director !== undefined && !ownObject(director)) return null;
-        const value = director?.[AFFINITY_KEY];
+        const ns = context.chatMetadata.affinity;
+        if (ns !== undefined && !ownObject(ns)) return null;
+        let value = ns?.[AFFINITY_KEY];
+        if (value === undefined) {
+            const legacy = context.chatMetadata.director?.[AFFINITY_KEY];
+            if (legacy !== undefined) {
+                context.chatMetadata.affinity ??= {};
+                value = context.chatMetadata.affinity[AFFINITY_KEY] = legacy;
+                delete context.chatMetadata.director[AFFINITY_KEY];
+                dirty = true;
+            }
+        }
         if (value !== undefined) {
             return value?.version === 1 && typeof value.id === 'string' && Array.isArray(value.events)
                 && Array.isArray(value.archives) && Number.isSafeInteger(value.issued) && Number.isSafeInteger(value.cursor)
@@ -177,11 +201,11 @@ export function createAffinityController(getContext, options = {}) {
                     && typeof event.owner === 'string' && ownObject(event.source) && typeof event.source.slot === 'string')
                 ? value : null;
         }
-        context.chatMetadata.director ??= {};
+        context.chatMetadata.affinity ??= {};
         dirty = true;
-        return context.chatMetadata.director[AFFINITY_KEY] = createAffinityState(uuid());
+        return context.chatMetadata.affinity[AFFINITY_KEY] = createAffinityState(uuid());
     };
-    const put = value => { getContext().chatMetadata.director[AFFINITY_KEY] = value; dirty = true; };
+    const put = value => { getContext().chatMetadata.affinity[AFFINITY_KEY] = value; dirty = true; };
     const clearPrompt = () => {
         delete getContext().extensionPrompts?.[AFFINITY_PROMPT_KEY];
     };
@@ -209,7 +233,7 @@ export function createAffinityController(getContext, options = {}) {
     }
     function pendingMatches(entry, requireMarker = false) {
         const context = getContext();
-        const value = context.chatMetadata?.director?.[AFFINITY_KEY];
+        const value = context.chatMetadata?.affinity?.[AFFINITY_KEY];
         if (value?.id !== entry.marker.scope || receiptHost(context, value.id) !== entry.host) return false;
         const message = context.chat[entry.index];
         const owner = isGroup(context) ? groupMessageOwner(message, context) : context.characters?.[context.characterId]?.avatar;
@@ -235,7 +259,7 @@ export function createAffinityController(getContext, options = {}) {
     }
     function prunePendingReceipts() {
         const context = getContext();
-        const scope = context.chatMetadata?.director?.[AFFINITY_KEY]?.id;
+        const scope = context.chatMetadata?.affinity?.[AFFINITY_KEY]?.id;
         if (!scope) return;
         const host = receiptHost(context, scope);
         for (const [key, entry] of pendingReceipts) {
@@ -544,15 +568,15 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         const owner = context.characters?.[context.characterId]?.avatar ?? (!isGroup(context) ? affinityOwners(context)[0]?.id : null);
         const text = owner && state() && buildAffinityMemory(state(), refs, owner);
         if (!text) return;
-        const tag = `directoraffinity${++frameSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '').slice(-12)}`;
+        const tag = `affinity${++frameSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '').slice(-12)}`;
         const protectedText = text.replace(/[{}<>\r\n]/g, character => MEMORY_DELIMITERS[character]);
         const token = `\uE010${tag}\uE011${protectedText}\uE012${tag}\uE013`;
         frames.set(token, { text, snapshot: capture() });
         for (let index = requestChat.length - 1; index >= 0; index--) {
-            if (requestChat[index]?.extra?.directorAffinityPrompt) requestChat.splice(index, 1);
+            if (requestChat[index]?.extra?.affinityPrompt) requestChat.splice(index, 1);
         }
         requestChat.push({ name: 'Narrator', is_user: false, is_system: true, mes: token,
-            extra: { type: 'narrator', directorAffinityPrompt: true } });
+            extra: { type: 'narrator', affinityPrompt: true } });
     }
     function refresh(options) {
         syncActivation();

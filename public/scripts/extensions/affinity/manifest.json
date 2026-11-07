@@ -1,0 +1,13 @@
+{
+    "display_name": "好感度记忆",
+    "loading_order": 21,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "generate_interceptor": "affinity_memory_interceptor",
+    "author": "SillyTavern",
+    "version": "1.0.0",
+    "homePage": "https://github.com/inthediatance4-dev/sillytavern-perf-lab",
+    "hooks": { "activate": "init" }
+}

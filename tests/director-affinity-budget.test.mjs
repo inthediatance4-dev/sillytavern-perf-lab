@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { get_encoding } from 'tiktoken';
-import { affinityOutputTokenLimit, fitAffinityPrompt, fitAffinityVerificationPrompts } from '../public/scripts/extensions/director/affinity-prompt-budget.js';
+import { affinityOutputTokenLimit, fitAffinityPrompt, fitAffinityVerificationPrompts } from '../public/scripts/extensions/affinity/affinity-prompt-budget.js';
 
 const state = { version: 1, id: 'scope', issued: 5, cursor: 0, events: [], archives: [] };
 const refs = Array.from({ length: 5 }, (_, index) => ({

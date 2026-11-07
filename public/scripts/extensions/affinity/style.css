@@ -1,0 +1,5 @@
+.affinity_settings .inline-drawer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+}

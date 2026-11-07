@@ -3,10 +3,9 @@ import test, { after } from 'node:test';
 import { get_encoding } from 'tiktoken';
 import { EventEmitter } from '../public/lib/eventemitter.js';
 import { event_types as eventTypes } from '../public/scripts/events.js';
-import { AFFINITY_PROMPT_KEY, AFFINITY_SCHEMA, createAffinityController, affinityOwners } from '../public/scripts/extensions/director/affinity.js';
-import { affinityScores, applyAffinityEvaluation, createAffinityState } from '../public/scripts/extensions/director/affinity-state.js';
-import { messageFingerprint } from '../public/scripts/extensions/director/instruct.js';
-import { fitAffinityPrompt } from '../public/scripts/extensions/director/affinity-prompt-budget.js';
+import { AFFINITY_PROMPT_KEY, AFFINITY_SCHEMA, createAffinityController, affinityOwners, messageFingerprint } from '../public/scripts/extensions/affinity/affinity.js';
+import { affinityScores, applyAffinityEvaluation, createAffinityState } from '../public/scripts/extensions/affinity/affinity-state.js';
+import { fitAffinityPrompt } from '../public/scripts/extensions/affinity/affinity-prompt-budget.js';
 
 globalThis.localStorage = { getItem: () => null };
 const originalDebug = console.debug;
@@ -38,7 +37,7 @@ function fixture({ interval = 10, group = false, reply, initial, controllerOptio
     let generating = false;
     let requestChat = [];
     let context;
-    const extensionSettings = { director: { affinity: { enabled: true, interval } }, disabledExtensions: [] };
+    const extensionSettings = { affinity: { enabled: true, interval }, disabledExtensions: [] };
     const makeContext = (chatId = 'first', data = {}) => ({
         eventSource, eventTypes, chatId,
         getCurrentChatId: () => context.chatId,
@@ -72,7 +71,7 @@ function fixture({ interval = 10, group = false, reply, initial, controllerOptio
         ...controllerOptions,
     });
     const emit = (name, ...args) => eventSource.emit(eventTypes[name], ...args);
-    const state = () => context.chatMetadata.director?.__affinity;
+    const state = () => context.chatMetadata.affinity?.__affinity;
     const marker = message => message?.extra?.__affinity;
 
     function prepare(type) {
@@ -138,7 +137,7 @@ function fixture({ interval = 10, group = false, reply, initial, controllerOptio
         controller, eventSource, calls, saves, prompts, emit, state, marker, begin, receive, finalize, end, generate, switchChat,
         prepare,
         get requestChat() { return requestChat; },
-        get preparedMemory() { return requestChat.find(message => message.extra?.directorAffinityPrompt)?.mes; },
+        get preparedMemory() { return requestChat.find(message => message.extra?.affinityPrompt)?.mes; },
         get context() { return context; },
         get generating() { return generating; },
         set generating(value) { generating = value; },
@@ -169,7 +168,7 @@ test('all prompt fields restore affinity facts literally, including CFG and chat
     await lab.begin('normal', { prepare: false });
     lab.prepare('normal');
     const token = lab.preparedMemory;
-    assert.ok(token.includes('directoraffinity'));
+    assert.ok(token.includes('affinity'));
     assert.equal(lab.context.extensionPrompts[AFFINITY_PROMPT_KEY], undefined);
     const data = { prompt: token, negative_prompt: token, nested: { input: token }, messages: [{ content: token }] };
     await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
@@ -203,7 +202,7 @@ for (const broken of [
     { version: 1, id: 'corrupt', nextId: 1, issued: 0, cursor: 0, events: [{ unexpected: true }], archives: [] },
 ]) {
     test(`unsupported or corrupt ledger ${broken.id} preserves metadata and original message markers`, async () => {
-        const lab = fixture({ interval: 5, initial: { chatMetadata: { director: { __affinity: broken } } } });
+        const lab = fixture({ interval: 5, initial: { chatMetadata: { affinity: { __affinity: broken } } } });
         const metadata = structuredClone(lab.context.chatMetadata);
         const extra = structuredClone(lab.context.chat[0].extra);
         lab.controller.refresh();
@@ -485,8 +484,8 @@ test('scope changes discard a late evaluator answer without writing into either 
     const currentMetadata = lab.context.chatMetadata;
     gate.resolve(JSON.stringify({ events: [proposal] }));
     await lab.controller.settle();
-    assert.equal(originalMetadata.director.__affinity.events.length, 0);
-    assert.equal(currentMetadata.director?.__affinity?.events?.length ?? 0, 0);
+    assert.equal(originalMetadata.affinity.__affinity.events.length, 0);
+    assert.equal(currentMetadata.affinity?.__affinity?.events?.length ?? 0, 0);
     assert.equal(lab.preparedMemory, undefined);
 });
 test('switching to a chat with a complete pending batch resumes it after stale work finishes', async () => {
@@ -683,7 +682,7 @@ test('evaluation uses an isolated JSON quiet request and disabling affinity clea
     assert.ok(options?.jsonSchema, 'the current provider adapter must request structured JSON');
     lab.prepare('normal');
     assert.ok(lab.preparedMemory);
-    lab.context.extensionSettings.director.affinity.enabled = false;
+    lab.context.extensionSettings.affinity.enabled = false;
     lab.controller.refresh();
     lab.prepare('normal');
     assert.equal(lab.preparedMemory, undefined);
@@ -692,7 +691,7 @@ test('evaluation uses an isolated JSON quiet request and disabling affinity clea
 });
 test('a disabled Director extension also gates affinity generation and injection', async () => {
     const lab = fixture({ interval: 5 });
-    lab.context.extensionSettings.disabledExtensions.push('director');
+    lab.context.extensionSettings.disabledExtensions.push('affinity');
     lab.controller.refresh();
     await settleMany(lab, 6);
     assert.equal(lab.calls.length, 0);
@@ -810,7 +809,7 @@ for (const verification of ['confirm', 'defer']) {
             const result = context.chat[1];
             const anchor = { ...factFor(source), actor: 'user', recipient: 'character', kind: 'promise', status: 'agreed', outcomeKnown: null };
             const silent = { ...anchor, kind: 'outcome', status: 'completed', outcomeKnown: true,
-                anchorId: `${context.chatMetadata.director.__affinity.id}:p:1`, result: { slot: result.extra.__affinity.id, quote: result.mes }, valence: 'none', impact: 'major' };
+                anchorId: `${context.chatMetadata.affinity.__affinity.id}:p:1`, result: { slot: result.extra.__affinity.id, quote: result.mes }, valence: 'none', impact: 'major' };
             if (evaluations === 1) return JSON.stringify({ events: [anchor, silent] });
             later ??= { ...silent, valence: 'positive', acknowledgement: { slot: context.chat.at(-1).extra.__affinity.id, quote: context.chat.at(-1).mes } };
             return JSON.stringify({ events: [later] });
@@ -861,7 +860,7 @@ for (const type of ['quiet', 'impersonate']) {
         await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
         assert.ok(data.prompt.includes(fact));
         assert.ok(data.negative_prompt.includes(fact));
-        assert.equal(data.prompt.includes('directoraffinity'), false);
+        assert.equal(data.prompt.includes('affinity'), false);
         const message = await lab.receive({ text: 'A completed normal reply after the other request.' });
         await lab.end();
         await lab.emit('GENERATION_COMPLETED', { data, type: 'normal', chatId: lab.context.chatId, chatMetadata: lab.context.chatMetadata });
@@ -873,7 +872,7 @@ for (const type of ['quiet', 'impersonate']) {
 
 test('unknown complete memory frames fail closed while ordinary legacy-looking text stays literal', async () => {
     const lab = fixture();
-    const unknown = '\uE010directoraffinity999xunknown\uE011PRIVATE_UNKNOWN_BODY\uE012directoraffinity999xunknown\uE013';
+    const unknown = '\uE010affinity999xunknown\uE011PRIVATE_UNKNOWN_BODY\uE012affinity999xunknown\uE013';
     const data = { prompt: unknown + ' / AFFINITY_LITERAL_old_marker_END', negative_prompt: unknown };
     await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     assert.equal(data.prompt, ' / AFFINITY_LITERAL_old_marker_END');
@@ -892,7 +891,7 @@ test('an overlapping dry run restores its own frame without taking the normal re
     const dryFrame = lab.preparedMemory;
     const dryData = { prompt: dryFrame };
     await lab.emit('GENERATE_AFTER_DATA', dryData, true, { type: 'normal' });
-    assert.equal(dryData.prompt.includes('directoraffinity'), false);
+    assert.equal(dryData.prompt.includes('affinity'), false);
     const data = { prompt: normalFrame };
     await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     assert.equal(data.prompt, dryData.prompt);
@@ -1010,7 +1009,7 @@ for (const group of [false, true]) {
         await settleMany(lab, 4);
         const { disk } = await completeWithOlderDiskSnapshot(lab, { avatar: group ? 'b.png' : 'a.png' });
         assert.equal(lab.state().issued, 5);
-        assert.equal(disk.chatMetadata.director.__affinity.issued, 4);
+        assert.equal(disk.chatMetadata.affinity.__affinity.issued, 4);
         await lab.switchChat('first', disk);
         await lab.controller.settle();
         assert.equal(lab.state().issued, 5);
@@ -1033,7 +1032,7 @@ for (const mutation of ['text', 'swipe', 'owner', 'logical marker']) {
         if (mutation === 'text') { message.mes = 'Edited after the physical save.'; message.swipes[message.swipe_id] = message.mes; }
         if (mutation === 'swipe') { message.swipe_id = 1; message.swipes[1] = message.mes; message.swipe_info[1] = { extra: {} }; }
         if (mutation === 'owner') message.original_avatar = 'b.png';
-        if (mutation === 'logical marker') message.extra.__affinity = { version: 1, scope: disk.chatMetadata.director.__affinity.id, id: 'another-logical-slot', receipt: 0 };
+        if (mutation === 'logical marker') message.extra.__affinity = { version: 1, scope: disk.chatMetadata.affinity.__affinity.id, id: 'another-logical-slot', receipt: 0 };
         await lab.switchChat('first', disk);
         await lab.controller.settle();
         assert.equal(lab.state().issued, 4);
@@ -1086,7 +1085,7 @@ test('a save only confirms its starting receipt watermark, leaving a newer compl
     await completeWithOlderDiskSnapshot(lab);
     await until(() => saves === 1, 'the fifth receipt save starts');
     const { disk } = await completeWithOlderDiskSnapshot(lab);
-    assert.equal(disk.chatMetadata.director.__affinity.issued, 5);
+    assert.equal(disk.chatMetadata.affinity.__affinity.issued, 5);
     firstSave.resolve(true);
     await until(() => saves === 2, 'the sixth receipt save starts separately');
     await lab.switchChat('first', disk);
@@ -1140,14 +1139,14 @@ for (const disabled of ['affinity setting', 'Director extension']) {
         const lab = fixture({ interval: 5 });
         await settleMany(lab, 4);
         const { disk } = await completeWithOlderDiskSnapshot(lab);
-        if (disabled === 'affinity setting') lab.context.extensionSettings.director.affinity.enabled = false;
-        else lab.context.extensionSettings.disabledExtensions.push('director');
+        if (disabled === 'affinity setting') lab.context.extensionSettings.affinity.enabled = false;
+        else lab.context.extensionSettings.disabledExtensions.push('affinity');
         await lab.emit('SETTINGS_UPDATED');
         await lab.switchChat('first', disk);
         await lab.controller.settle();
         assert.equal(lab.state().issued, 4);
         assert.equal(lab.calls.length, 0);
-        if (disabled === 'affinity setting') lab.context.extensionSettings.director.affinity.enabled = true;
+        if (disabled === 'affinity setting') lab.context.extensionSettings.affinity.enabled = true;
         else lab.context.extensionSettings.disabledExtensions.splice(0);
         await lab.emit('SETTINGS_UPDATED');
         await lab.controller.settle();
@@ -1296,9 +1295,9 @@ test('cross-review: stopping the new request cannot revoke the finalized previou
 
 test('cross-review: ordinary affinity-like literals survive while unknown complete frames are scrubbed', async () => {
     const lab = fixture();
-    const literal = 'directoraffinity123xnormal AFFINITY_LITERAL_user_text_END directoraffinity';
-    const frame = '\uE010directoraffinity999xunknown\uE011PRIVATE_UNKNOWN_BODY\uE012directoraffinity999xunknown\uE013';
-    const incomplete = '\uE010directoraffinity77xincomplete\uE011literal without a closing frame';
+    const literal = 'affinity123xnormal AFFINITY_LITERAL_user_text_END affinity';
+    const frame = '\uE010affinity999xunknown\uE011PRIVATE_UNKNOWN_BODY\uE012affinity999xunknown\uE013';
+    const incomplete = '\uE010affinity77xincomplete\uE011literal without a closing frame';
     const data = { prompt: `${literal} | ${frame} | ${incomplete}`, messages: [{ content: literal }] };
     await lab.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
     assert.equal(data.prompt, `${literal} |  | ${incomplete}`);
@@ -1328,7 +1327,7 @@ function priorIn(prompt) {
 test('cross-review: archived placement cannot replace the most recent forty prior facts', async () => {
     const { ledger, chat } = seededHistory(180);
     assert.ok(ledger.archives.length > 0);
-    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: ledger } } } });
+    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { affinity: { __affinity: ledger } } } });
     await settleMany(lab, 5);
     const prior = priorIn(lab.calls[0][0].quietPrompt);
     assert.equal(prior.length, 40);
@@ -1347,7 +1346,7 @@ test('cross-review: prior outcomes expose their already consumed acknowledgement
         anchorId: anchor.id, result: { slot: refs[1].slot, quote: refs[1].text }, acknowledgement: { slot: refs[2].slot, quote: refs[2].text } };
     state = applyAffinityEvaluation(state, [outcome], refs, [{ id: 'a.png' }]);
     assert.equal(state.events.length, 2);
-    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: state } } } });
+    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { affinity: { __affinity: state } } } });
     await settleMany(lab, 5);
     const prior = priorIn(lab.calls[0][0].quietPrompt);
     const shown = prior.find(event => event.kind === 'outcome');
@@ -1527,9 +1526,9 @@ for (const boundary of ['MESSAGE_EDITED', 'owner', 'marker', 'nonappend', 'disab
         if (boundary === 'marker') message.extra.__affinity.id = 'changed-deferred-slot';
         if (boundary === 'nonappend') message.mes = 'An unrelated replacement.';
         if (boundary === 'disable-enable') {
-            lab.context.extensionSettings.director.affinity.enabled = false;
+            lab.context.extensionSettings.affinity.enabled = false;
             await lab.emit('SETTINGS_UPDATED');
-            lab.context.extensionSettings.director.affinity.enabled = true;
+            lab.context.extensionSettings.affinity.enabled = true;
             await lab.emit('SETTINGS_UPDATED');
         }
         lab.finalize(message);
@@ -1623,10 +1622,10 @@ for (const boundary of ['owner', 'disable-enable']) {
         const message = await lab.receive();
         await lab.end();
         if (boundary === 'owner') lab.context.characters[0].avatar = 'b.png';
-        else lab.context.extensionSettings.director.affinity.enabled = false;
+        else lab.context.extensionSettings.affinity.enabled = false;
         await lab.emit('SETTINGS_UPDATED');
         if (boundary === 'disable-enable') {
-            lab.context.extensionSettings.director.affinity.enabled = true;
+            lab.context.extensionSettings.affinity.enabled = true;
             await lab.emit('SETTINGS_UPDATED');
         }
         await lab.emit('GENERATION_COMPLETED', original);
@@ -1695,7 +1694,7 @@ test('round3: save-only prepare cannot dispatch a loaded pending batch', async (
     const { ledger, chat } = seededHistory(5);
     ledger.cursor = 0;
     chat.push({ is_user: true, name: '玩家', mes: 'A historical unmarked question.', extra: {} });
-    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: ledger } } } });
+    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { affinity: { __affinity: ledger } } } });
     lab.prepare('normal');
     await lab.controller.settle();
     assert.equal(lab.saves.length, 1);
@@ -1867,7 +1866,7 @@ for (const valence of ['positive', 'negative']) {
         }
         const expected = valence === 'positive' ? 80 : -100;
         assert.equal(affinityScores(state)['a.png'], expected);
-        const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: state } } },
+        const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { affinity: { __affinity: state } } },
             reply: ({ context }) => JSON.stringify({ events: [{ ...factFor(context.chat.at(-1)),
                 kind: 'attitude', valence, attitudeExplicit: true, impact: 'major' }] }) });
         await settleMany(lab, 5);

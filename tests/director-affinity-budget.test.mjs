@@ -149,3 +149,68 @@ test('a major candidate too large to fit alone does not displace smaller valid c
     const batches = await fitAffinityVerificationPrompts(JSON.stringify, candidates, { maxTokens: 100, countTokens: async text => text.length });
     assert.deepEqual(batches.flatMap(batch => batch.candidates).map(candidate => candidate.key), ['valid']);
 });
+
+test('a shrinking context budget never returns a previously fitted oversized verification batch', async () => {
+    let budget = 500;
+    let calls = 0;
+    const candidates = ['A'.repeat(300), 'B'.repeat(50)];
+    const batches = await fitAffinityVerificationPrompts(values => values.join(''), candidates, {
+        maxTokens: () => budget,
+        countTokens: async text => {
+            if (++calls === 2) budget = 100;
+            return text.length;
+        },
+    });
+    assert.ok(batches.every(batch => batch.prompt.length <= budget));
+    assert.deepEqual(batches.flatMap(batch => batch.candidates), [candidates[1]]);
+});
+
+test('verification batches can recheck the current tokenizer and budget immediately before dispatch', async () => {
+    let multiplier = 1;
+    let budget = 100;
+    const batches = await fitAffinityVerificationPrompts(values => values.join(''), ['evidence'.repeat(8)], {
+        maxTokens: () => budget, countTokens: async text => text.length * multiplier,
+    });
+    assert.equal(batches.length, 1);
+    assert.equal(await batches[0].validate(), true);
+    multiplier = 2;
+    assert.equal(await batches[0].validate(), false);
+    multiplier = 1;
+    budget = 50;
+    assert.equal(await batches[0].validate(), false);
+});
+
+test('cancellation releases a verification dispatch recheck waiting on its tokenizer', async () => {
+    const controller = new AbortController();
+    let stalled = false;
+    let entered;
+    const started = new Promise(resolve => { entered = resolve; });
+    const batches = await fitAffinityVerificationPrompts(JSON.stringify, ['evidence'], {
+        maxTokens: 100, signal: controller.signal,
+        countTokens: text => stalled ? (entered(), new Promise(() => {})) : Promise.resolve(text.length),
+    });
+    stalled = true;
+    const checked = batches[0].validate();
+    await started;
+    controller.abort(new Error('verification configuration cancelled'));
+    await assert.rejects(checked, /verification configuration cancelled/);
+});
+
+test('a tokenizer response for a previous model cannot fit an extraction prompt', async () => {
+    let identity = 'model-a';
+    await assert.rejects(fitAffinityPrompt(render, { refs: [refs[0]], state }, {
+        maxTokens: 99999, getIdentity: () => identity,
+        countTokens: async text => { identity = 'model-b'; return text.length; },
+    }), /configuration changed/);
+});
+
+test('a model switch while a verification dispatch count awaits cannot approve a stale count', async () => {
+    let identity = 'model-a';
+    let switchOnCount = false;
+    const batches = await fitAffinityVerificationPrompts(JSON.stringify, ['evidence'], {
+        maxTokens: 100, getIdentity: () => identity,
+        countTokens: async text => { if (switchOnCount) identity = 'model-b'; return text.length; },
+    });
+    switchOnCount = true;
+    await assert.rejects(batches[0].validate(), /configuration changed/);
+});

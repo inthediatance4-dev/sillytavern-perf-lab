@@ -5,18 +5,22 @@ export function affinityOutputTokenLimit(contextTokens) {
 }
 
 /** Fit a sidecar's evidence view without changing the chat or stored ledger. */
-export async function fitAffinityPrompt(render, { refs, state }, { maxTokens, countTokens, signal } = {}) {
+export async function fitAffinityPrompt(render, { refs, state }, { maxTokens, countTokens, signal, getIdentity } = {}) {
+    const assertConfiguration = configurationGuard(getIdentity);
     const limit = () => {
         signal?.throwIfAborted();
+        assertConfiguration();
         const value = Math.floor(typeof maxTokens === 'function' ? maxTokens() : maxTokens);
         if (!Number.isFinite(value) || value <= 0) throw new RangeError('Invalid relationship prompt budget');
         return value;
     };
     const measure = async (evidence, memory) => {
         signal?.throwIfAborted();
+        assertConfiguration();
         const prompt = render(evidence, memory);
         const tokens = await abortable(() => countTokens(prompt), signal);
         signal?.throwIfAborted();
+        assertConfiguration();
         if (!Number.isFinite(tokens) || tokens < 0 || (prompt && tokens === 0)) throw new RangeError('Invalid relationship token count');
         return { prompt, tokens };
     };
@@ -71,30 +75,64 @@ export async function fitAffinityPrompt(render, { refs, state }, { maxTokens, co
 }
 
 /** Split major checks without truncating their quoted evidence or merging calls. */
-export async function fitAffinityVerificationPrompts(render, candidates, { maxTokens, countTokens, signal } = {}) {
-    const batches = [];
+export async function fitAffinityVerificationPrompts(render, candidates, { maxTokens, countTokens, signal, getIdentity } = {}) {
+    const assertConfiguration = configurationGuard(getIdentity);
+    const queued = [];
     let pending = [];
-    let prompt = '';
-    const fits = async values => {
+    const limit = () => {
         signal?.throwIfAborted();
-        const text = render(values);
+        assertConfiguration();
+        const budget = typeof maxTokens === 'function' ? maxTokens() : maxTokens;
+        if (!Number.isFinite(budget) || budget <= 0) throw new RangeError('Invalid relationship verification budget');
+        return budget;
+    };
+    const measure = async text => {
+        signal?.throwIfAborted();
+        assertConfiguration();
         const tokens = await abortable(() => countTokens(text), signal);
         signal?.throwIfAborted();
-        const budget = typeof maxTokens === 'function' ? maxTokens() : maxTokens;
-        if (!Number.isFinite(tokens) || tokens <= 0 || !Number.isFinite(budget) || budget <= 0) throw new RangeError('Invalid relationship verification budget');
-        return { text, fits: tokens <= budget };
+        if (!Number.isFinite(tokens) || tokens <= 0) throw new RangeError('Invalid relationship verification token count');
+        return { text, tokens, fits: tokens <= limit() };
     };
+    const fits = values => measure(render(values));
     for (const candidate of candidates) {
         const combined = await fits([...pending, candidate]);
-        if (combined.fits) { pending.push(candidate); prompt = combined.text; continue; }
-        if (pending.length) batches.push({ candidates: pending, prompt });
+        if (combined.fits) { pending.push(candidate); continue; }
+        if (pending.length) queued.push(pending);
         pending = [];
         const single = await fits([candidate]);
-        if (single.fits) { pending = [candidate]; prompt = single.text; }
+        if (single.fits) pending = [candidate];
         // A candidate that cannot fit even alone remains unverified at zero.
     }
-    if (pending.length) batches.push({ candidates: pending, prompt });
-    return batches;
+    if (pending.length) queued.push(pending);
+
+    const batches = [];
+    const add = (values, measured) => batches.push({
+        candidates: values, prompt: measured.text, tokens: measured.tokens,
+        // A previous verifier call may have awaited I/O while settings changed.
+        // Recount the actual next prompt with the live tokenizer at dispatch.
+        validate: async () => (await measure(measured.text)).fits,
+    });
+    for (const values of queued) {
+        const measured = await fits(values);
+        if (measured.fits) add(values, measured);
+        else if (values.length > 1) {
+            for (const candidate of values) {
+                const single = await fits([candidate]);
+                if (single.fits) add([candidate], single);
+            }
+        }
+    }
+    // Tokenization of a later group can lower the budget for earlier groups.
+    // Never return an already known oversized prompt; callers recheck at send.
+    return batches.filter(batch => batch.tokens <= limit()).map(({ tokens: _tokens, ...batch }) => batch);
+}
+
+function configurationGuard(getIdentity) {
+    const identity = getIdentity?.();
+    return () => {
+        if (getIdentity && getIdentity() !== identity) throw new RangeError('Relationship model configuration changed during tokenization');
+    };
 }
 
 async function abortable(run, signal) {

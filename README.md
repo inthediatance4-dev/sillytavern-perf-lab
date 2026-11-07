@@ -2,7 +2,9 @@
 
 这是个人 SillyTavern 项目的开发仓库。此分支 `feature/hidden-affinity` 基于 `698119e`，交付隐藏好感度／关系记忆功能、离线 fixture 测试与实现文档。尚未合入 `codex-improvements`，也未部署。
 
-本机补完已修复重叠引文重复计分、未知信息泄漏、并发 quiet、上下文预算和即时聊天重载丢凭据等问题。好感度专项 **160/160**、相关检查 **427/427**；完整回归 **1226 通过、0 失败、20 项按平台／权限条件跳过**。浏览器、第三方扩展共存和 CI 的完整结果见 [补完报告](docs/reviews/2026-11-06-affinity-completion/README.md)。真实模型语义质量和手机实机仍未验证。
+本轮交叉审查补修了跨事件重复计分、重述承诺重复奖励、最近记忆顺序、单条坏记录导致整批丢弃、字面文本误删，以及流式保存／继续生成和模型切换的边界。实际验证、独立复核与提交记录见 [交叉审查修复报告](docs/reviews/2026-11-07-affinity-cross-review/README.md)。真实模型语义质量和手机实机仍未验证。
+
+上一轮历史结果为好感度 **160/160**、相关检查 **427/427**，完整回归 **1226 通过、0 失败、20 项按平台／权限条件跳过**，见 [补完报告](docs/reviews/2026-11-06-affinity-completion/README.md)。本轮本地只运行相关测试，不把历史全仓结果冒充当前验证。
 
 ## 使用功能
 
@@ -26,20 +28,20 @@ npm ci
 
 把下面这段原样交给本机 Codex：
 
-> 请打开 [docs/affinity.md](docs/affinity.md) 及 [docs/reviews/2026-11-06-affinity/README.md](docs/reviews/2026-11-06-affinity/README.md)，先理解现有功能与已知验证边界，不要重写功能、删保护测试或把未验证当成通过。重点复核离线记忆冻结／恢复、原文编辑撤回、同一完成的单次计分、独立 major 核验和中断／群聊／长聊天兼容。请运行专项与完整回归，修任何真实失败；不要用真实聊天或新增 provider／模型配置测试。然后在本机做界面与非阻塞体验验证；未做前要明示未做。完成后即可 commit、push 当前分支，并正常准备合入 `codex-improvements`；不要重写既有提交或自动部署。
+> 请打开 [功能合同](docs/affinity.md) 和[交叉审查修复报告](docs/reviews/2026-11-07-affinity-cross-review/README.md)，先理解现有功能、验证范围与设计风险。重点复核独立评分证据、已完成请求的单次凭据、原生继续生成／停止时序、重大变化核验和模型切换预算。只运行与新改动相关的测试；不要删保护测试、使用真实聊天或把历史结果当成当前通过。保留已有提交，追加 commit、普通 push 当前分支；合并与部署仍须单独确认。
 
 ```bash
-# 专项（本机补完实测 160/160，使用 Node 24.22.1）
+# 好感度专项（Node 24.22.1；当前结果见交叉审查报告）
 node --test tests/director-affinity-state.test.mjs tests/director-affinity-lifecycle.test.mjs tests/director-affinity-provider.test.mjs tests/director-affinity-budget.test.mjs
 
-# Director + 思维隐藏（本机补完实测 427/427）
+# 仅在改动涉及相应集成时运行 Director + 思维隐藏
 node --test tests/director-*.test.mjs tests/reasoning-visibility.test.mjs
 
 # 指定源码／测试的 lint
 npx eslint --max-warnings=0 public/script.js public/scripts/openai.js public/scripts/textgen-settings.js public/scripts/isolated-quiet-prompt.js public/scripts/extensions/director/*.js tests/director-*.test.mjs tests/windows-path-key.test.mjs
 
-# 全仓回归：本机必须重跑，不可跳过
-npm run test:perf
+# 浏览器专项（合成 provider；不调用真实模型）
+python tests/browser-director-lab.py --affinity-only
 ```
 
 ## 首版 a72f9e7 交付时实测（历史记录）

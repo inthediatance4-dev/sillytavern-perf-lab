@@ -1,0 +1,28 @@
+✖ cross-review lineage: stopping during reasoning retains the confirmed original until late swipe finalization (18.1318ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 308.699
+
+✖ failing tests:
+
+test at tests\director-affinity-lifecycle.test.mjs:1494:1
+✖ cross-review lineage: stopping during reasoning retains the confirmed original until late swipe finalization (18.1318ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 1
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1510:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

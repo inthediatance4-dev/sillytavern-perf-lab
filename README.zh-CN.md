@@ -204,6 +204,8 @@ bound（已绑定，chat_metadata.director.boundInstruct）
 
 后台整理沿用当前连接，单次输出最多 2048 token，按模型上下文缩放，不改正文回复长度。完整记忆参与原生预算，失败、停止、重载、删改和 swipe 受凭据与原文核对保护。规则、费用范围与验证边界见 [功能合同](docs/affinity.md)和[补完报告](docs/reviews/2026-11-06-affinity-completion/README.md)。
 
+交叉审查修复了同一态度／兑现重复奖励、记忆排序、部分解析失败与流式保存时序，另提供仅含失败类别计数的本机诊断。记忆仍通过 narrator/system 消息注入，文案不等于权限隔离；本轮验证范围与设计风险见 [交叉审查修复报告](docs/reviews/2026-11-07-affinity-cross-review/README.md)。
+
 ## 流式输出
 
 ### 优化的流式渲染

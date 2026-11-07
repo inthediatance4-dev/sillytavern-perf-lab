@@ -1,0 +1,146 @@
+✖ cross-review lineage: a continued finished stream owns one receipt after either save order (normal-first) (11.5142ms)
+✖ cross-review lineage: a continued finished stream owns one receipt after either save order (continue-first) (3.3361ms)
+✖ cross-review lineage: a stopped partial continuation preserves its later-confirmed original reply (1.3554ms)
+✖ cross-review lineage: two continuations retain the same pending original logical receipt (2.0042ms)
+✔ cross-review lineage: a changed MESSAGE_EDITED cannot inherit a pending original receipt (1.7977ms)
+✔ cross-review lineage: a changed MESSAGE_UPDATED cannot inherit a pending original receipt (1.4639ms)
+✔ cross-review lineage: a changed MESSAGE_SWIPED cannot inherit a pending original receipt (12.0612ms)
+✔ cross-review lineage: a changed replacement cannot inherit a pending original receipt (1.3648ms)
+✔ cross-review lineage: a changed owner cannot inherit a pending original receipt (13.3822ms)
+✔ cross-review lineage: a changed marker cannot inherit a pending original receipt (15.0319ms)
+✔ cross-review lineage: a changed nonappend cannot inherit a pending original receipt (15.6224ms)
+✔ cross-review lineage: a changed unregistered cannot inherit a pending original receipt (15.248ms)
+✔ cross-review lineage: a continuation cannot authorize a stopped original reply (1.0962ms)
+✔ cross-review lineage: a continuation cannot authorize a historical original reply (0.9645ms)
+✖ cross-review lineage: owner cannot reauthorize an old completed request (13.4794ms)
+✖ cross-review lineage: disable-enable cannot reauthorize an old completed request (15.0655ms)
+✖ cross-review lineage: a changed provider identity rejects an awaited evaluator without diagnosis (6.6189ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 10
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 267.3821
+
+✖ failing tests:
+
+test at tests\director-affinity-lifecycle.test.mjs:1434:5
+✖ cross-review lineage: a continued finished stream owns one receipt after either save order (normal-first) (11.5142ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 1
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1447:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1434:5
+✖ cross-review lineage: a continued finished stream owns one receipt after either save order (continue-first) (3.3361ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 1
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1447:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1455:1
+✖ cross-review lineage: a stopped partial continuation preserves its later-confirmed original reply (1.3554ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 1
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1468:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1472:1
+✖ cross-review lineage: two continuations retain the same pending original logical receipt (2.0042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 1
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1486:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1547:5
+✖ cross-review lineage: owner cannot reauthorize an old completed request (13.4794ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  1 !== 0
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1561:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1547:5
+✖ cross-review lineage: disable-enable cannot reauthorize an old completed request (15.0655ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  1 !== 0
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1561:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1566:1
+✖ cross-review lineage: a changed provider identity rejects an awaited evaluator without diagnosis (6.6189ms)
+  AssertionError [ERR_ASSERTION]: the old provider result cannot launch a verifier
+
+  2 !== 1
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1579:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 0,
+  "discarded": true,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 49.9,
+    "framesOver16_7Pct": 5.9259259259259265,
+    "framesOver33Pct": 2.9629629629629632,
+    "loafCount": 1,
+    "loafTotalMs": 120.79999999888241,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 118.09999999962747,
+    "formatP50Ms": 1.099999999627471,
+    "formatP95Ms": 5.299999998882413,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.2999999988824129,
+    "reasoningP95Ms": 0.09999999962747097,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 21.868620250514812,
+    "firstTokenMs": 165.589111328125,
+    "finishMs": 380.41845703125,
+    "typingP50Ms": 26.7001953125,
+    "typingP95Ms": 38.39990234375,
+    "scrollStolen": 0
+  },
+  "dom": {
+    "incremental": 52,
+    "full": 109,
+    "fade": 0,
+    "frames": 53
+  },
+  "samples": {
+    "frames": 181,
+    "keys": 13,
+    "hooks": 190
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282767535.911,
+    "receivedNs": "8486467875478",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793282767548.6177,
+    "lastChunkEpochMs": 1793282769972.1816,
+    "doneEpochMs": 1793282769972.1997,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

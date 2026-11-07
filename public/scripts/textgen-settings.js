@@ -1841,9 +1841,9 @@ export function createTextGenGenerationData(settings, model, finalPrompt = null,
     return params;
 }
 
-export async function getTextGenGenerationData(finalPrompt, maxTokens, isImpersonate, isContinue, cfgValues, type) {
+export async function getTextGenGenerationData(finalPrompt, maxTokens, isImpersonate, isContinue, cfgValues, type, { isolated = false } = {}) {
     const model = getTextGenModel(textgenerationwebui_settings);
     const params = createTextGenGenerationData(textgenerationwebui_settings, model, finalPrompt, maxTokens, isImpersonate, isContinue, cfgValues, type);
-    await eventSource.emit(event_types.TEXT_COMPLETION_SETTINGS_READY, params);
+    if (!isolated) await eventSource.emit(event_types.TEXT_COMPLETION_SETTINGS_READY, params);
     return params;
 }

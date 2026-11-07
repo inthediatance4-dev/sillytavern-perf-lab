@@ -1,0 +1,5 @@
+Node v24.22.1; LONGCHAT_TEST_PYTHON=<tmp>/pw-venv/bin/python
+Command: node --test tests/longchat-measurement.test.mjs tests/benchmark-statistics.test.mjs
+Tests: 11; passed: 10; skipped: 1 (native Windows console); failed: 0.
+Python AST parse: tests/longchat-final-ab.py and tests/browser-longchat-perf.py PASS.
+No JS/MJS file is changed in M3; no new browser test is registered in test:perf.

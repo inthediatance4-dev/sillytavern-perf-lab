@@ -1,0 +1,14 @@
+{
+  "lint": {
+    "command": "node node_modules/eslint/bin/eslint.js --max-warnings=0 public/script.js public/scripts/openai.js public/scripts/textgen-settings.js public/scripts/isolated-quiet-prompt.js public/scripts/extensions/director/*.js tests/director-*.test.mjs tests/windows-path-key.test.mjs",
+    "exitCode": 0
+  },
+  "pythonSyntax": {
+    "command": "python -m py_compile tests/browser-director-lab.py tests/browser_affinity_cases.py tests/browser_fate_cases.py",
+    "exitCode": 0
+  },
+  "runtime": {
+    "node": "v24.22.1",
+    "chromium": "156.0.8078.76"
+  }
+}

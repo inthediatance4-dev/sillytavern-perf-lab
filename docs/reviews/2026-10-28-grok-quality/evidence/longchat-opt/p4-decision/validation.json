@@ -1,0 +1,241 @@
+{
+  "eslint": {
+    "status": "pass",
+    "files": [
+      "public/script.js",
+      "tests/longchat-dom-trim.test.mjs",
+      "tests/longchat-browser-probe.mjs",
+      "tests/longchat-measurement.test.mjs"
+    ]
+  },
+  "narrowTests": {
+    "files": [
+      "tests/longchat-dom-trim.test.mjs",
+      "tests/longchat-older-slices.test.mjs",
+      "tests/longchat-measurement.test.mjs",
+      "tests/longchat-insert-path.test.mjs"
+    ],
+    "linuxNode20": {
+      "total": 27,
+      "pass": 26,
+      "skip": 1,
+      "fail": 0
+    },
+    "linuxNode22": {
+      "total": 27,
+      "pass": 26,
+      "skip": 1,
+      "fail": 0
+    },
+    "linuxNode24": {
+      "total": 27,
+      "pass": 26,
+      "skip": 1,
+      "fail": 0
+    },
+    "newTrimTests": 6,
+    "skipReason": "Native Windows console process-group test; Linux simulation passed."
+  },
+  "equivalence": {
+    "equivalence-0-complete": {
+      "status": "equal",
+      "differingScenarios": []
+    },
+    "equivalence-3": {
+      "status": "different",
+      "differingScenarios": [
+        "tabOrder/older"
+      ]
+    },
+    "equivalence-3-toast-drained": {
+      "status": "equal",
+      "differingScenarios": []
+    }
+  },
+  "browserBoundary": {
+    "anchorDriftPx": 0,
+    "restoredButton": true,
+    "chatPrefixUnchanged": true,
+    "savedMatchesChat": true,
+    "missingDomEditDeleteNoop": true,
+    "boundaryEditDelete": true,
+    "reloadedMessageEditable": true,
+    "overflowAnchor": "none"
+  },
+  "labs": [
+    {
+      "path": "equivalence-0-complete/2000-100-0-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "equivalence-0-complete/2000-100-0-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "equivalence-3/2000-100-0-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "equivalence-3/2000-100-0-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "equivalence-3-toast-drained/2000-100-0-base/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "equivalence-3-toast-drained/2000-100-0-head/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "head-10/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/a-0/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/a-1/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/a-2/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/a-3/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/a-4/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/a-5/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/a-6/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/b-0/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/b-1/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/b-2/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/b-3/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/b-4/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/b-5/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "runs/b-6/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    },
+    {
+      "path": "trim-boundary/metadata.json",
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true,
+      "forbiddenRequests": []
+    }
+  ],
+  "privacyScan": {
+    "hostnameLeaks": 0,
+    "homeUsernamePathLeaks": 0,
+    "absoluteTempPathLeaks": 0,
+    "gzipContentsScanned": true
+  },
+  "notRun": [
+    "Full suite",
+    "Native Windows CI",
+    "Real-chat Windows manual check"
+  ],
+  "finalHarnessRegression": {
+    "runtime": "Linux Node 22",
+    "file": "tests/longchat-measurement.test.mjs",
+    "total": 8,
+    "pass": 7,
+    "skip": 1,
+    "fail": 0
+  },
+  "evidenceBytes": 1811714
+}

@@ -1,0 +1,409 @@
+TAP version 13
+# Subtest: chapter titles use the first input and never a stored number
+ok 1 - chapter titles use the first input and never a stored number
+  ---
+  duration_ms: 2.2378
+  type: 'test'
+  ...
+# Subtest: live numbering survives deleting a middle chapter and does not renumber stored data
+ok 2 - live numbering survives deleting a middle chapter and does not renumber stored data
+  ---
+  duration_ms: 0.3209
+  type: 'test'
+  ...
+# Subtest: mark and unmark keep foreign director metadata and drop an empty chapter shell
+ok 3 - mark and unmark keep foreign director metadata and drop an empty chapter shell
+  ---
+  duration_ms: 0.3188
+  type: 'test'
+  ...
+# Subtest: chapter metadata survives every swipe and JSONL reload, and unmark clears every swipe
+ok 4 - chapter metadata survives every swipe and JSONL reload, and unmark clears every swipe
+  ---
+  duration_ms: 0.4522
+  type: 'test'
+  ...
+# Subtest: a chapter survives a newly regenerated swipe and reload, then unmark stays clear after reload
+ok 5 - a chapter survives a newly regenerated swipe and reload, then unmark stays clear after reload
+  ---
+  duration_ms: 11.9805
+  type: 'test'
+  ...
+# Subtest: loading confirm starts only past 500 messages and names the exact gap
+ok 6 - loading confirm starts only past 500 messages and names the exact gap
+  ---
+  duration_ms: 0.1571
+  type: 'test'
+  ...
+# Subtest: template chapter counts use the same title rule after a middle deletion
+ok 7 - template chapter counts use the same title rule after a middle deletion
+  ---
+  duration_ms: 0.4376
+  type: 'test'
+  ...
+# Event emitted: prompt
+# Event emitted: generation_ended
+# Event emitted: generation_stopped
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Subtest: Director instruction survives failed/stopped attempts and is consumed only by a completed included request
+ok 8 - Director instruction survives failed/stopped attempts and is consumed only by a completed included request
+  ---
+  duration_ms: 3.4153
+  type: 'test'
+  ...
+# Subtest: user macros in a director instruction survive prompt assembly and are still consumed
+ok 9 - user macros in a director instruction survive prompt assembly and are still consumed
+  ---
+  duration_ms: 1.2251
+  type: 'test'
+  ...
+# Subtest: dry runs, excluded instructions, replaced injections and another chat never consume a pending instruction
+ok 10 - dry runs, excluded instructions, replaced injections and another chat never consume a pending instruction
+  ---
+  duration_ms: 0.8737
+  type: 'test'
+  ...
+# Subtest: versioned JSON export/import round-trips every preset field without shared references
+ok 11 - versioned JSON export/import round-trips every preset field without shared references
+  ---
+  duration_ms: 2.6681
+  type: 'test'
+  ...
+# Subtest: restoring defaults returns fresh exact defaults after custom edits and reordering
+ok 12 - restoring defaults returns fresh exact defaults after custom edits and reordering
+  ---
+  duration_ms: 0.3663
+  type: 'test'
+  ...
+# Subtest: root values must be objects with version 1 and a presets array
+ok 13 - root values must be objects with version 1 and a presets array
+  ---
+  duration_ms: 0.4767
+  type: 'test'
+  ...
+# Subtest: every preset field is required, with exact string and boolean types
+ok 14 - every preset field is required, with exact string and boolean types
+  ---
+  duration_ms: 0.7383
+  type: 'test'
+  ...
+# Subtest: unknown modes, empty names and empty IDs are rejected
+ok 15 - unknown modes, empty names and empty IDs are rejected
+  ---
+  duration_ms: 0.2922
+  type: 'test'
+  ...
+# Subtest: string size limits and the preset count limit accept the boundary and reject overflow
+ok 16 - string size limits and the preset count limit accept the boundary and reject overflow
+  ---
+  duration_ms: 1.506
+  type: 'test'
+  ...
+# Subtest: duplicate IDs reject the complete import without changing the source
+ok 17 - duplicate IDs reject the complete import without changing the source
+  ---
+  duration_ms: 0.601
+  type: 'test'
+  ...
+# Subtest: digit shortcuts follow the current order and stop at nine
+ok 18 - digit shortcuts follow the current order and stop at nine
+  ---
+  duration_ms: 0.3392
+  type: 'test'
+  ...
+# Subtest: slash arguments resolve 1-based positions and preserve optional text
+ok 19 - slash arguments resolve 1-based positions and preserve optional text
+  ---
+  duration_ms: 0.5362
+  type: 'test'
+  ...
+# Subtest: slash names match exact case first, then case-insensitively, using longest prefixes
+ok 20 - slash names match exact case first, then case-insensitively, using longest prefixes
+  ---
+  duration_ms: 0.3677
+  type: 'test'
+  ...
+# Subtest: provided slash text fills the first input and uses later defaults without a dialog
+ok 21 - provided slash text fills the first input and uses later defaults without a dialog
+  ---
+  duration_ms: 0.5887
+  type: 'test'
+  ...
+# Subtest: slash inputs ask only remaining fields without defaults and retain complete value order
+ok 22 - slash inputs ask only remaining fields without defaults and retain complete value order
+  ---
+  duration_ms: 0.2261
+  type: 'test'
+  ...
+# Subtest: ordinary presets still collect all inputs and templates without inputs never ask
+ok 23 - ordinary presets still collect all inputs and templates without inputs never ask
+  ---
+  duration_ms: 0.1226
+  type: 'test'
+  ...
+# Event emitted: prompt
+# Event emitted: generation_stopped
+# Event emitted: generation_ended
+# Event emitted: completed
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Event emitted: prompt
+# Event emitted: completed
+# Subtest: shouldReinject is true only for swipe, regenerate, and continue at the bound slot with the same fingerprint and no pending
+ok 24 - shouldReinject is true only for swipe, regenerate, and continue at the bound slot with the same fingerprint and no pending
+  ---
+  duration_ms: 1.1504
+  type: 'test'
+  ...
+# Subtest: message fingerprint ignores send_date and changes with mes, name, or is_user
+ok 25 - message fingerprint ignores send_date and changes with mes, name, or is_user
+  ---
+  duration_ms: 0.3113
+  type: 'test'
+  ...
+# Subtest: bound instructions are created from the chat present at completion and cleared by every release rule
+ok 26 - bound instructions are created from the chat present at completion and cleared by every release rule
+  ---
+  duration_ms: 0.5236
+  type: 'test'
+  ...
+# Subtest: reinject copies binding text through the in-chat prompt and leaves the binding in place
+ok 27 - reinject copies binding text through the in-chat prompt and leaves the binding in place
+  ---
+  duration_ms: 0.7539
+  type: 'test'
+  ...
+# Subtest: a completed pending instruction becomes bound, reinject does not consume it, and failure leaves both
+ok 28 - a completed pending instruction becomes bound, reinject does not consume it, and failure leaves both
+  ---
+  duration_ms: 1.6511
+  type: 'test'
+  ...
+# Subtest: quiet and impersonate mask director prompts, skip consumption, and restore the literal
+ok 29 - quiet and impersonate mask director prompts, skip consumption, and restore the literal
+  ---
+  duration_ms: 0.6217
+  type: 'test'
+  ...
+# Subtest: a regenerate delete skip matches only that chat, binding, and post-delete length
+ok 30 - a regenerate delete skip matches only that chat, binding, and post-delete length
+  ---
+  duration_ms: 0.9877
+  type: 'test'
+  ...
+# Subtest: an inactive generation cannot hide a real deletion after an early return
+ok 31 - an inactive generation cannot hide a real deletion after an early return
+  ---
+  duration_ms: 0.1449
+  type: 'test'
+  ...
+# Subtest: dryRun neither clears a regenerate token nor restores a masked real generation
+ok 32 - dryRun neither clears a regenerate token nor restores a masked real generation
+  ---
+  duration_ms: 1.4176
+  type: 'test'
+  ...
+# Subtest: a bound direct regenerate marks upstream busy before its pre-interceptor delete
+ok 33 - a bound direct regenerate marks upstream busy before its pre-interceptor delete
+  ---
+  duration_ms: 1.2827
+  type: 'test'
+  ...
+# Subtest: all inputs are collected once in template order, with Chinese punctuation and defaults
+ok 34 - all inputs are collected once in template order, with Chinese punctuation and defaults
+  ---
+  duration_ms: 1.6717
+  type: 'test'
+  ...
+# Subtest: prefilled defaults and explicit empty values, including fields with no default, are preserved
+ok 35 - prefilled defaults and explicit empty values, including fields with no default, are preserved
+  ---
+  duration_ms: 0.7936
+  type: 'test'
+  ...
+# Subtest: cancelling returns null without expanding macros or producing insertion text
+ok 36 - cancelling returns null without expanding macros or producing insertion text
+  ---
+  duration_ms: 0.155
+  type: 'test'
+  ...
+# Subtest: chapter counts are derived live, including after deleting a middle chapter
+ok 37 - chapter counts are derived live, including after deleting a middle chapter
+  ---
+  duration_ms: 0.2206
+  type: 'test'
+  ...
+# Subtest: chapter counting observes chat changes while the input dialog is open
+ok 38 - chapter counting observes chat changes while the input dialog is open
+  ---
+  duration_ms: 0.1511
+  type: 'test'
+  ...
+# Subtest: standard macros expand on literal fragments and text typed by the user stays literal
+ok 39 - standard macros expand on literal fragments and text typed by the user stays literal
+  ---
+  duration_ms: 0.2368
+  type: 'test'
+  ...
+# Subtest: a macro cannot span an input or chapter token, and typed director tokens are not parsed again
+ok 40 - a macro cannot span an input or chapter token, and typed director tokens are not parsed again
+  ---
+  duration_ms: 0.3859
+  type: 'test'
+  ...
+# Subtest: Director tokens entered as input stay literal and replacement strings retain dollar signs
+ok 41 - Director tokens entered as input stay literal and replacement strings retain dollar signs
+  ---
+  duration_ms: 0.1784
+  type: 'test'
+  ...
+# Subtest: templates without inputs do not open a dialog and still expand standard macros
+ok 42 - templates without inputs do not open a dialog and still expand standard macros
+  ---
+  duration_ms: 0.2118
+  type: 'test'
+  ...
+# Subtest: first content bypasses the initial Stopwatch interval and paints before any frame
+ok 43 - first content bypasses the initial Stopwatch interval and paints before any frame
+  ---
+  duration_ms: 3.8645
+  type: 'test'
+  ...
+# Subtest: reasoning and subsequent first message content each paint immediately
+ok 44 - reasoning and subsequent first message content each paint immediately
+  ---
+  duration_ms: 1.1699
+  type: 'test'
+  ...
+# Subtest: disabled optimization retains upstream Stopwatch and synchronous full writes without a channel
+ok 45 - disabled optimization retains upstream Stopwatch and synchronous full writes without a channel
+  ---
+  duration_ms: 1.0841
+  type: 'test'
+  ...
+# Subtest: final rejects stale frame callbacks
+ok 46 - final rejects stale frame callbacks
+  ---
+  duration_ms: 1.1174
+  type: 'test'
+  ...
+# Subtest: final rejects stale MessageChannel callbacks
+ok 47 - final rejects stale MessageChannel callbacks
+  ---
+  duration_ms: 0.8208
+  type: 'test'
+  ...
+# Subtest: stop rejects stale frame callbacks
+ok 48 - stop rejects stale frame callbacks
+  ---
+  duration_ms: 0.843
+  type: 'test'
+  ...
+# Subtest: stop rejects stale MessageChannel callbacks
+ok 49 - stop rejects stale MessageChannel callbacks
+  ---
+  duration_ms: 0.8194
+  type: 'test'
+  ...
+# Subtest: error rejects stale frame callbacks
+ok 50 - error rejects stale frame callbacks
+  ---
+  duration_ms: 1.4784
+  type: 'test'
+  ...
+# Subtest: error rejects stale MessageChannel callbacks
+ok 51 - error rejects stale MessageChannel callbacks
+  ---
+  duration_ms: 0.8686
+  type: 'test'
+  ...
+# Subtest: abandon rejects stale frame callbacks
+ok 52 - abandon rejects stale frame callbacks
+  ---
+  duration_ms: 0.8357
+  type: 'test'
+  ...
+# Subtest: abandon rejects stale MessageChannel callbacks
+ok 53 - abandon rejects stale MessageChannel callbacks
+  ---
+  duration_ms: 0.7169
+  type: 'test'
+  ...
+# Subtest: a stale task cannot flush newer queued work after a synchronous token invalidation
+ok 54 - a stale task cannot flush newer queued work after a synchronous token invalidation
+  ---
+  duration_ms: 0.9251
+  type: 'test'
+  ...
+# Subtest: abandonment while reasoning awaits prevents an in-flight tick from painting
+ok 55 - abandonment while reasoning awaits prevents an in-flight tick from painting
+  ---
+  duration_ms: 0.7913
+  type: 'test'
+  ...
+# Subtest: format-delay query is off unless it is a positive number, and capped at 50ms
+ok 56 - format-delay query is off unless it is a positive number, and capped at 50ms
+  ---
+  duration_ms: 0.1283
+  type: 'test'
+  ...
+# Subtest: a fixed 12ms format keeps the first paint synchronous and later paints two frames apart
+ok 57 - a fixed 12ms format keeps the first paint synchronous and later paints two frames apart
+  ---
+  duration_ms: 1.1569
+  type: 'test'
+  ...
+# Subtest: the last chunk paints a full write immediately and matches direct formatting
+ok 58 - the last chunk paints a full write immediately and matches direct formatting
+  ---
+  duration_ms: 0.7765
+  type: 'test'
+  ...
+# Subtest: format samples at or under 8ms return to one frame and still honor streaming_fps
+ok 59 - format samples at or under 8ms return to one frame and still honor streaming_fps
+  ---
+  duration_ms: 2.0899
+  type: 'test'
+  ...
+# Subtest: default streaming_fps still drops updates inside its interval when format delay is off
+ok 60 - default streaming_fps still drops updates inside its interval when format delay is off
+  ---
+  duration_ms: 0.9427
+  type: 'test'
+  ...
+1..60
+# tests 60
+# suites 0
+# pass 60
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 182.2972

@@ -1,0 +1,15 @@
+{
+  "head": "6586620a9cb5f08da74db016db92456aafacbe6e",
+  "product": "WORKTREE",
+  "files": {
+    "public/script.js": "29a2a106c577d1cbac8d8c9e2de9b9aee959494042b970a9674cc048e3fca811",
+    "tests/LONGCHAT-PERF.md": "0f514465835d0f68b964d118645855b3be98246c365f948c668f9bfdb5410d54",
+    "tests/browser-longchat-perf.py": "78aa52cff920292efd78a29344bfca5724eed704b40a9e5b4bf3696b5fa5d293",
+    "tests/chat-load-ownership.test.mjs": "353ec37ae51a8784581e5a1703c24158901a9f7662c9536e477ea123d48df003",
+    "tests/longchat-browser-probe.mjs": "637532c32b42563ad398c3852836aca43684d29d7e02ab5b4de50e4483ecc00a",
+    "tests/longchat-measurement.test.mjs": "61910c62ef70919234f8c2f0a55efeacc2a57d9a7ed7516e0bea1fab4c088f4a",
+    "tests/longchat-normalization.mjs": "0f01a556d4819c181775634308a4889304f1f7583c3e6b018417c6dfcdf4d124",
+    "tests/longchat-older-slices.test.mjs": "9e4b50d899db383336365b897722e70c95cb9027e2f2189f224c6dec29f3dcf8"
+  },
+  "note": "Full-suite product/probe/normalizer unchanged afterwards; subsequent changes document results and redact linked dependency paths."
+}

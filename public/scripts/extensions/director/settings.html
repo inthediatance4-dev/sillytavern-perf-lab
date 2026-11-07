@@ -1,0 +1,64 @@
+<div id="director_settings" class="director_settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>🎬 命运之牌</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <p>输入框旁的 🎬 是你的导演席。挑一则预设，给下一段故事定调；或者什么都不选，让命运自己翻牌。</p>
+            <details class="director_settings_help">
+                <summary>玩法速览</summary>
+                <p>菜单打开后按 1–9 选用前九则，Esc 关闭。「嘱咐下一笔」不会写成聊天消息——只有生成顺利写完才会用掉；报错或中途停下时还留着。</p>
+                <p>章节标记跟着消息走，换备选回复或重新打开聊天都还在。消息菜单「设为章节起点」可标记任意消息，再点一次取消。</p>
+                <p>快捷键留空即关闭，正在打字时不会触发。预设里的空栏可以不填；取消对话框则不会插入。</p>
+            </details>
+            <label for="director_hotkey">快捷键</label>
+            <input id="director_hotkey" class="text_pole" type="text" placeholder="Ctrl+Shift+D（留空关闭）" autocomplete="off">
+            <hr>
+            <p>预设的顺序就是菜单里的 1–9。拖动手柄或点箭头排序，最多 50 个。</p>
+            <ol id="director_presets" aria-label="命运之牌预设"></ol>
+            <div class="director_manager_actions">
+                <button id="director_preset_add" type="button" class="menu_button">添加预设</button>
+                <button id="director_restore_defaults" type="button" class="menu_button">恢复默认</button>
+                <button id="director_import" type="button" class="menu_button">导入 JSON</button>
+                <button id="director_export" type="button" class="menu_button">导出 JSON</button>
+                <input id="director_import_file" type="file" accept=".json,application/json" hidden>
+            </div>
+            <details class="director_settings_help">
+                <summary>导入格式与限制</summary>
+                <small>导入会整份换掉现有预设；格式不对就保持原样。文件须为 {"version":1,"presets":[…]}，不能是裸数组。每项只能包含 id、icon、name、mode、template、isChapter、autoGenerate，重复 id 会被拒绝。名称和 id 不可为空白，mode 只能是 narrator（写入正文）、comment（只留给自己）或 instruct（嘱咐下一笔）。id / 图标 / 名称 / 模板长度上限分别为 128 / 64 / 200 / 20000 字符，最多 50 个预设。</small>
+            </details>
+            <p id="director_preset_status" role="status" aria-live="polite"></p>
+            <details class="director_settings_help">
+                <summary>斜线命令与章节规则</summary>
+                <p><code>/director &lt;名称或序号&gt; [文字]</code> 可用于快速回复。文字填入第一个输入框，其余用默认值；没有默认值的会再问你。名称先按原文匹配，再忽略大小写。纯数字始终是序号。名称里有空格时请加引号。</p>
+                <p>章节记在那条消息上，不另存序号，也没有单独的章节文件。序号按整段聊天里带标题的消息现算，删掉中间一章，后面会自动重排。标题是模板里第一个 {{input}} 的原文（默认预设的提示是「章节标题」），后面的输入只进正文；没有输入框时，用预设名称当标题。算出来的「第N章」不是标题。消息菜单「设为章节起点」可标记任意消息，标题框会先填上该消息的第一行；再点一次就取消。若这条消息只剩章节标记、没有别的预设留下的信息，取消时会整段去掉。菜单里的「章节」列出序号和标题，点一下就跳过去；还要往上加载超过 500 条时，会先问你。</p>
+            </details>
+        </div>
+    </div>
+    <template id="director_preset_template">
+        <li class="director_preset">
+            <div class="director_preset_toolbar">
+                <span class="drag-handle fa-solid fa-grip-vertical" title="拖动排序" aria-hidden="true"></span>
+                <strong class="director_preset_heading"></strong>
+                <button type="button" class="menu_button" data-action="up" aria-label="上移预设" title="上移">↑</button>
+                <button type="button" class="menu_button" data-action="down" aria-label="下移预设" title="下移">↓</button>
+                <button type="button" class="menu_button" data-action="delete" aria-label="删除预设" title="删除">×</button>
+            </div>
+            <div class="director_preset_fields">
+                <label>图标<input type="text" class="text_pole" data-field="icon"></label>
+                <label>名称<input type="text" class="text_pole" data-field="name" required></label>
+                <label>模式<select class="text_pole" data-field="mode">
+                    <option value="narrator">写入正文（模型看得到）</option>
+                    <option value="comment">只留给自己（模型看不到）</option>
+                    <option value="instruct">嘱咐下一笔（不写入聊天）</option>
+                </select></label>
+            </div>
+            <label>模板<textarea class="text_pole" rows="3" data-field="template"></textarea></label>
+            <div class="director_preset_flags">
+                <label class="checkbox_label"><input type="checkbox" data-field="isChapter">章节起点</label>
+                <label class="checkbox_label"><input type="checkbox" data-field="autoGenerate">插入后自动生成</label>
+            </div>
+        </li>
+    </template>
+</div>

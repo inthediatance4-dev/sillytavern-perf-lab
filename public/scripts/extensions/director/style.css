@@ -1,0 +1,1080 @@
+#directorButton {
+    font-family: inherit;
+    order: 4;
+}
+
+#director_fate_panel {
+    width: min(360px, calc(100vw - 64px));
+    max-width: 100%;
+    margin: auto;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+/*
+ * Fate card stock. The card is a physical object with its own palette so it
+ * reads the same on light and dark SillyTavern themes. Rarity only swaps the
+ * ink, the foil line and the glow. Text stays high contrast on every stock.
+ */
+.director_fate_card,
+.director_fate_choice,
+.director_fate_log_entry {
+    --fate-node: #b9b1a1;
+    --fate-ink: #24222c;
+    --fate-ink-deep: #131218;
+    --fate-line: #d9d0bd;
+    --fate-line-soft: rgba(217, 208, 189, 0.38);
+    --fate-glow: rgba(217, 208, 189, 0.22);
+    --fate-wax: #8f3029;
+    --fate-wax-deep: #4d1511;
+}
+
+.director_fate_card[data-rarity="rare"],
+.director_fate_choice[data-rarity="rare"],
+.director_fate_log_entry[data-rarity="rare"] {
+    --fate-node: #9fb4d8;
+    --fate-ink: #1e2a3f;
+    --fate-ink-deep: #0f1624;
+    --fate-line: #cdd7e8;
+    --fate-line-soft: rgba(205, 215, 232, 0.45);
+    --fate-glow: rgba(150, 182, 230, 0.34);
+    --fate-wax: #2f527f;
+    --fate-wax-deep: #14263f;
+}
+
+.director_fate_card[data-rarity="legendary"],
+.director_fate_choice[data-rarity="legendary"],
+.director_fate_log_entry[data-rarity="legendary"] {
+    --fate-node: #e0b955;
+    --fate-ink: #2c1518;
+    --fate-ink-deep: #120809;
+    --fate-line: #e6c46f;
+    --fate-line-soft: rgba(230, 196, 111, 0.55);
+    --fate-glow: rgba(230, 186, 90, 0.4);
+    --fate-wax: #b07d2a;
+    --fate-wax-deep: #5a3a0c;
+}
+
+.director_fate_card {
+    display: grid;
+    width: min(100%, 264px);
+    min-width: 0;
+    margin: 18px auto;
+    perspective: 900px;
+    text-align: center;
+}
+
+.director_fate_card:focus-visible {
+    border-radius: 18px;
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    outline-offset: 4px;
+}
+
+.director_fate_back,
+.director_fate_face {
+    position: relative;
+    display: flex;
+    grid-area: 1 / 1;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 0;
+    min-height: 300px;
+    padding: 28px 20px;
+    overflow: hidden;
+    border: 1px solid var(--fate-line-soft);
+    border-radius: 14px;
+    backface-visibility: hidden;
+    transition: transform 600ms ease, opacity 600ms ease;
+}
+
+.director_fate_back {
+    color: var(--fate-line);
+    background:
+        radial-gradient(circle at 18px 18px, var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at calc(100% - 18px) 18px, var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 18px calc(100% - 18px), var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at calc(100% - 18px) calc(100% - 18px), var(--fate-line) 0 1.5px, transparent 2.5px),
+        radial-gradient(ellipse at 50% 38%, var(--fate-glow) 0, transparent 62%),
+        repeating-linear-gradient(45deg, transparent 0 9px, rgba(255, 255, 255, 0.035) 9px 10px),
+        repeating-linear-gradient(-45deg, transparent 0 9px, rgba(255, 255, 255, 0.035) 9px 10px),
+        linear-gradient(160deg, var(--fate-ink), var(--fate-ink-deep));
+    outline: 1px solid var(--fate-line-soft);
+    outline-offset: -9px;
+    box-shadow: inset 0 0 0 8px rgba(0, 0, 0, 0.28), 0 10px 24px rgba(0, 0, 0, 0.38);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    transform: rotateY(0deg);
+}
+
+.director_fate_card[data-rarity="rare"] .director_fate_back {
+    background-color: var(--fate-ink);
+    box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.28),
+        inset 0 48px 60px -40px rgba(205, 215, 232, 0.22),
+        0 10px 24px rgba(0, 0, 0, 0.38);
+}
+
+.director_fate_card[data-rarity="legendary"] .director_fate_back {
+    box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.32),
+        inset 0 0 40px rgba(230, 186, 90, 0.12),
+        0 10px 28px rgba(0, 0, 0, 0.42),
+        0 0 22px rgba(230, 186, 90, 0.2);
+}
+
+/* An empty slot is a face-down deck: two cards peek out behind the top one. */
+.director_fate_card[data-state="empty"] .director_fate_back {
+    box-shadow:
+        inset 0 0 0 8px rgba(0, 0, 0, 0.28),
+        4px 4px 0 -1px var(--fate-ink-deep),
+        4px 4px 0 0 var(--fate-line-soft),
+        8px 8px 0 -1px var(--fate-ink-deep),
+        8px 8px 0 0 rgba(217, 208, 189, 0.2),
+        0 14px 26px rgba(0, 0, 0, 0.35);
+}
+
+.director_fate_card[data-state="stale"] .director_fate_back { filter: grayscale(0.85) brightness(0.8); }
+
+.director_fate_face {
+    color: #2b2620;
+    border-color: #c8b993;
+    background:
+        radial-gradient(ellipse at 50% 0, rgba(255, 255, 255, 0.6), transparent 60%),
+        radial-gradient(ellipse at 50% 120%, rgba(150, 120, 70, 0.18), transparent 60%),
+        linear-gradient(180deg, #f7f2e7, #ebe1cc);
+    outline: 1px solid rgba(139, 109, 59, 0.35);
+    outline-offset: -8px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    font-size: 1.02em;
+    line-height: 1.7;
+    text-shadow: none;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    transform: rotateY(-180deg);
+    opacity: 0;
+}
+
+/* A hairline with a center pip, drawn so it never joins the event text. */
+.director_fate_face::before {
+    flex: 0 0 auto;
+    width: 72px;
+    height: 8px;
+    background:
+        radial-gradient(circle, #8b6d3b 0 2.5px, transparent 3px) center / 8px 8px no-repeat,
+        linear-gradient(90deg, transparent, rgba(139, 109, 59, 0.6), transparent) center / 100% 1px no-repeat;
+    content: '';
+}
+
+.director_fate_card[data-rarity="rare"] .director_fate_face { border-color: #9fb0cc; }
+.director_fate_card[data-rarity="legendary"] .director_fate_face {
+    border-color: #c99d3e;
+    outline-color: rgba(201, 157, 62, 0.65);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 24px rgba(230, 186, 90, 0.3);
+}
+
+.director_fate_flipped .director_fate_back { transform: rotateY(180deg); opacity: 0; }
+.director_fate_flipped .director_fate_face { transform: rotateY(0deg); opacity: 1; }
+
+.director_fate_card[data-state="sealed"] .director_fate_back::before {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 26px var(--fate-glow), inset 0 0 0 1px var(--fate-line-soft);
+    content: '';
+    pointer-events: none;
+    animation: director_fate_breathe 3s ease-in-out infinite;
+}
+
+/* Wax seal. Rarity tints the wax; the glyph is pressed into it. */
+.director_fate_seal,
+.director_fate_choice_seal {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50% 47% 52% 49% / 49% 53% 47% 51%;
+    background:
+        radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.38), transparent 36%),
+        radial-gradient(circle at 50% 50%, var(--fate-wax) 0 58%, var(--fate-wax-deep) 100%);
+    box-shadow: 0 3px 7px rgba(0, 0, 0, 0.5), inset 0 -3px 6px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.18);
+    color: rgba(255, 241, 222, 0.82);
+    font-size: 24px;
+    line-height: 1;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.2);
+    opacity: 1;
+}
+
+.director_fate_choice_seal { width: 38px; height: 38px; font-size: 15px; }
+
+.director_fate_seal::before,
+.director_fate_choice_seal::before {
+    position: absolute;
+    inset: 16%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+    content: '';
+}
+
+/* No card yet: an unpressed outline instead of wax. */
+.director_fate_card[data-state="empty"] .director_fate_seal {
+    background: none;
+    box-shadow: inset 0 0 0 1px var(--fate-line-soft);
+    color: var(--fate-line);
+    text-shadow: none;
+    opacity: 0.7;
+}
+
+/* Applying: the wax trembles and light leaks through a crack. */
+.director_fate_card[data-state="applying"] .director_fate_seal {
+    animation: director_fate_crack 900ms ease-in-out infinite;
+}
+
+.director_fate_card[data-state="applying"] .director_fate_back::before {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 30%, var(--fate-glow), transparent 55%);
+    content: '';
+    pointer-events: none;
+    animation: director_fate_breathe 900ms ease-in-out infinite;
+}
+
+.director_fate_card[data-state="applying"] .director_fate_seal::after,
+.director_fate_card[data-state="revealed"] .director_fate_seal::after,
+.director_fate_choice.is_drawing .director_fate_choice_seal::after {
+    position: absolute;
+    inset: 8% 38%;
+    background: linear-gradient(180deg, rgba(255, 246, 214, 0.2), #fff3cf 50%, rgba(255, 246, 214, 0.2));
+    clip-path: polygon(45% 0, 72% 20%, 38% 42%, 78% 64%, 50% 100%, 30% 100%, 56% 66%, 18% 44%, 52% 22%, 25% 0);
+    box-shadow: 0 0 6px #fff3cf;
+    content: '';
+    transform: rotate(18deg);
+    animation: director_fate_breathe 900ms ease-in-out infinite;
+}
+
+/* Revealed but not yet flipped: the seal stays broken. */
+.director_fate_card[data-state="revealed"] .director_fate_seal::after { opacity: 0.75; animation: none; }
+
+/* Reveal: a single light bloom as the face turns up. Never loops. */
+.director_fate_flipped .director_fate_face::after {
+    position: absolute;
+    inset: -10%;
+    background: radial-gradient(circle at 50% 45%, rgba(255, 244, 210, 0.95), var(--fate-glow) 35%, transparent 65%);
+    content: '';
+    pointer-events: none;
+    opacity: 0;
+    animation: director_fate_bloom 1100ms ease-out 320ms backwards;
+}
+
+@keyframes director_fate_bloom {
+    0% { opacity: 0; transform: scale(0.6); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.3); }
+}
+
+@keyframes director_fate_breathe { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes director_fate_crack {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.65; }
+    50% { transform: scale(1.08) rotate(-8deg); opacity: 1; }
+}
+
+#director_fate_title {
+    max-width: 100%;
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    font-size: 1.3em;
+    letter-spacing: 0.06em;
+}
+#director_fate_strength_label { font-size: 0.85em; letter-spacing: 0.12em; opacity: 0.75; }
+#director_fate_rarity {
+    padding: 1px 10px;
+    border: 1px solid var(--fate-line-soft);
+    border-radius: 999px;
+    font-size: 0.8em;
+    letter-spacing: 0.2em;
+}
+#director_fate_rarity:empty { display: none; }
+#director_fate_status { min-height: 2.5em; overflow-wrap: anywhere; }
+.director_fate_actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.director_fate_actions .menu_button { flex: 1 1 auto; }
+#director_fate_strength { width: 100%; }
+/*
+ * .menu_button is width: min-content. overflow-wrap: anywhere on this panel
+ * counts every glyph as a break, so that minimum is one character and short
+ * Chinese labels stack. nowrap keeps those labels on one line; a row that
+ * cannot fit wraps whole buttons instead of shrinking them.
+ */
+#director_fate_panel .menu_button {
+    flex-shrink: 0;
+    width: auto;
+    max-width: 100%;
+    white-space: nowrap;
+    /* .menu_button transitions every property. A resize into the 44px rule
+       would otherwise animate min-height up from auto, and the used height
+       stays near the content size until that transition ends. */
+    transition-property: background-color, border-color, filter, box-shadow;
+}
+#director_fate_panel .menu_button:not(.disabled):not([disabled]):active,
+#director_fate_panel .menu_button:not(.disabled):not([disabled]):focus-visible {
+    background-color: var(--white30a);
+}
+#director_fate_panel #director_fate_settings_toggle,
+#director_fate_panel #director_fate_clear_log {
+    width: 100%;
+    margin: 12px 0 0;
+}
+#director_fate_settings:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 12px; }
+#director_fate_settings label { min-width: 0; }
+#director_fate_settings select { min-width: 0; max-width: 100%; }
+#director_fate_panel [hidden] { display: none; }
+
+.director_fate_tabs {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+    padding-bottom: 8px;
+}
+
+.director_fate_tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    padding: 3px 5px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 7px;
+    background-color: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    filter: grayscale(0.5);
+    text-align: center;
+    white-space: normal;
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.director_fate_tab:hover,
+.director_fate_tab:active,
+.director_fate_tab:focus-visible { background-color: var(--white30a); }
+
+.director_fate_tabs [aria-selected="true"] {
+    border-color: var(--SmartThemeQuoteColor);
+    color: var(--SmartThemeQuoteColor);
+}
+
+/* The log is a timeline: newest at the top, one node per card on the rail. */
+#director_fate_log_list {
+    position: relative;
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    margin: 16px 0;
+    padding: 0 0 0 22px;
+    list-style: none;
+}
+
+#director_fate_log_list::before {
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 8px;
+    width: 2px;
+    border-radius: 1px;
+    background: linear-gradient(180deg, var(--SmartThemeBodyColor), transparent);
+    content: '';
+    opacity: 0.2;
+}
+
+.director_fate_log_entry {
+    position: relative;
+    min-width: 0;
+    padding: 12px 12px 12px 14px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-left: 3px solid var(--fate-node);
+    border-radius: 8px;
+    background: var(--SmartThemeBlurTintColor);
+}
+
+.director_fate_log_entry[data-rarity="legendary"] { box-shadow: 0 0 14px rgba(224, 185, 85, 0.16); }
+
+.director_fate_log_entry:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    outline-offset: 2px;
+}
+
+.director_fate_log_heading,
+.director_fate_log_details,
+.director_fate_log_actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    min-width: 0;
+}
+
+.director_fate_log_heading strong {
+    min-width: 0;
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    letter-spacing: 0.04em;
+}
+.director_fate_log_details { margin-top: 6px; font-size: 0.85em; opacity: 0.85; }
+.director_fate_log_status {
+    padding: 0 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: var(--SmartThemeQuoteColor);
+}
+.director_fate_log_event {
+    margin: 12px 0;
+    padding: 8px 12px;
+    border-left: 2px solid var(--fate-node);
+    border-radius: 0 6px 6px 0;
+    background: rgba(127, 127, 127, 0.08);
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    overflow-wrap: anywhere;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+.director_fate_log_actions { margin-top: 10px; }
+.director_fate_log_actions .menu_button { margin: 0; }
+
+/* Unflipped entries keep a strip of card back to tear open. */
+.director_fate_log_actions .director_fate_log_flip {
+    flex: 1 1 auto;
+    border: 1px solid var(--fate-line-soft);
+    background:
+        repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, 0.05) 6px 7px),
+        linear-gradient(160deg, var(--fate-ink), var(--fate-ink-deep));
+    color: var(--fate-line);
+    letter-spacing: 0.3em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.director_fate_log_actions .director_fate_log_flip:hover,
+.director_fate_log_actions .director_fate_log_flip:active,
+.director_fate_log_actions .director_fate_log_flip:focus-visible { box-shadow: 0 0 12px var(--fate-glow); }
+
+/* Log rail and chat header share one emblem: round seal, faceted gem, crowned star.
+   Color is extra. The silhouette is the rarity. No text on the mark. */
+.director_fate_mark,
+.director_fate_rarity_dot {
+    --fate-plate: #322b24;
+    --fate-edge: #e6dccb;
+    --fate-cut: #f7f1e6;
+    --fate-wax: #241c16;
+    --fate-rim: #1a1612;
+}
+
+.director_fate_mark[data-rarity="rare"],
+.director_fate_rarity_dot[data-rarity="rare"] {
+    --fate-plate: #243044;
+    --fate-edge: #f5f8fc;
+    --fate-cut: #ffffff;
+    --fate-wax: #0e1622;
+    --fate-rim: #101820;
+}
+
+.director_fate_mark[data-rarity="legendary"],
+.director_fate_rarity_dot[data-rarity="legendary"] {
+    --fate-plate: #e6b84a;
+    --fate-edge: #fff4cc;
+    --fate-cut: #fff8e6;
+    --fate-wax: #5a3810;
+    --fate-rim: #6a4514;
+}
+
+.director_fate_rarity_dot {
+    position: absolute;
+    top: 14px;
+    left: -21px;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--SmartThemeBlurTintColor);
+    box-shadow: 0 0 0 2px var(--SmartThemeBlurTintColor);
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
+    pointer-events: none;
+}
+
+/* The name row aligns on the text baseline, which drops a button below the
+   glyphs. Center the emblem on that line instead. The border box stays 18px;
+   the 44px hit pad is a separate layer. */
+.director_fate_mark {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    appearance: none;
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
+    letter-spacing: 0;
+    vertical-align: middle;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: box-shadow 160ms ease;
+}
+
+.director_fate_mark_emblem {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 18px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.director_fate_rarity_dot .director_fate_mark_emblem {
+    width: 16px;
+    height: 16px;
+}
+
+.director_fate_mark_glyph {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.director_fate_emblem_plate { fill: var(--fate-plate); }
+.director_fate_emblem_cut { fill: var(--fate-cut); }
+.director_fate_emblem_wax { fill: var(--fate-wax); }
+.director_fate_emblem_gloss { fill: var(--fate-cut); opacity: 0.2; }
+.director_fate_emblem_facet { fill: var(--fate-cut); opacity: 0.78; }
+.director_fate_emblem_facet_soft { fill: var(--fate-cut); opacity: 0.32; }
+.director_fate_emblem_shade { fill: var(--fate-wax); opacity: 0.55; }
+.director_fate_emblem_rim { fill: none; stroke: var(--fate-rim); stroke-linejoin: miter; stroke-miterlimit: 3; }
+.director_fate_emblem_edge { fill: none; stroke: var(--fate-edge); stroke-linejoin: miter; stroke-miterlimit: 3; }
+
+.director_fate_mark[data-rarity="legendary"] .director_fate_mark_glyph,
+.director_fate_rarity_dot[data-rarity="legendary"] .director_fate_mark_glyph {
+    filter: drop-shadow(0 0 0.6px rgba(224, 185, 85, 0.85));
+}
+
+/* Sheen is clipped to the star. It rests off the emblem so reduced motion,
+   which only cancels the animation, leaves a still gilt star. */
+.director_fate_mark_sheen {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.director_fate_mark[data-rarity="legendary"] .director_fate_mark_sheen::after {
+    content: '';
+    position: absolute;
+    top: -15%;
+    bottom: -15%;
+    left: -70%;
+    width: 42%;
+    background: linear-gradient(100deg, transparent, rgba(255, 248, 220, 0.82), transparent);
+    animation: director_fate_mark_sheen 4.4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.director_fate_mark:hover,
+.director_fate_mark:active,
+.director_fate_mark:focus-visible {
+    box-shadow: 0 0 0 1px var(--fate-edge), 0 0 0 2px var(--fate-rim);
+    outline: none;
+}
+
+.director_fate_mark:hover .director_fate_mark_glyph,
+.director_fate_mark:active .director_fate_mark_glyph,
+.director_fate_mark:focus-visible .director_fate_mark_glyph {
+    filter: drop-shadow(0 0 1px var(--fate-edge));
+}
+
+.director_fate_mark.is_fresh { animation: director_fate_mark_pulse 700ms ease-out; }
+
+/* One pulse with a ring when the card lands. Not repeated. */
+@keyframes director_fate_mark_pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    45% { transform: scale(1.25); opacity: 0.65; box-shadow: 0 0 0 6px transparent, 0 0 12px var(--fate-edge); }
+}
+
+@keyframes director_fate_mark_sheen {
+    0%, 62% { transform: translateX(0); }
+    82%, 100% { transform: translateX(420%); }
+}
+
+/* Three across down to a 360px phone. Titles wrap inside each card. */
+.director_fate_offer {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    margin: 16px 0;
+}
+
+.director_fate_choice {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 150px;
+    padding: 14px 6px 12px;
+    overflow: hidden;
+    border: 1px solid var(--fate-line-soft);
+    border-radius: 12px;
+    background:
+        radial-gradient(ellipse at 50% 30%, var(--fate-glow) 0, transparent 65%),
+        repeating-linear-gradient(45deg, transparent 0 7px, rgba(255, 255, 255, 0.035) 7px 8px),
+        repeating-linear-gradient(-45deg, transparent 0 7px, rgba(255, 255, 255, 0.035) 7px 8px),
+        linear-gradient(160deg, var(--fate-ink), var(--fate-ink-deep));
+    outline: 1px solid var(--fate-line-soft);
+    outline-offset: -6px;
+    box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.28), 0 6px 14px rgba(0, 0, 0, 0.35);
+    color: var(--fate-line);
+    font: inherit;
+    line-height: 1.3;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    overflow-wrap: anywhere;
+    cursor: pointer;
+    /* translate is the hover lift. The pick listener ignores it, so a hover
+       ending under the cursor cannot start the seal crack early. */
+    transition: transform 400ms ease, opacity 400ms ease, translate 180ms ease, box-shadow 180ms ease;
+    animation: director_fate_deal 360ms ease-out backwards;
+}
+
+/* Dealt left to right. Only opacity on the button itself, so the row is
+   measured in place while it settles; the contents slide in their own box. */
+.director_fate_choice:nth-child(2) { animation-delay: 110ms; }
+.director_fate_choice:nth-child(3) { animation-delay: 220ms; }
+.director_fate_choice > * { animation: director_fate_deal_rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; animation-delay: inherit; }
+
+.director_fate_choice:not(:disabled):active,
+.director_fate_choice:focus-visible {
+    translate: 0 -4px;
+    box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.28), 0 10px 20px rgba(0, 0, 0, 0.4), 0 0 16px var(--fate-glow);
+}
+
+/* The lift is hover-only. A finger tap must not leave the card raised. */
+@media (hover: hover) {
+    .director_fate_choice:not(:disabled):hover {
+        translate: 0 -4px;
+        box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.28), 0 10px 20px rgba(0, 0, 0, 0.4), 0 0 16px var(--fate-glow);
+    }
+}
+
+.director_fate_choice:focus-visible { outline: 2px solid var(--fate-line); outline-offset: -5px; }
+.director_fate_choice:disabled { cursor: default; }
+
+.director_fate_choice_title {
+    align-self: stretch;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: center;
+}
+.director_fate_choice_rarity {
+    max-width: 100%;
+    padding: 0 8px;
+    border: 1px solid var(--fate-line-soft);
+    border-radius: 999px;
+    font-size: 0.78em;
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+}
+
+.director_fate_choice[data-rarity="legendary"] {
+    box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.3), 0 6px 14px rgba(0, 0, 0, 0.35), 0 0 14px rgba(230, 186, 90, 0.22);
+}
+
+/* Foil sheen. A slim light band crosses legendary stock now and then. It is
+   a pseudo-element, so the card itself never moves or fades. */
+.director_fate_choice[data-rarity="legendary"]::after,
+.director_fate_card[data-rarity="legendary"] .director_fate_back::after {
+    position: absolute;
+    top: -20%;
+    bottom: -20%;
+    left: -60%;
+    width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255, 233, 170, 0.3), transparent);
+    content: '';
+    pointer-events: none;
+    opacity: 0;
+    animation: director_fate_sheen 4.2s ease-in-out 1s infinite;
+}
+
+.director_fate_choice[data-rarity="rare"]::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(150deg, rgba(205, 215, 232, 0.16), transparent 45%);
+    content: '';
+    pointer-events: none;
+}
+
+.director_fate_choice.is_picked {
+    box-shadow: inset 0 0 0 5px rgba(0, 0, 0, 0.28), 0 10px 22px rgba(0, 0, 0, 0.45), 0 0 22px var(--fate-glow);
+}
+
+.director_fate_offer.is_picking .director_fate_choice:not(.is_picked) { opacity: 0; animation: none; }
+.director_fate_offer.is_picking[data-picking="0"] .director_fate_choice.is_picked { transform: translateX(calc(100% + 8px)); }
+.director_fate_offer.is_picking[data-picking="2"] .director_fate_choice.is_picked { transform: translateX(calc(-100% - 8px)); }
+.director_fate_choice.is_drawing .director_fate_choice_seal { animation: director_fate_crack 900ms ease-in-out infinite; }
+
+@keyframes director_fate_deal { from { opacity: 0; } to { opacity: 1; } }
+@keyframes director_fate_deal_rise {
+    from { opacity: 0; transform: translateY(14px) scale(0.92); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes director_fate_sheen {
+    0% { opacity: 0; transform: translateX(0) skewX(-14deg); }
+    10% { opacity: 1; }
+    40% { opacity: 1; transform: translateX(420%) skewX(-14deg); }
+    41%, 100% { opacity: 0; transform: translateX(420%) skewX(-14deg); }
+}
+
+.director_fate_nomotion .director_fate_card *,
+.director_fate_nomotion .director_fate_card ::before,
+.director_fate_nomotion .director_fate_card ::after,
+.director_fate_nomotion .director_fate_choice,
+.director_fate_nomotion .director_fate_choice > *,
+.director_fate_nomotion .director_fate_choice::after,
+.director_fate_nomotion .director_fate_choice_seal,
+.director_fate_nomotion .director_fate_mark { animation: none !important; }
+.director_fate_nomotion .director_fate_choice,
+body.reduced-motion .director_fate_choice { translate: none; }
+.director_fate_nomotion .director_fate_choice:is(:hover, :active, :focus-visible),
+body.reduced-motion .director_fate_choice:is(:hover, :active, :focus-visible) { translate: none; }
+body.reduced-motion .director_fate_card *,
+body.reduced-motion .director_fate_card ::before,
+body.reduced-motion .director_fate_card ::after,
+body.reduced-motion .director_fate_choice,
+body.reduced-motion .director_fate_choice > *,
+body.reduced-motion .director_fate_choice::after { animation: none !important; }
+.director_fate_nomotion .director_fate_back,
+.director_fate_nomotion .director_fate_face { transform: none; transition: opacity 150ms ease; }
+.director_fate_nomotion .director_fate_choice { transform: none; transition: opacity 150ms ease; }
+.director_fate_nomotion .director_fate_tab,
+body.reduced-motion .director_fate_tab,
+body.reduced-motion .director_fate_mark {
+    animation: none !important;
+    transition: none;
+}
+.director_fate_nomotion .director_fate_mark_sheen::after,
+body.reduced-motion .director_fate_mark_sheen::after { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .director_fate_card *, .director_fate_card ::before, .director_fate_card ::after,
+    .director_fate_choice, .director_fate_choice > *, .director_fate_choice::after,
+    .director_fate_choice_seal, .director_fate_mark { animation: none !important; }
+    .director_fate_mark_sheen::after { animation: none !important; }
+    .director_fate_choice { translate: none; }
+    .director_fate_choice:not(:disabled):hover,
+    .director_fate_choice:not(:disabled):active,
+    .director_fate_choice:focus-visible { translate: none; }
+    .director_fate_back, .director_fate_face { transform: none !important; transition: opacity 150ms ease; }
+    .director_fate_choice, .director_fate_offer.is_picking .director_fate_choice.is_picked {
+        transform: none !important;
+        transition: opacity 150ms ease;
+    }
+    .director_fate_tab { animation: none !important; transition: none; }
+}
+
+#directorPopover {
+    z-index: 30000;
+    width: min(260px, 90vw);
+    max-width: calc(100vw - 16px);
+    max-height: 70vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    padding: 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 10px;
+    background: var(--SmartThemeBlurTintColor);
+    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    box-shadow: 0 2px 8px var(--black70a);
+}
+
+#directorPopover[hidden] {
+    display: none;
+}
+
+#directorPopover button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    overflow-wrap: anywhere;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+#directorPopover button:hover,
+#directorPopover button:focus-visible,
+#directorPopover button:not(:disabled):active {
+    background: var(--black30a);
+}
+
+.director_footer button { white-space: nowrap; }
+
+#directorPopover button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+#directorPopover kbd {
+    margin-left: auto;
+    opacity: 0.6;
+}
+
+.director_footer {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--SmartThemeBorderColor);
+}
+
+#director_presets {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.director_preset {
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 5px;
+    background: var(--SmartThemeBlurTintColor);
+}
+
+.director_preset_toolbar,
+.director_preset_flags,
+.director_manager_actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.director_manager_actions,
+.director_preset_flags {
+    flex-wrap: wrap;
+}
+
+.director_preset_heading {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.director_preset_toolbar .menu_button,
+.director_manager_actions .menu_button {
+    width: auto;
+    margin: 0;
+}
+
+.director_preset .drag-handle {
+    cursor: grab;
+    padding: 6px;
+}
+
+.director_preset_fields {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 6px;
+}
+
+.director_preset_fields label:last-child {
+    grid-column: 1 / -1;
+}
+
+.director_preset textarea {
+    resize: vertical;
+}
+
+.director_empty {
+    margin: 8px;
+}
+
+/* Divider stays outside .mes_text so streaming and other extensions keep the message body. */
+.director-chapter-divider {
+    margin: 2px 0 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeQuoteColor);
+    font-weight: 600;
+    text-align: center;
+    user-select: none;
+}
+
+.mes.director-chapter-highlight {
+    box-shadow: inset 0 0 0 2px var(--SmartThemeQuoteColor);
+}
+
+/* Jumping to a Fate message frames it in gold foil instead of the theme quote color. */
+.mes.director-fate-highlight {
+    box-shadow: inset 0 0 0 2px #d9b45a, inset 0 0 24px rgba(217, 180, 90, 0.18);
+}
+
+.extraMesButtons:has(> .mes_director_chapter) {
+    overflow: visible;
+}
+
+.mes_director_chapter {
+    flex: 0 0 auto;
+    font-style: normal;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Keep the chip in the icon row. A squeezed chip would paint its dismiss control under the textarea. */
+#leftSendForm:has(#director_instruct_chip:not([hidden])) {
+    flex: 0 0 auto;
+}
+
+#director_instruct_chip {
+    order: 4;
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 18em;
+    margin: 0 2px;
+    padding: 0 6px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 999px;
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font: inherit;
+    font-size: 0.85em;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+#director_instruct_chip .director_instruct_text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#director_instruct_chip[hidden] {
+    display: none;
+}
+
+#director_instruct_chip[data-state="pending"] {
+    color: #c45c12;
+    border-color: #c45c12;
+}
+
+#director_instruct_chip[data-state="bound"] {
+    color: #5c6b80;
+    border-color: #6a7c93;
+}
+
+#director_instruct_chip .director_instruct_dismiss {
+    flex: 0 0 auto;
+    padding: 0 2px;
+}
+
+.director_instruct_full {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* 44px targets on a phone or a touch screen. Desktop pointers keep the compact controls. */
+@media (max-width: 480px), ((pointer: coarse) and (max-width: 900px)) {
+    #director_fate_panel .menu_button,
+    .director_fate_tab,
+    #directorPopover button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .director_fate_offer { gap: 6px; }
+    .director_fate_choice { padding-right: 4px; padding-left: 4px; }
+    .director_fate_choice_rarity { padding-right: 4px; padding-left: 4px; }
+
+    #director_fate_strength,
+    #director_fate_settings select { min-height: 44px; }
+
+    #director_fate_settings:not([hidden]) { grid-auto-rows: minmax(44px, auto); }
+
+    #director_fate_settings input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* Invisible pad. The chip's border box stays the small header glyph. */
+    .director_fate_mark::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+        transition: none;
+    }
+}
+
+.director_settings_help {
+    margin: 6px 0;
+    padding: 6px 10px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 6px;
+}
+
+.director_settings_help summary {
+    cursor: pointer;
+    font-size: 0.9em;
+    opacity: 0.75;
+    user-select: none;
+}
+
+.director_settings_help[open] summary {
+    margin-bottom: 8px;
+    opacity: 1;
+}
+
+.director_settings_help p,
+.director_settings_help small {
+    margin: 6px 0;
+    line-height: 1.6;
+}

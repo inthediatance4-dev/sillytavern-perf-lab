@@ -1,0 +1,44 @@
+Sampled self time, aggregated by function + URL (includes idle/native samples).
+CPU samples cannot attribute threadpool fsync blocking time; idle is not fsync evidence.
+Sampled duration: 6025.349 ms
+self_ms	percent	function	url
+3967.527	65.85	(idle)	(native)
+1159.294	19.24	(anonymous)	file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js
+128.461	2.13	(garbage collector)	(native)
+69.766	1.16	promisify	node:internal/util
+60.554	1.00	(program)	(native)
+54.744	0.91	lstat	(native)
+44.246	0.73	close	(native)
+42.464	0.70	dispatch	(native)
+32.530	0.54	writeString	(native)
+31.996	0.53	mkdir	(native)
+28.230	0.47	write	node:fs
+28.179	0.47	start	(native)
+28.043	0.47	lstat	node:internal/fs/promises
+26.806	0.44	realpath	(native)
+15.429	0.26	unlink	(native)
+9.923	0.16	promiseInitHook	node:internal/async_hooks
+9.865	0.16	get prototype	(native)
+9.848	0.16	handleErrorFromBinding	node:internal/fs/promises
+9.673	0.16	checkLocalPath	file:///workspace/sillytavern-perf-lab/src/chat-io.js
+9.429	0.16	resolve	node:path
+8.895	0.15	mkdir	node:internal/fs/promises
+8.571	0.14	writeFileAsync	file:///workspace/sillytavern-perf-lab/node_modules/write-file-atomic/lib/index.js
+8.414	0.14	callbackTrampoline	node:internal/async_hooks
+8.194	0.14	(anonymous)	node:internal/util
+8.095	0.13	wrappedFn	node:internal/errors
+7.588	0.13	isSignal	node:internal/process/signal
+7.510	0.12	(anonymous)	file:///workspace/sillytavern-perf-lab/node_modules/write-file-atomic/lib/index.js
+6.957	0.12	withPathLocks	file:///workspace/sillytavern-perf-lab/src/chat-io.js
+6.677	0.11	fn	node:internal/util
+6.368	0.11	chatLockPaths	file:///workspace/sillytavern-perf-lab/src/chat-io.js
+5.802	0.10	join	node:path
+5.791	0.10	Signal	(native)
+5.776	0.10	fsync	(native)
+5.657	0.09	relative	node:path
+5.501	0.09	(anonymous)	node:internal/fs/utils
+5.359	0.09	(anonymous)	file:///workspace/sillytavern-perf-lab/src/chat-io.js
+5.351	0.09	writeChatFile	file:///workspace/sillytavern-perf-lab/src/chat-io.js
+5.317	0.09	rename	(native)
+5.306	0.09	assertContainedChatPath	file:///workspace/sillytavern-perf-lab/src/chat-io.js
+5.114	0.08	set natives	(native)

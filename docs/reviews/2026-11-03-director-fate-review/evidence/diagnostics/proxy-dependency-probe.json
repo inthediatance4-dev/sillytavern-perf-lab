@@ -1,0 +1,8 @@
+{
+  "url": "https://testingcf.jsdelivr.net/npm/vue/dist/vue.runtime.global.prod.min.js",
+  "browser": "Chrome 156.0.8078.76",
+  "proxy": "existing configured proxy; endpoint omitted",
+  "status": 200,
+  "responseBytes": 111516,
+  "scope": "Independent browser connectivity probe; the final enabled-extension suite separately reports zero external request failures and zero page errors."
+}

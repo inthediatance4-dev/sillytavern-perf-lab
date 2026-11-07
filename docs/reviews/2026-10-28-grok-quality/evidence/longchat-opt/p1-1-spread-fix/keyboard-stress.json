@@ -1,0 +1,18 @@
+{
+  "node": "v24.22.1",
+  "results": [
+    {
+      "side": "base",
+      "controls": 300000,
+      "status": "error",
+      "error": "RangeError: Maximum call stack size exceeded",
+      "visits": 0
+    },
+    {
+      "side": "head",
+      "controls": 300000,
+      "status": "ok",
+      "visits": 0
+    }
+  ]
+}

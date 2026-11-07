@@ -1,0 +1,11 @@
+{
+  "size": 2000,
+  "truncation": 100,
+  "iteration": 5,
+  "status": "timeout",
+  "profiled": false,
+  "error": "Page.goto: Timeout 120000ms exceeded.\nCall log:\n  - navigating to \"http://<host>/\", waiting until \"networkidle\"\n",
+  "dialogs": [],
+  "pageErrors": [],
+  "forbiddenRequests": []
+}

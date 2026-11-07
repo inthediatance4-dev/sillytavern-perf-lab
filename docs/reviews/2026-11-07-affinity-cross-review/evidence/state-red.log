@@ -1,0 +1,787 @@
+✔ new state is chat-local, bounded metadata starts empty, and invalid scopes fail (2.4465ms)
+✔ parser accepts only complete JSON and complete json fences, without assistant prefixes (1.094ms)
+✖ parser rejects unsafe envelopes and discards unsafe or malformed individual events (0.4686ms)
+✖ parser preserves valid siblings and reports only aggregate rejection categories and counts (0.2791ms)
+✔ application is immutable and exact quote/fingerprint/swipe binding survives JSON reload (2.2021ms)
+✔ source owner, allowed actors and group relationship ownership are enforced (0.9972ms)
+✔ facts and ambiguous, future, implicit or unknown attitudes never score (1.5822ms)
+✔ major changes require one-time host-key verification and never downgrade to minor points (0.7094ms)
+✔ evidence identity ignores paraphrasing, valence, impact and batch repetition (0.7285ms)
+✔ overlapping quote aliases of one attitude cannot earn another score or major verification key (0.7112ms)
+✔ non-overlapping attitudes in the same logical message remain separate evidence (0.3179ms)
+✔ a wider or narrower promise quote does not create another open anchor (2.6115ms)
+✔ reconcile collapses stored overlapping attitude aliases without amplifying their first score (0.3743ms)
+✔ reconcile remaps a stored promise alias to its first host ID while preserving its valid outcome (0.8078ms)
+✔ stored promise aliases with separate completions still resolve their canonical promise only once (0.7027ms)
+✔ host promises award no points; completed result binds original promise and later literal evidence (0.8681ms)
+✔ a new promise or future/unknown/observed result cannot be mistaken for fulfillment (2.3504ms)
+✔ one message may contain a promise and a later separate result, but reverse/overlapping quotes fail (0.3826ms)
+✔ narrowing an outcome source cannot turn words inside the canonical promise into a later result (0.5898ms)
+✔ widening an outcome source does not hide a real result after the canonical promise (0.4932ms)
+✔ apply: a narrow result alias uses the original physical result boundary for later acknowledgement (0.6051ms)
+✔ reload: a narrow result alias uses the original physical result boundary for later acknowledgement (0.6072ms)
+✔ apply: a wide result alias uses the original physical result boundary for later acknowledgement (1.0213ms)
+✔ reload: a wide result alias uses the original physical result boundary for later acknowledgement (0.5786ms)
+✔ a character completing its own promise frees open-anchor capacity without gaining points (17.3022ms)
+✔ completed user promises may support the target owner while another character cannot narrate the result (0.4795ms)
+✔ a player outcome scores only after the target character has a later literal acknowledgement (2.6611ms)
+✔ reconcile retains unavailable owners without scoring them, and restores them only through a live owner (1.5294ms)
+✔ scores clamp at both bounds and causally replay in message order, independent of evaluation order (24.1573ms)
+✔ storage caps active/archive evidence and pins unresolved promises without silently discarding them (114.2237ms)
+✔ capacity forgets resolved dependencies together; deleting an archived result really reopens the original promise (48.5496ms)
+✔ all retained anchors share a hard cap, replacing only the oldest completed dependency family (10.9762ms)
+✔ the same physical outcome has one owner, regardless of acknowledgement order within a batch (0.4482ms)
+✔ metadata character budgets reject new oversized open anchors and preserve every accepted unresolved promise (86.4786ms)
+✔ malformed metadata fields are skipped without resetting valid state or reading inherited ledgers (1.3956ms)
+✔ an unresolved player promise stays injectable when its owner has not spoken in the live chat (0.2881ms)
+✔ fact evidence marked no stays stored without leaking into character memory (0.226ms)
+✔ promise evidence marked no stays stored without leaking into character memory (0.1743ms)
+✔ attitude evidence marked no stays stored without leaking into character memory (0.138ms)
+✔ fact evidence marked unknown stays stored without leaking into character memory (0.1182ms)
+✔ promise evidence marked unknown stays stored without leaking into character memory (0.1197ms)
+✔ attitude evidence marked unknown stays stored without leaking into character memory (0.0879ms)
+✔ unknown evidence cannot crowd a known fact out of the five injected memories (0.4532ms)
+✔ memory stays owner-local, prioritizes open promises, hides score mechanics, and requires corroboration for a weak tendency (1.3181ms)
+✔ positive gains diminish at high scores without diminishing negative consequences (15.4773ms)
+✔ offline dependency graphs are frozen, validated and restored only with live owner evidence (2.2638ms)
+✔ offline retention never trusts changed slots, unrelated owner speech or invented metadata as live evidence (0.8242ms)
+✔ a scored outcome cannot be amplified, cleared or duplicated by later descriptions (1.1527ms)
+✔ neutral and positive descriptions of one attitude score once in either order (0.4199ms)
+✔ verification keys bind every semantic field and canonicalize JSON property order (0.2742ms)
+✔ positive minor crosses from 49 to 51 before subsequent gains diminish (10.3157ms)
+✔ malformed records fail closed and a character-named owner still records player promises with a user actor (0.8472ms)
+✖ batch: outcome and positive minor evidence share one physical scoring quote (1.2515ms)
+✖ sequential: outcome and positive minor evidence share one physical scoring quote (0.6047ms)
+✖ stored migration: outcome and positive minor evidence share one physical scoring quote (0.5285ms)
+✖ batch: attitude and positive minor evidence share one physical scoring quote (0.2762ms)
+✖ sequential: attitude and positive minor evidence share one physical scoring quote (0.3877ms)
+✖ stored migration: attitude and positive minor evidence share one physical scoring quote (0.5324ms)
+✖ batch: outcome and negative minor evidence share one physical scoring quote (0.3265ms)
+✖ sequential: outcome and negative minor evidence share one physical scoring quote (0.4818ms)
+✖ stored migration: outcome and negative minor evidence share one physical scoring quote (0.4266ms)
+✖ batch: attitude and negative minor evidence share one physical scoring quote (0.2959ms)
+✖ sequential: attitude and negative minor evidence share one physical scoring quote (0.2899ms)
+✖ stored migration: attitude and negative minor evidence share one physical scoring quote (0.456ms)
+✖ batch: outcome and positive major evidence share one physical scoring quote (0.275ms)
+✖ sequential: outcome and positive major evidence share one physical scoring quote (0.3237ms)
+✖ stored migration: outcome and positive major evidence share one physical scoring quote (0.3873ms)
+✖ batch: attitude and positive major evidence share one physical scoring quote (0.2644ms)
+✖ sequential: attitude and positive major evidence share one physical scoring quote (0.2775ms)
+✖ stored migration: attitude and positive major evidence share one physical scoring quote (0.29ms)
+✖ batch: outcome and negative major evidence share one physical scoring quote (0.3265ms)
+✖ sequential: outcome and negative major evidence share one physical scoring quote (1.169ms)
+✖ stored migration: outcome and negative major evidence share one physical scoring quote (0.6476ms)
+✖ batch: attitude and negative major evidence share one physical scoring quote (0.4952ms)
+✖ sequential: attitude and negative major evidence share one physical scoring quote (0.3759ms)
+✖ stored migration: attitude and negative major evidence share one physical scoring quote (0.349ms)
+✖ the first host scoring quote keeps its direction and magnitude across description kinds (0.437ms)
+✖ removing the first scoring dependency allows the retained independent description to be projected again (0.4005ms)
+✔ non-overlapping scoring quotes remain independent across attitude and outcome descriptions (0.4483ms)
+✖ batch: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (0.5341ms)
+✖ sequential: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (0.3686ms)
+✖ stored migration: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (1.1498ms)
+✖ apply: the first neutral attitude keeps its full canonical source when a narrow alias first gains points (1.2178ms)
+✖ stored migration: the first neutral attitude keeps its full canonical source when a narrow alias first gains points (0.4305ms)
+ℹ tests 84
+ℹ suites 0
+ℹ pass 51
+ℹ fail 33
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 534.9873
+
+✖ failing tests:
+
+test at tests\director-affinity-state.test.mjs:51:1
+✖ parser rejects unsafe envelopes and discards unsafe or malformed individual events (0.4686ms)
+  TypeError [Error]: Invalid affinity response schema
+      at parseAffinityResponse (<repo>/public/scripts/extensions/director/affinity-state.js:65:15)
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:56:26)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-affinity-state.test.mjs:69:1
+✖ parser preserves valid siblings and reports only aggregate rejection categories and counts (0.2791ms)
+  TypeError [Error]: Invalid affinity response schema
+      at parseAffinityResponse (<repo>/public/scripts/extensions/director/affinity-state.js:65:15)
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:75:22)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: outcome and positive minor evidence share one physical scoring quote (1.2515ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: outcome and positive minor evidence share one physical scoring quote (0.6047ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: outcome and positive minor evidence share one physical scoring quote (0.5285ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: attitude and positive minor evidence share one physical scoring quote (0.2762ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: attitude and positive minor evidence share one physical scoring quote (0.3877ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: attitude and positive minor evidence share one physical scoring quote (0.5324ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: outcome and negative minor evidence share one physical scoring quote (0.3265ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: outcome and negative minor evidence share one physical scoring quote (0.4818ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: outcome and negative minor evidence share one physical scoring quote (0.4266ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: attitude and negative minor evidence share one physical scoring quote (0.2959ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: attitude and negative minor evidence share one physical scoring quote (0.2899ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: attitude and negative minor evidence share one physical scoring quote (0.456ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: outcome and positive major evidence share one physical scoring quote (0.275ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  10 !== 5
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 10,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: outcome and positive major evidence share one physical scoring quote (0.3237ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  10 !== 5
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 10,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: outcome and positive major evidence share one physical scoring quote (0.3873ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  10 !== 5
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 10,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: attitude and positive major evidence share one physical scoring quote (0.2644ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  10 !== 5
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 10,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: attitude and positive major evidence share one physical scoring quote (0.2775ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  10 !== 5
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 10,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: attitude and positive major evidence share one physical scoring quote (0.29ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  10 !== 5
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 10,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: outcome and negative major evidence share one physical scoring quote (0.3265ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -16 !== -8
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -16,
+    expected: -8,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: outcome and negative major evidence share one physical scoring quote (1.169ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -16 !== -8
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -16,
+    expected: -8,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: outcome and negative major evidence share one physical scoring quote (0.6476ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -16 !== -8
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -16,
+    expected: -8,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ batch: attitude and negative major evidence share one physical scoring quote (0.4952ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -16 !== -8
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -16,
+    expected: -8,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ sequential: attitude and negative major evidence share one physical scoring quote (0.3759ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -16 !== -8
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -16,
+    expected: -8,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:907:13
+✖ stored migration: attitude and negative major evidence share one physical scoring quote (0.349ms)
+  AssertionError [ERR_ASSERTION]: one literal attitude must contribute only once
+
+  -16 !== -8
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:922:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -16,
+    expected: -8,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:933:1
+✖ the first host scoring quote keeps its direction and magnitude across description kinds (0.437ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  -6 !== -8
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:937:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -8,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:944:1
+✖ removing the first scoring dependency allows the retained independent description to be projected again (0.4005ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:947:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:969:5
+✖ batch: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (0.5341ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:984:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:969:5
+✖ sequential: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (0.3686ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:984:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:969:5
+✖ stored migration: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (1.1498ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:984:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:991:5
+✖ apply: the first neutral attitude keeps its full canonical source when a narrow alias first gains points (1.2178ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      fingerprint: 'fp-0',
+      index: 0,
+      offset: 0,
+  +   quote: '我相信你。',
+  -   quote: '我相信你。你这次的坦诚让我更信任你了。',
+      slot: 'slot-0',
+      swipe: 0
+    }
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1002:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { slot: 'slot-0', index: 0, swipe: 0, fingerprint: 'fp-0', quote: '我相信你。', offset: 0 },
+    expected: { slot: 'slot-0', index: 0, swipe: 0, fingerprint: 'fp-0', quote: '我相信你。你这次的坦诚让我更信任你了。', offset: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:991:5
+✖ stored migration: the first neutral attitude keeps its full canonical source when a narrow alias first gains points (0.4305ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+    {
+      fingerprint: 'fp-0',
+      index: 0,
+      offset: 0,
+  +   quote: '我相信你。',
+  -   quote: '我相信你。你这次的坦诚让我更信任你了。',
+      slot: 'slot-0',
+      swipe: 0
+    }
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1002:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { slot: 'slot-0', index: 0, swipe: 0, fingerprint: 'fp-0', quote: '我相信你。', offset: 0 },
+    expected: { slot: 'slot-0', index: 0, swipe: 0, fingerprint: 'fp-0', quote: '我相信你。你这次的坦诚让我更信任你了。', offset: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

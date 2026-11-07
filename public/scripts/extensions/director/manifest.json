@@ -1,0 +1,15 @@
+{
+    "display_name": "命运之牌",
+    "loading_order": 20,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "generate_interceptor": "director_rebind_interceptor",
+    "author": "SillyTavern",
+    "version": "1.2.0",
+    "homePage": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/blob/feature/hidden-affinity/docs/standalone-plugins.md",
+    "hooks": {
+        "activate": "init"
+    }
+}

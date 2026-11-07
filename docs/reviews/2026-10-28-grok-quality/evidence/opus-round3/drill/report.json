@@ -1,0 +1,14 @@
+{
+  "platform": "linux",
+  "node": "v24.22.1",
+  "checks": [],
+  "findings": [],
+  "runs": [],
+  "head": "00fb3532dcc94061a4269956c71e6104321f0ce0",
+  "newSource": "Current working tree (including uncommitted changes)",
+  "error": "AssertionError [ERR_ASSERTION]: Preparing worktree (detached HEAD 48a153e)\nfatal: could not create directory of '/workspace/sillytavern-perf-lab/.git/worktrees/OLD': Read-only file system\n\n\n128 !== 0\n\n    at git (file:///workspace/wt-r3b/scripts/drill-upgrade-rollback.mjs:36:12)\n    at async main (file:///workspace/wt-r3b/scripts/drill-upgrade-rollback.mjs:137:9)\n    at async file:///workspace/wt-r3b/scripts/drill-upgrade-rollback.mjs:233:5",
+  "cleanup": {
+    "worktreesRemoved": true,
+    "temporaryDataRetained": true
+  }
+}

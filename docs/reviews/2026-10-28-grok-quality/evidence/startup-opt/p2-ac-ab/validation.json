@@ -1,0 +1,60 @@
+{
+  "fullCiCommand": "npm run test:perf",
+  "fullCiSuites": [
+    {
+      "node": "20.19.2",
+      "tests": 760,
+      "passed": 752,
+      "failed": 0,
+      "skipped": 8
+    },
+    {
+      "node": "22.20.0",
+      "tests": 760,
+      "passed": 752,
+      "failed": 0,
+      "skipped": 8
+    },
+    {
+      "node": "24.22.1",
+      "tests": 760,
+      "passed": 752,
+      "failed": 0,
+      "skipped": 8
+    }
+  ],
+  "targetedCommand": "node --test tests/startup-webpack.test.mjs tests/startup-compile-cache.test.mjs",
+  "targetedNode24": {
+    "tests": 28,
+    "passed": 28,
+    "failed": 0
+  },
+  "additionalStartupNode22": {
+    "tests": 60,
+    "passed": 60,
+    "failed": 0
+  },
+  "additionalStartupNode20": {
+    "tests": 60,
+    "passed": 59,
+    "failed": 1,
+    "failure": "Existing disabled-trace resource assertion sees transient CloseReq; trace module and test are unchanged from base, independent of server.js and new helpers. Outside test:perf. Isolated rerun: 4/5."
+  },
+  "eslint": {
+    "result": "passed",
+    "files": [
+      "server.js",
+      "src/compile-cache.js",
+      "src/webpack-manifest.js",
+      "src/middleware/webpack-serve.js",
+      "webpack.config.js",
+      "tests/startup-webpack.test.mjs",
+      "tests/startup-compile-cache.test.mjs"
+    ]
+  },
+  "nativeWindows": "not run locally; existing 20/22/24 Windows CI configuration retained; no push performed",
+  "unchangedTraceChecksums": {
+    "src/startup-trace.js": "420651c0583241f9d253e7772f217776b77fd39248e7fc9f15590131d81c4df1",
+    "tests/startup-trace.test.mjs": "e5cc12f353dc9460d167f4e846213628f358d51f2ce65eaa7e2b30f41853dbe7"
+  }
+}

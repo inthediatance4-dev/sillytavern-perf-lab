@@ -1,0 +1,113 @@
+{
+  "side": "base",
+  "label": "01-base",
+  "discarded": false,
+  "cache": {
+    "scenario": "S3",
+    "osCacheDropped": false,
+    "webpackRoot": "<tmp>/base/data/_webpack"
+  },
+  "t0": {
+    "epochMs": 1793249524567,
+    "hrtimeNs": "45552591962272"
+  },
+  "status": "ok",
+  "httpMs": 618.06491,
+  "browser": {
+    "navEpochMs": 1793249525211.81,
+    "uiEpochMs": 1793249527249.1506,
+    "navigationToUiMs": 2037.340576171875,
+    "resourceCounts": {
+      "logical200": 430,
+      "wire200": 424,
+      "wire304": 6,
+      "diskCache": 1
+    },
+    "chromium": "156.0.8078.4",
+    "pageErrors": [],
+    "appReadyMs": 1912.7999999970198,
+    "atUiResourceCount": 410,
+    "atUiTransferBytes": 4510148,
+    "probe": "01-base.browser.json.gz"
+  },
+  "uiMs": 2682.150634765625,
+  "sendMs": 3349.239556,
+  "navigationToUiMs": 2037.340576171875,
+  "uiAfterHttpMs": 2064.085724765625,
+  "sendAfterUiMs": 667.088921234375,
+  "generation": {
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 7
+  },
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "lockGone": true,
+  "trace": {
+    "stagesMs": {
+      "identity_probe": 0.284046,
+      "lock_acquire": 3.792135,
+      "server_main_import": 326.850647,
+      "init_user_storage": 7.408652,
+      "restore_legacy_holds": 0.834278,
+      "lifecycle_scan": 4.977651000000001,
+      "lifecycle": 6.131727000000001,
+      "user_migrations": 0.617908,
+      "pre_setup_migrations": 6.767614,
+      "plugins": 0.103374,
+      "webpack": 39.393735,
+      "listen": 4.449987
+    },
+    "nodeTiming": {
+      "name": "node",
+      "entryType": "node",
+      "startTime": 0,
+      "duration": 20.9759,
+      "nodeStart": 0.48789799958467484,
+      "v8Start": 3.3837779983878136,
+      "bootstrapComplete": 15.197305001318455,
+      "environment": 11.065229997038841,
+      "loopStart": -1,
+      "loopExit": -1,
+      "idleTime": 0
+    },
+    "ready": {
+      "rss": 180154368,
+      "eventLoopBlockTotalMs": 482.74384699999996,
+      "eventLoopMethod": "sum of 10ms timer lateness (estimate, includes scheduling and trace overhead)"
+    },
+    "webpack": {
+      "webpack_skipped": true,
+      "durationMs": 0,
+      "builtModules": 0
+    },
+    "lifecycleScans": [
+      {
+        "fileCount": 1,
+        "findings": 0
+      },
+      {
+        "fileCount": 29,
+        "findings": 0
+      },
+      {
+        "fileCount": 0,
+        "findings": 0
+      }
+    ],
+    "childSpawns": [
+      {
+        "cmd": "git"
+      },
+      {
+        "cmd": "git"
+      },
+      {
+        "cmd": "git"
+      }
+    ],
+    "events": 48
+  }
+}

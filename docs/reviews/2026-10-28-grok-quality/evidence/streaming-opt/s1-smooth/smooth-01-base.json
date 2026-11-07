@@ -1,0 +1,15 @@
+{
+  "side": "base",
+  "scenario": "smooth",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": true,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 1,
+  "discarded": false,
+  "status": "failed",
+  "error": "Error: Required measurement has no samples\n    at quantiles (file://<repo>/scripts/measure-streaming.mjs:159:31)\n    at metrics (file://<repo>/scripts/measure-streaming.mjs:168:19)\n    at run (file://<repo>/scripts/measure-streaming.mjs:208:26)\n    at async file://<repo>/scripts/measure-streaming.mjs:244:39"
+}

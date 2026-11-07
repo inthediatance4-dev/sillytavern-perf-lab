@@ -1873,7 +1873,8 @@ export function restoreNeutralChat() {
     }
 
     const { chat: neutralChatData, chat_metadata: neutralChatMetadata } = JSON.parse(neutralChat);
-    chat.splice(0, chat.length, ...neutralChatData);
+    chat.splice(0, chat.length);
+    for (const message of neutralChatData) chat.push(message);
     updateChatMetadata(neutralChatMetadata, true);
     sessionStorage.removeItem(NEUTRAL_CHAT_KEY);
 }
@@ -2164,7 +2165,8 @@ export function initChatUtilities() {
                 const metadata = messages.shift()?.chat_metadata || {};
                 messages.unshift(getSystemMessageByType(system_message_types.ASSISTANT_NOTE));
                 await clearChat();
-                chat.splice(0, chat.length, ...messages);
+                chat.splice(0, chat.length);
+                for (const message of messages) chat.push(message);
                 updateChatMetadata(metadata, true);
                 await printMessages();
             } catch (error) {

@@ -1,0 +1,759 @@
+{
+  "files": 262,
+  "errors": [],
+  "hits": [
+    {
+      "file": "public/script.js",
+      "line": 3061,
+      "call": "substituteParamsLegacy.call(this, ...arguments)",
+      "verdict": "Leave: forwards an existing positional argument list; count does not grow with chat history."
+    },
+    {
+      "file": "public/script.js",
+      "line": 3121,
+      "call": "result.push(...names)",
+      "verdict": "Out of scope: group-member names for stopping strings, not chat messages or DOM nodes."
+    },
+    {
+      "file": "public/script.js",
+      "line": 3126,
+      "call": "result.push(...getInstructStoppingSequences())",
+      "verdict": "Out of scope: instruct-template stopping sequences."
+    },
+    {
+      "file": "public/script.js",
+      "line": 3127,
+      "call": "result.push(...getCustomStoppingStrings())",
+      "verdict": "Out of scope: user-configured stopping strings."
+    },
+    {
+      "file": "public/script.js",
+      "line": 3844,
+      "call": "message.swipes.push(...this.swipes)",
+      "verdict": "Fixed: swipe payload array has no enforced cardinality bound; snapshot then append individually (also safe for aliased input)."
+    },
+    {
+      "file": "public/script.js",
+      "line": 3845,
+      "call": "message.swipe_info.push(...swipeInfoArray)",
+      "verdict": "Fixed: metadata array has the same unbounded cardinality as incoming swipes."
+    },
+    {
+      "file": "public/script.js",
+      "line": 3957,
+      "call": "this.messageLogprobs.push(...(Array.isArray(logprobs) ? logprobs : [logprobs]))",
+      "verdict": "Out of scope: logprobs from one streaming response chunk; not accumulated chat/DOM input to the call."
+    },
+    {
+      "file": "public/script.js",
+      "line": 4719,
+      "call": "mesExamplesArray.unshift(...cleanedExample)",
+      "verdict": "Out of scope: parsed world-info example text, not accumulated chat history."
+    },
+    {
+      "file": "public/script.js",
+      "line": 4721,
+      "call": "mesExamplesArray.push(...cleanedExample)",
+      "verdict": "Out of scope: parsed world-info example text, not accumulated chat history."
+    },
+    {
+      "file": "public/script.js",
+      "line": 5735,
+      "call": "messages.splice(injectIdx, 0, ...roleMessages)",
+      "verdict": "Bounded: roleMessages has at most the three fixed system/user/assistant roles per depth."
+    },
+    {
+      "file": "public/script.js",
+      "line": 5737,
+      "call": "injectedMessages.push(...roleMessages)",
+      "verdict": "Bounded: same at-most-three roleMessages array."
+    },
+    {
+      "file": "public/script.js",
+      "line": 6896,
+      "call": "item.swipes.push(...swipes)",
+      "verdict": "Fixed: public saveReply accepts an unbounded swipe array; snapshot then append individually, preserving alias behavior."
+    },
+    {
+      "file": "public/script.js",
+      "line": 6897,
+      "call": "item.swipe_info.push(...swipeInfoArray)",
+      "verdict": "Fixed: incoming swipe metadata has no enforced cardinality bound."
+    },
+    {
+      "file": "public/script.js",
+      "line": 7169,
+      "call": "chat.splice(0, chat.length, ...SAFETY_CHAT)",
+      "verdict": "Bounded: SAFETY_CHAT is a fixed one-message constant."
+    },
+    {
+      "file": "public/script.js",
+      "line": 7838,
+      "call": "chat.splice(0, chat.length, ...data)",
+      "verdict": "Fixed: whole loaded chat array; clear and append individually, preserving exported chat identity."
+    },
+    {
+      "file": "public/script.js",
+      "line": 9732,
+      "call": "Math.min(...allIds)",
+      "verdict": "Fixed: IDs cover every displayed message; reduce Math.min from Infinity, retaining empty and signed-zero semantics."
+    },
+    {
+      "file": "public/script.js",
+      "line": 12366,
+      "call": "importedFileNames.push(...result)",
+      "verdict": "Out of scope: filenames returned by one character/chat import, not message or DOM arrays."
+    },
+    {
+      "file": "public/scripts/util/SimpleMutex.js",
+      "line": 38,
+      "call": "this.callback(...args)",
+      "verdict": "Leave: forwards an existing callback argument list; no collection expansion."
+    },
+    {
+      "file": "public/scripts/i18n.js",
+      "line": 186,
+      "call": "missingData.push(...Array.from(trackMissingDynamicTranslate).map(key => ({ key, language: localeFile, value: key })))",
+      "verdict": "Out of scope: set of missing translation keys, not chat history or a DOM collection."
+    },
+    {
+      "file": "public/scripts/textgen-settings.js",
+      "line": 474,
+      "call": "banned_tokens.push(...tokens)",
+      "verdict": "Out of scope: configured raw banned token IDs."
+    },
+    {
+      "file": "public/scripts/textgen-settings.js",
+      "line": 488,
+      "call": "banned_tokens.push(...tokens)",
+      "verdict": "Out of scope: tokenization of configured banned text."
+    },
+    {
+      "file": "public/scripts/textgen-settings.js",
+      "line": 1815,
+      "call": "logitBiasArray.push(...tokenBans.map(x => [Number(x), false]))",
+      "verdict": "Out of scope: configured token bans for provider parameters."
+    },
+    {
+      "file": "public/scripts/secrets.js",
+      "line": 517,
+      "call": "String.fromCharCode(...hashBytes)",
+      "verdict": "Bounded: SHA-256 hash bytes (32)."
+    },
+    {
+      "file": "public/scripts/variables.js",
+      "line": 686,
+      "call": "Math.min(...array)",
+      "verdict": "Out of scope: slash-command numeric operands from explicit input/scoped variable, not the chat array or DOM."
+    },
+    {
+      "file": "public/scripts/variables.js",
+      "line": 690,
+      "call": "Math.max(...array)",
+      "verdict": "Out of scope: slash-command numeric operands from explicit input/scoped variable, not the chat array or DOM."
+    },
+    {
+      "file": "public/scripts/nai-settings.js",
+      "line": 477,
+      "call": "result.push(...permutations)",
+      "verdict": "Bounded: fixed spelling/case/space permutations per banned word."
+    },
+    {
+      "file": "public/scripts/nai-settings.js",
+      "line": 542,
+      "call": "stoppingStrings.push(...additionalStopStrings)",
+      "verdict": "Out of scope: expanded configured stopping strings, not chat history or DOM."
+    },
+    {
+      "file": "public/scripts/power-user.js",
+      "line": 1534,
+      "call": "pinsElement.append(...Array.from(styleTags))",
+      "verdict": "Fixed: arbitrary style-tag NodeList in formatted message; move nodes one at a time into detached pins container."
+    },
+    {
+      "file": "public/scripts/macros.js",
+      "line": 708,
+      "call": "macro.replace(...args)",
+      "verdict": "Leave: forwards regex replacer positional arguments; not a chat/DOM collection."
+    },
+    {
+      "file": "public/scripts/popup.js",
+      "line": 294,
+      "call": "buttonElement.classList.add(...(button.classes ?? []))",
+      "verdict": "Out of scope: configured CSS class names of one custom button."
+    },
+    {
+      "file": "public/scripts/popup.js",
+      "line": 967,
+      "call": "toastContainer.classList.remove(...toastPositionClasses)",
+      "verdict": "Bounded: toast position class list from fixed toast-positions mapping."
+    },
+    {
+      "file": "public/scripts/group-chats.js",
+      "line": 321,
+      "call": "chat.splice(0, chat.length, ...data)",
+      "verdict": "Fixed: whole group-chat history; clear and append individually, preserving chat identity."
+    },
+    {
+      "file": "public/scripts/reasoning.js",
+      "line": 1657,
+      "call": "reasoning_templates.splice(0, reasoning_templates.length, ...data.reasoning)",
+      "verdict": "Out of scope: imported reasoning-template settings, not chat history or DOM."
+    },
+    {
+      "file": "public/scripts/logprobs.js",
+      "line": 141,
+      "call": "tokenSpans.push(...withVirtualWhitespace(token, span))",
+      "verdict": "Bounded: withVirtualWhitespace returns one span and at most a few whitespace/break nodes per token."
+    },
+    {
+      "file": "public/scripts/keyboard.js",
+      "line": 101,
+      "call": "makeKeyboardInteractable(...interactables)",
+      "verdict": "Fixed: registered selector can match an unbounded NodeList; call shared collection loop directly."
+    },
+    {
+      "file": "public/scripts/keyboard.js",
+      "line": 168,
+      "call": "makeKeyboardInteractable(...interactables)",
+      "verdict": "Fixed: all matched interactables can grow with DOM; call shared collection loop directly."
+    },
+    {
+      "file": "public/scripts/keyboard.js",
+      "line": 179,
+      "call": "[].concat(...interactableSelectors.map(selector => Array.from(element.querySelectorAll(`${selector}`))))",
+      "verdict": "Leave: concat receives one array per registered selector, not one argument per matched element; selector count does not grow with chat/DOM size. Preserve selector order and duplicates."
+    },
+    {
+      "file": "public/scripts/slash-commands.js",
+      "line": 223,
+      "call": "UNIQUE_APIS.push(...new Set(Object.values(CONNECT_API_MAP).map(x => x.selected)))",
+      "verdict": "Bounded: values of fixed CONNECT_API_MAP."
+    },
+    {
+      "file": "public/scripts/slash-commands.js",
+      "line": 3226,
+      "call": "text.slice(...[Number(arg.start), arg.end && Number(arg.end)])",
+      "verdict": "Bounded: literal two-element start/end array."
+    },
+    {
+      "file": "public/scripts/slash-commands.js",
+      "line": 6414,
+      "call": "list.push(...Array.isArray(parsedArg) ? parsedArg : [arg])",
+      "verdict": "Out of scope: explicitly supplied prompt identifiers/names."
+    },
+    {
+      "file": "public/scripts/slash-commands.js",
+      "line": 6483,
+      "call": "list.push(...Array.isArray(parsedArg) ? parsedArg : [arg])",
+      "verdict": "Out of scope: explicitly supplied prompt identifiers/names."
+    },
+    {
+      "file": "public/scripts/macros/engine/MacroCstWalker.js",
+      "line": 836,
+      "call": "Math.min(...allRanges.map(r => r.startOffset))",
+      "verdict": "Out of scope: lexical token/nested-macro ranges within a variable expression, not chat history or DOM."
+    },
+    {
+      "file": "public/scripts/macros/engine/MacroCstWalker.js",
+      "line": 837,
+      "call": "Math.max(...allRanges.map(r => r.endOffset))",
+      "verdict": "Out of scope: lexical token/nested-macro ranges within a variable expression, not chat history or DOM."
+    },
+    {
+      "file": "public/scripts/PromptManager.js",
+      "line": 24,
+      "call": "func(...args)",
+      "verdict": "Leave: generic debounce argument forwarding."
+    },
+    {
+      "file": "public/scripts/PromptManager.js",
+      "line": 220,
+      "call": "this.add(...prompts)",
+      "verdict": "Leave: forwards constructor positional prompt arguments; not a growing history collection."
+    },
+    {
+      "file": "public/scripts/PromptManager.js",
+      "line": 243,
+      "call": "this.checkPromptInstance(...prompts)",
+      "verdict": "Leave: forwards existing add() positional prompt arguments for validation."
+    },
+    {
+      "file": "public/scripts/PromptManager.js",
+      "line": 244,
+      "call": "this.collection.push(...prompts)",
+      "verdict": "Leave: appends existing positional prompt arguments, not the accumulated chat array."
+    },
+    {
+      "file": "public/scripts/world-info.js",
+      "line": 1134,
+      "call": "books.push(...extraCharLore.extraBooks.filter(onlyUnique).filter(Boolean))",
+      "verdict": "Out of scope: explicitly configured character lorebook names."
+    },
+    {
+      "file": "public/scripts/world-info.js",
+      "line": 4793,
+      "call": "console.debug(`[WI] Entry ${entry.uid}`, ...args)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/world-info.js",
+      "line": 5092,
+      "call": "console.debug(args.shift(), ...args)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/world-info.js",
+      "line": 5308,
+      "call": "Math.max(...scores)",
+      "verdict": "Out of scope: world-info entry-group scores; count follows lorebook settings, not chat/DOM size."
+    },
+    {
+      "file": "public/scripts/autocomplete/MacroAutoCompleteHelper.js",
+      "line": 736,
+      "call": "options.push(...varOptions)",
+      "verdict": "Out of scope: variable-name autocomplete options; not message/DOM entries."
+    },
+    {
+      "file": "public/scripts/tags.js",
+      "line": 1153,
+      "call": "Math.max(0, ...tags.map(t => t.sort_order))",
+      "verdict": "Out of scope: tag settings sort order, not chat/DOM."
+    },
+    {
+      "file": "public/scripts/openai.js",
+      "line": 868,
+      "call": "messages.splice(injectIdx, 0, ...roleMessages)",
+      "verdict": "Bounded: at most three role messages per depth."
+    },
+    {
+      "file": "public/scripts/openai.js",
+      "line": 3234,
+      "call": "state.images.push(...inlineData.map(x => `data:${x.mimeType};base64,${x.data}`).filter(isDataURL))",
+      "verdict": "Out of scope: image parts in one streaming chunk; not an accumulated chat/DOM collection."
+    },
+    {
+      "file": "public/scripts/openai.js",
+      "line": 3262,
+      "call": "state.images.push(...imageUrls.filter(isDataURL))",
+      "verdict": "Out of scope: image URLs in one streaming chunk; not an accumulated chat/DOM collection."
+    },
+    {
+      "file": "public/scripts/openai.js",
+      "line": 3824,
+      "call": "this.collection.push(...items)",
+      "verdict": "Leave: constructor positional Message/MessageCollection arguments already passed individually; internal callers construct empty collections."
+    },
+    {
+      "file": "public/scripts/openai.js",
+      "line": 3898,
+      "call": "acc.push(...message.flatten())",
+      "verdict": "Fixed: nested MessageCollection.flatten can contain whole history; append each flattened message."
+    },
+    {
+      "file": "public/scripts/openai.js",
+      "line": 4124,
+      "call": "chat.push(...item.getChat())",
+      "verdict": "Fixed: API history collection can contain whole chat; append each serialized message."
+    },
+    {
+      "file": "public/scripts/chats.js",
+      "line": 1876,
+      "call": "chat.splice(0, chat.length, ...neutralChatData)",
+      "verdict": "Fixed: whole neutral-chat history from session storage; preserve chat identity and order."
+    },
+    {
+      "file": "public/scripts/chats.js",
+      "line": 2167,
+      "call": "chat.splice(0, chat.length, ...messages)",
+      "verdict": "Fixed: whole assistant-note chat imported from JSONL; preserve chat identity and order."
+    },
+    {
+      "file": "public/scripts/utils.js",
+      "line": 1142,
+      "call": "x.callback(...rgxMatch)",
+      "verdict": "Leave: regex capture arguments forwarded to replacer callback; not chat/DOM entries."
+    },
+    {
+      "file": "public/scripts/utils.js",
+      "line": 1706,
+      "call": "String.fromCharCode(...utf8Bytes.subarray(i, i + chunkSize))",
+      "verdict": "Bounded: explicit 8192-byte chunks before String.fromCharCode."
+    },
+    {
+      "file": "public/scripts/slash-commands/SlashCommandParser.js",
+      "line": 531,
+      "call": "options.push(...qrApi.listSets() .map(set => qrApi.listQuickReplies(set).map(qr => `${set}.${qr}`)) .flat() .map(qr => new SlashCommandQuickReplyAutoCompleteOption(qr)), )",
+      "verdict": "Out of scope: configured quick-reply autocomplete entries, not chat/DOM."
+    },
+    {
+      "file": "public/scripts/slash-commands/SlashCommandParser.js",
+      "line": 841,
+      "call": "cmd.unnamedArgumentList.push(...this.parseUnnamedArgument())",
+      "verdict": "Out of scope: parsed command argument values, not chat/DOM."
+    },
+    {
+      "file": "public/scripts/slash-commands/SlashCommandClosure.js",
+      "line": 200,
+      "call": "listValues.push(...(Array.isArray(rest) ? rest : [rest]))",
+      "verdict": "Out of scope: recursively substituted command pieces, not chat/DOM collections."
+    },
+    {
+      "file": "public/scripts/extensions.js",
+      "line": 614,
+      "call": "paths.push(...startupTemplates[name].map(template => `scripts/extensions/${name}/${template}.html`))",
+      "verdict": "Bounded: fixed startupTemplates entry per extension."
+    },
+    {
+      "file": "public/scripts/extensions.js",
+      "line": 1042,
+      "call": "icon.classList.add(...iconClasses.split(' '))",
+      "verdict": "Out of scope: configured icon CSS class names."
+    },
+    {
+      "file": "public/scripts/swipe-picker.js",
+      "line": 284,
+      "call": "listContainer.replaceChildren(...swipeBlocks)",
+      "verdict": "Fixed: one DOM block per swipe, no enforced limit; build a detached fragment and replace once, retaining child order and one replacement."
+    },
+    {
+      "file": "public/scripts/extensions/quick-reply/index.js",
+      "line": 18,
+      "call": "console.debug('[QR2]', ...msg)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/quick-reply/index.js",
+      "line": 19,
+      "call": "console.log('[QR2]', ...msg)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/quick-reply/index.js",
+      "line": 20,
+      "call": "console.warn('[QR2]', ...msg)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/quick-reply/index.js",
+      "line": 136,
+      "call": "functionToCall(...args)",
+      "verdict": "Leave: forwards queued API positional arguments; no chat/DOM collection."
+    },
+    {
+      "file": "public/scripts/extensions/quick-reply/index.js",
+      "line": 139,
+      "call": "functionToCall(...args)",
+      "verdict": "Leave: forwards queued API positional arguments; no chat/DOM collection."
+    },
+    {
+      "file": "public/scripts/extensions/stable-diffusion/index.js",
+      "line": 3648,
+      "call": "sizesData.push(...sizes)",
+      "verdict": "Out of scope: supported image-size options returned by provider."
+    },
+    {
+      "file": "public/scripts/extensions/stable-diffusion/index.js",
+      "line": 3662,
+      "call": "sizesData.push(...result.sizes)",
+      "verdict": "Out of scope: supported image-size options returned by provider."
+    },
+    {
+      "file": "public/scripts/extensions/expressions/index.js",
+      "line": 353,
+      "call": "Math.max(...imagesWidth)",
+      "verdict": "Fixed: widths from expression-holder DOM collection; reduce maximum from -Infinity."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/st-memory-enhancement/core/manager.js",
+      "line": 328,
+      "call": "cb(...args)",
+      "verdict": "Leave: callback positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/st-memory-enhancement/scripts/settings/standaloneAPI.js",
+      "line": 97,
+      "call": "String.fromCharCode(...bytes.map((b, i) => b ^ deviceId.charCodeAt(i % deviceId.length) ))",
+      "verdict": "Out of scope: encoded API-key bytes, not chat history or DOM."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/st-memory-enhancement/scripts/runtime/absoluteRefresh.js",
+      "line": 894,
+      "call": "bookNames.push(...charLorebooks.additional)",
+      "verdict": "Out of scope: configured additional character lorebook names."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/st-memory-enhancement/external-data-adapter.js",
+      "line": 31,
+      "call": "console.log(`[ExternalDataAdapter] ${message}`, ...args)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/st-memory-enhancement/external-data-adapter.js",
+      "line": 34,
+      "call": "console.warn(`[ExternalDataAdapter] ⚠️ ${message}`, ...args)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/st-memory-enhancement/external-data-adapter.js",
+      "line": 37,
+      "call": "console.error(`[ExternalDataAdapter] ❌ ${message}`, ...args)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/st-memory-enhancement/external-data-adapter.js",
+      "line": 42,
+      "call": "console.log(`[ExternalDataAdapter] 🔍 ${message}`, ...args)",
+      "verdict": "Leave: diagnostic positional argument forwarding."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/iframe/predefine.js",
+      "line": 14,
+      "call": "result.merge( ...Object.entries(_.get(window.parent, 'TavernHelper')._bind).map(([key, value]) => ({ [key.replace('_', '')]: value.bind(window), })), )",
+      "verdict": "Out of scope: fixed helper bindings exposed to iframe, not chat/DOM elements."
+    }
+  ],
+  "revision": "b1cf0e956105d2da7a3edeca4e3e5d84b8c147b4",
+  "method": "rg --files public (*.js, *.mjs); Espree ecmaVersion latest/sourceType module AST CallExpression and NewExpression with SpreadElement; exclude any lib/ directory, *.min.js and generated minified dist/ bundle. Baseline line numbers.",
+  "excludedAdditionalFiles": [
+    "public/scripts/extensions/tts/lib/pcm-processor.js",
+    "public/scripts/extensions/tts/lib/kokoro.web.js",
+    "public/scripts/extensions/third-party/JS-Slash-Runner/lib/jsoneditor.js",
+    "public/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js"
+  ],
+  "fixedCallSites": 19,
+  "applyAudit": [
+    {
+      "file": "public/scripts/utils.js",
+      "line": 578,
+      "call": "timer = setTimeout(() => { func.apply(this, args); }, timeout);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/utils.js",
+      "line": 606,
+      "call": "debounceResolver(func.apply(this, args));",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/utils.js",
+      "line": 637,
+      "call": "func.apply(this, args);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/utils.js",
+      "line": 656,
+      "call": "db.apply(this, args);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/utils.js",
+      "line": 659,
+      "call": "func.apply(this, args);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/utils.js",
+      "line": 663,
+      "call": "func.apply(this, args);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/JS-Slash-Runner/ds-cache-viewer.js",
+      "line": 163,
+      "call": "const response = await originalFetch.apply(this, args);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/JS-Slash-Runner/ds-cache-optimizer.js",
+      "line": 125,
+      "call": "return originalFetch.apply(this, args);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/JS-Slash-Runner/ds-worldbook-cache.js",
+      "line": 133,
+      "call": "return originalFetch.apply(this, args);",
+      "verdict": "Leave: forwards existing positional arguments; no chat/DOM collection expansion."
+    },
+    {
+      "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/iframe/cleanup_protector.js",
+      "line": 263,
+      "call": "const result = originalMethod.apply(this, convertedArgs);",
+      "verdict": "Leave: forwards existing positional arguments; convertedArgs maps one result per existing argument, without expanding a DOM collection."
+    }
+  ],
+  "inlineHtmlAudit": "rg on public/**/*.html found ellipses only in text/labels/placeholders; no spread-into-call in executable inline scripts.",
+  "additionalSourceAudit": {
+    "files": 89,
+    "errors": [],
+    "method": "TypeScript compiler AST for .ts/.tsx/.jsx/.cjs and script blocks in .vue; exclude declarations, lib/ and generated dist/. Baseline line numbers.",
+    "hits": [
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/util/algorithm.ts",
+        "line": 30,
+        "call": "destination.push(...new_array)",
+        "verdict": "Leave: generic assignInplace has no callers in this frontend source (rg); no actual chat/DOM path. Not a chat-sized call site."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/util/compatibility.ts",
+        "line": 23,
+        "call": "world_names.push(...(data.world_names?.length ? data.world_names : []))",
+        "verdict": "Out of scope: worldbook-name settings migration."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/util/color.ts",
+        "line": 86,
+        "call": "determineTextColorFromRgba(...rgba)",
+        "verdict": "Bounded: four RGBA channels."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/slash_command/audio.ts",
+        "line": 76,
+        "call": "store.playlist.push(...urls)",
+        "verdict": "Out of scope: explicit audio playlist URLs."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/slash_command/event.ts",
+        "line": 11,
+        "call": "eventSource.emit(event, ...data)",
+        "verdict": "Leave: explicitly supplied event positional arguments; not a collection of chat messages or nodes."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/tavern_regex.ts",
+        "line": 54,
+        "call": "macro.replace( { role: ( { user_input: 'user', ai_output: 'assistant', slash_command: 'system', world_info: 'system', reasoning: 'system', } as const )[source], message_id: depth !== undefined ? chat.length - depth - 1 : undefined, }, substring, ...args, )",
+        "verdict": "Leave: regex replacer positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/lorebook_entry.ts",
+        "line": 299,
+        "call": "_.merge( {}, default_original_lorebook_entry, ...Object.entries(entry) .filter(([_, value]) => value !== undefined) // @ts-expect-error 未知类型报错 .map(([key, value]) => transformers[key]?.(value)), )",
+        "verdict": "Out of scope: transformed fields of a lorebook entry."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/lorebook_entry.ts",
+        "line": 346,
+        "call": "_.merge( {}, ...handleLorebookEntriesCollision(entries) .map(fromPartialLorebookEntry) .map(entry => ({ [entry.uid]: entry })), )",
+        "verdict": "Out of scope: explicit lorebook entries; count follows lorebook settings, not chat history or DOM."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/util.ts",
+        "line": 31,
+        "call": "fn(...args)",
+        "verdict": "Leave: callback positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/util.ts",
+        "line": 61,
+        "call": "fn(...args)",
+        "verdict": "Leave: callback positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/audio.ts",
+        "line": 63,
+        "call": "store.playlist.push( ...audio_list.map((item: AudioWithOptionalTitle) => ({ title: item.title || handle_url_to_title(item.url), url: item.url })), )",
+        "verdict": "Out of scope: explicit audio playlist entries."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/panel/script/use_resolve_id_conflict.ts",
+        "line": 18,
+        "call": "getFlattenedScriptTrees(...stores.map(store => store.script_trees))",
+        "verdict": "Leave: one array per explicitly passed script store; argument count is not the number of script nodes or chat messages."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/generate/generateRaw.ts",
+        "line": 416,
+        "call": "processedMessages.splice(injectIdx, 0, ...roleMessages)",
+        "verdict": "Bounded: one message per fixed system/user/assistant role at each depth."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/generate/dataProcessor.ts",
+        "line": 377,
+        "call": "mesExamplesArray.unshift(...cleanedExample)",
+        "verdict": "Out of scope: parsed world-info example text, not chat history."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/generate/dataProcessor.ts",
+        "line": 379,
+        "call": "mesExamplesArray.push(...cleanedExample)",
+        "verdict": "Out of scope: parsed world-info example text, not chat history."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/panel/render/macro_like.ts",
+        "line": 10,
+        "call": "macro.replace(context, substring, ...args)",
+        "verdict": "Leave: regex replacer positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/panel/render/macro_like.ts",
+        "line": 34,
+        "call": "macro.replace({ role: message.role }, substring, ...args)",
+        "verdict": "Leave: regex replacer positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/panel/render/macro_like.ts",
+        "line": 42,
+        "call": "macro.replace({ role: message.role }, substring, ...args)",
+        "verdict": "Leave: regex replacer positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/event.ts",
+        "line": 55,
+        "call": "listener(...args)",
+        "verdict": "Leave: listener positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/event.ts",
+        "line": 119,
+        "call": "eventSource.emit(event_type, ...data)",
+        "verdict": "Leave: event positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/event.ts",
+        "line": 127,
+        "call": "eventSource.emitAndWait(event_type, ...data)",
+        "verdict": "Leave: event positional argument forwarding."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/lorebook.ts",
+        "line": 121,
+        "call": "selected_world_info.push(...value)",
+        "verdict": "Out of scope: selected worldbook names in settings."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/variables.ts",
+        "line": 119,
+        "call": "result.assign( ...chat .slice(0, _getCurrentMessageId.call(this) + 1) .map((chat_message: any) => chat_message?.variables?.[chat_message?.swipe_id ?? 0]), )",
+        "verdict": "Fixed (extension source): one variable object per chat message can grow with history; assign each in original precedence order."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/worldbook.ts",
+        "line": 41,
+        "call": "selected_world_info.push(...worldbook_names)",
+        "verdict": "Out of scope: selected worldbook names in settings."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/worldbook.ts",
+        "line": 391,
+        "call": "_.merge( {}, ..._(handleWorldbookEntriesCollision(worldbook)) .map(fromWorldbookEntry) .map(entry => ({ [entry.uid]: entry })) .value(), )",
+        "verdict": "Out of scope: explicit worldbook entry settings, not chat history or DOM."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/chat_message.ts",
+        "line": 379,
+        "call": "chat.splice(insert_before, 0, ...converted)",
+        "verdict": "Fixed (extension source): unbounded newly converted message array; detach tail, append messages and tail individually before original refresh/events."
+      },
+      {
+        "file": "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/chat_message.ts",
+        "line": 480,
+        "call": "chat.splice(begin, 0, ...right_part)",
+        "verdict": "Fixed (extension source): rotation can reinsert most of the chat; detach tail and append both parts in order, preserving chat identity and original refresh boundary."
+      }
+    ]
+  },
+  "totalFiles": 351,
+  "totalSpreadCalls": 112
+}

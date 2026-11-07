@@ -1,0 +1,23 @@
+✖ same-turn cancellation and tokenizer rejection are both consumed (6.4903ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 205.8635
+
+✖ failing tests:
+
+test at tests\director-affinity-budget.test.mjs:107:1
+✖ same-turn cancellation and tokenizer rejection are both consumed (6.4903ms)
+  Error: tokenizer rejection in the same turn
+      at countTokens (file:///<repo>/tests/director-affinity-budget.test.mjs:117:23)
+      at measure (file:///<repo>/public/scripts/extensions/director/affinity-prompt-budget.js:18:40)
+      at fitAffinityPrompt (file:///<repo>/public/scripts/extensions/director/affinity-prompt-budget.js:25:26)
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-budget.test.mjs:113:30)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)

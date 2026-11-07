@@ -1,0 +1,294 @@
+✔ new state is chat-local, bounded metadata starts empty, and invalid scopes fail (3.7862ms)
+✔ parser accepts only complete JSON and complete json fences, without assistant prefixes (1.1454ms)
+✔ parser rejects unsafe envelopes and discards unsafe or malformed individual events (0.6532ms)
+✔ parser preserves valid siblings and reports only aggregate rejection categories and counts (0.4626ms)
+✔ application is immutable and exact quote/fingerprint/swipe binding survives JSON reload (2.2685ms)
+✔ source owner, allowed actors and group relationship ownership are enforced (1.558ms)
+✔ facts and ambiguous, future, implicit or unknown attitudes never score (0.9917ms)
+✔ major changes require one-time host-key verification and never downgrade to minor points (0.7077ms)
+✔ evidence identity ignores paraphrasing, valence, impact and batch repetition (1.3521ms)
+✔ overlapping quote aliases of one attitude cannot earn another score or major verification key (0.6744ms)
+✔ non-overlapping attitudes in the same logical message remain separate evidence (0.3852ms)
+✔ a wider or narrower promise quote does not create another open anchor (2.3404ms)
+✔ reconcile collapses stored overlapping attitude aliases without amplifying their first score (0.8014ms)
+✔ reconcile remaps a stored promise alias to its first host ID while preserving its valid outcome (0.9496ms)
+✔ stored promise aliases with separate completions still resolve their canonical promise only once (0.7582ms)
+✔ host promises award no points; completed result binds original promise and later literal evidence (0.9098ms)
+✔ a new promise or future/unknown/observed result cannot be mistaken for fulfillment (1.8976ms)
+✔ one message may contain a promise and a later separate result, but reverse/overlapping quotes fail (0.7094ms)
+✔ narrowing an outcome source cannot turn words inside the canonical promise into a later result (0.9325ms)
+✔ widening an outcome source does not hide a real result after the canonical promise (0.5759ms)
+✔ apply: a narrow result alias uses the original physical result boundary for later acknowledgement (0.6829ms)
+✔ reload: a narrow result alias uses the original physical result boundary for later acknowledgement (0.4612ms)
+✔ apply: a wide result alias uses the original physical result boundary for later acknowledgement (0.4918ms)
+✔ reload: a wide result alias uses the original physical result boundary for later acknowledgement (0.4099ms)
+✔ a character completing its own promise frees open-anchor capacity without gaining points (18.1408ms)
+✔ completed user promises may support the target owner while another character cannot narrate the result (0.4621ms)
+✔ a player outcome scores only after the target character has a later literal acknowledgement (2.1816ms)
+✔ reconcile retains unavailable owners without scoring them, and restores them only through a live owner (1.1581ms)
+✔ scores clamp at both bounds and causally replay in message order, independent of evaluation order (27.7456ms)
+✔ storage caps active/archive evidence and pins unresolved promises without silently discarding them (111.7199ms)
+✔ capacity forgets resolved dependencies together; deleting an archived result really reopens the original promise (49.1573ms)
+✔ all retained anchors share a hard cap, replacing only the oldest completed dependency family (11.863ms)
+✔ the same physical outcome has one owner, regardless of acknowledgement order within a batch (0.4783ms)
+✔ metadata character budgets reject new oversized open anchors and preserve every accepted unresolved promise (87.7037ms)
+✔ malformed metadata fields are skipped without resetting valid state or reading inherited ledgers (0.5567ms)
+✔ an unresolved player promise stays injectable when its owner has not spoken in the live chat (0.5798ms)
+✔ fact evidence marked no stays stored without leaking into character memory (0.2867ms)
+✔ promise evidence marked no stays stored without leaking into character memory (0.1384ms)
+✔ attitude evidence marked no stays stored without leaking into character memory (0.1009ms)
+✔ fact evidence marked unknown stays stored without leaking into character memory (0.0882ms)
+✔ promise evidence marked unknown stays stored without leaking into character memory (0.0945ms)
+✔ attitude evidence marked unknown stays stored without leaking into character memory (0.1123ms)
+✔ unknown evidence cannot crowd a known fact out of the five injected memories (0.4127ms)
+✔ memory stays owner-local, prioritizes open promises, hides score mechanics, and requires corroboration for a weak tendency (1.4104ms)
+✔ positive gains diminish at high scores without diminishing negative consequences (17.3076ms)
+✔ offline dependency graphs are frozen, validated and restored only with live owner evidence (2.3821ms)
+✔ offline retention never trusts changed slots, unrelated owner speech or invented metadata as live evidence (0.6892ms)
+✔ a scored outcome cannot be amplified, cleared or duplicated by later descriptions (1.2775ms)
+✔ neutral and positive descriptions of one attitude score once in either order (0.4537ms)
+✔ verification keys bind every semantic field and canonicalize JSON property order (0.2455ms)
+✔ positive minor crosses from 49 to 51 before subsequent gains diminish (11.7884ms)
+✔ malformed records fail closed and a character-named owner still records player promises with a user actor (1.0013ms)
+✔ batch: outcome and positive minor evidence share one physical scoring quote (1.5123ms)
+✔ sequential: outcome and positive minor evidence share one physical scoring quote (1.2724ms)
+✔ stored migration: outcome and positive minor evidence share one physical scoring quote (0.7565ms)
+✔ batch: attitude and positive minor evidence share one physical scoring quote (0.4915ms)
+✔ sequential: attitude and positive minor evidence share one physical scoring quote (0.5097ms)
+✔ stored migration: attitude and positive minor evidence share one physical scoring quote (0.4741ms)
+✔ batch: outcome and negative minor evidence share one physical scoring quote (0.4591ms)
+✔ sequential: outcome and negative minor evidence share one physical scoring quote (0.5514ms)
+✔ stored migration: outcome and negative minor evidence share one physical scoring quote (0.5359ms)
+✔ batch: attitude and negative minor evidence share one physical scoring quote (0.429ms)
+✔ sequential: attitude and negative minor evidence share one physical scoring quote (1.1221ms)
+✔ stored migration: attitude and negative minor evidence share one physical scoring quote (0.8723ms)
+✔ batch: outcome and positive major evidence share one physical scoring quote (0.4903ms)
+✔ sequential: outcome and positive major evidence share one physical scoring quote (0.4618ms)
+✔ stored migration: outcome and positive major evidence share one physical scoring quote (0.6638ms)
+✔ batch: attitude and positive major evidence share one physical scoring quote (0.4335ms)
+✔ sequential: attitude and positive major evidence share one physical scoring quote (0.4837ms)
+✔ stored migration: attitude and positive major evidence share one physical scoring quote (0.4765ms)
+✔ batch: outcome and negative major evidence share one physical scoring quote (0.374ms)
+✔ sequential: outcome and negative major evidence share one physical scoring quote (0.3953ms)
+✔ stored migration: outcome and negative major evidence share one physical scoring quote (0.4884ms)
+✔ batch: attitude and negative major evidence share one physical scoring quote (0.3908ms)
+✔ sequential: attitude and negative major evidence share one physical scoring quote (0.58ms)
+✔ stored migration: attitude and negative major evidence share one physical scoring quote (0.492ms)
+✔ the first host scoring quote keeps its direction and magnitude across description kinds (0.9889ms)
+✔ removing the first scoring dependency allows the retained independent description to be projected again (0.4954ms)
+✔ non-overlapping scoring quotes remain independent across attitude and outcome descriptions (0.4565ms)
+✔ batch: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (0.8333ms)
+✔ sequential: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (0.5761ms)
+✔ stored migration: two promise anchors sharing one result and acknowledgement both close without duplicate rewards (0.8374ms)
+✔ apply: the first neutral attitude keeps its full canonical source when a narrow alias first gains points (0.5724ms)
+✔ stored migration: the first neutral attitude keeps its full canonical source when a narrow alias first gains points (0.4612ms)
+✖ batch: positive completions sharing one physical result and distinct acknowledgements score once (1.3635ms)
+✖ sequential: positive completions sharing one physical result and distinct acknowledgements score once (0.5809ms)
+✖ stored migration: positive completions sharing one physical result and distinct acknowledgements score once (0.6072ms)
+✖ batch: negative completions sharing one physical result and distinct acknowledgements score once (0.3385ms)
+✖ sequential: negative completions sharing one physical result and distinct acknowledgements score once (0.4129ms)
+✖ stored migration: negative completions sharing one physical result and distinct acknowledgements score once (0.4666ms)
+✖ shared-result aliases also reserve their distinct acknowledgement against attitude reuse, attitude first=false (1.179ms)
+✖ shared-result aliases also reserve their distinct acknowledgement against attitude reuse, attitude first=true (0.6733ms)
+✖ an unverified major cannot gain minor points through another promise and acknowledgement for the same result (0.688ms)
+✔ different non-overlapping results and acknowledgements in shared messages remain independent completions (0.7806ms)
+✔ different owners may each acknowledge one shared physical player action without sharing score ownership (0.6051ms)
+ℹ tests 95
+ℹ suites 0
+ℹ pass 86
+ℹ fail 9
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 555.6004
+
+✖ failing tests:
+
+test at tests\director-affinity-state.test.mjs:1024:9
+✖ batch: positive completions sharing one physical result and distinct acknowledgements score once (1.3635ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1034:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1024:9
+✖ sequential: positive completions sharing one physical result and distinct acknowledgements score once (0.5809ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1034:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1024:9
+✖ stored migration: positive completions sharing one physical result and distinct acknowledgements score once (0.6072ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1034:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1024:9
+✖ batch: negative completions sharing one physical result and distinct acknowledgements score once (0.3385ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1034:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1024:9
+✖ sequential: negative completions sharing one physical result and distinct acknowledgements score once (0.4129ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1034:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1024:9
+✖ stored migration: negative completions sharing one physical result and distinct acknowledgements score once (0.4666ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  -6 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1034:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: -6,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1043:5
+✖ shared-result aliases also reserve their distinct acknowledgement against attitude reuse, attitude first=false (1.179ms)
+  AssertionError [ERR_ASSERTION]: the earliest retained host ID owns the whole connected physical event
+
+  -1 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1050:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -1,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1043:5
+✖ shared-result aliases also reserve their distinct acknowledgement against attitude reuse, attitude first=true (0.6733ms)
+  AssertionError [ERR_ASSERTION]: the earliest retained host ID owns the whole connected physical event
+
+  -1 !== -3
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1050:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: -1,
+    expected: -3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:1057:1
+✖ an unverified major cannot gain minor points through another promise and acknowledgement for the same result (0.688ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  2 !== 0
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-state.test.mjs:1062:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

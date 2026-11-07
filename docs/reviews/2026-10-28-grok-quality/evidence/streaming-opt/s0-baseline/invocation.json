@@ -1,0 +1,97 @@
+{
+  "args": {
+    "scenario": "main",
+    "runs": 7,
+    "output": "docs/reviews/2026-10-28-grok-quality/evidence/streaming-opt/s0-baseline",
+    "node": "/tmp/node-v24.22.1-linux-x64/bin/node",
+    "python": "/tmp/pw-venv/bin/python",
+    "rate": 200,
+    "seed": "opus-streaming-s0",
+    "jitter": 0.25,
+    "matrix": true
+  },
+  "scenarios": [
+    [
+      "main",
+      {
+        "messages": 2000,
+        "tokens": 3000,
+        "smooth": false,
+        "reasoning": false,
+        "mode": "send"
+      }
+    ],
+    [
+      "short",
+      {
+        "messages": 100,
+        "tokens": 500,
+        "smooth": false,
+        "reasoning": false,
+        "mode": "send"
+      }
+    ],
+    [
+      "smooth",
+      {
+        "messages": 2000,
+        "tokens": 3000,
+        "smooth": true,
+        "reasoning": false,
+        "mode": "send"
+      }
+    ],
+    [
+      "reasoning",
+      {
+        "messages": 2000,
+        "tokens": 3000,
+        "smooth": false,
+        "reasoning": true,
+        "mode": "send"
+      }
+    ],
+    [
+      "continue",
+      {
+        "messages": 2000,
+        "tokens": 3000,
+        "smooth": false,
+        "reasoning": false,
+        "mode": "continue"
+      }
+    ]
+  ],
+  "products": {
+    "head": {
+      "revision": "WORKTREE",
+      "lab": {
+        "dataRoot": "<tmp>/head/data",
+        "configPath": "<tmp>/head/config.yaml",
+        "port": 46263
+      }
+    }
+  },
+  "temporary": "<tmp>",
+  "timingOverlaySha256": null,
+  "toolCommit": "ffd5f4e555b48d50482b330a5d03aa024d14281e",
+  "sourceSha256": {
+    "scripts/measure-streaming.mjs": "437c922fcf9738ca8c50ba91b512586bb16118eed48a31a0fc2b315987c62cb6",
+    "scripts/fake-openai-endpoint.mjs": "956d65379872e9c0e62932bc20295256bd7681c22699fb488f21c2feaa39bbb0",
+    "scripts/measure-streaming-browser.py": "72afe300ea66c2cbf595ef0af01640da4bb49dcb8d02b3eb266437a6d5504cd6",
+    "scripts/streaming-browser-probe.js": "23bb78e74b306388678bae6d8973d2ed79067a4e5b794cde866c0e0d7f38b625",
+    "scripts/benchmark-statistics.mjs": "2e29a4aefce1f04a2a2990641dfc1baed6ea521e979b86ce4ff1585ca1c38945",
+    "tests/browser-longchat-perf.py": "c6b9772a9ddf270697ba887afdab9511914557f926e834a01be332c5ba01a095",
+    "tests/lab_browser.py": "6b942d461c94f78fb8d498e2dd40858fed18d7fe8b261a91aae099b8e3755fc0",
+    "public/script.js": "e6f584805addd47adfeebaae2faee3b15e8e52f09215ce10bb6fe6d3b1d8fe6a",
+    "public/scripts/reasoning.js": "9c8f7a10b43920f1497ca1768a04c952e4445cedd7368efe311337cef2479d95",
+    "public/scripts/streaming-perf.js": "91dfbe54392c71ca925142df49f4526e0ad2103fbeafb9ca02f46b59a1feedd1"
+  },
+  "chromium": "156.0.8078.4",
+  "node": "v24.22.1",
+  "platform": "linux",
+  "cpus": 8,
+  "cpu": "Intel(R) Xeon(R) Processor",
+  "bootstrapSeed": "opus-round1.5",
+  "resamples": 2000
+}

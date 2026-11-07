@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 7,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 50,
+    "frameP99Ms": 116.5,
+    "framesOver16_7Pct": 17.796610169491526,
+    "framesOver33Pct": 13.559322033898304,
+    "loafCount": 6,
+    "loafTotalMs": 728.0999999940395,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 31.09999999962747,
+    "loafScriptotherMs": 392.6999999973923,
+    "formatP50Ms": 1.099999999627471,
+    "formatP95Ms": 6,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.6999999992549419,
+    "reasoningP95Ms": 0.30000000074505806,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 17.425196688996053,
+    "firstTokenMs": 136.475341796875,
+    "finishMs": 399.5126953125,
+    "typingP50Ms": 24.400146484375,
+    "typingP95Ms": 52.39990234375,
+    "scrollStolen": 10
+  },
+  "dom": null,
+  "samples": {
+    "frames": 160,
+    "keys": 13,
+    "hooks": 183
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793289559446.6245,
+    "receivedNs": "15201079144809",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793289559458.808,
+    "lastChunkEpochMs": 1793289561983.8872,
+    "doneEpochMs": 1793289561983.9104,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

@@ -1,0 +1,197 @@
+{
+  "pass": true,
+  "head": "WORKTREE",
+  "cases": {
+    "horizontalTouch": {
+      "pass": true
+    },
+    "fingerUpTouch": {
+      "pass": true
+    },
+    "tinyTouch": {
+      "pass": true
+    },
+    "fingerDownTouch": {
+      "before": {
+        "top": 39476,
+        "height": 41001,
+        "gap": 600,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": ""
+      },
+      "after": {
+        "top": 39476,
+        "height": 41102,
+        "gap": 701,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": ""
+      },
+      "scrollStolen": 0
+    },
+    "wheelUp": {
+      "before": {
+        "top": 39577,
+        "height": 41125,
+        "gap": 623,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": ""
+      },
+      "after": {
+        "top": 39577,
+        "height": 41194,
+        "gap": 692,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": ""
+      },
+      "scrollStolen": 0
+    },
+    "buttonClick": {
+      "pass": true
+    },
+    "pageUp": {
+      "before": {
+        "top": 39483,
+        "height": 41240,
+        "gap": 832,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": ""
+      },
+      "after": {
+        "top": 39483,
+        "height": 41263,
+        "gap": 855,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": ""
+      },
+      "scrollStolen": 0
+    },
+    "nearBottomResume": {
+      "pass": true,
+      "gap": 0
+    },
+    "textarea": {
+      "pass": true,
+      "cursorMovedUp": true,
+      "textPreserved": true
+    },
+    "scrollbarUp": {
+      "before": {
+        "top": 39895,
+        "height": 41401,
+        "gap": 600,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": "S2 typing probe\nsecond line typed during streaming"
+      },
+      "after": {
+        "top": 39895,
+        "height": 41470,
+        "gap": 669,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": "S2 typing probe\nsecond line typed during streaming"
+      },
+      "scrollStolen": 0
+    },
+    "pausedTyping": {
+      "before": {
+        "top": 39895,
+        "height": 41470,
+        "gap": 669,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": "S2 typing probe\nsecond line typed during streaming"
+      },
+      "after": {
+        "top": 39895,
+        "height": 41976,
+        "gap": 1235,
+        "messages": 102,
+        "button": true,
+        "streaming": true,
+        "typed": "S2 typing probe\nsecond line typed during streaming additional input to wrap the composer additional input to wrap the composer additional input to wrap the composer additional input to wrap the composer additional input to wrap the composer additional input to wrap the composer additional input to wrap the composer additional input to wrap the composer"
+      },
+      "scrollStolen": 0
+    },
+    "buttonPlacement": {
+      "pass": true,
+      "buttonBottom": 870,
+      "chatBottom": 881
+    },
+    "finishPersistence": {
+      "pass": true,
+      "scrollStolen": 0
+    },
+    "olderSlice": {
+      "before": 102,
+      "after": 202,
+      "pass": true
+    },
+    "autoScrollOff": {
+      "pass": true,
+      "during": {
+        "before": {
+          "top": 81690,
+          "height": 83260,
+          "gap": 645,
+          "messages": 204,
+          "button": true,
+          "streaming": true,
+          "typed": ""
+        },
+        "after": {
+          "top": 81690,
+          "height": 83426,
+          "gap": 811,
+          "messages": 204,
+          "button": true,
+          "streaming": true,
+          "typed": ""
+        },
+        "scrollStolen": 0
+      },
+      "buttonClick": {
+        "gap": 0
+      },
+      "afterClick": {
+        "before": {
+          "top": 82543,
+          "height": 83468,
+          "gap": 0,
+          "messages": 204,
+          "button": true,
+          "streaming": true,
+          "typed": ""
+        },
+        "after": {
+          "top": 82543,
+          "height": 83577,
+          "gap": 109,
+          "messages": 204,
+          "button": true,
+          "streaming": true,
+          "typed": ""
+        },
+        "scrollStolen": 0
+      },
+      "finishScrollStolen": 0
+    }
+  },
+  "pageErrors": [],
+  "chromium": "156.0.8078.4"
+}

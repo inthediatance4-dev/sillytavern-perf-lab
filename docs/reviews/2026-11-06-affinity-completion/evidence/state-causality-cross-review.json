@@ -1,0 +1,15 @@
+{
+  "promiseNarrowing": {
+    "outcomes": 0,
+    "score": 0
+  },
+  "promiseWidening": {
+    "outcomes": 1,
+    "score": 2,
+    "canonicalSource": "我答应还书。"
+  },
+  "resultNarrowing": {
+    "score": 0,
+    "acknowledged": false
+  }
+}

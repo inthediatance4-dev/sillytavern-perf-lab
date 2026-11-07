@@ -1,3 +1,6 @@
+import { isLifecycleInternalName } from '../chat-io.js';
+import { trackPersistenceRouter } from '../request-drain.js';
+import { withCharacterEdit, withCharacterImport, invalidateCharacterImport } from '../character-lifecycle.js';
 import path from 'node:path';
 import fs from 'node:fs';
 import { promises as fsPromises } from 'node:fs';
@@ -14,7 +17,7 @@ import storage from 'node-persist';
 
 import { AVATAR_WIDTH, AVATAR_HEIGHT, DEFAULT_AVATAR_PATH } from '../constants.js';
 import { default as validateAvatarUrlMiddleware, getFileNameValidationFunction, forbiddenRegExp } from '../middleware/validateFileName.js';
-import { deepMerge, humanizedDateTime, tryParse, MemoryLimitedMap, getConfigValue, mutateJsonString, clientRelativePath, getUniqueName, sanitizeSafeCharacterReplacements } from '../util.js';
+import { deepMerge, humanizedDateTime, tryParse, MemoryLimitedMap, getConfigValue, mutateJsonString, clientRelativePath, getUniqueName, sanitizeSafeCharacterReplacements, getArrayBufferSlice } from '../util.js';
 import { TavernCardValidator } from '../validator/TavernCardValidator.js';
 import { parse, read, write } from '../character-card-parser.js';
 import { readWorldInfoFile } from './worldinfo.js';
@@ -25,6 +28,11 @@ import { getChatInfo } from './chats.js';
 import { ByafParser } from '../byaf.js';
 import { CharXParser, persistCharXAssets } from '../charx.js';
 import cacheBuster from '../middleware/cacheBuster.js';
+import { randomUUID } from 'node:crypto';
+import {
+    withPathLocks, chatLockPaths, assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, ChatLifecycleError, retireChatPath, rollbackChatRetirement,
+    recycleChatPath, createChatFileExclusive, fingerprintChatPath, inheritChatRetirements, writeLifecycleAtomic,
+} from '../chat-io.js';
 
 // With 100 MB limit it would take roughly 3000 characters to reach this limit
 const memoryCacheCapacity = getConfigValue('performance.memoryCacheCapacity', '100mb');
@@ -208,6 +216,24 @@ async function readCharacterData(inputFile, inputFormat = 'png') {
     return result;
 }
 
+/** Hold character and chat publication locks through image processing and commit. */
+async function withImportPublication(outputFile, request, publish) {
+    const avatar = `${outputFile}.png`;
+    const chatsPath = path.join(request.user.directories.chats, outputFile);
+    return withCharacterImport(request.user.directories.characters, avatar, check => {
+        return usingRetiredPathReuses([
+            { filePath: chatsPath, lifecycleRoot: request.user.directories.chats, allowVisible: true },
+            { filePath: path.join(request.user.directories.characters, avatar), lifecycleRoot: request.user.directories.characters, allowVisible: true },
+        ], async () => {
+            check();
+            const result = await publish(check);
+            check();
+            if (!result) throw new Error('Character import did not complete');
+            return result;
+        });
+    }, [chatsPath]);
+}
+
 /**
  * Writes the character card to the specified image file.
  * @param {string|Buffer} inputFile - Path to the image file or image buffer
@@ -218,6 +244,11 @@ async function readCharacterData(inputFile, inputFormat = 'png') {
  * @returns {Promise<boolean>} - True if the operation was successful
  */
 async function writeCharacterData(inputFile, data, outputFile, request, crop = undefined) {
+    request.checkCharacterImport?.();
+    if (request.characterImport && !request.checkCharacterImport) {
+        return withImportPublication(outputFile, request, check => writeCharacterData(inputFile, data, outputFile, { ...request, checkCharacterImport: check }, crop));
+    }
+
     try {
         // Reset the cache
         for (const key of memoryCache.keys()) {
@@ -250,15 +281,17 @@ async function writeCharacterData(inputFile, data, outputFile, request, crop = u
             }
         }
 
-        const inputImage = await getInputImage();
+        const inputImage = await (request.checkCharacterImport ? request.checkCharacterImport.wait(getInputImage()) : getInputImage());
+        request.checkCharacterImport?.();
 
         // Get the chunks
         const outputImage = write(inputImage, data);
         const outputImagePath = path.join(request.user.directories.characters, `${outputFile}.png`);
 
-        writeFileAtomicSync(outputImagePath, outputImage);
+        await writeLifecycleAtomic(outputImagePath, outputImage);
         return true;
     } catch (err) {
+        if (err instanceof ChatLifecycleError) throw err;
         console.error(err);
         return false;
     }
@@ -344,7 +377,7 @@ const calculateChatSize = (charDir) => {
     let dateLastChat = 0;
 
     if (fs.existsSync(charDir)) {
-        const chats = fs.readdirSync(charDir);
+        const chats = fs.readdirSync(charDir).filter(name => !isLifecycleInternalName(name));
         if (Array.isArray(chats) && chats.length) {
             for (const chat of chats) {
                 const chatStat = fs.statSync(path.join(charDir, chat));
@@ -765,11 +798,12 @@ async function importFromYaml(uploadPath, context, preservedFileName) {
 async function importFromCharX(uploadPath, { request }, preservedFileName) {
     const fileBuffer = fs.readFileSync(uploadPath);
     // Create a properly-sized ArrayBuffer (Node's buffer pool can cause oversized .buffer)
-    const data = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
+    const data = getArrayBufferSlice(fileBuffer);
     fs.unlinkSync(uploadPath);
 
     const parser = new CharXParser(data);
     const { card, avatar, auxiliaryAssets, extractedBuffers } = await parser.parse();
+    request.checkCharacterImport?.();
 
     // Apply standard character transformations
     if (card.data?.name) {
@@ -801,11 +835,14 @@ async function importFromCharX(uploadPath, { request }, preservedFileName) {
 }
 
 async function importFromByaf(uploadPath, { request }, preservedFileName) {
-    const data = (await fsPromises.readFile(uploadPath)).buffer;
+    const data = getArrayBufferSlice(await fsPromises.readFile(uploadPath));
+    request.checkCharacterImport?.();
     await fsPromises.unlink(uploadPath);
+    request.checkCharacterImport?.();
     console.info('Importing from BYAF');
 
     const byafData = await new ByafParser(data).parse();
+    request.checkCharacterImport?.();
     const card = readFromV2(byafData.card);
     const fileName = preservedFileName || getPngName(sanitize(byafData.character.displayName || card.name, { replacement: sanitizeSafeCharacterReplacements }), request.user.directories);
 
@@ -814,12 +851,15 @@ async function importFromByaf(uploadPath, { request }, preservedFileName) {
         /**
          * @param {Partial<ByafScenario>} scenario
         */
-        const createChatAsCurrentPersona = (scenario) => {
-            const chatName = sanitize(`${scenario.title || card.name} - ${humanizedDateTime()} imported.jsonl`, { replacement: sanitizeSafeCharacterReplacements });
+        const createChatAsCurrentPersona = async (scenario) => {
+            const chatName = sanitize(`${scenario.title || card.name} - ${humanizedDateTime()}-${randomUUID()} imported.jsonl`, { replacement: sanitizeSafeCharacterReplacements });
             const filePath = path.join(request.user.directories.chats, path.basename(fileName), chatName);
-            const dir = path.dirname(filePath);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            writeFileAtomicSync(filePath, ByafParser.getChatFromScenario(scenario, request.body.user_name, card.name, byafData.chatBackgrounds), 'utf8');
+            await withPathLocks(chatLockPaths([filePath]), async () => {
+                await usingRetiredPathReuse(filePath, request.user.directories.chats, async () => {
+                    await assertChatWritable(filePath, request.user.directories.chats);
+                    await createChatFileExclusive(filePath, ByafParser.getChatFromScenario(scenario, request.body.user_name, card.name, byafData.chatBackgrounds));
+                });
+            });
             console.log(`Created ${chatName} chat from BYAF import`);
             return chatName;
         };
@@ -843,7 +883,7 @@ async function importFromByaf(uploadPath, { request }, preservedFileName) {
         // Create chats for each scenario
         if (Array.isArray(byafData.scenarios)) {
             for (const scenario of byafData.scenarios) {
-                chats.push(createChatAsCurrentPersona(scenario));
+                chats.push(await createChatAsCurrentPersona(scenario));
             }
         }
 
@@ -869,7 +909,7 @@ async function importFromByaf(uploadPath, { request }, preservedFileName) {
     }
 
     const result = await writeCharacterData(byafData.images[0].image, JSON.stringify(card), fileName, request);
-
+    if (result) await recycleChatPath(uploadPath).catch(error => console.error('Imported BYAF upload retained in place', error));
     return result ? fileName : '';
 }
 
@@ -967,6 +1007,7 @@ async function importFromJson(uploadPath, { request }, preservedFileName) {
  */
 async function importFromPng(uploadPath, { request }, preservedFileName) {
     const imgData = await readCharacterData(uploadPath);
+    request.checkCharacterImport?.();
     if (imgData === undefined) throw new Error('Failed to read character data');
 
     let jsonData = JSON.parse(imgData);
@@ -1031,27 +1072,51 @@ router.post('/create', getFileNameValidationFunction('file_name'), async functio
         const internalName = request.body.file_name || getPngName(request.body.ch_name, request.user.directories);
         const avatarName = `${internalName}.png`;
         const chatsPath = path.join(request.user.directories.chats, internalName);
-
-        if (!fs.existsSync(chatsPath)) fs.mkdirSync(chatsPath);
-
-        if (!request.file) {
-            await writeCharacterData(DEFAULT_AVATAR_PATH, char, internalName, request);
-            return response.send(avatarName);
-        } else {
-            const crop = tryParse(request.query.crop);
-            const uploadPath = path.join(request.file.destination, request.file.filename);
-            await writeCharacterData(uploadPath, char, internalName, request, crop);
-            fs.unlinkSync(uploadPath);
-            return response.send(avatarName);
-        }
+        const avatarPath = path.join(request.user.directories.characters, avatarName);
+        await withPathLocks([...chatLockPaths([avatarPath]), chatsPath], async () => {
+            // Create admission only. An existing chats directory is still mkdir'd; an existing avatar stays target_exists.
+            // Markers are recycled only after the card is published. A failed attempt removes an empty directory it created, then restores the marker.
+            await usingRetiredPathReuses([
+                { filePath: chatsPath, lifecycleRoot: request.user.directories.chats },
+                { filePath: avatarPath, lifecycleRoot: request.user.directories.characters },
+            ], async () => {
+                await assertChatWritable(chatsPath, request.user.directories.chats);
+                await assertChatWritable(avatarPath, request.user.directories.characters);
+                if (fs.existsSync(avatarPath)) throw new ChatLifecycleError('target_exists');
+                let createdDirectory = false;
+                try {
+                    await fsPromises.lstat(chatsPath);
+                } catch (error) {
+                    if (error.code !== 'ENOENT') throw error;
+                    createdDirectory = true;
+                }
+                await fsPromises.mkdir(chatsPath, { recursive: true });
+                try {
+                    const uploadPath = request.file ? path.join(request.file.destination, request.file.filename) : undefined;
+                    const result = await writeCharacterData(uploadPath ?? DEFAULT_AVATAR_PATH, char, internalName, request, tryParse(request.query.crop));
+                    if (!result) throw new Error('Character creation did not complete');
+                    if (uploadPath) await recycleChatPath(uploadPath).catch(error => console.error('Imported character upload retained in place', error));
+                } catch (error) {
+                    if (createdDirectory) {
+                        await fsPromises.rmdir(chatsPath).catch(cleanupError => {
+                            if (cleanupError.code !== 'ENOENT') console.error('Empty character chat directory retained after a failed create', cleanupError);
+                        });
+                    }
+                    throw error;
+                }
+            });
+        });
+        return response.send(avatarName);
     } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason, action: 'reload_or_save_as' });
         console.error(err);
         response.sendStatus(500);
     }
 });
 
 router.post('/rename', validateAvatarUrlMiddleware, async function (request, response) {
-    if (!request.body.avatar_url || !request.body.new_name) {
+    if (!request.body || typeof request.body.avatar_url !== 'string' || !request.body.avatar_url
+        || typeof request.body.new_name !== 'string' || !request.body.new_name) {
         return response.sendStatus(400);
     }
 
@@ -1062,41 +1127,73 @@ router.post('/rename', validateAvatarUrlMiddleware, async function (request, res
     const newAvatarName = `${newInternalName}.png`;
 
     const oldAvatarPath = path.join(request.user.directories.characters, oldAvatarName);
+    const newAvatarPath = path.join(request.user.directories.characters, newAvatarName);
 
     const oldChatsPath = path.join(request.user.directories.chats, oldInternalName);
     const newChatsPath = path.join(request.user.directories.chats, newInternalName);
 
     try {
-        // Read old file, replace name int it
-        const rawOldData = await readCharacterData(oldAvatarPath);
-        if (rawOldData === undefined) throw new Error('Failed to read character file');
-
-        const oldData = getCharaCardV2(JSON.parse(rawOldData), request.user.directories);
-        _.set(oldData, 'data.name', newName);
-        _.set(oldData, 'name', newName);
-        const newData = JSON.stringify(oldData);
-
-        // Write data to new location
-        await writeCharacterData(oldAvatarPath, newData, newInternalName, request);
-
-        // Rename chats folder
-        if (fs.existsSync(oldChatsPath) && !fs.existsSync(newChatsPath)) {
-            fs.cpSync(oldChatsPath, newChatsPath, { recursive: true });
-            fs.rmSync(oldChatsPath, { recursive: true, force: true });
-        }
-
-        // Remove the old character file
-        fs.unlinkSync(oldAvatarPath);
-
+        await withPathLocks([...chatLockPaths([oldAvatarPath, newAvatarPath]), oldChatsPath, newChatsPath], async () => {
+            await assertChatWritable(oldChatsPath, request.user.directories.chats);
+            await usingRetiredPathReuses([
+                { filePath: newChatsPath, lifecycleRoot: request.user.directories.chats },
+                { filePath: newAvatarPath, lifecycleRoot: request.user.directories.characters },
+            ], async () => {
+                await assertChatWritable(newChatsPath, request.user.directories.chats);
+                if (fs.existsSync(newAvatarPath) || fs.existsSync(newChatsPath)) throw new ChatLifecycleError('target_exists');
+                const originalAvatar = await fsPromises.readFile(oldAvatarPath);
+                const oldData = getCharaCardV2(JSON.parse(read(originalAvatar)), request.user.directories);
+                _.set(oldData, 'data.name', newName);
+                _.set(oldData, 'name', newName);
+                await createChatFileExclusive(newAvatarPath, write(originalAvatar, JSON.stringify(oldData)));
+                let retirement;
+                let inherited = [];
+                let moved = false;
+                try {
+                    inherited = await inheritChatRetirements(oldChatsPath, newChatsPath, request.user.directories.chats);
+                    retirement = await retireChatPath(oldChatsPath, request.user.directories.chats, 'character_renamed');
+                    if (fs.existsSync(oldChatsPath)) {
+                        await fsPromises.rename(oldChatsPath, newChatsPath);
+                        moved = true;
+                    }
+                    await recycleChatPath(oldAvatarPath, request.user.directories.characters);
+                } catch (error) {
+                    try {
+                        if ((await fsPromises.readFile(oldAvatarPath)).equals(originalAvatar)) {
+                            if (moved) await fsPromises.rename(newChatsPath, oldChatsPath);
+                            if (retirement) await rollbackChatRetirement(retirement);
+                            for (const marker of inherited) await rollbackChatRetirement(marker);
+                            await recycleChatPath(newAvatarPath, request.user.directories.characters);
+                        }
+                    } catch (recoveryError) { console.error('Character rename recovery remains fail-closed', recoveryError); }
+                    throw error;
+                }
+                if (request.user.directories.thumbnailsAvatar) await recycleChatPath(path.join(request.user.directories.thumbnailsAvatar, oldAvatarName)).catch(error => console.error('Old thumbnail retained in place', error));
+            });
+        });
         // Return new avatar name to ST
         return response.send({ avatar: newAvatarName });
     } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason, action: 'reload_or_save_as' });
         console.error(err);
         return response.sendStatus(500);
     }
 });
 
-router.post('/edit', validateAvatarUrlMiddleware, async function (request, response) {
+/** Apply one lifecycle boundary to each existing-card edit route. */
+function characterEditHandler(handler) {
+    return async (request, response) => {
+        try {
+            return await withCharacterEdit(request.user.directories.characters, request.body?.avatar_url, () => handler(request, response));
+        } catch (error) {
+            if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason });
+            console.error(error);
+            return response.sendStatus(500);
+        }
+    };
+}
+
+router.post('/edit', validateAvatarUrlMiddleware, characterEditHandler(async function (request, response) {
     if (!request.body) {
         console.warn('Error: no response body detected');
         response.status(400).send('Error: no response body detected');
@@ -1113,17 +1210,17 @@ router.post('/edit', validateAvatarUrlMiddleware, async function (request, respo
     char.chat = request.body.chat;
     char.create_date = request.body.create_date;
     char = JSON.stringify(char);
-    let targetFile = (request.body.avatar_url).replace('.png', '');
+    let targetFile = request.body.avatar_url.slice(0, -4);
 
     try {
         if (!request.file) {
             const avatarPath = path.join(request.user.directories.characters, request.body.avatar_url);
-            await writeCharacterData(avatarPath, char, targetFile, request);
+            if (!await writeCharacterData(avatarPath, char, targetFile, request)) throw new Error('Character edit did not complete');
         } else {
             const crop = tryParse(request.query.crop);
             const newAvatarPath = path.join(request.file.destination, request.file.filename);
             invalidateThumbnail(request.user.directories, 'avatar', request.body.avatar_url);
-            await writeCharacterData(newAvatarPath, char, targetFile, request, crop);
+            if (!await writeCharacterData(newAvatarPath, char, targetFile, request, crop)) throw new Error('Character edit did not complete');
             fs.unlinkSync(newAvatarPath);
 
             // Bust cache to reload the new avatar
@@ -1135,9 +1232,9 @@ router.post('/edit', validateAvatarUrlMiddleware, async function (request, respo
         console.error('An error occurred, character edit invalidated.', err);
         return response.sendStatus(500);
     }
-});
+}));
 
-router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request, response) {
+router.post('/edit-avatar', validateAvatarUrlMiddleware, characterEditHandler(async function (request, response) {
     try {
         if (!request.file) {
             return response.status(400).send('Error: no file uploaded');
@@ -1161,8 +1258,8 @@ router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request
         }
 
         const crop = tryParse(request.query.crop);
-        const fileName = request.body.avatar_url.replace('.png', '');
-        await writeCharacterData(uploadPath, data, fileName, request, crop);
+        const fileName = request.body.avatar_url.slice(0, -4);
+        if (!await writeCharacterData(uploadPath, data, fileName, request, crop)) throw new Error('Character edit did not complete');
 
         // Remove uploaded temp file
         fs.unlinkSync(uploadPath);
@@ -1176,7 +1273,7 @@ router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request
         console.error('An error occurred while editing avatar', err);
         return response.sendStatus(500);
     }
-});
+}));
 
 /**
  * Handle a POST request to edit a character attribute.
@@ -1188,7 +1285,7 @@ router.post('/edit-avatar', validateAvatarUrlMiddleware, async function (request
  * @param {Object} response - The HTTP response object.
  * @returns {void}
  */
-router.post('/edit-attribute', validateAvatarUrlMiddleware, async function (request, response) {
+router.post('/edit-attribute', validateAvatarUrlMiddleware, characterEditHandler(async function (request, response) {
     console.debug(request.body);
     if (!request.body) {
         console.warn('Error: no response body detected');
@@ -1220,14 +1317,14 @@ router.post('/edit-attribute', validateAvatarUrlMiddleware, async function (requ
         char[request.body.field] = request.body.value;
         char.data[request.body.field] = request.body.value;
         let newCharJSON = JSON.stringify(char);
-        const targetFile = (request.body.avatar_url).replace('.png', '');
-        await writeCharacterData(avatarPath, newCharJSON, targetFile, request);
+        const targetFile = request.body.avatar_url.slice(0, -4);
+        if (!await writeCharacterData(avatarPath, newCharJSON, targetFile, request)) throw new Error('Character edit did not complete');
         return response.sendStatus(200);
     } catch (err) {
         console.error('An error occurred, character edit invalidated.', err);
         return response.sendStatus(500);
     }
-});
+}));
 
 /**
  * Sentinel value that signals a field should be completely removed (unset)
@@ -1272,33 +1369,35 @@ function processUnsetSentinels(target, source) {
  * @returns {Promise<{ok: boolean, error?: string, skipped?: boolean}>} Result of the merge operation, including any validation error
  */
 async function mergeCharacterUpdate(avatarPath, avatar, updateData, request, shouldSkip = null) {
-    const pngStringData = await readCharacterData(avatarPath);
-    if (!pngStringData) {
-        return { ok: false, error: 'Invalid character file' };
-    }
+    return withCharacterEdit(request.user.directories.characters, avatar, async () => {
+        const pngStringData = await readCharacterData(avatarPath);
+        if (!pngStringData) {
+            return { ok: false, error: 'Invalid character file' };
+        }
 
-    let character = JSON.parse(pngStringData);
+        let character = JSON.parse(pngStringData);
 
-    if (typeof shouldSkip === 'function' && shouldSkip(character)) {
-        return { ok: false, skipped: true };
-    }
+        if (typeof shouldSkip === 'function' && shouldSkip(character)) {
+            return { ok: false, skipped: true };
+        }
 
-    const update = _.cloneDeep(updateData);
-    _.unset(update, 'json_data');
-    _.unset(character, 'json_data');
+        const update = _.cloneDeep(updateData);
+        _.unset(update, 'json_data');
+        _.unset(character, 'json_data');
 
-    character = deepMerge(character, update);
-    processUnsetSentinels(character, update);
+        character = deepMerge(character, update);
+        processUnsetSentinels(character, update);
 
-    const validator = new TavernCardValidator(character);
-    //Accept either V1 or V2.
-    if (!validator.validate()) {
-        return { ok: false, error: validator.lastValidationError ?? 'Validation failed' };
-    }
+        const validator = new TavernCardValidator(character);
+        //Accept either V1 or V2.
+        if (!validator.validate()) {
+            return { ok: false, error: validator.lastValidationError ?? 'Validation failed' };
+        }
 
-    const targetImg = avatar.replace('.png', '');
-    await writeCharacterData(avatarPath, JSON.stringify(character), targetImg, request);
-    return { ok: true };
+        const targetImg = avatar.slice(0, -4);
+        if (!await writeCharacterData(avatarPath, JSON.stringify(character), targetImg, request)) throw new Error('Character edit did not complete');
+        return { ok: true };
+    });
 }
 
 /**
@@ -1407,12 +1506,13 @@ router.post('/merge-attributes', getFileNameValidationFunction('avatar'), async 
             response.status(400).send({ message: `Validation failed for ${update.avatar}`, error: result.error });
         }
     } catch (exception) {
+        if (exception instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: exception.reason });
         response.status(500).send({ message: 'Unexpected error while saving character.', error: exception.toString() });
     }
 });
 
 router.post('/delete', validateAvatarUrlMiddleware, async function (request, response) {
-    if (!request.body || !request.body.avatar_url) {
+    if (!request.body || typeof request.body.avatar_url !== 'string' || !request.body.avatar_url) {
         return response.sendStatus(400);
     }
 
@@ -1421,30 +1521,51 @@ router.post('/delete', validateAvatarUrlMiddleware, async function (request, res
         return response.sendStatus(403);
     }
 
+    invalidateCharacterImport(request.user.directories.characters, request.body.avatar_url);
     const avatarPath = path.join(request.user.directories.characters, request.body.avatar_url);
     if (!fs.existsSync(avatarPath)) {
         return response.sendStatus(400);
     }
 
-    fs.unlinkSync(avatarPath);
-    invalidateThumbnail(request.user.directories, 'avatar', request.body.avatar_url);
-    let dir_name = (request.body.avatar_url.replace('.png', ''));
+    const dir_name = request.body.avatar_url.replace('.png', '');
 
     if (!dir_name.length) {
         console.error('Malicious dirname prevented');
         return response.sendStatus(403);
     }
 
-    if (request.body.delete_chats == true) {
-        try {
-            await fs.promises.rm(path.join(request.user.directories.chats, sanitize(dir_name)), { recursive: true, force: true });
-        } catch (err) {
-            console.error(err);
-            return response.sendStatus(500);
-        }
+    const chatsPath = path.join(request.user.directories.chats, sanitize(dir_name));
+    try {
+        await withPathLocks([...chatLockPaths([avatarPath]), chatsPath], async () => {
+            const originalAvatar = await fsPromises.readFile(avatarPath);
+            let retirement;
+            let recycled;
+            let originalChats;
+            try {
+                if (request.body.delete_chats == true) {
+                    await assertChatWritable(chatsPath, request.user.directories.chats);
+                    if (fs.existsSync(chatsPath)) originalChats = await fingerprintChatPath(chatsPath);
+                    retirement = await retireChatPath(chatsPath, request.user.directories.chats, 'character_deleted');
+                    recycled = await recycleChatPath(chatsPath, request.user.directories.chats);
+                }
+                await recycleChatPath(avatarPath, request.user.directories.characters);
+            } catch (error) {
+                try {
+                    if ((await fsPromises.readFile(avatarPath)).equals(originalAvatar)) {
+                        if (recycled) await fsPromises.rename(recycled, chatsPath);
+                        if (retirement && (!originalChats || await fingerprintChatPath(chatsPath) === originalChats)) await rollbackChatRetirement(retirement);
+                    }
+                } catch (recoveryError) { console.error('Character deletion recovery remains fail-closed', recoveryError); }
+                throw error;
+            }
+            if (request.user.directories.thumbnailsAvatar) await recycleChatPath(path.join(request.user.directories.thumbnailsAvatar, request.body.avatar_url)).catch(error => console.error('Deleted thumbnail retained in place', error));
+        });
+        return response.sendStatus(200);
+    } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason, action: 'reload_or_save_as' });
+        console.error(err);
+        return response.sendStatus(500);
     }
-
-    return response.sendStatus(200);
 });
 
 /**
@@ -1506,7 +1627,7 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
         }
 
         const files = fs.readdirSync(chatsDirectory, { withFileTypes: true });
-        const jsonFiles = files.filter(file => file.isFile() && path.extname(file.name) === '.jsonl').map(file => file.name);
+        const jsonFiles = files.filter(file => file.isFile() && !isLifecycleInternalName(file.name) && path.extname(file.name) === '.jsonl').map(file => file.name);
 
         if (jsonFiles.length === 0) {
             return response.send([]);
@@ -1578,7 +1699,15 @@ router.post('/import', async function (request, response) {
             throw new Error(`Unsupported format: ${format}`);
         }
 
-        const fileName = await importFunction(uploadPath, { request, response }, preservedFileName);
+        request.characterImport = true;
+        const fileName = preservedFileName
+            ? await withImportPublication(preservedFileName, request, async check => {
+                const importing = importFunction(uploadPath, { request: { ...request, checkCharacterImport: check }, response }, preservedFileName);
+                const result = await check.wait(importing);
+                check();
+                return result;
+            })
+            : await importFunction(uploadPath, { request, response }, preservedFileName);
 
         if (!fileName) {
             console.warn('Failed to import character');
@@ -1591,6 +1720,7 @@ router.post('/import', async function (request, response) {
 
         response.send({ file_name: fileName });
     } catch (err) {
+        if (err instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: err.reason });
         console.error(err);
         response.send({ error: true });
     }
@@ -1632,7 +1762,14 @@ router.post('/duplicate', validateAvatarUrlMiddleware, async function (request, 
             suffix++;
         }
 
-        fs.copyFileSync(filename, newFilename);
+        const chatsPath = path.join(request.user.directories.chats, path.basename(newFilename, '.png'));
+        await withPathLocks([...chatLockPaths([filename, newFilename]), chatsPath], () => usingRetiredPathReuses([
+            { filePath: newFilename, lifecycleRoot: request.user.directories.characters },
+            { filePath: chatsPath, lifecycleRoot: request.user.directories.chats },
+        ], async () => {
+            await assertChatWritable(filename, request.user.directories.characters);
+            await createChatFileExclusive(newFilename, await fsPromises.readFile(filename));
+        }));
         console.info(`${filename} was copied to ${newFilename}`);
         response.send({ path: path.parse(newFilename).base });
     } catch (error) {
@@ -1683,3 +1820,5 @@ router.post('/export', validateAvatarUrlMiddleware, async function (request, res
         response.sendStatus(500);
     }
 });
+
+trackPersistenceRouter(router);

@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 5,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.2,
+    "frameP99Ms": 49.9,
+    "framesOver16_7Pct": 8.679706601466993,
+    "framesOver33Pct": 5.012224938875306,
+    "loafCount": 7,
+    "loafTotalMs": 488.1999999973923,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 5.200000001117587,
+    "loafScriptotherMs": 146.5000000037253,
+    "formatP50Ms": 1.900000000372529,
+    "formatP95Ms": 6.099999999627471,
+    "domP50Ms": 0.2999999988824129,
+    "domP95Ms": 0.40000000037252903,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 20.900487310534334,
+    "firstTokenMs": 110.585693359375,
+    "finishMs": 300.587158203125,
+    "typingP50Ms": 33.60009765625,
+    "typingP95Ms": 46.89990234375,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 832,
+    "keys": 73,
+    "hooks": 940
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283625614.6143,
+    "receivedNs": "9344546570127",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793283625622.2515,
+    "lastChunkEpochMs": 1793283640215.2126,
+    "doneEpochMs": 1793283640215.235,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

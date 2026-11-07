@@ -1,0 +1,58 @@
+✔ S2 actual adoption guard checks draft "" / attachment false (2.9616ms)
+✔ S2 actual adoption guard checks draft "  \n" / attachment false (0.7416ms)
+✔ S2 actual adoption guard checks draft "Unsent draft" / attachment false (0.5523ms)
+✖ S2 actual adoption guard checks draft "" / attachment true (1.6473ms)
+✖ S2 actual adoption guard checks draft "  \n" / attachment true (0.9998ms)
+✔ S2 actual adoption guard checks draft "Unsent draft" / attachment true (0.6856ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 4
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 145.2608
+
+✖ failing tests:
+
+test at tests\director-fate-followups.test.mjs:13:5
+✖ S2 actual adoption guard checks draft "" / attachment true (1.6473ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:20:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate-followups.test.mjs:13:5
+✖ S2 actual adoption guard checks draft "  \n" / attachment true (0.9998ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:20:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

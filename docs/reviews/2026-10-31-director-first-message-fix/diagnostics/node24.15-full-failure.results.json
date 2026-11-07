@@ -1,0 +1,439 @@
+{
+  "base": "ffd5f4e",
+  "head": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+  "runnerHead": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+  "mode": "full",
+  "thirdPartyEnabled": false,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "946bc9f18d7ca72cf8b0f4dacc65c3bafba20e27bb706d1f60efae74eb2b8950",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "888087a127a0168e883da7cee57f43827aa2bc8dc580ed8fc4d31b38f9282185",
+      "focusCount": 2
+    },
+    "buttonAdjacentAndIntentionalFocusEntry": true,
+    "digitsScopedTextareaSafeEscOutsideClose": true,
+    "cancelInsertsNothing": true,
+    "manageFooterOpensSettingsDefaultHotkeyOff": true,
+    "chatChangedCancelsPendingInput": true,
+    "narratorByteAndRenderedHtmlExactToSys": true,
+    "commentAndDirectorMetadataSaved": true,
+    "instructAddsNoChatMessage": true,
+    "promptNarratorIncludedCommentExcludedInstructOnce": true,
+    "autoGenerateOptIn": true,
+    "defaultChapterTitleAndLiveNumber": true,
+    "nextChapterCountComputedLive": true,
+    "configuredHotkeyWorksAndSkipsTyping": true,
+    "customPresetAllFieldsPersistAcrossReload": true,
+    "dragReorderUpdatesStoredOrder": true,
+    "keyboardReorderUpdatesDigitMapping": true,
+    "slashQuotedNameLiteralInputRemainingDefaultsEmptyPipe": true,
+    "slashPromptsOnlyRemainingRequiredInputsAndCancelIsAtomic": true,
+    "exportVersionedJsonAndInvalidImportAtomicError": true,
+    "deleteAndValidImportRoundTrip": true,
+    "restoreDefaultsCancelAcceptAndReload": true,
+    "slashDirectorIndexTextExactNarrator": true,
+    "actualQuickReplyExecutionExactNarrator": true,
+    "digitOneInsertsOnlyWhenPopoverClosed": true,
+    "chapterDividersUseLiveNumbersOutsideMesText": true,
+    "chapterSurvivesSwipeAwayBackAndDiskReload": true,
+    "markUnmarkArbitraryMessagePersistsWithoutNumber": true,
+    "unmarkClearsExistingSwipesAfterDiskReload": true,
+    "chapterSurvivesNewSwipeGenerationAndDiskReload": {
+      "swipesBeforeMark": 1,
+      "newSwipeId": 1,
+      "checkedSwipeIdsAfterReload": [
+        0,
+        1
+      ]
+    },
+    "unmarkClearsGeneratedAndOriginalSwipesAfterDiskReload": true,
+    "deleteMiddleChapterRecomputesNumbers": true,
+    "chapterListJumpsAcrossTwoThousandMessages": true,
+    "groupNarratorCommentAndInstruct": true,
+    "instructSurvivesApi500ThenConsumedOnSuccessfulRetryAndDiskReload": true,
+    "instructSurvivesStopThenConsumedOnSuccessfulStreamingRetry": true,
+    "ordinaryEphemeralInjectStillClearsOnStop": true,
+    "instructChipIntentionalFocusEntry": true,
+    "instructRebindSwipeRegenerateContinueAndChatScope": true,
+    "userInputMacrosStayLiteral": true,
+    "quietAndImpersonateDoNotConsumePending": true,
+    "regenerateDeleteSkipDoesNotStick": true,
+    "disconnectedRegenerateThenDeleteClearsBinding": true
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_CONNECTION_REFUSED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [
+    "third-party/JS-Slash-Runner",
+    "third-party/st-memory-enhancement"
+  ],
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [],
+    "tavernHelperAvailable": false
+  },
+  "chapterSwipeAudit": {
+    "before": {
+      "busy": false,
+      "length": 16,
+      "swipeId": 0,
+      "swipes": 1
+    },
+    "after": {
+      "busy": false,
+      "length": 16,
+      "swipeId": 1,
+      "swipes": 2
+    },
+    "requestsBefore": 4,
+    "requestsAfter": 5
+  },
+  "longChat": {
+    "file": "DirectorLong-74c63d6642",
+    "loadedBeforeJump": 100,
+    "confirmDistance": 1900
+  },
+  "processStatus": {
+    "server": 3221226505,
+    "provider": null
+  },
+  "pass": false,
+  "stage": "group swipe reinjects and the next member clears it",
+  "error": "Page.evaluate: TypeError: Failed to fetch\n    at sendOpenAIRequest (http://<host>/scripts/openai.js:3149:28)\n    at async sendGenerationRequest (http://<host>/script.js:6708:16)\n    at async finishGenerating (http://<host>/script.js:6029:20)\n    at async eval (eval at evaluate (:311:30), <anonymous>:1:15)\n    at async <anonymous>:337:30",
+  "serverLogTail": "c Director reply.' },\n    { role: 'user', content: 'RebindEditUserLine fingerprint-edit' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    {\n      role: 'system',\n      content: '【Director Synthetic】Director Synthetic 和 Synthetic Tester b'\n    },\n    { role: 'assistant', content: 'Synthetic Director reply.' }\n  ],\n  prompt: undefined,\n  model: 'startup-synthetic',\n  temperature: 1,\n  max_tokens: 300,\n  max_completion_tokens: undefined,\n  stream: false,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\nChat Completion response: {\n  id: 'synthetic',\n  object: 'chat.completion',\n  model: 'startup-synthetic',\n  usage: { prompt_tokens: 1, completion_tokens: 5, total_tokens: 6 },\n  choices: [\n    {\n      index: 0,\n      message: { role: 'assistant', content: 'Synthetic Director reply.' },\n      finish_reason: 'stop'\n    }\n  ]\n}\nChat Completion request: {\n  messages: [\n    {\n      role: 'system',\n      content: \"Write Director Synthetic's next reply in a fictional chat between Director Synthetic and Synthetic Tester.\"\n    },\n    {\n      role: 'system',\n      content: 'Artificial Director acceptance character.'\n    },\n    { role: 'system', content: '[Start a new Chat]' },\n    { role: 'user', content: 'Synthetic greeting' },\n    { role: 'assistant', content: 'Synthetic ready' },\n    { role: 'system', content: '——一段时间后——' },\n    { role: 'system', content: '——一段时间后——' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'system', content: '第1章　Synthetic chapter title' },\n    { role: 'system', content: '第2章　Synthetic next chapter' },\n    { role: 'system', content: '——三天后——' },\n    { role: 'system', content: '——五天后——' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: '中文与 English paragraphs' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: '中文与 English paragraphs' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'user', content: 'SyntheticUserFollowsBound' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'user', content: 'RebindEditUserLine fingerprint-edit' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    {\n      role: 'system',\n      content: '【Director Synthetic】Director Synthetic 和 Synthetic Tester b'\n    },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'assistant', content: 'Synthetic Director reply.' },\n    { role: 'user', content: 'A user turn before the preflight abort' },\n    { role: 'system', content: '[导演指令：REGENPREFLIGHTABORT]' }\n  ],\n  prompt: undefined,\n  model: 'startup-synthetic',\n  temperature: 1,\n  max_tokens: 300,\n  max_completion_tokens: undefined,\n  stream: false,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\n"
+}

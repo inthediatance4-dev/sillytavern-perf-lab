@@ -1,0 +1,256 @@
+{
+  "base": "698119e",
+  "head": "ac7e4271073471151cb00eefa1563fecc8b287fc",
+  "runnerHead": "ac7e4271073471151cb00eefa1563fecc8b287fc",
+  "mode": "affinity-only",
+  "thirdPartyEnabled": false,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "046879122c4d29790195cc81267fee8c4352caccf8b81c85adab2426c36a06bd",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "f7e711eb8ae903f15b0d73693f50d0f24999a558f1c61aacb61d061a65d25726",
+      "focusCount": 2
+    }
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [
+    "third-party/JS-Slash-Runner",
+    "third-party/st-memory-enhancement"
+  ],
+  "affinityIsolation": {
+    "mode": "native-default",
+    "runtimeSettings": {
+      "enabled": true,
+      "interval": 10
+    }
+  },
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [],
+    "tavernHelperAvailable": false
+  },
+  "selectedCases": [
+    "saveGapContinue"
+  ],
+  "affinityReview": {
+    "saveGapContinue": {
+      "trigger": "native options menu Continue",
+      "continueSeparator": " ",
+      "expectedText": "AFF_REPLY_001: I remember the river promise and respect your boundary. AFF_REPLY_002: I remember the river promise and respect your boundary.",
+      "beforeContinue": {
+        "events": [
+          {
+            "event": "GENERATION_STARTED",
+            "type": "normal",
+            "time": 4917.200000000012,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "normal",
+            "time": 5780.5,
+            "generating": false,
+            "saving": false
+          }
+        ],
+        "started": [
+          "normal"
+        ],
+        "received": [
+          "normal"
+        ],
+        "completed": [],
+        "isSendPress": false,
+        "generating": false,
+        "saving": true,
+        "ledger": {
+          "version": 1,
+          "id": "69ae9e30-2d4d-4c57-b70c-4625abd0cda5",
+          "nextId": 1,
+          "issued": 0,
+          "cursor": 0,
+          "events": [],
+          "archives": []
+        },
+        "replies": [
+          {
+            "mes": "AFF_REPLY_001: I remember the river promise and respect your boundary.",
+            "marker": {
+              "version": 1,
+              "scope": "69ae9e30-2d4d-4c57-b70c-4625abd0cda5",
+              "id": "daf4dd1b-c022-4baa-8b74-0ec3cb8793d1",
+              "receipt": 0
+            }
+          }
+        ]
+      },
+      "whileFirstSaveHeld": {
+        "events": [
+          {
+            "event": "GENERATION_STARTED",
+            "type": "normal",
+            "time": 4917.200000000012,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "normal",
+            "time": 5780.5,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "GENERATION_STARTED",
+            "type": "continue",
+            "time": 6132.900000000023,
+            "generating": true,
+            "saving": true
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "continue",
+            "time": 6520.700000000012,
+            "generating": false,
+            "saving": true
+          }
+        ],
+        "started": [
+          "normal",
+          "continue"
+        ],
+        "received": [
+          "normal",
+          "continue"
+        ],
+        "completed": [],
+        "isSendPress": false,
+        "generating": false,
+        "saving": true,
+        "ledger": {
+          "version": 1,
+          "id": "69ae9e30-2d4d-4c57-b70c-4625abd0cda5",
+          "nextId": 1,
+          "issued": 0,
+          "cursor": 0,
+          "events": [],
+          "archives": []
+        },
+        "replies": [
+          {
+            "mes": "AFF_REPLY_001: I remember the river promise and respect your boundary. AFF_REPLY_002: I remember the river promise and respect your boundary.",
+            "marker": {
+              "version": 1,
+              "scope": "69ae9e30-2d4d-4c57-b70c-4625abd0cda5",
+              "id": "daf4dd1b-c022-4baa-8b74-0ec3cb8793d1",
+              "receipt": 0
+            }
+          }
+        ]
+      },
+      "afterBothComplete": {
+        "events": [
+          {
+            "event": "GENERATION_STARTED",
+            "type": "normal",
+            "time": 4917.200000000012,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "normal",
+            "time": 5780.5,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "GENERATION_STARTED",
+            "type": "continue",
+            "time": 6132.900000000023,
+            "generating": true,
+            "saving": true
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "continue",
+            "time": 6520.700000000012,
+            "generating": false,
+            "saving": true
+          },
+          {
+            "event": "GENERATION_COMPLETED",
+            "type": "normal",
+            "time": 6564,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "GENERATION_COMPLETED",
+            "type": "continue",
+            "time": 6700.400000000023,
+            "generating": false,
+            "saving": false
+          }
+        ],
+        "started": [
+          "normal",
+          "continue"
+        ],
+        "received": [
+          "normal",
+          "continue"
+        ],
+        "completed": [
+          "normal",
+          "continue"
+        ],
+        "isSendPress": false,
+        "generating": false,
+        "saving": false,
+        "ledger": {
+          "version": 1,
+          "id": "69ae9e30-2d4d-4c57-b70c-4625abd0cda5",
+          "nextId": 1,
+          "issued": 0,
+          "cursor": 0,
+          "events": [],
+          "archives": []
+        },
+        "replies": [
+          {
+            "mes": "AFF_REPLY_001: I remember the river promise and respect your boundary. AFF_REPLY_002: I remember the river promise and respect your boundary.",
+            "marker": {
+              "version": 1,
+              "scope": "69ae9e30-2d4d-4c57-b70c-4625abd0cda5",
+              "id": "daf4dd1b-c022-4baa-8b74-0ec3cb8793d1",
+              "receipt": 0
+            }
+          }
+        ]
+      },
+      "passed": false,
+      "failure": "AssertionError: {'events': [{'event': 'GENERATION_STARTED', 'type': 'normal', 'time': 4917.200000000012, 'generating': False, 'saving': False}, {'event': 'MESSAGE_RECEIVED', 'type': 'normal', 'time': 5780.5, 'generating': False, 'saving': False}, {'event': 'GENERATION_STARTED', 'type': 'continue', 'time': 6132.900000000023, 'generating': True, 'saving': True}, {'event': 'MESSAGE_RECEIVED', 'type': 'continue', 'time': 6520.700000000012, 'generating': False, 'saving': True}, {'event': 'GENERATION_COMPLETED', 'type': 'normal', 'time': 6564, 'generating': False, 'saving': False}, {'event': 'GENERATION_COMPLETED', 'type': 'continue', 'time': 6700.400000000023, 'generating': False, 'saving': False}], 'started': ['normal', 'continue'], 'received': ['normal', 'continue'], 'completed': ['normal', 'continue'], 'isSendPress': False, 'generating': False, 'saving': False, 'ledger': {'version': 1, 'id': '69ae9e30-2d4d-4c57-b70c-4625abd0cda5', 'nextId': 1, 'issued': 0, 'cursor': 0, 'events': [], 'archives': []}, 'replies': [{'mes': 'AFF_REPLY_001: I remember the river promise and respect your boundary. AFF_REPLY_002: I remember the river promise and respect your boundary.', 'marker': {'version': 1, 'scope': '69ae9e30-2d4d-4c57-b70c-4625abd0cda5', 'id': 'daf4dd1b-c022-4baa-8b74-0ec3cb8793d1', 'receipt': 0}}]}"
+    }
+  },
+  "processStatus": {
+    "server": null,
+    "provider": null
+  },
+  "pass": false,
+  "stage": "Affinity browser acceptance",
+  "error": "Affinity browser regressions failed:\nsaveGapContinue: AssertionError: {'events': [{'event': 'GENERATION_STARTED', 'type': 'normal', 'time': 4917.200000000012, 'generating': False, 'saving': False}, {'event': 'MESSAGE_RECEIVED', 'type': 'normal', 'time': 5780.5, 'generating': False, 'saving': False}, {'event': 'GENERATION_STARTED', 'type': 'continue', 'time': 6132.900000000023, 'generating': True, 'saving': True}, {'event': 'MESSAGE_RECEIVED', 'type': 'continue', 'time': 6520.700000000012, 'generating': False, 'saving': True}, {'event': 'GENERATION_COMPLETED', 'type': 'normal', 'time': 6564, 'generating': False, 'saving': False}, {'event': 'GENERATION_COMPLETED', 'type': 'continue', 'time': 6700.400000000023, 'generating': False, 'saving': False}], 'started': ['normal', 'continue'], 'received': ['normal', 'continue'], 'completed': ['normal', 'continue'], 'isSendPress': False, 'generating': False, 'saving': False, 'ledger': {'version': 1, 'id': '69ae9e30-2d4d-4c57-b70c-4625abd0cda5', 'nextId': 1, 'issued': 0, 'cursor': 0, 'events': [], 'archives': []}, 'replies': [{'mes': 'AFF_REPLY_001: I remember the river promise and respect your boundary. AFF_REPLY_002: I remember the river promise and respect your boundary.', 'marker': {'version': 1, 'scope': '69ae9e30-2d4d-4c57-b70c-4625abd0cda5', 'id': 'daf4dd1b-c022-4baa-8b74-0ec3cb8793d1', 'receipt': 0}}]}",
+  "serverLogTail": "sync processSingleImage (<repo>/.worktrees/affinity-cross-review-red/src/endpoints/thumbnails.js:204:23)\n    at async generateThumbnail (<repo>/.worktrees/affinity-cross-review-red/src/endpoints/thumbnails.js:177:24)\n    at async <repo>/.worktrees/affinity-cross-review-red/src/endpoints/thumbnails.js:290:33\n[generateThumbnail] Failed to process image user-default.png: Requested file path is outside of the server directory.\n[Thumbnails] Failed to process image DirectorSynthetic-9e999d824a.png: Error: Requested file path is outside of the server directory.\n    at globalThis.fetch (<repo>/.worktrees/affinity-cross-review-red/src/fetch-patch.js:23:15)\n    at __wbg_init (<repo>/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)\n    at init (<repo>/node_modules/@jsquash/png/decode.js:17:21)\n    at Object.decode (<repo>/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)\n    at Jimp.fromBuffer (<repo>/node_modules/@jimp/core/dist/esm/index.js:182:55)\n    at async processSingleImage (<repo>/.worktrees/affinity-cross-review-red/src/endpoints/thumbnails.js:204:23)\n    at async generateThumbnail (<repo>/.worktrees/affinity-cross-review-red/src/endpoints/thumbnails.js:177:24)\n    at async <repo>/.worktrees/affinity-cross-review-red/src/endpoints/thumbnails.js:290:33\n[generateThumbnail] Failed to process image DirectorSynthetic-9e999d824a.png: Requested file path is outside of the server directory.\nInstantiated the tokenizer for gpt-4o\nChat Completion request: {\n  messages: [\n    {\n      role: 'system',\n      content: \"Write Director Synthetic's next reply in a fictional chat between Director Synthetic and Synthetic Tester.\"\n    },\n    {\n      role: 'system',\n      content: 'Artificial Director acceptance character.'\n    },\n    { role: 'system', content: '[Start a new Chat]' },\n    { role: 'user', content: 'A synthetic river scene.' },\n    { role: 'assistant', content: 'Ready.' },\n    {\n      role: 'user',\n      content: 'AFF_NORMAL_THEN_CONTINUE_DURING_HELD_SAVE'\n    }\n  ],\n  prompt: undefined,\n  model: 'gpt-4o',\n  temperature: 1,\n  max_tokens: 256,\n  max_completion_tokens: undefined,\n  stream: true,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\nStreaming request in progress\nStreaming request finished\nChat Completion request: {\n  messages: [\n    {\n      role: 'system',\n      content: \"Write Director Synthetic's next reply in a fictional chat between Director Synthetic and Synthetic Tester.\"\n    },\n    {\n      role: 'system',\n      content: 'Artificial Director acceptance character.'\n    },\n    { role: 'system', content: '[Start a new Chat]' },\n    { role: 'user', content: 'A synthetic river scene.' },\n    { role: 'assistant', content: 'Ready.' },\n    {\n      role: 'user',\n      content: 'AFF_NORMAL_THEN_CONTINUE_DURING_HELD_SAVE'\n    },\n    {\n      role: 'assistant',\n      content: 'AFF_REPLY_001: I remember the river promise and respect your boundary.'\n    },\n    {\n      role: 'system',\n      content: '[Continue your last message without repeating its original content.]'\n    }\n  ],\n  prompt: undefined,\n  model: 'gpt-4o',\n  temperature: 1,\n  max_tokens: 256,\n  max_completion_tokens: undefined,\n  stream: true,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\nStreaming request in progress\nStreaming request finished\n"
+}

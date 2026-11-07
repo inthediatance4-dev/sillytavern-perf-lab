@@ -1,0 +1,12 @@
+{
+  "size": 2000,
+  "truncation": 100,
+  "iteration": 0,
+  "status": "timeout",
+  "profiled": false,
+  "error": "Page.wait_for_function: Timeout 118380.23369799885ms exceeded.",
+  "dialogs": [],
+  "pageErrorStacks": [],
+  "pageErrors": [],
+  "forbiddenRequests": []
+}

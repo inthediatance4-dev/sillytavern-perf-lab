@@ -1,0 +1,36 @@
+{
+  "base": "ffd5f4e",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "53a09d3d50227887da244e9093fc2d0d5febb55757299e295ee2e5194b1d6431",
+      "focusCount": 2
+    },
+    "buttonAdjacentAndIntentionalFocusEntry": true,
+    "digitsScopedTextareaSafeEscOutsideClose": true,
+    "cancelInsertsNothing": true,
+    "manageFooterOpensSettingsDefaultHotkeyOff": true,
+    "chatChangedCancelsPendingInput": true,
+    "narratorByteAndRenderedHtmlExactToSys": true,
+    "commentAndDirectorMetadataSaved": true,
+    "instructAddsNoChatMessage": true,
+    "promptNarratorIncludedCommentExcludedInstructOnce": true,
+    "autoGenerateOptIn": true,
+    "defaultChapterTitleAndLiveNumber": true,
+    "nextChapterCountComputedLive": true,
+    "configuredHotkeyWorksAndSkipsTyping": true
+  },
+  "pageErrors": [],
+  "generationRequests": 3,
+  "chromium": "156.0.8078.4",
+  "sourceSha256": {
+    "public/scripts/extensions/director/index.js": "b1c9b775d2bd08725223f72cd65df0b0d2340b071a0245c1307d84e459a67ef4",
+    "public/scripts/extensions/director/manifest.json": "3360a76afd7fa911dc3b7bb0ebc05fbcf6aed536acde892dec00d066169c57f9",
+    "public/scripts/extensions/director/settings.html": "52404e1707dc66cb67cf642e779a75df210a7b13c906c3a7bb19600014a7fc44",
+    "public/scripts/extensions/director/style.css": "ef36e005f6f81b8a875006954b5fbc6eb9d34a80c032ec33cd088d8c94bc2b2b",
+    "public/scripts/extensions/director/template.js": "62e826d5eb325670a970615adab1b87f4bdb677d00c69b70e0688785ae130554",
+    "tests/browser-director-lab.py": "9e314abc307734d53ebdb3cfa13aee314ceabc9059b284d7d6e66e7397524401"
+  },
+  "fakeEndpointSha256": "956d65379872e9c0e62932bc20295256bd7681c22699fb488f21c2feaa39bbb0",
+  "node": "v24.22.1"
+}

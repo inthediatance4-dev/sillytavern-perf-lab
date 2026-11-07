@@ -1,0 +1,23 @@
+{
+  "revisions": {
+    "base": "37a48181fc55f7d2c45bae05f1a68c26a4c76d5d",
+    "head": "WORKTREE"
+  },
+  "order": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 1
+    }
+  ],
+  "settings": [],
+  "failure": {
+    "side": "base",
+    "size": 2000,
+    "truncation": 100,
+    "iteration": 0,
+    "status": "missing"
+  }
+}

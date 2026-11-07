@@ -1,0 +1,19 @@
+{
+  "public/scripts/extensions/third-party/JS-Slash-Runner/manifest.json": "d7e6b74a2c55603a90a4c7d364dad990f368c506fb91d0e7bf41e837a7c75698",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js": "d72131e90390cc7b1cf9ef1e292a177b25f416995ad9c40813af8559bcfdd9c3",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/chat_message.ts": "7400499e36f664a55fe5a2a55cc77cda49c968ea5af982f6ed28e1001d6ef43f",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/generate/utils.ts": "9aace591938c207d8c3e81a5619ed39ccc6a1d53a1d3e84190243ca6c69ca3ff",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/generate/responseGenerator.ts": "bea14d54d54191ee60400fdb10d0020ab07345a8ddf9fdf2a1f19abed7aea81b",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/generate/dataProcessor.ts": "0b2c3efad15380701b11d68007d23e6cd198b32f93fb63bf7574b41d1df6594a",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/util/tavern.ts": "a5a69d876cc900acae006254d843de2ff0a8966f983c4460d4e4fbd1c4a903ba",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/function/index.ts": "beed8209b3e304bb9147092868c9bf4835f10b9ea04813d5ce7c69b8f98c9774",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/panel/render/macro_like.ts": "1a410441b3307462f2c3b43cd242413ab57409514d929d7be4620fc238f6cbbb",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/store/settings/chat.ts": "12a426ed6c8eeea5f23727b943e99da7166e9fb61f4e3fb5569f5594af582aa0",
+  "public/scripts/extensions/third-party/JS-Slash-Runner/src/store/settings/character.ts": "9935d4b3ea1199b0aebb436b5345b97f0c14b7dc671e03592af4302fe9b51b32",
+  "public/scripts/extensions/third-party/st-memory-enhancement/manifest.json": "50926ceac4f0942700b39f3c738e1d2d1a7af06955d7869f61ba81276f1e556a",
+  "public/scripts/extensions/third-party/st-memory-enhancement/index.js": "14b3c3376e53f9148bf7c125392c1c792ccfc0534da95ef9de38b5f197b4e348",
+  "public/scripts/extensions/third-party/st-memory-enhancement/core/manager.js": "a33ef30fadf9018ebda799b8a1eb7432c1c735ed9da369cbba9aab99fa7bb292",
+  "public/scripts/extensions/third-party/st-memory-enhancement/core/table/sheet.js": "168c29ed27b83511a0a348d1eca6a59a25360ba3e02b40b4e9b5749e018a1d3f",
+  "public/scripts/extensions/third-party/st-memory-enhancement/services/appFuncManager.js": "b90a9480333d465b56917ef1672f2854fd52a15b9afe112cbe1e525a82ba2398",
+  "public/scripts/extensions/third-party/st-memory-enhancement/external-data-adapter.js": "093a6491ed1a9a31cd33c4926848df129da8267439897ce0af4ffecaf21ef981"
+}

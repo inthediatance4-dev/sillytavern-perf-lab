@@ -1,0 +1,524 @@
+[
+  {
+    "size": 2000,
+    "truncation": 100,
+    "success": 1,
+    "attempted": 1,
+    "statusCounts": {
+      "ok": 1,
+      "error": 0,
+      "timeout": 0,
+      "skipped": 0
+    },
+    "metrics": {
+      "openMs": {
+        "n": 1,
+        "median": 786.3999999985099,
+        "p95": 786.3999999985099
+      },
+      "openLongTaskCount": {
+        "n": 1,
+        "median": 1,
+        "p95": 1
+      },
+      "openLongTaskTotalMs": {
+        "n": 1,
+        "median": 182,
+        "p95": 182
+      },
+      "openLongTaskMaxMs": {
+        "n": 1,
+        "median": 182,
+        "p95": 182
+      },
+      "frameMedianMs": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "frameP95Ms": {
+        "n": 0,
+        "median": null,
+        "p95": null
+      },
+      "framesOver16_7Percent": {
+        "n": 1,
+        "median": 0,
+        "p95": 0
+      },
+      "framesOver50Percent": {
+        "n": 1,
+        "median": 0,
+        "p95": 0
+      },
+      "scrollLongTaskCount": {
+        "n": 1,
+        "median": 10,
+        "p95": 10
+      },
+      "scrollLongTaskTotalMs": {
+        "n": 1,
+        "median": 1403,
+        "p95": 1403
+      },
+      "scrollLongTaskMaxMs": {
+        "n": 1,
+        "median": 207,
+        "p95": 207
+      },
+      "sendMs": {
+        "n": 1,
+        "median": 867.3564700002316,
+        "p95": 867.3564700002316
+      },
+      "savePayloadBytes": {
+        "n": 1,
+        "median": 2736997,
+        "p95": 2736997
+      },
+      "saveResponseWaitMs": {
+        "n": 1,
+        "median": 59.494,
+        "p95": 59.494
+      },
+      "saveServerMs": {
+        "n": 1,
+        "median": 58.418,
+        "p95": 58.418
+      },
+      "heapOpenBytes": {
+        "n": 1,
+        "median": 20494200,
+        "p95": 20494200
+      },
+      "heapScrollBytes": {
+        "n": 1,
+        "median": 21894840,
+        "p95": 21894840
+      },
+      "domOpen": {
+        "n": 1,
+        "median": 14034,
+        "p95": 14034
+      },
+      "domScroll": {
+        "n": 1,
+        "median": 87857,
+        "p95": 87857
+      },
+      "messagesOpen": {
+        "n": 1,
+        "median": 100,
+        "p95": 100
+      },
+      "messagesScroll": {
+        "n": 1,
+        "median": 1100,
+        "p95": 1100
+      }
+    },
+    "failedCompleted": {
+      "n": 0,
+      "warning": "Phase timings exist, but page errors invalidate successful interactivity.",
+      "metrics": {
+        "openMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "openLongTaskCount": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "openLongTaskTotalMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "openLongTaskMaxMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "frameMedianMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "frameP95Ms": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "framesOver16_7Percent": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "framesOver50Percent": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "scrollLongTaskCount": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "scrollLongTaskTotalMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "scrollLongTaskMaxMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "sendMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "savePayloadBytes": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "saveResponseWaitMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "saveServerMs": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "heapOpenBytes": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "heapScrollBytes": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "domOpen": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "domScroll": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "messagesOpen": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        },
+        "messagesScroll": {
+          "n": 0,
+          "median": null,
+          "p95": null
+        }
+      }
+    },
+    "batchesByIndex": [
+      {
+        "batch": 1,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 231.5,
+          "p95": 231.5
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 111,
+          "p95": 111
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 111,
+          "p95": 111
+        }
+      },
+      {
+        "batch": 2,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 177.79999999701977,
+          "p95": 177.79999999701977
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 82,
+          "p95": 82
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 82,
+          "p95": 82
+        }
+      },
+      {
+        "batch": 3,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 169.30000000447035,
+          "p95": 169.30000000447035
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 85,
+          "p95": 85
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 85,
+          "p95": 85
+        }
+      },
+      {
+        "batch": 4,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 200,
+          "p95": 200
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 116,
+          "p95": 116
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 116,
+          "p95": 116
+        }
+      },
+      {
+        "batch": 5,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 207.60000000149012,
+          "p95": 207.60000000149012
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 122,
+          "p95": 122
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 122,
+          "p95": 122
+        }
+      },
+      {
+        "batch": 6,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 246,
+          "p95": 246
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 162,
+          "p95": 162
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 162,
+          "p95": 162
+        }
+      },
+      {
+        "batch": 7,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 223,
+          "p95": 223
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 150,
+          "p95": 150
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 150,
+          "p95": 150
+        }
+      },
+      {
+        "batch": 8,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 258,
+          "p95": 258
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 175,
+          "p95": 175
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 175,
+          "p95": 175
+        }
+      },
+      {
+        "batch": 9,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 277.70000000298023,
+          "p95": 277.70000000298023
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 193,
+          "p95": 193
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 193,
+          "p95": 193
+        }
+      },
+      {
+        "batch": 10,
+        "addedMessages": {
+          "n": 1,
+          "median": 100,
+          "p95": 100
+        },
+        "ms": {
+          "n": 1,
+          "median": 280.90000000596046,
+          "p95": 280.90000000596046
+        },
+        "longTaskCount": {
+          "n": 1,
+          "median": 1,
+          "p95": 1
+        },
+        "longTaskTotalMs": {
+          "n": 1,
+          "median": 207,
+          "p95": 207
+        },
+        "longTaskMaxMs": {
+          "n": 1,
+          "median": 207,
+          "p95": 207
+        }
+      }
+    ],
+    "batchMs": {
+      "n": 10,
+      "median": 223,
+      "p95": 280.90000000596046
+    },
+    "batchLongTaskTotalMs": {
+      "n": 10,
+      "median": 122,
+      "p95": 207
+    }
+  }
+]

@@ -1,0 +1,4159 @@
+v22.20.0
+
+> sillytavern@1.19.0 test:perf
+> node --test tests/benchmark-statistics.test.mjs tests/data-endpoint-smoke.test.mjs tests/process-identity.test.mjs tests/historical-source.test.mjs tests/character-edit-routes.test.mjs tests/character-lifecycle.test.mjs tests/path-lock-fairness.test.mjs tests/data-root-owner.test.mjs tests/lab-launcher-isolation.test.mjs tests/group-history-path.test.mjs tests/request-drain.test.mjs tests/performance-lab.test.mjs tests/enabled-backups.test.mjs tests/backup-recycle-budget.test.mjs tests/retired-path-recreate.test.mjs tests/chat-lifecycle.test.mjs tests/tokenizer-initialization.test.mjs tests/tokenizer-model-compatibility.test.mjs tests/frontend-lifecycle.test.mjs tests/frontend-template-startup.test.mjs tests/startup-lazy-imports.test.mjs tests/startup-webpack.test.mjs tests/startup-failure-exit.test.mjs tests/media-load-scroll.test.mjs tests/autocomplete-lifecycle.test.mjs tests/chat-transitions.test.mjs tests/chat-load-ownership.test.mjs tests/character-editor-flow.test.mjs tests/expression-mode-flow.test.mjs tests/itemized-prompts-ownership.test.mjs tests/recent-chat-info-cache.test.mjs tests/chat-file-safety.test.mjs tests/chat-backup-isolation.test.mjs tests/message-depth.test.mjs tests/vector-batch-cardinality.test.mjs tests/retired-publication-crash.test.mjs
+
+TAP version 13
+# Subtest: removed normal input ignores resize and direct layout before observer delivery
+ok 1 - removed normal input ignores resize and direct layout before observer delivery
+  ---
+  duration_ms: 3.436366
+  type: 'test'
+  ...
+# Subtest: removed floating input ignores resize and direct layout before observer delivery
+ok 2 - removed floating input ignores resize and direct layout before observer delivery
+  ---
+  duration_ms: 5.650241
+  type: 'test'
+  ...
+# Subtest: removal releases clone, wrappers, observer and native window listener without another resize
+ok 3 - removal releases clone, wrappers, observer and native window listener without another resize
+  ---
+  duration_ms: 1.545089
+  type: 'test'
+  ...
+# Subtest: ancestor removal releases resources and moving an attached input updates removal coverage
+ok 4 - ancestor removal releases resources and moving an attached input updates removal coverage
+  ---
+  duration_ms: 0.887856
+  type: 'test'
+  ...
+# Subtest: queued render, details and layout callbacks cannot revive a removed input before removal delivery
+ok 5 - queued render, details and layout callbacks cannot revive a removed input before removal delivery
+  ---
+  duration_ms: 12.954887
+  type: 'test'
+  ...
+# Subtest: queued render, details and layout callbacks cannot revive a removed input after removal delivery
+ok 6 - queued render, details and layout callbacks cannot revive a removed input after removal delivery
+  ---
+  duration_ms: 4.560713
+  type: 'test'
+  ...
+# Subtest: async provider finishing after removal cannot schedule or reactivate autocomplete
+ok 7 - async provider finishing after removal cannot schedule or reactivate autocomplete
+  ---
+  duration_ms: 1.140735
+  type: 'test'
+  ...
+# Subtest: old async provider cannot reactivate a new attachment after removal cleanup
+ok 8 - old async provider cannot reactivate a new attachment after removal cleanup
+  ---
+  duration_ms: 0.939093
+  type: 'test'
+  ...
+# Subtest: removal settles and releases a pending own window keyup wait
+ok 9 - removal settles and releases a pending own window keyup wait
+  ---
+  duration_ms: 6.947707
+  type: 'test'
+  ...
+# Subtest: construction before attachment and reconnect after cleanup remain usable
+ok 10 - construction before attachment and reconnect after cleanup remain usable
+  ---
+  duration_ms: 15.889489
+  type: 'test'
+  ...
+# Subtest: attached full-width dialog preserves parsing, positioning and keyboard selection
+ok 11 - attached full-width dialog preserves parsing, positioning and keyboard selection
+  ---
+  duration_ms: 1.316965
+  type: 'test'
+  ...
+# Subtest: attached floating dialog preserves parsing, positioning and keyboard selection
+ok 12 - attached floating dialog preserves parsing, positioning and keyboard selection
+  ---
+  duration_ms: 5.7095
+  type: 'test'
+  ...
+# Subtest: attached full-width details position in body remains intact
+ok 13 - attached full-width details position in body remains intact
+  ---
+  duration_ms: 5.815789
+  type: 'test'
+  ...
+# Subtest: attached full-width details position in dialog remains intact
+ok 14 - attached full-width details position in dialog remains intact
+  ---
+  duration_ms: 0.787522
+  type: 'test'
+  ...
+# Subtest: attached floating details position in body remains intact
+ok 15 - attached floating details position in body remains intact
+  ---
+  duration_ms: 3.027034
+  type: 'test'
+  ...
+# Subtest: attached floating details position in dialog remains intact
+ok 16 - attached floating details position in dialog remains intact
+  ---
+  duration_ms: 0.860386
+  type: 'test'
+  ...
+# Subtest: recycle byte budget removes only the oldest recycled artifacts
+ok 17 - recycle byte budget removes only the oldest recycled artifacts
+  ---
+  duration_ms: 41.8384
+  type: 'test'
+  ...
+# Subtest: a zero recycle budget purges recycle storage and leaves visible backups
+ok 18 - a zero recycle budget purges recycle storage and leaves visible backups
+  ---
+  duration_ms: 17.052709
+  type: 'test'
+  ...
+# Subtest: count retention still recycles expired backups and the default budget keeps them
+ok 19 - count retention still recycles expired backups and the default budget keeps them
+  ---
+  duration_ms: 6.270002
+  type: 'test'
+  ...
+# Subtest: a positive recycle budget prunes oldest expired backups after count retention
+ok 20 - a positive recycle budget prunes oldest expired backups after count retention
+  ---
+  duration_ms: 7.420832
+  type: 'test'
+  ...
+# Subtest: an invalid visible retention limit still refuses to move files
+ok 21 - an invalid visible retention limit still refuses to move files
+  ---
+  duration_ms: 1.44701
+  type: 'test'
+  ...
+# Subtest: configured maxRecycleBytes prunes throttled backups without removing the chat
+ok 22 - configured maxRecycleBytes prunes throttled backups without removing the chat
+  ---
+  duration_ms: 442.160561
+  type: 'test'
+  ...
+# Subtest: nearest-rank p95, even median and deterministic bootstrap intervals
+ok 23 - nearest-rank p95, even median and deterministic bootstrap intervals
+  ---
+  duration_ms: 51.88155
+  type: 'test'
+  ...
+# Subtest: record-only reference uses median AND either absolute or relative p95 limit
+ok 24 - record-only reference uses median AND either absolute or relative p95 limit
+  ---
+  duration_ms: 0.224951
+  type: 'test'
+  ...
+# Subtest: /edit holds lifecycle locks through image preparation against /delete
+ok 25 - /edit holds lifecycle locks through image preparation against /delete
+  ---
+  duration_ms: 49.701569
+  type: 'test'
+  ...
+# Subtest: /edit holds lifecycle locks through image preparation against /rename
+ok 26 - /edit holds lifecycle locks through image preparation against /rename
+  ---
+  duration_ms: 24.684662
+  type: 'test'
+  ...
+# Subtest: /edit-avatar holds lifecycle locks through image preparation against /delete
+ok 27 - /edit-avatar holds lifecycle locks through image preparation against /delete
+  ---
+  duration_ms: 16.58306
+  type: 'test'
+  ...
+# Subtest: /edit-avatar holds lifecycle locks through image preparation against /rename
+ok 28 - /edit-avatar holds lifecycle locks through image preparation against /rename
+  ---
+  duration_ms: 35.327538
+  type: 'test'
+  ...
+# {
+#   avatar_url: 'edit-attribute-delete.png',
+#   avatar: 'edit-attribute-delete.png',
+#   ch_name: 'edit-attribute-delete',
+#   field: 'description',
+#   value: 'edited',
+#   description: 'edited',
+#   data: { description: 'edited' }
+# }
+# Subtest: /edit-attribute holds lifecycle locks through image preparation against /delete
+ok 29 - /edit-attribute holds lifecycle locks through image preparation against /delete
+  ---
+  duration_ms: 17.272076
+  type: 'test'
+  ...
+# {
+#   avatar_url: 'edit-attribute-rename.png',
+#   avatar: 'edit-attribute-rename.png',
+#   ch_name: 'edit-attribute-rename',
+#   field: 'description',
+#   value: 'edited',
+#   description: 'edited',
+#   data: { description: 'edited' }
+# }
+# Subtest: /edit-attribute holds lifecycle locks through image preparation against /rename
+ok 30 - /edit-attribute holds lifecycle locks through image preparation against /rename
+  ---
+  duration_ms: 39.919396
+  type: 'test'
+  ...
+# Subtest: /merge-attributes holds lifecycle locks through image preparation against /delete
+ok 31 - /merge-attributes holds lifecycle locks through image preparation against /delete
+  ---
+  duration_ms: 16.513184
+  type: 'test'
+  ...
+# Subtest: /merge-attributes holds lifecycle locks through image preparation against /rename
+ok 32 - /merge-attributes holds lifecycle locks through image preparation against /rename
+  ---
+  duration_ms: 25.659881
+  type: 'test'
+  ...
+# Error: Invalid .png file header
+#     at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+#     at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+#     at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:18
+# An error occurred, character edit invalidated. Error: Character edit did not complete
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:98
+# Failed to read image: /tmp/character-routes-TKizYC/uploads/edit-failed.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:18 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: /edit reports failed publication and releases the lifecycle lock
+ok 33 - /edit reports failed publication and releases the lifecycle lock
+  ---
+  duration_ms: 33.23458
+  type: 'test'
+  ...
+# Error: Invalid .png file header
+#     at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+#     at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+#     at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1261:14
+# An error occurred while editing avatar Error: Character edit did not complete
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1261:89
+# Failed to read image: /tmp/character-routes-TKizYC/uploads/edit-avatar-failed.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:18 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: /edit-avatar reports failed publication and releases the lifecycle lock
+ok 34 - /edit-avatar reports failed publication and releases the lifecycle lock
+  ---
+  duration_ms: 15.897728
+  type: 'test'
+  ...
+# {
+#   avatar_url: 'edit-attribute-failed.png',
+#   avatar: 'edit-attribute-failed.png',
+#   ch_name: 'Failure',
+#   field: 'description',
+#   value: 'edited',
+#   description: 'edited'
+# }
+# {
+#   avatar_url: 'edit-attribute-failed.png',
+#   avatar: 'edit-attribute-failed.png',
+#   ch_name: 'Failure',
+#   field: 'description',
+#   value: 'edited',
+#   description: 'edited'
+# }
+# Error: Invalid .png file header
+#     at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+#     at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+#     at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1320:14
+# An error occurred, character edit invalidated. Error: Character edit did not complete
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1320:92
+# Failed to read image: /tmp/character-routes-TKizYC/characters/edit-attribute-failed.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:18 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: /edit-attribute reports failed publication and releases the lifecycle lock
+ok 35 - /edit-attribute reports failed publication and releases the lifecycle lock
+  ---
+  duration_ms: 10.634024
+  type: 'test'
+  ...
+# Error: Invalid .png file header
+#     at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+#     at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+#     at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1397:14
+# Failed to read image: /tmp/character-routes-TKizYC/characters/merge-attributes-failed.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:18 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: /merge-attributes reports failed publication and releases the lifecycle lock
+ok 36 - /merge-attributes reports failed publication and releases the lifecycle lock
+  ---
+  duration_ms: 3.14953
+  type: 'test'
+  ...
+# Subtest: selection from characters formats only selected notes
+ok 37 - selection from characters formats only selected notes
+  ---
+  duration_ms: 22.407652
+  type: 'test'
+  ...
+# Subtest: selection from characters never writes draft field values
+ok 38 - selection from characters never writes draft field values
+  ---
+  duration_ms: 26.942268
+  type: 'test'
+  ...
+# Subtest: selection from create formats only selected notes
+ok 39 - selection from create formats only selected notes
+  ---
+  duration_ms: 15.991749
+  type: 'test'
+  ...
+# Subtest: selection from create never writes draft field values
+ok 40 - selection from create never writes draft field values
+  ---
+  duration_ms: 14.120101
+  type: 'test'
+  ...
+# Subtest: selected world, embedded-world and favorite helpers run once with selected arguments
+ok 41 - selected world, embedded-world and favorite helpers run once with selected arguments
+  ---
+  duration_ms: 11.282084
+  type: 'test'
+  ...
+# Subtest: selected chrome does not hide controls immediately before showing them
+ok 42 - selected chrome does not hide controls immediately before showing them
+  ---
+  duration_ms: 8.845915
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: ordinary
+ok 43 - final editor state and terminal ordering match independent base: ordinary
+  ---
+  duration_ms: 16.992952
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: draft entry
+ok 44 - final editor state and terminal ordering match independent base: draft entry
+  ---
+  duration_ms: 17.339328
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: group peek
+ok 45 - final editor state and terminal ordering match independent base: group peek
+  ---
+  duration_ms: 18.337568
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: no menu switch
+ok 46 - final editor state and terminal ordering match independent base: no menu switch
+  ---
+  duration_ms: 18.028386
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: group without menu switch
+ok 47 - final editor state and terminal ordering match independent base: group without menu switch
+  ---
+  duration_ms: 20.832426
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: legacy optional fields
+ok 48 - final editor state and terminal ordering match independent base: legacy optional fields
+  ---
+  duration_ms: 16.093653
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: empty optional fields
+ok 49 - final editor state and terminal ordering match independent base: empty optional fields
+  ---
+  duration_ms: 16.590828
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: media globally forbidden
+ok 50 - final editor state and terminal ordering match independent base: media globally forbidden
+  ---
+  duration_ms: 15.076247
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: media allowed override
+ok 51 - final editor state and terminal ordering match independent base: media allowed override
+  ---
+  duration_ms: 13.448106
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: media forbidden override
+ok 52 - final editor state and terminal ordering match independent base: media forbidden override
+  ---
+  duration_ms: 15.062757
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: group media override
+ok 53 - final editor state and terminal ordering match independent base: group media override
+  ---
+  duration_ms: 17.042336
+  type: 'test'
+  ...
+# Subtest: final editor state and terminal ordering match independent base: residual controls
+ok 54 - final editor state and terminal ordering match independent base: residual controls
+  ---
+  duration_ms: 18.824341
+  type: 'test'
+  ...
+# Subtest: default create restoration remains identical to base (switchMenu=true)
+ok 55 - default create restoration remains identical to base (switchMenu=true)
+  ---
+  duration_ms: 13.280199
+  type: 'test'
+  ...
+# Subtest: default create restoration remains identical to base (switchMenu=false)
+ok 56 - default create restoration remains identical to base (switchMenu=false)
+  ---
+  duration_ms: 13.119231
+  type: 'test'
+  ...
+# Subtest: opening an existing character then returning to create restores the unchanged draft
+ok 57 - opening an existing character then returning to create restores the unchanged draft
+  ---
+  duration_ms: 15.45825
+  type: 'test'
+  ...
+# Subtest: legacy draft FileList restoration and asynchronous avatar path match base (create)
+ok 58 - legacy draft FileList restoration and asynchronous avatar path match base (create)
+  ---
+  duration_ms: 33.647445
+  type: 'test'
+  ...
+# Subtest: legacy draft FileList restoration and asynchronous avatar path match base (selected)
+ok 59 - legacy draft FileList restoration and asynchronous avatar path match base (selected)
+  ---
+  duration_ms: 39.451806
+  type: 'test'
+  ...
+# Subtest: an avatar draft is not restored when the previous selected button is not create
+ok 60 - an avatar draft is not restored when the previous selected button is not create
+  ---
+  duration_ms: 14.281176
+  type: 'test'
+  ...
+# Subtest: legacy selected draft-avatar crop outcome remains identical (cancelled)
+ok 61 - legacy selected draft-avatar crop outcome remains identical (cancelled)
+  ---
+  duration_ms: 23.353551
+  type: 'test'
+  ...
+# Subtest: legacy selected draft-avatar crop outcome remains identical (accepted)
+ok 62 - legacy selected draft-avatar crop outcome remains identical (accepted)
+  ---
+  duration_ms: 25.163865
+  type: 'test'
+  ...
+# Subtest: character delete waits for deferred edit publication and late edits cannot resurrect it
+ok 63 - character delete waits for deferred edit publication and late edits cannot resurrect it
+  ---
+  duration_ms: 39.159732
+  type: 'test'
+  ...
+# Subtest: character rename waits for deferred edit publication and late edits cannot resurrect it
+ok 64 - character rename waits for deferred edit publication and late edits cannot resurrect it
+  ---
+  duration_ms: 18.548405
+  type: 'test'
+  ...
+# Subtest: one user keeps leading and latest snapshots for three histories of the same character
+ok 65 - one user keeps leading and latest snapshots for three histories of the same character
+  ---
+  duration_ms: 189.175296
+  type: 'test'
+  ...
+# Subtest: Chinese names, groups and users keep independent latest snapshots and retention quotas
+ok 66 - Chinese names, groups and users keep independent latest snapshots and retention quotas
+  ---
+  duration_ms: 168.051604
+  type: 'test'
+  ...
+# Subtest: resolved path aliases share one schedule and one quota on Windows
+ok 67 - resolved path aliases share one schedule and one quota on Windows
+  ---
+  duration_ms: 8.223535
+  type: 'test'
+  ...
+# Subtest: user handles separate scheduling and quotas even for the same resolved history and backup directory
+ok 68 - user handles separate scheduling and quotas even for the same resolved history and backup directory
+  ---
+  duration_ms: 23.548057
+  type: 'test'
+  ...
+# Subtest: shutdown flush drains backups admitted by chat saves already queued behind a file lock
+ok 69 - shutdown flush drains backups admitted by chat saves already queued behind a file lock
+  ---
+  duration_ms: 29.688419
+  type: 'test'
+  ...
+# Subtest: legacy and new backups remain listed and downloadable with their exact original bytes
+ok 70 - legacy and new backups remain listed and downloadable with their exact original bytes
+  ---
+  duration_ms: 65.257751
+  type: 'test'
+  ...
+# Subtest: backup browser deletes under file and directory locks into recoverable storage
+ok 71 - backup browser deletes under file and directory locks into recoverable storage
+  ---
+  duration_ms: 46.744204
+  type: 'test'
+  ...
+# Attempt to delete non-chat backup file: other.jsonl
+# Attempt to download non-chat backup file: other.jsonl
+# Subtest: backup browser preserves invalid-prefix and missing-file responses
+ok 72 - backup browser preserves invalid-prefix and missing-file responses
+  ---
+  duration_ms: 25.803954
+  type: 'test'
+  ...
+# Subtest: delayed leading writes serialize latest trailing data and flush waits for actual filesystem writes
+ok 73 - delayed leading writes serialize latest trailing data and flush waits for actual filesystem writes
+  ---
+  duration_ms: 26.381747
+  type: 'test'
+  ...
+# Subtest: keys run independently and timed trailing snapshots retain only the latest per key
+ok 74 - keys run independently and timed trailing snapshots retain only the latest per key
+  ---
+  duration_ms: 36.072536
+  type: 'test'
+  ...
+# Subtest: capacity eviction drains active and pending data while overflow writes remain part of flush
+ok 75 - capacity eviction drains active and pending data while overflow writes remain part of flush
+  ---
+  duration_ms: 20.828913
+  type: 'test'
+  ...
+# Subtest: default capacity retains at most 256 throttles and admission flushes the oldest pending snapshot
+ok 76 - default capacity retains at most 256 throttles and admission flushes the oldest pending snapshot
+  ---
+  duration_ms: 184.414161
+  type: 'test'
+  ...
+# Subtest: access-triggered idle retirement flushes pending data and a reused key starts leading again
+ok 77 - access-triggered idle retirement flushes pending data and a reused key starts leading again
+  ---
+  duration_ms: 80.269234
+  type: 'test'
+  ...
+# Artificial fixtures retained at /workspace/sillytavern-perf-lab/.fixtures/backup-isolation-59decaed-3d67-4e27-988b-b6c164775695
+# Subtest: a real filesystem rejection is caught and a later snapshot can retry without poisoned state
+ok 78 - a real filesystem rejection is caught and a later snapshot can retry without poisoned state
+  ---
+  duration_ms: 8.329003
+  type: 'test'
+  ...
+# Subtest: character save allows missing file without losing rejected bytes
+ok 79 - character save allows missing file without losing rejected bytes
+  ---
+  duration_ms: 113.14858
+  type: 'test'
+  ...
+# Subtest: character save allows empty file without losing rejected bytes
+ok 80 - character save allows empty file without losing rejected bytes
+  ---
+  duration_ms: 24.785016
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-legacy-object.jsonl" does not have integrity metadata matching "expected". The integrity validation has been skipped.
+# Subtest: character save allows legacy object without losing rejected bytes
+ok 81 - character save allows legacy object without losing rejected bytes
+  ---
+  duration_ms: 24.318305
+  type: 'test'
+  ...
+# Subtest: character save allows matching slug without losing rejected bytes
+ok 82 - character save allows matching slug without losing rejected bytes
+  ---
+  duration_ms: 34.531057
+  type: 'test'
+  ...
+# Subtest: character save allows BOM matching slug without losing rejected bytes
+ok 83 - character save allows BOM matching slug without losing rejected bytes
+  ---
+  duration_ms: 21.984143
+  type: 'test'
+  ...
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-mismatched-slug.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects mismatched slug without losing rejected bytes
+ok 84 - character save rejects mismatched slug without losing rejected bytes
+  ---
+  duration_ms: 21.379538
+  type: 'test'
+  ...
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-BOM-mismatched-slug.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects BOM mismatched slug without losing rejected bytes
+ok 85 - character save rejects BOM mismatched slug without losing rejected bytes
+  ---
+  duration_ms: 19.729556
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-invalid-JSON.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-invalid-JSON.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects invalid JSON without losing rejected bytes
+ok 86 - character save rejects invalid JSON without losing rejected bytes
+  ---
+  duration_ms: 8.027563
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-null-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-null-header.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects null header without losing rejected bytes
+ok 87 - character save rejects null header without losing rejected bytes
+  ---
+  duration_ms: 24.382918
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-array-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-array-header.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects array header without losing rejected bytes
+ok 88 - character save rejects array header without losing rejected bytes
+  ---
+  duration_ms: 15.638927
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-string-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-string-header.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects string header without losing rejected bytes
+ok 89 - character save rejects string header without losing rejected bytes
+  ---
+  duration_ms: 3.594843
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-number-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-number-header.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects number header without losing rejected bytes
+ok 90 - character save rejects number header without losing rejected bytes
+  ---
+  duration_ms: 3.288472
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-boolean-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-boolean-header.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects boolean header without losing rejected bytes
+ok 91 - character save rejects boolean header without losing rejected bytes
+  ---
+  duration_ms: 10.454566
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects blank first line of nonempty file without losing rejected bytes
+ok 92 - character save rejects blank first line of nonempty file without losing rejected bytes
+  ---
+  duration_ms: 13.63273
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-whitespace-only-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-whitespace-only-nonempty-file.jsonl". The expected integrity slug was "expected".
+# Subtest: character save rejects whitespace-only nonempty file without losing rejected bytes
+ok 93 - character save rejects whitespace-only nonempty file without losing rejected bytes
+  ---
+  duration_ms: 5.224854
+  type: 'test'
+  ...
+# Subtest: character force save retains explicit overwrite semantics for malformed
+ok 94 - character force save retains explicit overwrite semantics for malformed
+  ---
+  duration_ms: 3.616965
+  type: 'test'
+  ...
+# Subtest: character force save retains explicit overwrite semantics for mismatch
+ok 95 - character force save retains explicit overwrite semantics for mismatch
+  ---
+  duration_ms: 5.157194
+  type: 'test'
+  ...
+# Subtest: character no-slug save retains explicit overwrite semantics for malformed
+ok 96 - character no-slug save retains explicit overwrite semantics for malformed
+  ---
+  duration_ms: 9.511097
+  type: 'test'
+  ...
+# Subtest: character no-slug save retains explicit overwrite semantics for mismatch
+ok 97 - character no-slug save retains explicit overwrite semantics for mismatch
+  ---
+  duration_ms: 6.308069
+  type: 'test'
+  ...
+# Subtest: group save allows missing file without losing rejected bytes
+ok 98 - group save allows missing file without losing rejected bytes
+  ---
+  duration_ms: 8.847404
+  type: 'test'
+  ...
+# Subtest: group save allows empty file without losing rejected bytes
+ok 99 - group save allows empty file without losing rejected bytes
+  ---
+  duration_ms: 6.570581
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-legacy-object.jsonl" does not have integrity metadata matching "expected". The integrity validation has been skipped.
+# Subtest: group save allows legacy object without losing rejected bytes
+ok 100 - group save allows legacy object without losing rejected bytes
+  ---
+  duration_ms: 6.623669
+  type: 'test'
+  ...
+# Subtest: group save allows matching slug without losing rejected bytes
+ok 101 - group save allows matching slug without losing rejected bytes
+  ---
+  duration_ms: 3.916975
+  type: 'test'
+  ...
+# Subtest: group save allows BOM matching slug without losing rejected bytes
+ok 102 - group save allows BOM matching slug without losing rejected bytes
+  ---
+  duration_ms: 4.677555
+  type: 'test'
+  ...
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-mismatched-slug.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects mismatched slug without losing rejected bytes
+ok 103 - group save rejects mismatched slug without losing rejected bytes
+  ---
+  duration_ms: 7.275177
+  type: 'test'
+  ...
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-BOM-mismatched-slug.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects BOM mismatched slug without losing rejected bytes
+ok 104 - group save rejects BOM mismatched slug without losing rejected bytes
+  ---
+  duration_ms: 6.422045
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-invalid-JSON.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-invalid-JSON.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects invalid JSON without losing rejected bytes
+ok 105 - group save rejects invalid JSON without losing rejected bytes
+  ---
+  duration_ms: 10.187273
+  type: 'test'
+  ...
+# Subtest: group save rejects null header without losing rejected bytes
+ok 106 - group save rejects null header without losing rejected bytes
+  ---
+  duration_ms: 3.552294
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-null-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-null-header.jsonl". The expected integrity slug was "expected".
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-array-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-array-header.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects array header without losing rejected bytes
+ok 107 - group save rejects array header without losing rejected bytes
+  ---
+  duration_ms: 2.336037
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-string-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-string-header.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects string header without losing rejected bytes
+ok 108 - group save rejects string header without losing rejected bytes
+  ---
+  duration_ms: 15.365231
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-number-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-number-header.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects number header without losing rejected bytes
+ok 109 - group save rejects number header without losing rejected bytes
+  ---
+  duration_ms: 7.679824
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-boolean-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-boolean-header.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects boolean header without losing rejected bytes
+ok 110 - group save rejects boolean header without losing rejected bytes
+  ---
+  duration_ms: 2.438939
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-blank-first-line-of-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-blank-first-line-of-nonempty-file.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects blank first line of nonempty file without losing rejected bytes
+ok 111 - group save rejects blank first line of nonempty file without losing rejected bytes
+  ---
+  duration_ms: 5.421535
+  type: 'test'
+  ...
+# File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-whitespace-only-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+# Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-whitespace-only-nonempty-file.jsonl". The expected integrity slug was "expected".
+# Subtest: group save rejects whitespace-only nonempty file without losing rejected bytes
+ok 112 - group save rejects whitespace-only nonempty file without losing rejected bytes
+  ---
+  duration_ms: 6.707326
+  type: 'test'
+  ...
+# Subtest: group force save retains explicit overwrite semantics for malformed
+ok 113 - group force save retains explicit overwrite semantics for malformed
+  ---
+  duration_ms: 10.007447
+  type: 'test'
+  ...
+# Subtest: group force save retains explicit overwrite semantics for mismatch
+ok 114 - group force save retains explicit overwrite semantics for mismatch
+  ---
+  duration_ms: 13.153539
+  type: 'test'
+  ...
+# Subtest: group no-slug save retains explicit overwrite semantics for malformed
+ok 115 - group no-slug save retains explicit overwrite semantics for malformed
+  ---
+  duration_ms: 3.20499
+  type: 'test'
+  ...
+# Subtest: group no-slug save retains explicit overwrite semantics for mismatch
+ok 116 - group no-slug save retains explicit overwrite semantics for mismatch
+  ---
+  duration_ms: 14.121427
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-add9785e-c0ed-4235-989e-639dce315ec7.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-add9785e-c0ed-4235-989e-639dce315ec7.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-add9785e-c0ed-4235-989e-639dce315ec7.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a999c2e3-330e-436c-8670-8c2c039a5ecc.jsonl
+# Subtest: degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail {"name":
+ok 117 - degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail {"name":
+  ---
+  duration_ms: 2.376821
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a999c2e3-330e-436c-8670-8c2c039a5ecc.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a999c2e3-330e-436c-8670-8c2c039a5ecc.jsonl
+# Subtest: degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail null
+ok 118 - degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail null
+  ---
+  duration_ms: 5.673905
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-89d4ff8a-9358-4cac-8e9f-99b52973a9fa.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-89d4ff8a-9358-4cac-8e9f-99b52973a9fa.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-89d4ff8a-9358-4cac-8e9f-99b52973a9fa.jsonl
+# Subtest: degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail []
+ok 119 - degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail []
+  ---
+  duration_ms: 2.993906
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-705ebc70-27f8-49c0-b97e-6e46d90c1942.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-705ebc70-27f8-49c0-b97e-6e46d90c1942.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-705ebc70-27f8-49c0-b97e-6e46d90c1942.jsonl
+# Subtest: degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail 42
+ok 120 - degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail 42
+  ---
+  duration_ms: 3.140347
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a049eb11-4066-459d-aa73-4d34b36ea55b.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a049eb11-4066-459d-aa73-4d34b36ea55b.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a049eb11-4066-459d-aa73-4d34b36ea55b.jsonl
+# Subtest: degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail {"unexpected":"field"}
+ok 121 - degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail {"unexpected":"field"}
+  ---
+  duration_ms: 3.98078
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/single-truncated.jsonl
+# Subtest: unreadable single-row history produces a safe zero-count degraded preview
+ok 122 - unreadable single-row history produces a safe zero-count degraded preview
+  ---
+  duration_ms: 0.677149
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-array-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-boolean-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-invalid-JSON.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-null-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-number-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-string-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-705ebc70-27f8-49c0-b97e-6e46d90c1942.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-89d4ff8a-9358-4cac-8e9f-99b52973a9fa.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a049eb11-4066-459d-aa73-4d34b36ea55b.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a999c2e3-330e-436c-8670-8c2c039a5ecc.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-add9785e-c0ed-4235-989e-639dce315ec7.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/search-truncated-unique.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/single-truncated.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-array-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-boolean-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-invalid-JSON.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-null-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-number-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-string-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-705ebc70-27f8-49c0-b97e-6e46d90c1942.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-89d4ff8a-9358-4cac-8e9f-99b52973a9fa.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a049eb11-4066-459d-aa73-4d34b36ea55b.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a999c2e3-330e-436c-8670-8c2c039a5ecc.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-add9785e-c0ed-4235-989e-639dce315ec7.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/search-truncated-unique.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/single-truncated.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-array-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-boolean-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-invalid-JSON.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-null-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-number-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-string-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-705ebc70-27f8-49c0-b97e-6e46d90c1942.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-89d4ff8a-9358-4cac-8e9f-99b52973a9fa.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a049eb11-4066-459d-aa73-4d34b36ea55b.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a999c2e3-330e-436c-8670-8c2c039a5ecc.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-add9785e-c0ed-4235-989e-639dce315ec7.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/search-truncated-unique.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/single-truncated.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-array-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-boolean-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-invalid-JSON.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-null-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-number-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/character-string-header.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-705ebc70-27f8-49c0-b97e-6e46d90c1942.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-89d4ff8a-9358-4cac-8e9f-99b52973a9fa.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a049eb11-4066-459d-aa73-4d34b36ea55b.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-a999c2e3-330e-436c-8670-8c2c039a5ecc.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/preview-add9785e-c0ed-4235-989e-639dce315ec7.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/search-truncated-unique.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/single-truncated.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-search-truncated-unique.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-search-truncated-unique.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-search-truncated-unique.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/groupChats/group-search-truncated-unique.jsonl
+# Subtest: real search includes degraded character and group histories only when complete rows or filename match
+ok 123 - real search includes degraded character and group histories only when complete rows or filename match
+  ---
+  duration_ms: 91.696023
+  type: 'test'
+  ...
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/recent-version-truncated.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/recent-version-truncated.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/recent-version-truncated.jsonl
+# Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-85b4d5ec-56e0-4a95-98b6-8061b4a4b7a6/chats/Synthetic/recent-version-truncated.jsonl
+# Chat text export failed. SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+#     at JSON.parse (<anonymous>)
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:716:35
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+# Subtest: real recent caches degraded metadata previews and invalidates changed bad-tail versions
+ok 124 - real recent caches degraded metadata previews and invalidates changed bad-tail versions
+  ---
+  duration_ms: 39.322745
+  type: 'test'
+  ...
+# Chat exported as synthetic.txt
+# Subtest: HTTP text export handles malformed-middle and serves subsequent requests
+ok 125 - HTTP text export handles malformed-middle and serves subsequent requests
+  ---
+  duration_ms: 10.392835
+  type: 'test'
+  ...
+# Chat text export failed. SyntaxError: Unexpected end of JSON input
+#     at JSON.parse (<anonymous>)
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:716:35
+#     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+# Chat exported as synthetic.txt
+# Subtest: HTTP text export handles truncated-last and serves subsequent requests
+ok 126 - HTTP text export handles truncated-last and serves subsequent requests
+  ---
+  duration_ms: 16.021492
+  type: 'test'
+  ...
+# Chat exported as synthetic.txt
+# Chat exported as synthetic.txt
+# Subtest: HTTP text export handles empty-lines and serves subsequent requests
+ok 127 - HTTP text export handles empty-lines and serves subsequent requests
+  ---
+  duration_ms: 7.310261
+  type: 'test'
+  ...
+# Chat exported as synthetic.txt
+# Chat exported as synthetic.txt
+# Subtest: HTTP text export handles BOM and serves subsequent requests
+ok 128 - HTTP text export handles BOM and serves subsequent requests
+  ---
+  duration_ms: 16.427547
+  type: 'test'
+  ...
+# Chat text export failed. Error: Synthetic read error
+#     at Immediate._onImmediate (file:///workspace/sillytavern-perf-lab/tests/chat-file-safety.test.mjs:251:63)
+#     at process.processImmediate (node:internal/timers:485:21)
+#     at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+#   code: 'EIO'
+# }
+# Chat exported as synthetic.txt
+# Subtest: HTTP text export settles once on a mid-stream read error and remains available
+ok 129 - HTTP text export settles once on a mid-stream read error and remains available
+  ---
+  duration_ms: 31.520058
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/ordered-source.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/ordered-target.jsonl
+# Successfully renamed chat file.
+# Subtest: rename waits for an in-flight save, then rejects late saves at the retired name
+ok 130 - rename waits for an in-flight save, then rejects late saves at the retired name
+  ---
+  duration_ms: 185.347302
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/force-source.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/force-target.jsonl
+# Successfully renamed chat file.
+# Subtest: force does not revive a renamed or deleted chat
+ok 131 - force does not revive a renamed or deleted chat
+  ---
+  duration_ms: 68.228019
+  type: 'test'
+  ...
+# Subtest: delete waits for a queued save and retains the completed contents in recovery storage
+ok 132 - delete waits for a queued save and retains the completed contents in recovery storage
+  ---
+  duration_ms: 95.7263
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/save-as-source.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/save-as-target.jsonl
+# Successfully renamed chat file.
+# Subtest: new untombstoned names still save and saved-as data does not alter the renamed target
+ok 133 - new untombstoned names still save and saved-as data does not alter the renamed target
+  ---
+  duration_ms: 13.786105
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/occupied-source.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/occupied-target.jsonl
+# Subtest: rename never overwrites an existing target and source remains writable
+ok 134 - rename never overwrites an existing target and source remains writable
+  ---
+  duration_ms: 11.798368
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/competing-a.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/competing-target.jsonl
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/competing-b.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/competing-target.jsonl
+# Successfully renamed chat file.
+# Subtest: two concurrent sources competing for one target publish only one complete chat
+ok 135 - two concurrent sources competing for one target publish only one complete chat
+  ---
+  duration_ms: 22.675189
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/reverse-a.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/reverse-b.jsonl
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/reverse-b.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/reverse-a.jsonl
+# Subtest: reverse multi-path requests settle without deadlock and preserve both occupied files
+ok 136 - reverse multi-path requests settle without deadlock and preserve both occupied files
+  ---
+  duration_ms: 9.994783
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/restart-source.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/restart-target.jsonl
+# Successfully renamed chat file.
+# Subtest: retirement is enforced by a fresh process after module state is lost
+ok 137 - retirement is enforced by a fresh process after module state is lost
+  ---
+  duration_ms: 572.79632
+  type: 'test'
+  ...
+# Subtest: CAI multi-history import retains every distinct history with noncolliding names
+ok 138 - CAI multi-history import retains every distinct history with noncolliding names
+  ---
+  duration_ms: 38.13936
+  type: 'test'
+  ...
+# SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+#     at JSON.parse (<anonymous>)
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:810:35
+# Subtest: invalid JSON import fails without destroying the original upload
+ok 139 - invalid JSON import fails without destroying the original upload
+  ---
+  duration_ms: 6.693193
+  type: 'test'
+  ...
+# Subtest: unsupported import format settles with an error and retains the upload
+ok 140 - unsupported import format settles with an error and retains the upload
+  ---
+  duration_ms: 2.022571
+  type: 'test'
+  ...
+# Subtest: concurrent group imports do not replace each other and retain uploads recoverably
+ok 141 - concurrent group imports do not replace each other and retain uploads recoverably
+  ---
+  duration_ms: 16.258232
+  type: 'test'
+  ...
+# Subtest: deleting an entire group retires its chats and metadata against late writers
+ok 142 - deleting an entire group retires its chats and metadata against late writers
+  ---
+  duration_ms: 21.622658
+  type: 'test'
+  ...
+# Subtest: Windows case aliases refer to the same retired path
+ok 143 - Windows case aliases refer to the same retired path # SKIP Requires Windows case-insensitive path semantics
+  ---
+  duration_ms: 0.072292
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/marker-failure.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/marker-failed-target.jsonl
+# Error renaming chat file: Error: artificial marker failure
+#     at fs.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:232:85)
+#     at node:internal/util:475:21
+#     at new Promise (<anonymous>)
+#     at node:internal/util:461:12
+#     at writeFileAsync (/workspace/sillytavern-perf-lab/node_modules/write-file-atomic/lib/index.js:142:31)
+#     at async retireChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:421:5)
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:547:26
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:624:13 {
+#   code: 'EIO'
+# }
+# Subtest: marker creation failure leaves the rename source active and removes the published candidate recoverably
+ok 144 - marker creation failure leaves the rename source active and removes the published candidate recoverably
+  ---
+  duration_ms: 17.80602
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/recycle-failure.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/recycle-failed-target.jsonl
+# Error renaming chat file: Error: artificial source move failure
+#     at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:246:61)
+#     at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:548:13
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:624:13 {
+#   code: 'EIO'
+# }
+# Subtest: a failed source recycle rolls back this rename marker and candidate without sealing the original path
+ok 145 - a failed source recycle rolls back this rename marker and candidate without sealing the original path
+  ---
+  duration_ms: 15.481167
+  type: 'test'
+  ...
+# Error: artificial deletion failure
+#     at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:260:61)
+#     at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+#     at async recycleRetiredChat (file:///workspace/sillytavern-perf-lab/src/chat-io.js:524:18)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:648:13 {
+#   code: 'EIO'
+# }
+# Subtest: a failed deletion move rolls back only its own marker and allows a subsequent save
+ok 146 - a failed deletion move rolls back only its own marker and allows a subsequent save
+  ---
+  duration_ms: 13.790279
+  type: 'test'
+  ...
+# Error: artificial second publication failure
+#     at fs.promises.link (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:275:97)
+#     at publishExclusive (file:///workspace/sillytavern-perf-lab/src/chat-io.js:476:27)
+#     at async createChatFileExclusive (file:///workspace/sillytavern-perf-lab/src/chat-io.js:487:5)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:869:25
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:864:13 {
+#   code: 'EIO'
+# }
+# Subtest: a partially published import is recycled and its original upload remains available
+ok 147 - a partially published import is recycled and its original upload remains available
+  ---
+  duration_ms: 12.421848
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/complete-publish.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/complete-target.jsonl
+# Successfully renamed chat file.
+# Subtest: rename publishes a complete target in one exclusive link, without exposing a partially copied file
+ok 148 - rename publishes a complete target in one exclusive link, without exposing a partially copied file
+  ---
+  duration_ms: 10.765499
+  type: 'test'
+  ...
+# Subtest: deleting a character directory waits for a chat save and prevents late get/save/import recreation
+ok 149 - deleting a character directory waits for a chat save and prevents late get/save/import recreation
+  ---
+  duration_ms: 110.227875
+  type: 'test'
+  ...
+# Error: artificial directory move failure
+#     at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:332:64)
+#     at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1548:32 {
+#   code: 'EIO'
+# }
+# Subtest: failed character-directory recycling leaves the avatar and chats active
+ok 150 - failed character-directory recycling leaves the avatar and chats active
+  ---
+  duration_ms: 17.536793
+  type: 'test'
+  ...
+# Char CharacterBefore has Spec v2 data missing for unknown field: description
+# Char CharacterBefore has Spec v2 data missing for unknown field: personality
+# Char CharacterBefore has Spec v2 data missing for unknown field: scenario
+# Char CharacterBefore has Spec v2 data missing for unknown field: mes_example
+# Char CharacterBefore has Spec v2 data missing for unknown field: tags
+# Subtest: character rename retires the old directory while the new avatar and chat remain usable
+ok 151 - character rename retires the old directory while the new avatar and chat remain usable
+  ---
+  duration_ms: 58.493787
+  type: 'test'
+  ...
+# Char CharacterCompetitorA has Spec v2 data missing for unknown field: description
+# Char CharacterCompetitorA has Spec v2 data missing for unknown field: personality
+# Char CharacterCompetitorA has Spec v2 data missing for unknown field: scenario
+# Char CharacterCompetitorA has Spec v2 data missing for unknown field: mes_example
+# Char CharacterCompetitorA has Spec v2 data missing for unknown field: tags
+# Subtest: two character renames toward one new name do not overwrite the first published avatar or history
+ok 152 - two character renames toward one new name do not overwrite the first published avatar or history
+  ---
+  duration_ms: 30.731056
+  type: 'test'
+  ...
+# Failed to read image: /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/uploads/retired-create-054d6e74-0010-4b4a-ba19-fe057976be60.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: a deleted character name can be created again, while an ordinary save stays retired until then
+ok 153 - a deleted character name can be created again, while an ordinary save stays retired until then
+  ---
+  duration_ms: 43.521977
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/cycle-a.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/cycle-b.jsonl
+# Successfully renamed chat file.
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/cycle-b.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/cycle-a.jsonl
+# Successfully renamed chat file.
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/reuse-other.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/reuse-source.jsonl
+# Successfully renamed chat file.
+# Subtest: chat rename can return to an absent retired name, and delete then rename reuses it
+ok 154 - chat rename can return to an absent retired name, and delete then rename reuses it
+  ---
+  duration_ms: 48.35863
+  type: 'test'
+  ...
+# Char RenameCycleA has Spec v2 data missing for unknown field: description
+# Char RenameCycleA has Spec v2 data missing for unknown field: personality
+# Char RenameCycleA has Spec v2 data missing for unknown field: scenario
+# Char RenameCycleA has Spec v2 data missing for unknown field: mes_example
+# Char RenameCycleA has Spec v2 data missing for unknown field: tags
+# Char RenameCycleB has Spec v2 data missing for unknown field: description
+# Char RenameCycleB has Spec v2 data missing for unknown field: personality
+# Char RenameCycleB has Spec v2 data missing for unknown field: scenario
+# Char RenameCycleB has Spec v2 data missing for unknown field: mes_example
+# Char RenameCycleB has Spec v2 data missing for unknown field: tags
+# Subtest: character rename can return to an absent previous name
+ok 155 - character rename can return to an absent previous name
+  ---
+  duration_ms: 53.858247
+  type: 'test'
+  ...
+# Subtest: malformed import request bodies settle without disrupting subsequent HTTP requests
+ok 156 - malformed import request bodies settle without disrupting subsequent HTTP requests
+  ---
+  duration_ms: 11.764976
+  type: 'test'
+  ...
+# Subtest: optional import display names can be omitted while valid uploaded JSONL remains compatible
+ok 157 - optional import display names can be omitted while valid uploaded JSONL remains compatible
+  ---
+  duration_ms: 10.631049
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/relocated-source.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/relocated-target.jsonl
+# Successfully renamed chat file.
+# Subtest: relative retirement identities survive copying an entirely artificial data root
+ok 158 - relative retirement identities survive copying an entirely artificial data root
+  ---
+  duration_ms: 51.760228
+  type: 'test'
+  ...
+# Subtest: internal staging junctions are rejected instead of writing through a directory alias
+ok 159 - internal staging junctions are rejected instead of writing through a directory alias
+  ---
+  duration_ms: 9.921646
+  type: 'test'
+  ...
+# Subtest: internal recovery junctions are rejected while the original file remains intact
+ok 160 - internal recovery junctions are rejected while the original file remains intact
+  ---
+  duration_ms: 0.911635
+  type: 'test'
+  ...
+# Char CharacterMoveFailure has Spec v2 data missing for unknown field: description
+# Char CharacterMoveFailure has Spec v2 data missing for unknown field: personality
+# Char CharacterMoveFailure has Spec v2 data missing for unknown field: scenario
+# Char CharacterMoveFailure has Spec v2 data missing for unknown field: mes_example
+# Char CharacterMoveFailure has Spec v2 data missing for unknown field: tags
+# Error: artificial character directory rename failure
+#     at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:465:64)
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1155:42
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1137:13 {
+#   code: 'EIO'
+# }
+# Subtest: failed character-directory rename restores the original avatar and writable chat without a candidate
+ok 161 - failed character-directory rename restores the original avatar and writable chat without a candidate
+  ---
+  duration_ms: 20.943884
+  type: 'test'
+  ...
+# Error: artificial avatar move failure
+#     at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:480:61)
+#     at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1550:17 {
+#   code: 'EIO'
+# }
+# Subtest: failed avatar deletion restores an already-recycled chat directory and its marker
+ok 162 - failed avatar deletion restores an already-recycled chat directory and its marker
+  ---
+  duration_ms: 14.98982
+  type: 'test'
+  ...
+# Subtest: explicit character creation does not overwrite an existing avatar
+ok 163 - explicit character creation does not overwrite an existing avatar
+  ---
+  duration_ms: 8.268462
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/internal-marker-source.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/Synthetic/internal-marker-target.jsonl
+# Successfully renamed chat file.
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/.chat-lifecycle/dd1394d43be1ed0c42675ec4492cc9ba7e35c7bbacd10cc12fc44c95b560de9f.json
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/.chat-lifecycle/moved-marker.json
+# Subtest: chat routes cannot rename internal retirement markers to revive a retired path
+ok 164 - chat routes cannot rename internal retirement markers to revive a retired path
+  ---
+  duration_ms: 31.295397
+  type: 'test'
+  ...
+# Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/RetirementBefore/previous-name.jsonl
+# New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-e66c89b1-2295-46df-bfd0-8b6eedf64d8c/chats/RetirementBefore/still-active.jsonl
+# Successfully renamed chat file.
+# Char RetirementBefore has Spec v2 data missing for unknown field: description
+# Char RetirementBefore has Spec v2 data missing for unknown field: personality
+# Char RetirementBefore has Spec v2 data missing for unknown field: scenario
+# Char RetirementBefore has Spec v2 data missing for unknown field: mes_example
+# Char RetirementBefore has Spec v2 data missing for unknown field: tags
+# Subtest: character rename inherits retired chat names while retaining writable active histories
+ok 165 - character rename inherits retired chat names while retaining writable active histories
+  ---
+  duration_ms: 73.83336
+  type: 'test'
+  ...
+# Subtest: group metadata rejects invalid IDs and readers ignore legacy traversal and aliases
+ok 166 - group metadata rejects invalid IDs and readers ignore legacy traversal and aliases
+  ---
+  duration_ms: 49.5923
+  type: 'test'
+  ...
+# Group deletion did not complete. Retained files can be recovered. Error: injected group move failure
+#     at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:562:37)
+#     at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+#     at async recycleRetiredChat (file:///workspace/sillytavern-perf-lab/src/chat-io.js:524:18)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/groups.js:247:50 {
+#   code: 'EIO'
+# }
+# Subtest: failed group deletion at second-history never leaves active metadata pointing at retired chats
+ok 167 - failed group deletion at second-history never leaves active metadata pointing at retired chats
+  ---
+  duration_ms: 23.941653
+  type: 'test'
+  ...
+# Group deletion did not complete. Retained files can be recovered. Error: injected group move failure
+#     at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:562:37)
+#     at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+#     at async recycleRetiredChat (file:///workspace/sillytavern-perf-lab/src/chat-io.js:524:18)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/groups.js:240:13 {
+#   code: 'EIO'
+# }
+# Subtest: failed group deletion at metadata never leaves active metadata pointing at retired chats
+ok 168 - failed group deletion at metadata never leaves active metadata pointing at retired chats
+  ---
+  duration_ms: 42.958436
+  type: 'test'
+  ...
+# Subtest: success preserves void return and terminal event order without scheduling small loads
+ok 169 - success preserves void return and terminal event order without scheduling small loads
+  ---
+  duration_ms: 14.348294
+  type: 'test'
+  ...
+# Subtest: large visible text receives exactly one post-render task boundary
+ok 170 - large visible text receives exactly one post-render task boundary
+  ---
+  duration_ms: 7.651014
+  type: 'test'
+  ...
+# Subtest: truncated history counts only visible text
+ok 171 - truncated history counts only visible text
+  ---
+  duration_ms: 8.009535
+  type: 'test'
+  ...
+# Subtest: clear immediately invalidates the load suspended at unshallowCharacter
+ok 172 - clear immediately invalidates the load suspended at unshallowCharacter
+  ---
+  duration_ms: 13.630662
+  type: 'test'
+  ...
+# Subtest: clear immediately invalidates the load suspended at fetch
+ok 173 - clear immediately invalidates the load suspended at fetch
+  ---
+  duration_ms: 9.630153
+  type: 'test'
+  ...
+# Subtest: clear immediately invalidates the load suspended at loadItemizedPrompts
+ok 174 - clear immediately invalidates the load suspended at loadItemizedPrompts
+  ---
+  duration_ms: 8.115665
+  type: 'test'
+  ...
+# Subtest: clear immediately invalidates the load suspended at printMessages
+ok 175 - clear immediately invalidates the load suspended at printMessages
+  ---
+  duration_ms: 6.089061
+  type: 'test'
+  ...
+# Subtest: same-file reload supersedes late response without overwriting newer model
+ok 176 - same-file reload supersedes late response without overwriting newer model
+  ---
+  duration_ms: 9.888941
+  type: 'test'
+  ...
+# Subtest: clear during task boundary suppresses menu terminal events and delayed focus
+ok 177 - clear during task boundary suppresses menu terminal events and delayed focus
+  ---
+  duration_ms: 12.305601
+  type: 'test'
+  ...
+# Subtest: stale render rejection does not enter catch fallback
+ok 178 - stale render rejection does not enter catch fallback
+  ---
+  duration_ms: 12.195392
+  type: 'test'
+  ...
+# Subtest: real fetch failure still renders fallback and logs error
+ok 179 - real fetch failure still renders fallback and logs error
+  ---
+  duration_ms: 3.657705
+  type: 'test'
+  ...
+# Subtest: CHAT_CHANGED listener cancellation suppresses later first-message events and CHAT_LOADED
+ok 180 - CHAT_CHANGED listener cancellation suppresses later first-message events and CHAT_LOADED
+  ---
+  duration_ms: 10.002442
+  type: 'test'
+  ...
+# Subtest: delayed textarea focus ignores a cleared successful load
+ok 181 - delayed textarea focus ignores a cleared successful load
+  ---
+  duration_ms: 11.98535
+  type: 'test'
+  ...
+# Subtest: cancelled legacy open never persists character
+ok 182 - cancelled legacy open never persists character
+  ---
+  duration_ms: 3.429317
+  type: 'test'
+  ...
+# Subtest: cancelled guarded open never persists character
+ok 183 - cancelled guarded open never persists character
+  ---
+  duration_ms: 8.333227
+  type: 'test'
+  ...
+# Subtest: general redisplay remains atomic without task scheduling
+ok 184 - general redisplay remains atomic without task scheduling
+  ---
+  duration_ms: 0.309168
+  type: 'test'
+  ...
+# Subtest: visible text threshold at 249999 characters
+ok 185 - visible text threshold at 249999 characters
+  ---
+  duration_ms: 4.868903
+  type: 'test'
+  ...
+# Subtest: visible text threshold at 250000 characters
+ok 186 - visible text threshold at 250000 characters
+  ---
+  duration_ms: 13.322268
+  type: 'test'
+  ...
+# Subtest: visible text threshold at 250001 characters
+ok 187 - visible text threshold at 250001 characters
+  ---
+  duration_ms: 3.218974
+  type: 'test'
+  ...
+# Subtest: CHAT_LOADED synchronous navigation cancels outer persistence
+ok 188 - CHAT_LOADED synchronous navigation cancels outer persistence
+  ---
+  duration_ms: 3.272248
+  type: 'test'
+  ...
+# Subtest: cancelled new chat does not save or delete the selected history
+ok 189 - cancelled new chat does not save or delete the selected history
+  ---
+  duration_ms: 9.523982
+  type: 'test'
+  ...
+# Subtest: group identity change during response refuses model application
+ok 190 - group identity change during response refuses model application
+  ---
+  duration_ms: 12.959499
+  type: 'test'
+  ...
+# Subtest: json response suspension cannot overwrite changed metadata
+ok 191 - json response suspension cannot overwrite changed metadata
+  ---
+  duration_ms: 9.078971
+  type: 'test'
+  ...
+# Subtest: empty load preserves greeting save and event order
+ok 192 - empty load preserves greeting save and event order
+  ---
+  duration_ms: 3.334266
+  type: 'test'
+  ...
+# Subtest: legitimate CHAT_CHANGED metadata update preserves successful terminal events
+ok 193 - legitimate CHAT_CHANGED metadata update preserves successful terminal events
+  ---
+  duration_ms: 3.628301
+  type: 'test'
+  ...
+# Subtest: clear invalidates before its prompt persistence await completes
+ok 194 - clear invalidates before its prompt persistence await completes
+  ---
+  duration_ms: 4.36515
+  type: 'test'
+  ...
+# Subtest: targeted default character selection propagates cancelled load
+ok 195 - targeted default character selection propagates cancelled load
+  ---
+  duration_ms: 3.759212
+  type: 'test'
+  ...
+# Subtest: cancelled reload does not refresh swipe buttons for a newer chat
+ok 196 - cancelled reload does not refresh swipe buttons for a newer chat
+  ---
+  duration_ms: 11.283131
+  type: 'test'
+  ...
+# Subtest: same-file reload during CHAT_CHANGED suppresses old terminal events even with restored metadata
+ok 197 - same-file reload during CHAT_CHANGED suppresses old terminal events even with restored metadata
+  ---
+  duration_ms: 3.93492
+  type: 'test'
+  ...
+# Subtest: recent character history opens exactly once without loading its default
+ok 198 - recent character history opens exactly once without loading its default
+  ---
+  duration_ms: 4.203412
+  type: 'test'
+  ...
+# Subtest: legacy selection retains its void return, default load and reset behavior
+ok 199 - legacy selection retains its void return, default load and reset behavior
+  ---
+  duration_ms: 1.053205
+  type: 'test'
+  ...
+# Subtest: legacy same-character selection retains switchMenu=true
+ok 200 - legacy same-character selection retains switchMenu=true
+  ---
+  duration_ms: 1.195072
+  type: 'test'
+  ...
+# Subtest: legacy same-character selection retains switchMenu=false
+ok 201 - legacy same-character selection retains switchMenu=false
+  ---
+  duration_ms: 0.838727
+  type: 'test'
+  ...
+# Subtest: targeting the default loads once without changing or persisting the filename
+ok 202 - targeting the default loads once without changing or persisting the filename
+  ---
+  duration_ms: 0.942012
+  type: 'test'
+  ...
+# Subtest: targeting the already open same-character file retains switchMenu=true
+ok 203 - targeting the already open same-character file retains switchMenu=true
+  ---
+  duration_ms: 0.944235
+  type: 'test'
+  ...
+# Subtest: targeting the already open same-character file retains switchMenu=false
+ok 204 - targeting the already open same-character file retains switchMenu=false
+  ---
+  duration_ms: 0.889841
+  type: 'test'
+  ...
+# Subtest: same-character history runs normal loading, form selection and newChat persistence
+ok 205 - same-character history runs normal loading, form selection and newChat persistence
+  ---
+  duration_ms: 0.967172
+  type: 'test'
+  ...
+# Subtest: shallow card replacement is refreshed before comparing target with history
+ok 206 - shallow card replacement is refreshed before comparing target with history
+  ---
+  duration_ms: 1.427981
+  type: 'test'
+  ...
+# Subtest: shallow card replacement is refreshed before comparing target with refreshed-default
+ok 207 - shallow card replacement is refreshed before comparing target with refreshed-default
+  ---
+  duration_ms: 1.298256
+  type: 'test'
+  ...
+# Subtest: explicit invalid chatFile undefined refuses without changing selection
+ok 208 - explicit invalid chatFile undefined refuses without changing selection
+  ---
+  duration_ms: 1.064887
+  type: 'test'
+  ...
+# Subtest: explicit invalid chatFile null refuses without changing selection
+ok 209 - explicit invalid chatFile null refuses without changing selection
+  ---
+  duration_ms: 0.843947
+  type: 'test'
+  ...
+# Subtest: explicit invalid chatFile 0 refuses without changing selection
+ok 210 - explicit invalid chatFile 0 refuses without changing selection
+  ---
+  duration_ms: 0.747955
+  type: 'test'
+  ...
+# Subtest: explicit invalid chatFile {} refuses without changing selection
+ok 211 - explicit invalid chatFile {} refuses without changing selection
+  ---
+  duration_ms: 0.812624
+  type: 'test'
+  ...
+# Subtest: explicit invalid chatFile "" refuses without changing selection
+ok 212 - explicit invalid chatFile "" refuses without changing selection
+  ---
+  duration_ms: 2.031685
+  type: 'test'
+  ...
+# Subtest: explicit invalid chatFile "   " refuses without changing selection
+ok 213 - explicit invalid chatFile "   " refuses without changing selection
+  ---
+  duration_ms: 0.797122
+  type: 'test'
+  ...
+# Subtest: invalid character ID and missing avatar never load or save active settings
+ok 214 - invalid character ID and missing avatar never load or save active settings
+  ---
+  duration_ms: 0.921824
+  type: 'test'
+  ...
+# Subtest: targeted selection respects guard {"isChatSaving":true} including current character
+ok 215 - targeted selection respects guard {"isChatSaving":true} including current character
+  ---
+  duration_ms: 0.977614
+  type: 'test'
+  ...
+# Subtest: targeted selection respects guard {"selected_group":"busy-group","is_group_generating":true} including current character
+ok 216 - targeted selection respects guard {"selected_group":"busy-group","is_group_generating":true} including current character
+  ---
+  duration_ms: 0.931152
+  type: 'test'
+  ...
+# Subtest: targeted selection respects guard {"is_send_press":true} including current character
+ok 217 - targeted selection respects guard {"is_send_press":true} including current character
+  ---
+  duration_ms: 0.838242
+  type: 'test'
+  ...
+# Subtest: targeted group-to-character navigation resets prior state and loads only the target
+ok 218 - targeted group-to-character navigation resets prior state and loads only the target
+  ---
+  duration_ms: 0.981612
+  type: 'test'
+  ...
+# Subtest: stale clearChat prep refuses after navigation to {"this_chid":2}
+ok 219 - stale clearChat prep refuses after navigation to {"this_chid":2}
+  ---
+  duration_ms: 0.953174
+  type: 'test'
+  ...
+# Subtest: stale unshallowCharacter prep refuses after navigation to {"this_chid":2}
+ok 220 - stale unshallowCharacter prep refuses after navigation to {"this_chid":2}
+  ---
+  duration_ms: 0.799687
+  type: 'test'
+  ...
+# Subtest: stale clearChat prep refuses after navigation to {"selected_group":"new-group"}
+ok 221 - stale clearChat prep refuses after navigation to {"selected_group":"new-group"}
+  ---
+  duration_ms: 0.832836
+  type: 'test'
+  ...
+# Subtest: stale unshallowCharacter prep refuses after navigation to {"selected_group":"new-group"}
+ok 222 - stale unshallowCharacter prep refuses after navigation to {"selected_group":"new-group"}
+  ---
+  duration_ms: 0.783383
+  type: 'test'
+  ...
+# Subtest: overlapping recent clicks are ignored and a later click can open normally
+ok 223 - overlapping recent clicks are ignored and a later click can open normally
+  ---
+  duration_ms: 23.483508
+  type: 'test'
+  ...
+# Subtest: recent busy state releases on failure and preserves error toast before retry
+ok 224 - recent busy state releases on failure and preserves error toast before retry
+  ---
+  duration_ms: 1.138252
+  type: 'test'
+  ...
+# Subtest: recent busy state releases after refused selection
+ok 225 - recent busy state releases after refused selection
+  ---
+  duration_ms: 0.905302
+  type: 'test'
+  ...
+# Subtest: history transition refuses stale identity during openCharacterChat waitUntilCondition
+ok 226 - history transition refuses stale identity during openCharacterChat waitUntilCondition
+  ---
+  duration_ms: 1.090999
+  type: 'test'
+  ...
+# Subtest: history transition refuses stale identity during openCharacterChat clearChat
+ok 227 - history transition refuses stale identity during openCharacterChat clearChat
+  ---
+  duration_ms: 0.840008
+  type: 'test'
+  ...
+# Subtest: history transition refuses stale identity during openCharacterChat getChat
+ok 228 - history transition refuses stale identity during openCharacterChat getChat
+  ---
+  duration_ms: 0.844602
+  type: 'test'
+  ...
+# Subtest: card identity changing at the same index during refresh refuses the target
+ok 229 - card identity changing at the same index during refresh refuses the target
+  ---
+  duration_ms: 9.976693
+  type: 'test'
+  ...
+# Subtest: ordinary openCharacterChat keeps its legacy void return and persistence
+ok 230 - ordinary openCharacterChat keeps its legacy void return and persistence
+  ---
+  duration_ms: 0.984542
+  type: 'test'
+  ...
+# Subtest: cross-character history does not overwrite unopened default prompt storage with empty prompts
+ok 231 - cross-character history does not overwrite unopened default prompt storage with empty prompts
+  ---
+  duration_ms: 1.692029
+  type: 'test'
+  ...
+# Subtest: targeted same-character history retains normal prompt-saving clear
+ok 232 - targeted same-character history retains normal prompt-saving clear
+  ---
+  duration_ms: 1.185882
+  type: 'test'
+  ...
+# Subtest: legacy history retains normal prompt-saving clear
+ok 233 - legacy history retains normal prompt-saving clear
+  ---
+  duration_ms: 1.236122
+  type: 'test'
+  ...
+# Subtest: failed cross-character refresh can retry the default without accepting an unloaded blank chat
+ok 234 - failed cross-character refresh can retry the default without accepting an unloaded blank chat
+  ---
+  duration_ms: 1.224016
+  type: 'test'
+  ...
+# Subtest: failed refresh preserves navigation selected during preparation {"this_chid":2,"name2":"Other","chat_metadata":{"loaded":"other-default"}}
+ok 235 - failed refresh preserves navigation selected during preparation {"this_chid":2,"name2":"Other","chat_metadata":{"loaded":"other-default"}}
+  ---
+  duration_ms: 1.001934
+  type: 'test'
+  ...
+# Subtest: failed refresh preserves navigation selected during preparation {"selected_group":"other-group","name2":"Group","chat_metadata":{"loaded":"group-history"}}
+ok 236 - failed refresh preserves navigation selected during preparation {"selected_group":"other-group","name2":"Group","chat_metadata":{"loaded":"group-history"}}
+  ---
+  duration_ms: 1.175709
+  type: 'test'
+  ...
+# Subtest: failed same-character preparation retains the chat that was already loaded
+ok 237 - failed same-character preparation retains the chat that was already loaded
+  ---
+  duration_ms: 1.039999
+  type: 'test'
+  ...
+# Subtest: older preparation rejection preserves newer same-character newer-history load
+ok 238 - older preparation rejection preserves newer same-character newer-history load
+  ---
+  duration_ms: 9.057734
+  type: 'test'
+  ...
+# Subtest: older preparation resolution preserves newer same-character newer-history load
+ok 239 - older preparation resolution preserves newer same-character newer-history load
+  ---
+  duration_ms: 1.223977
+  type: 'test'
+  ...
+# Subtest: older preparation rejection preserves newer same-character default load
+ok 240 - older preparation rejection preserves newer same-character default load
+  ---
+  duration_ms: 1.087628
+  type: 'test'
+  ...
+# Subtest: older preparation resolution preserves newer same-character default load
+ok 241 - older preparation resolution preserves newer same-character default load
+  ---
+  duration_ms: 1.07618
+  type: 'test'
+  ...
+# Subtest: initial awaited clear refuses a newer homepage metadata state
+ok 242 - initial awaited clear refuses a newer homepage metadata state
+  ---
+  duration_ms: 0.976119
+  type: 'test'
+  ...
+# Subtest: targeted waitUntilCondition refuses a newer same-character metadata state before filename assignment
+ok 243 - targeted waitUntilCondition refuses a newer same-character metadata state before filename assignment
+  ---
+  duration_ms: 1.083421
+  type: 'test'
+  ...
+# Subtest: targeted clearChat refuses a newer same-character metadata state before filename assignment
+ok 244 - targeted clearChat refuses a newer same-character metadata state before filename assignment
+  ---
+  duration_ms: 0.799694
+  type: 'test'
+  ...
+# Subtest: same-character refresh refuses a newer metadata state before opening requested history
+ok 245 - same-character refresh refuses a newer metadata state before opening requested history
+  ---
+  duration_ms: 0.902761
+  type: 'test'
+  ...
+# Subtest: targeted history load refuses newer same-character filename before persistence or settings
+ok 246 - targeted history load refuses newer same-character filename before persistence or settings
+  ---
+  duration_ms: 0.993595
+  type: 'test'
+  ...
+# Subtest: targeted default load refuses newer same-character filename before persistence or settings
+ok 247 - targeted default load refuses newer same-character filename before persistence or settings
+  ---
+  duration_ms: 0.96416
+  type: 'test'
+  ...
+# {
+#   avatar_url: 'Smoke.png',
+#   ch_name: 'Smoke',
+#   description: 'edited',
+#   field: 'description',
+#   value: 'attribute'
+# }
+# /tmp/data-endpoint-smoke-R7mVqL/characters/Smoke.png was copied to /tmp/data-endpoint-smoke-R7mVqL/characters/Smoke_1.png
+# Importing from v1 json
+# Importing from v1 json
+# Importing from v1 json
+# Importing from BYAF
+# Warning: BYAF character has no images
+# Created Scenario - 2026-10-28@15h39m32s013ms-9a48edea-fcbb-4afe-95f3-903ba5cdd3cf imported.jsonl chat from BYAF import
+# Subtest: all data-writing routes publish valid minimal requests without nested new lock keys
+    # Subtest: character create, edits, single/bulk/all merge, duplicate and imports
+    ok 1 - character create, edits, single/bulk/all merge, duplicate and imports
+      ---
+      duration_ms: 688.717536
+      type: 'test'
+      ...
+# Old chat name /tmp/data-endpoint-smoke-R7mVqL/chats/Smoke/original.jsonl
+# New chat name /tmp/data-endpoint-smoke-R7mVqL/chats/Smoke/renamed.jsonl
+# Successfully renamed chat file.
+    # Subtest: ordinary chat save/get/rename/delete and single/batch import
+    ok 2 - ordinary chat save/get/rename/delete and single/batch import
+      ---
+      duration_ms: 56.855252
+      type: 'test'
+      ...
+# Old chat name /tmp/data-endpoint-smoke-R7mVqL/groupChats/group-smoke.jsonl
+# New chat name /tmp/data-endpoint-smoke-R7mVqL/groupChats/group-renamed.jsonl
+# Successfully renamed chat file.
+    # Subtest: group metadata and histories, including rename and group deletion with histories
+    ok 3 - group metadata and histories, including rename and group deletion with histories
+      ---
+      duration_ms: 123.741876
+      type: 'test'
+      ...
+    # Subtest: scheduled leading/trailing backups and backup delete
+    ok 4 - scheduled leading/trailing backups and backup delete
+      ---
+      duration_ms: 33.152389
+      type: 'test'
+      ...
+# Char Smoke has Spec v2 data mismatch with Spec v1 for field: description attribute bulk
+    # Subtest: character rename with chat histories and delete with histories
+    ok 5 - character rename with chat histories and delete with histories
+      ---
+      duration_ms: 45.580874
+      type: 'test'
+      ...
+    1..5
+ok 248 - all data-writing routes publish valid minimal requests without nested new lock keys
+  ---
+  duration_ms: 954.051785
+  type: 'test'
+  ...
+# Subtest: a live owner blocks another process and leaves the lock unchanged
+ok 249 - a live owner blocks another process and leaves the lock unchanged
+  ---
+  duration_ms: 87.501845
+  type: 'test'
+  ...
+# Subtest: the same process cannot take a second root while it still owns one
+ok 250 - the same process cannot take a second root while it still owns one
+  ---
+  duration_ms: 6.823503
+  type: 'test'
+  ...
+# Subtest: a dead pid on this host is reclaimed
+ok 251 - a dead pid on this host is reclaimed
+  ---
+  duration_ms: 62.139195
+  type: 'test'
+  ...
+# Subtest: a dead pid on another host is not reclaimed
+ok 252 - a dead pid on another host is not reclaimed
+  ---
+  duration_ms: 64.267533
+  type: 'test'
+  ...
+# Subtest: an unreadable owner file is left in place
+ok 253 - an unreadable owner file is left in place
+  ---
+  duration_ms: 17.532998
+  type: 'test'
+  ...
+# Subtest: a missing data root is created and a child exit removes the lock
+ok 254 - a missing data root is created and a child exit removes the lock
+  ---
+  duration_ms: 71.358661
+  type: 'test'
+  ...
+# Subtest: process.exit and an uncaught exception remove the lock
+ok 255 - process.exit and an uncaught exception remove the lock
+  ---
+  duration_ms: 167.396547
+  type: 'test'
+  ...
+# Subtest: a symlink owner file is not followed or rewritten
+ok 256 - a symlink owner file is not followed or rewritten
+  ---
+  duration_ms: 8.215325
+  type: 'test'
+  ...
+# Subtest: two processes cannot both reclaim one stale owner
+ok 257 - two processes cannot both reclaim one stale owner
+  ---
+  duration_ms: 140.212584
+  type: 'test'
+  ...
+# Subtest: a stale reclaim marker is taken over once and a fresh one is not
+ok 258 - a stale reclaim marker is taken over once and a fresh one is not
+  ---
+  duration_ms: 628.073818
+  type: 'test'
+  ...
+# Subtest: acquiring a data root never spawns a compiler
+ok 259 - acquiring a data root never spawns a compiler
+  ---
+  duration_ms: 51.03384
+  type: 'test'
+  ...
+# Subtest: EPERM from process.kill means the same-host owner is alive
+ok 260 - EPERM from process.kill means the same-host owner is alive
+  ---
+  duration_ms: 3.615958
+  type: 'test'
+  ...
+# Subtest: an unexpected environment error refuses ownership with diagnostics
+ok 261 - an unexpected environment error refuses ownership with diagnostics
+  ---
+  duration_ms: 1.257231
+  type: 'test'
+  ...
+# Subtest: a new owner record stores a token and the host identity
+ok 262 - a new owner record stores a token and the host identity
+  ---
+  duration_ms: 1.39369
+  type: 'test'
+  ...
+# Subtest: a live pid with a different boot or start identity is reclaimed
+ok 263 - a live pid with a different boot or start identity is reclaimed
+  ---
+  duration_ms: 7.518512
+  type: 'test'
+  ...
+# Subtest: a matching boot and start identity is refused even when the token differs
+ok 264 - a matching boot and start identity is refused even when the token differs
+  ---
+  duration_ms: 1.04389
+  type: 'test'
+  ...
+# Subtest: a live pid without identity fields is kept
+ok 265 - a live pid without identity fields is kept
+  ---
+  duration_ms: 4.532407
+  type: 'test'
+  ...
+# Subtest: EPERM with a matching identity refuses and a mismatch is reclaimed
+ok 266 - EPERM with a matching identity refuses and a mismatch is reclaimed
+  ---
+  duration_ms: 2.447597
+  type: 'test'
+  ...
+# Subtest: two processes cannot both reclaim one reused pid
+ok 267 - two processes cannot both reclaim one reused pid
+  ---
+  duration_ms: 113.027144
+  type: 'test'
+  ...
+# Subtest: owner cleanup uses bounded sibling names and failed release can be retried
+ok 268 - owner cleanup uses bounded sibling names and failed release can be retried
+  ---
+  duration_ms: 1.531454
+  type: 'test'
+  ...
+# Subtest: an expired marker cannot revoke a paused live reclaimer
+ok 269 - an expired marker cannot revoke a paused live reclaimer
+  ---
+  duration_ms: 1298.990944
+  type: 'test'
+  ...
+# Subtest: release retains bookkeeping after reading the renamed owner fails
+ok 270 - release retains bookkeeping after reading the renamed owner fails
+  ---
+  duration_ms: 3.641214
+  type: 'test'
+  ...
+# Subtest: legacy Linux identity with a live pid refuses with a clear diagnostic
+ok 271 - legacy Linux identity with a live pid refuses with a clear diagnostic
+  ---
+  duration_ms: 16.041031
+  type: 'test'
+  ...
+# Subtest: Linux acquisition p95 is recorded
+ok 272 - Linux acquisition p95 is recorded
+  ---
+  duration_ms: 56.230995
+  type: 'test'
+  ...
+# Linux acquisition p95=3.519ms (n=30)
+# Subtest: two real Linux processes compare ticks and boot ids independently
+ok 273 - two real Linux processes compare ticks and boot ids independently
+  ---
+  duration_ms: 155.863401
+  type: 'test'
+  ...
+# Subtest: a second real process after a btime shift cannot reclaim the live Linux owner
+ok 274 - a second real process after a btime shift cannot reclaim the live Linux owner
+  ---
+  duration_ms: 71.306036
+  type: 'test'
+  ...
+# Subtest: enabled backups flush the latest throttled snapshot and recycle expired versions
+ok 275 - enabled backups flush the latest throttled snapshot and recycle expired versions
+  ---
+  duration_ms: 109.691671
+  type: 'test'
+  ...
+# Subtest: stable normal mode performs no VN visibility geometry read
+ok 276 - stable normal mode performs no VN visibility geometry read
+  ---
+  duration_ms: 9.416519
+  type: 'test'
+  ...
+# Subtest: stable VN mode performs no VN visibility geometry read
+ok 277 - stable VN mode performs no VN visibility geometry read
+  ---
+  duration_ms: 5.823031
+  type: 'test'
+  ...
+# Subtest: stable VN retains sprites and drag geometry with no layout boxes (synthetic :visible=false)
+ok 278 - stable VN retains sprites and drag geometry with no layout boxes (synthetic :visible=false)
+  ---
+  duration_ms: 7.887898
+  type: 'test'
+  ...
+# Subtest: leaving VN resets once despite no layout boxes (synthetic :visible=false)
+ok 279 - leaving VN resets once despite no layout boxes (synthetic :visible=false)
+  ---
+  duration_ms: 1.887535
+  type: 'test'
+  ...
+# Subtest: stable VN retains sprites and drag geometry with CSS-hidden ancestor
+ok 280 - stable VN retains sprites and drag geometry with CSS-hidden ancestor
+  ---
+  duration_ms: 1.888025
+  type: 'test'
+  ...
+# Subtest: leaving VN resets once despite CSS-hidden ancestor
+ok 281 - leaving VN resets once despite CSS-hidden ancestor
+  ---
+  duration_ms: 7.56649
+  type: 'test'
+  ...
+# Subtest: initial normal mode preserves dragged holder while enforcing wrapper display every time
+ok 282 - initial normal mode preserves dragged holder while enforcing wrapper display every time
+  ---
+  duration_ms: 1.368623
+  type: 'test'
+  ...
+# Subtest: external VN display changes do not invent a normal-mode transition
+ok 283 - external VN display changes do not invent a normal-mode transition
+  ---
+  duration_ms: 5.40354
+  type: 'test'
+  ...
+# Subtest: desktop/mobile and group/single mode changes reset exactly once each
+ok 284 - desktop/mobile and group/single mode changes reset exactly once each
+  ---
+  duration_ms: 2.411094
+  type: 'test'
+  ...
+# Subtest: home returns before applying mode and same-mode reopen keeps drag positions
+ok 285 - home returns before applying mode and same-mode reopen keeps drag positions
+  ---
+  duration_ms: 3.664059
+  type: 'test'
+  ...
+# Subtest: home followed by different mode resets once on reopen
+ok 286 - home followed by different mode resets once on reopen
+  ---
+  duration_ms: 1.292135
+  type: 'test'
+  ...
+# Subtest: explicit lastMessage invalidation refreshes stable VN without resetting geometry
+ok 287 - explicit lastMessage invalidation refreshes stable VN without resetting geometry
+  ---
+  duration_ms: 4.17275
+  type: 'test'
+  ...
+# Subtest: newChat refresh remains independent from stable-mode invalidation
+ok 288 - newChat refresh remains independent from stable-mode invalidation
+  ---
+  duration_ms: 1.843618
+  type: 'test'
+  ...
+# Subtest: actual CHAT_CHANGED handler still clears sprites and invalidates the message independently
+ok 289 - actual CHAT_CHANGED handler still clears sprites and invalidates the message independently
+  ---
+  duration_ms: 1.636146
+  type: 'test'
+  ...
+# Subtest: applied state advances before first async sprite validation
+ok 290 - applied state advances before first async sprite validation
+  ---
+  duration_ms: 3.860256
+  type: 'test'
+  ...
+# Subtest: offline connectivity visibility predicate and reconnect refresh remain intact
+ok 291 - offline connectivity visibility predicate and reconnect refresh remain intact
+  ---
+  duration_ms: 1.268915
+  type: 'test'
+  ...
+# Subtest: no sprites/defaults still skips expression rendering
+ok 292 - no sprites/defaults still skips expression rendering
+  ---
+  duration_ms: 1.225604
+  type: 'test'
+  ...
+# Subtest: normal geometry terminal behavior independently matches immutable base (normal)
+ok 293 - normal geometry terminal behavior independently matches immutable base (normal)
+  ---
+  duration_ms: 10.017869
+  type: 'test'
+  ...
+# Subtest: normal geometry terminal behavior independently matches immutable base (VN)
+ok 294 - normal geometry terminal behavior independently matches immutable base (VN)
+  ---
+  duration_ms: 5.81978
+  type: 'test'
+  ...
+# Subtest: ordinary errors do not open a lifecycle popup
+ok 295 - ordinary errors do not open a lifecycle popup
+  ---
+  duration_ms: 6.100515
+  type: 'test'
+  ...
+# Subtest: Keep this tab neither reloads nor downloads the conflicted snapshot
+ok 296 - Keep this tab neither reloads nor downloads the conflicted snapshot
+  ---
+  duration_ms: 8.12981
+  type: 'test'
+  ...
+# Subtest: a later conflict for the same chat downloads its latest frozen snapshot once
+ok 297 - a later conflict for the same chat downloads its latest frozen snapshot once
+  ---
+  duration_ms: 3.952908
+  type: 'test'
+  ...
+# Subtest: different chat identities receive separate serial popups and exact JSONL downloads
+ok 298 - different chat identities receive separate serial popups and exact JSONL downloads
+  ---
+  duration_ms: 4.559972
+  type: 'test'
+  ...
+# Subtest: popup failure releases that identity and does not block a queued chat or a retry
+ok 299 - popup failure releases that identity and does not block a queued chat or a retry
+  ---
+  duration_ms: 6.59239
+  type: 'test'
+  ...
+# Subtest: reverse character save responses download the newest submitted snapshot
+ok 300 - reverse character save responses download the newest submitted snapshot
+  ---
+  duration_ms: 2.338688
+  type: 'test'
+  ...
+# Subtest: an older response after the newest popup closes does not offer an older download
+ok 301 - an older response after the newest popup closes does not offer an older download
+  ---
+  duration_ms: 10.617547
+  type: 'test'
+  ...
+# Subtest: a newer response as the previous popup completes still offers its own recovery
+ok 302 - a newer response as the previous popup completes still offers its own recovery
+  ---
+  duration_ms: 1.793528
+  type: 'test'
+  ...
+# Subtest: a same-realm popup completion cannot consume a newer conflict without offering it
+ok 303 - a same-realm popup completion cannot consume a newer conflict without offering it
+  ---
+  duration_ms: 5.808024
+  type: 'test'
+  ...
+# Subtest: character recovery uses the frozen request payload after in-memory editing
+ok 304 - character recovery uses the frozen request payload after in-memory editing
+  ---
+  duration_ms: 9.516982
+  type: 'test'
+  ...
+# Subtest: late group conflict keeps the submitted group snapshot and identity after switching chats
+ok 305 - late group conflict keeps the submitted group snapshot and identity after switching chats
+  ---
+  duration_ms: 1.556065
+  type: 'test'
+  ...
+# Subtest: group bookmark freezes its payload before awaiting the group metadata write
+ok 306 - group bookmark freezes its payload before awaiting the group metadata write
+  ---
+  duration_ms: 1.301305
+  type: 'test'
+  ...
+# Subtest: character lifecycle save returns failure through saveChatConditional without force or cache success
+ok 307 - character lifecycle save returns failure through saveChatConditional without force or cache success
+  ---
+  duration_ms: 8.840763
+  type: 'test'
+  ...
+# Subtest: successful character save still returns success and writes caches
+ok 308 - successful character save still returns success and writes caches
+  ---
+  duration_ms: 1.22359
+  type: 'test'
+  ...
+# Subtest: insertAt retains unsaved messages and redraws locally after lifecycle save failure
+ok 309 - insertAt retains unsaved messages and redraws locally after lifecycle save failure
+  ---
+  duration_ms: 8.570226
+  type: 'test'
+  ...
+# Subtest: successful insertAt retains the existing server reload behavior
+ok 310 - successful insertAt retains the existing server reload behavior
+  ---
+  duration_ms: 1.367745
+  type: 'test'
+  ...
+# Subtest: group lifecycle save returns failure through saveChatConditional without editing group metadata
+ok 311 - group lifecycle save returns failure through saveChatConditional without editing group metadata
+  ---
+  duration_ms: 4.417023
+  type: 'test'
+  ...
+# Subtest: successful group save still edits group metadata and returns success
+ok 312 - successful group save still edits group metadata and returns success
+  ---
+  duration_ms: 1.257312
+  type: 'test'
+  ...
+# Subtest: actual character saves with the same file name but different avatars have distinct conflict identities
+ok 313 - actual character saves with the same file name but different avatars have distinct conflict identities
+  ---
+  duration_ms: 5.751823
+  type: 'test'
+  ...
+# Subtest: group bookmark save shares its identity with a save of that same group chat
+ok 314 - group bookmark save shares its identity with a save of that same group chat
+  ---
+  duration_ms: 10.960625
+  type: 'test'
+  ...
+# Subtest: token-count backfill keeps the tab after a lifecycle failure instead of reloading
+ok 315 - token-count backfill keeps the tab after a lifecycle failure instead of reloading
+  ---
+  duration_ms: 1.860402
+  type: 'test'
+  ...
+# Subtest: preloading populates the same cache used by synchronous and asynchronous rendering
+ok 316 - preloading populates the same cache used by synchronous and asynchronous rendering
+  ---
+  duration_ms: 14.912999
+  type: 'test'
+  ...
+# Subtest: 50 cold asynchronous renderers share one request and compiled template while keeping their data
+ok 317 - 50 cold asynchronous renderers share one request and compiled template while keeping their data
+  ---
+  duration_ms: 9.08151
+  type: 'test'
+  ...
+# Subtest: a renderer joins preloading and localization and sanitization still run for every caller
+ok 318 - a renderer joins preloading and localization and sanitization still run for every caller
+  ---
+  duration_ms: 5.497355
+  type: 'test'
+  ...
+# Subtest: failed preloading is nonfatal, has no toast, and a normal renderer can retry
+ok 319 - failed preloading is nonfatal, has no toast, and a normal renderer can retry
+  ---
+  duration_ms: 1.117138
+  type: 'test'
+  ...
+# Subtest: a synchronous fallback is retained and a late asynchronous reply cannot replace its cache
+ok 320 - a synchronous fallback is retained and a late asynchronous reply cannot replace its cache
+  ---
+  duration_ms: 6.285578
+  type: 'test'
+  ...
+# Subtest: template preloading keeps full-path identity and helpers registered after preloading
+ok 321 - template preloading keeps full-path identity and helpers registered after preloading
+  ---
+  duration_ms: 8.744199
+  type: 'test'
+  ...
+# Subtest: a normal asynchronous rendering failure preserves its toast and undefined return
+ok 322 - a normal asynchronous rendering failure preserves its toast and undefined return
+  ---
+  duration_ms: 1.074265
+  type: 'test'
+  ...
+# Subtest: eligible built-in templates preload before ordered script activation without waiting for preloads
+ok 323 - eligible built-in templates preload before ordered script activation without waiting for preloads
+  ---
+  duration_ms: 8.857481
+  type: 'test'
+  ...
+# Subtest: disabled, active, incompatible and missing dependency/module extensions do not preload templates
+ok 324 - disabled, active, incompatible and missing dependency/module extensions do not preload templates
+  ---
+  duration_ms: 1.026974
+  type: 'test'
+  ...
+# Subtest: earlier hooks still control later activation after template preloading
+ok 325 - earlier hooks still control later activation after template preloading
+  ---
+  duration_ms: 0.87179
+  type: 'test'
+  ...
+# Subtest: third-party templates are not guessed or downloaded by the built-in template plan
+ok 326 - third-party templates are not guessed or downloaded by the built-in template plan
+  ---
+  duration_ms: 0.605963
+  type: 'test'
+  ...
+# Subtest: startup preloading feeds the actual extension wrapper cache identity
+ok 327 - startup preloading feeds the actual extension wrapper cache identity
+  ---
+  duration_ms: 13.916713
+  type: 'test'
+  ...
+# Subtest: unknown inherited object keys do not prevent known built-in template warming
+ok 328 - unknown inherited object keys do not prevent known built-in template warming
+  ---
+  duration_ms: 0.725687
+  type: 'test'
+  ...
+# Subtest: group IDs cannot traverse to another user or silently alias sanitized names
+ok 329 - group IDs cannot traverse to another user or silently alias sanitized names
+  ---
+  duration_ms: 21.29117
+  type: 'test'
+  ...
+# Subtest: direct group endpoints reject malformed IDs and info refuses aliases and retirement
+ok 330 - direct group endpoints reject malformed IDs and info refuses aliases and retirement
+  ---
+  duration_ms: 403.065385
+  type: 'test'
+  ...
+# Subtest: missing historical Git objects are an optional prerequisite
+ok 331 - missing historical Git objects are an optional prerequisite
+  ---
+  duration_ms: 18.203677
+  type: 'test'
+  ...
+# Subtest: available historical sources remain independent Git bytes
+ok 332 - available historical sources remain independent Git bytes
+  ---
+  duration_ms: 7.084971
+  type: 'test'
+  ...
+# Subtest: reversed different-file reads preserve the newest cache and suppress stale events
+ok 333 - reversed different-file reads preserve the newest cache and suppress stale events
+  ---
+  duration_ms: 7.525534
+  type: 'test'
+  ...
+# Subtest: reversed same-file reads preserve the newest cache and suppress stale events
+ok 334 - reversed same-file reads preserve the newest cache and suppress stale events
+  ---
+  duration_ms: 0.702005
+  type: 'test'
+  ...
+# Subtest: stale read rejection neither empties current cache nor logs
+ok 335 - stale read rejection neither empties current cache nor logs
+  ---
+  duration_ms: 2.2999
+  type: 'test'
+  ...
+# Subtest: close during pending read preserves stored prompts and refuses late cache resurrection
+ok 336 - close during pending read preserves stored prompts and refuses late cache resurrection
+  ---
+  duration_ms: 2.385434
+  type: 'test'
+  ...
+# Subtest: late clear persistence cannot empty a newer loaded cache or chat model
+ok 337 - late clear persistence cannot empty a newer loaded cache or chat model
+  ---
+  duration_ms: 2.207461
+  type: 'test'
+  ...
+# Subtest: current storage failure suppresses writes including generated pushes until successful retry
+ok 338 - current storage failure suppresses writes including generated pushes until successful retry
+  ---
+  duration_ms: 2.113698
+  type: 'test'
+  ...
+# Subtest: loaded listener rejection preserves successfully read cache
+ok 339 - loaded listener rejection preserves successfully read cache
+  ---
+  duration_ms: 2.08164
+  type: 'test'
+  ...
+# Subtest: listener cancellation rejection preserves newer cache without stale log
+ok 340 - listener cancellation rejection preserves newer cache without stale log
+  ---
+  duration_ms: 16.637042
+  type: 'test'
+  ...
+# Subtest: legacy no-id supersedes a pending read and creates saveable empty neutral state
+ok 341 - legacy no-id supersedes a pending read and creates saveable empty neutral state
+  ---
+  duration_ms: 1.07214
+  type: 'test'
+  ...
+# Subtest: missing stored prompts become ready empty and preserve legacy event payloads
+ok 342 - missing stored prompts become ready empty and preserve legacy event payloads
+  ---
+  duration_ms: 5.03096
+  type: 'test'
+  ...
+# Subtest: optional caller ownership rejects the request before storage begins
+ok 343 - optional caller ownership rejects the request before storage begins
+  ---
+  duration_ms: 0.650285
+  type: 'test'
+  ...
+# Subtest: stale prepared reservation does not supersede or start a read
+ok 344 - stale prepared reservation does not supersede or start a read
+  ---
+  duration_ms: 0.626041
+  type: 'test'
+  ...
+# Subtest: caller ownership lost during storage prevents assignment and events
+ok 345 - caller ownership lost during storage prevents assignment and events
+  ---
+  duration_ms: 6.038569
+  type: 'test'
+  ...
+# Subtest: started ready save completes for its original filename and rows after a newer read
+ok 346 - started ready save completes for its original filename and rows after a newer read
+  ---
+  duration_ms: 0.91111
+  type: 'test'
+  ...
+# Subtest: character reserves before preparation and fresh greeting save without overwriting unread prompts
+ok 347 - character reserves before preparation and fresh greeting save without overwriting unread prompts
+  ---
+  duration_ms: 12.188976
+  type: 'test'
+  ...
+# Subtest: character canceled during prompt read stops before rendering and chat events
+ok 348 - character canceled during prompt read stops before rendering and chat events
+  ---
+  duration_ms: 10.93386
+  type: 'test'
+  ...
+# Subtest: old group suspended at validateGroup cannot supersede newer prompts
+ok 349 - old group suspended at validateGroup cannot supersede newer prompts
+  ---
+  duration_ms: 3.248783
+  type: 'test'
+  ...
+# Subtest: old group suspended at unshallowGroupMembers cannot supersede newer prompts
+ok 350 - old group suspended at unshallowGroupMembers cannot supersede newer prompts
+  ---
+  duration_ms: 8.969321
+  type: 'test'
+  ...
+# Subtest: old group suspended at loadGroupChat cannot supersede newer prompts
+ok 351 - old group suspended at loadGroupChat cannot supersede newer prompts
+  ---
+  duration_ms: 1.052235
+  type: 'test'
+  ...
+# Subtest: same-file group reopen supersedes the older group fetch
+ok 352 - same-file group reopen supersedes the older group fetch
+  ---
+  duration_ms: 0.995275
+  type: 'test'
+  ...
+# Subtest: group prompt cancellation stops before message model and metadata application
+ok 353 - group prompt cancellation stops before message model and metadata application
+  ---
+  duration_ms: 0.862379
+  type: 'test'
+  ...
+# Subtest: validation may legitimately initialize a missing group chat id
+ok 354 - validation may legitimately initialize a missing group chat id
+  ---
+  duration_ms: 3.88246
+  type: 'test'
+  ...
+# Subtest: already stale group entry cannot reserve over the selected group cache
+ok 355 - already stale group entry cannot reserve over the selected group cache
+  ---
+  duration_ms: 0.752274
+  type: 'test'
+  ...
+# Subtest: group filename changed during preparation is canceled before starting a prompt read
+ok 356 - group filename changed during preparation is canceled before starting a prompt read
+  ---
+  duration_ms: 11.860012
+  type: 'test'
+  ...
+# Subtest: repeated clear of an addressed loaded chat preserves stored inspection prompts
+ok 357 - repeated clear of an addressed loaded chat preserves stored inspection prompts
+  ---
+  duration_ms: 0.84742
+  type: 'test'
+  ...
+# Subtest: repeated clear of an addressed pending chat preserves stored inspection prompts
+ok 358 - repeated clear of an addressed pending chat preserves stored inspection prompts
+  ---
+  duration_ms: 0.667352
+  type: 'test'
+  ...
+# Subtest: repeated clear of an addressed failed chat preserves stored inspection prompts
+ok 359 - repeated clear of an addressed failed chat preserves stored inspection prompts
+  ---
+  duration_ms: 0.603716
+  type: 'test'
+  ...
+# Subtest: clear without an addressed chat retains ready neutral empty-save behavior
+ok 360 - clear without an addressed chat retains ready neutral empty-save behavior
+  ---
+  duration_ms: 0.586075
+  type: 'test'
+  ...
+# Subtest: successful reload after repeated clear restores ready save-as behavior
+ok 361 - successful reload after repeated clear restores ready save-as behavior
+  ---
+  duration_ms: 0.671676
+  type: 'test'
+  ...
+# Subtest: openGroupById propagates a canceled actual prompt read as false
+ok 362 - openGroupById propagates a canceled actual prompt read as false
+  ---
+  duration_ms: 12.198926
+  type: 'test'
+  ...
+# Subtest: canceled recent group opening never activates, saves settings or clears HOME again
+ok 363 - canceled recent group opening never activates, saves settings or clears HOME again
+  ---
+  duration_ms: 2.517386
+  type: 'test'
+  ...
+# Subtest: already-selected group preserves legacy false and opens another recent history normally
+ok 364 - already-selected group preserves legacy false and opens another recent history normally
+  ---
+  duration_ms: 2.500707
+  type: 'test'
+  ...
+# Subtest: already-selected recent group still refuses isChatSaving
+ok 365 - already-selected recent group still refuses isChatSaving
+  ---
+  duration_ms: 4.169515
+  type: 'test'
+  ...
+# Subtest: already-selected recent group still refuses is_send_press
+ok 366 - already-selected recent group still refuses is_send_press
+  ---
+  duration_ms: 4.263918
+  type: 'test'
+  ...
+# Subtest: already-selected recent group still refuses is_group_generating
+ok 367 - already-selected recent group still refuses is_group_generating
+  ---
+  duration_ms: 5.552066
+  type: 'test'
+  ...
+# Subtest: rapid same-group recent entries only continue the newest requested history
+ok 368 - rapid same-group recent entries only continue the newest requested history
+  ---
+  duration_ms: 1.182055
+  type: 'test'
+  ...
+# Subtest: same-group filename change after selected-group return prevents stale recent continuation
+ok 369 - same-group filename change after selected-group return prevents stale recent continuation
+  ---
+  duration_ms: 1.089039
+  type: 'test'
+  ...
+# Subtest: same-group reopen during awaited clear cannot let the older entry start a late read
+ok 370 - same-group reopen during awaited clear cannot let the older entry start a late read
+  ---
+  duration_ms: 1.285493
+  type: 'test'
+  ...
+# Subtest: native reset during awaited opening clear prevents a late group selection
+ok 371 - native reset during awaited opening clear prevents a late group selection
+  ---
+  duration_ms: 1.689371
+  type: 'test'
+  ...
+# Subtest: openGroupById refuses success when prompt ownership changes during awaited rendering
+ok 372 - openGroupById refuses success when prompt ownership changes during awaited rendering
+  ---
+  duration_ms: 5.22693
+  type: 'test'
+  ...
+# Subtest: normal group terminal events may replace metadata without canceling successful opening
+ok 373 - normal group terminal events may replace metadata without canceling successful opening
+  ---
+  duration_ms: 3.327032
+  type: 'test'
+  ...
+# Subtest: started saves isolate nested prompt rows until deferred serialization
+ok 374 - started saves isolate nested prompt rows until deferred serialization
+  ---
+  duration_ms: 0.696625
+  type: 'test'
+  ...
+# Subtest: prompt saves fall back to detached JSON when clone is unavailable
+ok 375 - prompt saves fall back to detached JSON when clone is unavailable
+  ---
+  duration_ms: 2.698277
+  type: 'test'
+  ...
+# Subtest: prompt saves fall back to detached JSON when clone is non-cloneable
+ok 376 - prompt saves fall back to detached JSON when clone is non-cloneable
+  ---
+  duration_ms: 0.558291
+  type: 'test'
+  ...
+# Subtest: prompt saves fall back to detached JSON when clone is rejected
+ok 377 - prompt saves fall back to detached JSON when clone is rejected
+  ---
+  duration_ms: 0.613666
+  type: 'test'
+  ...
+# Subtest: unserializable fallback preserves the previous stored prompts
+ok 378 - unserializable fallback preserves the previous stored prompts
+  ---
+  duration_ms: 1.967537
+  type: 'test'
+  ...
+# Subtest: launcher overrides an existing unsafe config on every preparation
+ok 379 - launcher overrides an existing unsafe config on every preparation
+  ---
+  duration_ms: 48.502253
+  type: 'test'
+  ...
+# Subtest: wrapper does not pull a reader down when pending media settles after scrolling up
+ok 380 - wrapper does not pull a reader down when pending media settles after scrolling up
+  ---
+  duration_ms: 2.609645
+  type: 'test'
+  ...
+# Subtest: wrapper respects the current auto-scroll preference for already-ready media
+ok 381 - wrapper respects the current auto-scroll preference for already-ready media
+  ---
+  duration_ms: 4.967032
+  type: 'test'
+  ...
+# Subtest: repeated wrapper calls replace the batch without accumulating event listeners
+ok 382 - repeated wrapper calls replace the batch without accumulating event listeners
+  ---
+  duration_ms: 1.087027
+  type: 'test'
+  ...
+# Subtest: a load followed by error cannot settle the same item twice while another item is pending
+ok 383 - a load followed by error cannot settle the same item twice while another item is pending
+  ---
+  duration_ms: 0.940302
+  type: 'test'
+  ...
+# Subtest: the one-second wrapper deadline releases listeners even if no media event arrives
+ok 384 - the one-second wrapper deadline releases listeners even if no media event arrives
+  ---
+  duration_ms: 1106.491993
+  type: 'test'
+  ...
+# Subtest: clearChat cancels the old batch before removing DOM and a new chat gets its own batch
+ok 385 - clearChat cancels the old batch before removing DOM and a new chat gets its own batch
+  ---
+  duration_ms: 1.341835
+  type: 'test'
+  ...
+# Subtest: wrapper keeps the message media selector and immediate ready-media scroll options
+ok 386 - wrapper keeps the message media selector and immediate ready-media scroll options
+  ---
+  duration_ms: 1.309312
+  type: 'test'
+  ...
+# Subtest: empty media does not scroll and mixed image/audio/video waits for all pending items
+ok 387 - empty media does not scroll and mixed image/audio/video waits for all pending items
+  ---
+  duration_ms: 1.654918
+  type: 'test'
+  ...
+# Subtest: cancel is idempotent and releases every listener and timer without scrolling
+ok 388 - cancel is idempotent and releases every listener and timer without scrolling
+  ---
+  duration_ms: 1.054485
+  type: 'test'
+  ...
+# Subtest: configured expiry removes all event handlers without a final media event
+ok 389 - configured expiry removes all event handlers without a final media event
+  ---
+  duration_ms: 51.417378
+  type: 'test'
+  ...
+# Subtest: a late event checks the deadline even when the expiry callback has not run
+ok 390 - a late event checks the deadline even when the expiry callback has not run
+  ---
+  duration_ms: 2.487108
+  type: 'test'
+  ...
+# Subtest: settlement clears both handlers and the timer before checking current permission
+ok 391 - settlement clears both handlers and the timer before checking current permission
+  ---
+  duration_ms: 0.939034
+  type: 'test'
+  ...
+# Subtest: ready media checks permission once and empty or unrecognized media never scrolls
+ok 392 - ready media checks permission once and empty or unrecognized media never scrolls
+  ---
+  duration_ms: 0.837589
+  type: 'test'
+  ...
+# Subtest: an empty replacement cancels an unfinished batch without causing a scroll
+ok 393 - an empty replacement cancels an unfinished batch without causing a scroll
+  ---
+  duration_ms: 7.016583
+  type: 'test'
+  ...
+# Subtest: a cancelled batch timer cannot clean listeners from a newer batch
+ok 394 - a cancelled batch timer cannot clean listeners from a newer batch
+  ---
+  duration_ms: 0.956471
+  type: 'test'
+  ...
+# Subtest: permission callback can track a new batch and old cleanup never removes it
+ok 395 - permission callback can track a new batch and old cleanup never removes it
+  ---
+  duration_ms: 0.878937
+  type: 'test'
+  ...
+# Subtest: scroll callback can replace a settled batch and new media still settles once
+ok 396 - scroll callback can replace a settled batch and new media still settles once
+  ---
+  duration_ms: 4.064408
+  type: 'test'
+  ...
+# Subtest: duplicate media references settle once and many items do not need a shared abort signal
+ok 397 - duplicate media references settle once and many items do not need a shared abort signal
+  ---
+  duration_ms: 1.131528
+  type: 'test'
+  ...
+# Subtest: actual formatting preserves numeric/string/coercible IDs and undefined depths
+ok 398 - actual formatting preserves numeric/string/coercible IDs and undefined depths
+  ---
+  duration_ms: 13.29102
+  type: 'test'
+  ...
+# Subtest: actual formatting skips sparse holes and truthy system flags like map/filter
+ok 399 - actual formatting skips sparse holes and truthy system flags like map/filter
+  ---
+  duration_ms: 0.847143
+  type: 'test'
+  ...
+# Subtest: seeded mixed histories agree with the former expression for every index
+ok 400 - seeded mixed histories agree with the former expression for every index
+  ---
+  duration_ms: 48.515896
+  type: 'test'
+  ...
+# Subtest: edits, insertion, deletion, system toggles and replacement use current history
+ok 401 - edits, insertion, deletion, system toggles and replacement use current history
+  ---
+  duration_ms: 5.684071
+  type: 'test'
+  ...
+# Subtest: actual regex min/max filters preserve transformed output for valid and undefined depths
+ok 402 - actual regex min/max filters preserve transformed output for valid and undefined depths
+  ---
+  duration_ms: 1.611828
+  type: 'test'
+  ...
+# Subtest: placement, bias stripping, transient reasoning, narrator, hidden and comments remain intact
+ok 403 - placement, bias stripping, transient reasoning, narrator, hidden and comments remain intact
+  ---
+  duration_ms: 0.995629
+  type: 'test'
+  ...
+# Subtest: formatting still forwards sanitizer overrides and preserves boundary order and chat data
+ok 404 - formatting still forwards sanitizer overrides and preserves boundary order and chat data
+  ---
+  duration_ms: 5.582375
+  type: 'test'
+  ...
+# Subtest: formatting the last 100 of 3000 messages reads at most 5050 system flags
+ok 405 - formatting the last 100 of 3000 messages reads at most 5050 system flags
+  ---
+  duration_ms: 32.661802
+  type: 'test'
+  ...
+# is_system reads: legacy=300000, actual=5050, budget=5050
+# Subtest: two group chats in one directory proceed without waiting for each other
+ok 406 - two group chats in one directory proceed without waiting for each other
+  ---
+  duration_ms: 1.833523
+  type: 'test'
+  ...
+# Subtest: same file stays exclusive while its parent is only shared
+ok 407 - same file stays exclusive while its parent is only shared
+  ---
+  duration_ms: 8.807288
+  type: 'test'
+  ...
+# Subtest: directory exclusive waits for shared holders and blocks later file ops
+ok 408 - directory exclusive waits for shared holders and blocks later file ops
+  ---
+  duration_ms: 1.139066
+  type: 'test'
+  ...
+# Subtest: explicit directory exclusive wins over a shared parent in the same reservation
+ok 409 - explicit directory exclusive wins over a shared parent in the same reservation
+  ---
+  duration_ms: 0.455784
+  type: 'test'
+  ...
+# Subtest: crossed shared and exclusive reservations finish
+ok 410 - crossed shared and exclusive reservations finish
+  ---
+  duration_ms: 0.312317
+  type: 'test'
+  ...
+# Subtest: a failed reservation releases every path it held
+ok 411 - a failed reservation releases every path it held
+  ---
+  duration_ms: 0.616322
+  type: 'test'
+  ...
+# Subtest: a completed save starts deferred backup while an unrelated lock stays held
+ok 412 - a completed save starts deferred backup while an unrelated lock stays held
+  ---
+  duration_ms: 0.687035
+  type: 'test'
+  ...
+# Subtest: nested reservations reuse held keys and reject new keys and upgrades
+ok 413 - nested reservations reuse held keys and reject new keys and upgrades
+  ---
+  duration_ms: 1.289092
+  type: 'test'
+  ...
+# Subtest: nested new file rejects even with a queued directory writer
+ok 414 - nested new file rejects even with a queued directory writer
+  ---
+  duration_ms: 0.523215
+  type: 'test'
+  ...
+# Subtest: deferred work waits for originating and enclosing reservations to release
+ok 415 - deferred work waits for originating and enclosing reservations to release
+  ---
+  duration_ms: 0.552205
+  type: 'test'
+  ...
+# Subtest: search matches words across different messages and uses filename fallback
+ok 416 - search matches words across different messages and uses filename fallback
+  ---
+  duration_ms: 125.151726
+  type: 'test'
+  ...
+# Subtest: search does at most linear lowercase work for an absent word
+ok 417 - search does at most linear lowercase work for an absent word
+  ---
+  duration_ms: 20.630386
+  type: 'test'
+  ...
+# Subtest: chat info ignores blank tail lines and retains metadata and message count
+ok 418 - chat info ignores blank tail lines and retains metadata and message count
+  ---
+  duration_ms: 2.886134
+  type: 'test'
+  ...
+# Subtest: chat info settles for a file containing only blank lines
+ok 419 - chat info settles for a file containing only blank lines
+  ---
+  duration_ms: 4.498611
+  type: 'test'
+  ...
+# Subtest: chat save uses asynchronous writes and keeps serialized contents
+ok 420 - chat save uses asynchronous writes and keeps serialized contents
+  ---
+  duration_ms: 18.905669
+  type: 'test'
+  ...
+# Subtest: chat reads are asynchronous and keep JSONL parsing behavior
+ok 421 - chat reads are asynchronous and keep JSONL parsing behavior
+  ---
+  duration_ms: 1.000783
+  type: 'test'
+  ...
+# Subtest: same path operations stay ordered while distinct paths can proceed
+ok 422 - same path operations stay ordered while distinct paths can proceed
+  ---
+  duration_ms: 0.865312
+  type: 'test'
+  ...
+# Subtest: queue recovers after a failed operation
+ok 423 - queue recovers after a failed operation
+  ---
+  duration_ms: 4.18888
+  type: 'test'
+  ...
+# Subtest: failed atomic replacement retains the previous chat
+ok 424 - failed atomic replacement retains the previous chat
+  ---
+  duration_ms: 7.79488
+  type: 'test'
+  ...
+# Subtest: expired backups are moved to recoverable storage with one stat per candidate
+ok 425 - expired backups are moved to recoverable storage with one stat per candidate
+  ---
+  duration_ms: 16.972573
+  type: 'test'
+  ...
+# Chat file was deleted while it was being scanned: /workspace/sillytavern-perf-lab/.fixtures/tests-34933b1a-3a64-401f-b78e-8972322e704e/missing.jsonl
+# Subtest: missing chat info resolves as a vanished chat instead of hanging
+ok 426 - missing chat info resolves as a vanished chat instead of hanging
+  ---
+  duration_ms: 1.813341
+  type: 'test'
+  ...
+# Subtest: stream errors reject and release the reader
+ok 427 - stream errors reject and release the reader
+  ---
+  duration_ms: 1.209657
+  type: 'test'
+  ...
+# Subtest: legacy matcher callbacks and their errors remain supported
+ok 428 - legacy matcher callbacks and their errors remain supported
+  ---
+  duration_ms: 1.177269
+  type: 'test'
+  ...
+# Subtest: metadata is not searched as message content
+ok 429 - metadata is not searched as message content
+  ---
+  duration_ms: 14.173208
+  type: 'test'
+  ...
+# Subtest: integrity failure leaves the stored chat untouched
+ok 430 - integrity failure leaves the stored chat untouched
+  ---
+  duration_ms: 5.742222
+  type: 'test'
+  ...
+# Subtest: queued save checks integrity after the earlier replacement
+ok 431 - queued save checks integrity after the earlier replacement
+  ---
+  duration_ms: 15.076661
+  type: 'test'
+  ...
+# Subtest: single and group HTTP save/get contracts return arrays and ok
+ok 432 - single and group HTTP save/get contracts return arrays and ok
+  ---
+  duration_ms: 33.042909
+  type: 'test'
+  ...
+# Subtest: invalid backup retention refuses to move any files
+ok 433 - invalid backup retention refuses to move any files
+  ---
+  duration_ms: 3.436484
+  type: 'test'
+  ...
+# Subtest: launcher prepares fixed loopback and rejects external/link data paths
+ok 434 - launcher prepares fixed loopback and rejects external/link data paths
+  ---
+  duration_ms: 36.99424
+  type: 'test'
+  ...
+# Subtest: win-boot stamps match inside the documented tolerance and not past it
+ok 435 - win-boot stamps match inside the documented tolerance and not past it
+  ---
+  duration_ms: 5.547317
+  type: 'test'
+  ...
+# Subtest: process start wins over a skewed win-boot stamp
+ok 436 - process start wins over a skewed win-boot stamp
+  ---
+  duration_ms: 0.2942
+  type: 'test'
+  ...
+# Subtest: an unstable Windows boot sample is omitted after two reads more than 2s apart
+ok 437 - an unstable Windows boot sample is omitted after two reads more than 2s apart
+  ---
+  duration_ms: 0.150666
+  type: 'test'
+  ...
+# Subtest: Windows re-probes foreign PIDs across successive incarnations
+ok 438 - Windows re-probes foreign PIDs across successive incarnations
+  ---
+  duration_ms: 16.750518
+  type: 'test'
+  ...
+# Subtest: a fresh observer after a clock step cannot reclaim by Windows boot estimate
+ok 439 - a fresh observer after a clock step cannot reclaim by Windows boot estimate
+  ---
+  duration_ms: 0.217813
+  type: 'test'
+  ...
+# Subtest: Windows omits identity when PowerShell is unavailable instead of mixing WMIC timestamps
+ok 440 - Windows omits identity when PowerShell is unavailable instead of mixing WMIC timestamps
+  ---
+  duration_ms: 8.203748
+  type: 'test'
+  ...
+# Subtest: Linux parses raw ticks after the LAST parenthesis, independent of btime
+ok 441 - Linux parses raw ticks after the LAST parenthesis, independent of btime
+  ---
+  duration_ms: 0.532832
+  type: 'test'
+  ...
+# Subtest: Linux v2 compares boot and ticks; legacy and unreadable identity refuse
+ok 442 - Linux v2 compares boot and ticks; legacy and unreadable identity refuse
+  ---
+  duration_ms: 0.174829
+  type: 'test'
+  ...
+# Subtest: real /recent keeps response semantics and avoids unchanged JSONL streams on repeat
+ok 443 - real /recent keeps response semantics and avoids unchanged JSONL streams on repeat
+  ---
+  duration_ms: 132.085048
+  type: 'test'
+  ...
+# Subtest: real filesystem changes invalidate same-size/restored-mtime writes and replacements
+ok 444 - real filesystem changes invalidate same-size/restored-mtime writes and replacements
+  ---
+  duration_ms: 7.865359
+  type: 'test'
+  ...
+# Subtest: cache owns cloned snapshots; annotations, roots and metadata modes stay isolated
+ok 445 - cache owns cloned snapshots; annotations, roots and metadata modes stay isolated
+  ---
+  duration_ms: 0.54936
+  type: 'test'
+  ...
+# Subtest: stable concurrent reads coalesce and return independent objects
+ok 446 - stable concurrent reads coalesce and return independent objects
+  ---
+  duration_ms: 0.476025
+  type: 'test'
+  ...
+# Subtest: a write during a pending read prevents storing that unstable snapshot
+ok 447 - a write during a pending read prevents storing that unstable snapshot
+  ---
+  duration_ms: 0.485481
+  type: 'test'
+  ...
+# Subtest: older read completion cannot replace or clear a newer version cache or pending read
+ok 448 - older read completion cannot replace or clear a newer version cache or pending read
+  ---
+  duration_ms: 0.688368
+  type: 'test'
+  ...
+# Subtest: stat/read failures release records and retries do not reuse failed or invalid results
+ok 449 - stat/read failures release records and retries do not reuse failed or invalid results
+  ---
+  duration_ms: 6.889213
+  type: 'test'
+  ...
+# Subtest: older rejected operations cannot erase newer pending entries
+ok 450 - older rejected operations cannot erase newer pending entries
+  ---
+  duration_ms: 0.45248
+  type: 'test'
+  ...
+# Subtest: entry limit uses LRU and TTL is absolute rather than sliding
+ok 451 - entry limit uses LRU and TTL is absolute rather than sliding
+  ---
+  duration_ms: 0.548226
+  type: 'test'
+  ...
+# Subtest: estimated byte budget evicts entries and oversized results return fully without retention
+ok 452 - estimated byte budget evicts entries and oversized results return fully without retention
+  ---
+  duration_ms: 0.728807
+  type: 'test'
+  ...
+# Subtest: pending entry capacity falls back to uncached reads without breaking existing coalescing
+ok 453 - pending entry capacity falls back to uncached reads without breaking existing coalescing
+  ---
+  duration_ms: 0.417415
+  type: 'test'
+  ...
+# Subtest: empty file info retains the existing reader semantics and is cacheable
+ok 454 - empty file info retains the existing reader semantics and is cacheable
+  ---
+  duration_ms: 14.068279
+  type: 'test'
+  ...
+# Subtest: estimated entry weight includes nested object overhead beyond serialized characters
+ok 455 - estimated entry weight includes nested object overhead beyond serialized characters
+  ---
+  duration_ms: 0.406148
+  type: 'test'
+  ...
+# Subtest: a delayed older initial stat cannot displace a newer version pending read
+ok 456 - a delayed older initial stat cannot displace a newer version pending read
+  ---
+  duration_ms: 0.286368
+  type: 'test'
+  ...
+# Subtest: a delayed older stat failure cannot clear a newer successful cache entry
+ok 457 - a delayed older stat failure cannot clear a newer successful cache entry
+  ---
+  duration_ms: 0.222215
+  type: 'test'
+  ...
+# Subtest: every identity component including single nanosecond changes invalidates cached info
+ok 458 - every identity component including single nanosecond changes invalidates cached info
+  ---
+  duration_ms: 0.387357
+  type: 'test'
+  ...
+# Subtest: invalid empty responses ignore annotations and oversized snapshots remain independent
+ok 459 - invalid empty responses ignore annotations and oversized snapshots remain independent
+  ---
+  duration_ms: 0.240317
+  type: 'test'
+  ...
+# Subtest: shutdown rejects new requests and drains admitted writes and trailing backups
+ok 460 - shutdown rejects new requests and drains admitted writes and trailing backups
+  ---
+  duration_ms: 2.65819
+  type: 'test'
+  ...
+# Subtest: closed responses release the drain and completion is idempotent
+ok 461 - closed responses release the drain and completion is idempotent
+  ---
+  duration_ms: 0.291763
+  type: 'test'
+  ...
+# Subtest: disconnect does not release an async persistence handler before it completes
+ok 462 - disconnect does not release an async persistence handler before it completes
+  ---
+  duration_ms: 0.393913
+  type: 'test'
+  ...
+# Subtest: shutdown rejects handlers delayed by earlier middleware
+ok 463 - shutdown rejects handlers delayed by earlier middleware
+  ---
+  duration_ms: 0.168667
+  type: 'test'
+  ...
+# Subtest: rejected handlers reach Express and do not prevent draining
+ok 464 - rejected handlers reach Express and do not prevent draining
+  ---
+  duration_ms: 0.215586
+  type: 'test'
+  ...
+# Subtest: sync handlers that return a promise are tracked and rejected after stop
+ok 465 - sync handlers that return a promise are tracked and rejected after stop
+  ---
+  duration_ms: 5.477122
+  type: 'test'
+  ...
+# Subtest: sync thenable rejections are forwarded and do not block a later drain
+ok 466 - sync thenable rejections are forwarded and do not block a later drain
+  ---
+  duration_ms: 0.337743
+  type: 'test'
+  ...
+# Subtest: drain deadline rejects while a response stays open
+ok 467 - drain deadline rejects while a response stays open
+  ---
+  duration_ms: 31.887187
+  type: 'test'
+  ...
+# Subtest: one 200ms shutdown budget reports a hung atomic write and preserves the original
+ok 468 - one 200ms shutdown budget reports a hung atomic write and preserves the original
+  ---
+  duration_ms: 311.228346
+  type: 'test'
+  ...
+# Subtest: chat and backup waits consume the same shutdown signal and report pending keys
+ok 469 - chat and backup waits consume the same shutdown signal and report pending keys
+  ---
+  duration_ms: 21.169395
+  type: 'test'
+  ...
+# Subtest: shutdown drain APIs reject missing signals and legacy numeric timeouts
+ok 470 - shutdown drain APIs reject missing signals and legacy numeric timeouts
+  ---
+  duration_ms: 0.297824
+  type: 'test'
+  ...
+# Old chat name /tmp/retired-recreate-zpSOHi/chats/SyntheticReuse/reuse-other.jsonl
+# New chat name /tmp/retired-recreate-zpSOHi/chats/SyntheticReuse/reuse-source.jsonl
+# Successfully renamed chat file.
+# Old chat name /tmp/retired-recreate-zpSOHi/chats/SyntheticCycle/cycle-a.jsonl
+# New chat name /tmp/retired-recreate-zpSOHi/chats/SyntheticCycle/cycle-b.jsonl
+# Subtest: an absent retired chat can be a rename target, while an ordinary save still conflicts
+ok 471 - an absent retired chat can be a rename target, while an ordinary save still conflicts
+  ---
+  duration_ms: 72.015809
+  type: 'test'
+  ...
+# Successfully renamed chat file.
+# Old chat name /tmp/retired-recreate-zpSOHi/chats/SyntheticCycle/cycle-b.jsonl
+# New chat name /tmp/retired-recreate-zpSOHi/chats/SyntheticCycle/cycle-a.jsonl
+# Successfully renamed chat file.
+# Subtest: chat rename can return to an absent previous name
+ok 472 - chat rename can return to an absent previous name
+  ---
+  duration_ms: 33.077554
+  type: 'test'
+  ...
+# Subtest: a visible path keeps its retirement marker and an occupied rename target is unchanged
+ok 473 - a visible path keeps its retirement marker and an occupied rename target is unchanged
+  ---
+  duration_ms: 17.788502
+  type: 'test'
+  ...
+# Subtest: clearing an absent child does not drop a retired parent marker or follow a marker symlink
+ok 474 - clearing an absent child does not drop a retired parent marker or follow a marker symlink
+  ---
+  duration_ms: 11.810281
+  type: 'test'
+  ...
+# Char RenameCycleA has Spec v2 data missing for unknown field: personality
+# Char RenameCycleA has Spec v2 data missing for unknown field: scenario
+# Char RenameCycleA has Spec v2 data missing for unknown field: first_mes
+# Char RenameCycleA has Spec v2 data missing for unknown field: mes_example
+# Char RenameCycleA has Spec v2 data missing for unknown field: tags
+# Char RenameCycleB has Spec v2 data missing for unknown field: personality
+# Char RenameCycleB has Spec v2 data missing for unknown field: scenario
+# Char RenameCycleB has Spec v2 data missing for unknown field: first_mes
+# Char RenameCycleB has Spec v2 data missing for unknown field: mes_example
+# Char RenameCycleB has Spec v2 data missing for unknown field: tags
+# Failed to read image: ./public/img/ai4.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: character rename can return to an absent name and delete then create reuses it
+ok 475 - character rename can return to an absent name and delete then create reuses it
+  ---
+  duration_ms: 79.581964
+  type: 'test'
+  ...
+# Failed to read image: /tmp/retired-recreate-zpSOHi/uploads/not-a-png.png Error: Could not find MIME for Buffer
+#     at Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:176:23)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13
+# Error: Invalid .png file header
+#     at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+#     at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+#     at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13
+# Error: Character creation did not complete
+#     at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1096:40
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13
+# Failed to read image: ./public/img/ai4.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: a failed character create restores the retirement marker
+ok 476 - a failed character create restores the retirement marker
+  ---
+  duration_ms: 40.991079
+  type: 'test'
+  ...
+# Subtest: a failed chat rename restores the destination retirement marker
+ok 477 - a failed chat rename restores the destination retirement marker
+  ---
+  duration_ms: 25.557601
+  type: 'test'
+  ...
+# Found a chara_card_v3 character file.
+# Char ReimportWritable has Spec v2 data missing for unknown field: personality
+# Char ReimportWritable has Spec v2 data missing for unknown field: scenario
+# Char ReimportWritable has Spec v2 data missing for unknown field: first_mes
+# Char ReimportWritable has Spec v2 data missing for unknown field: mes_example
+# Char ReimportWritable has Spec v2 data missing for unknown field: tags
+# Failed to read image: /tmp/retired-recreate-zpSOHi/uploads/reimport.png TypeError: fetch failed
+#     at node:internal/deps/undici/undici:13510:13
+#     at async __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:210:51)
+#     at async Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:13)
+#     at async Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:182:42)
+#     at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+#     at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+#     at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+#     at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+#     at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13 {
+#   [cause]: Error: not implemented... yet...
+#       at makeNetworkError (node:internal/deps/undici/undici:9277:35)
+#       at schemeFetch (node:internal/deps/undici/undici:10673:34)
+#       at node:internal/deps/undici/undici:10522:26
+#       at mainFetch (node:internal/deps/undici/undici:10541:11)
+#       at fetching (node:internal/deps/undici/undici:10489:7)
+#       at fetch (node:internal/deps/undici/undici:10358:20)
+#       at fetch (node:internal/deps/undici/undici:13508:10)
+#       at fetch (node:internal/bootstrap/web/exposed-window-or-worker:75:12)
+#       at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+#       at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+# }
+# Subtest: delete then re-import publishes a character with writable chats
+ok 478 - delete then re-import publishes a character with writable chats
+  ---
+  duration_ms: 34.502456
+  type: 'test'
+  ...
+# Found a chara_card_v3 character file.
+# Char ImportDeleteRace has Spec v2 data missing for unknown field: personality
+# Char ImportDeleteRace has Spec v2 data missing for unknown field: scenario
+# Char ImportDeleteRace has Spec v2 data missing for unknown field: first_mes
+# Char ImportDeleteRace has Spec v2 data missing for unknown field: mes_example
+# Char ImportDeleteRace has Spec v2 data missing for unknown field: tags
+# Subtest: deletion cancels an import paused in image processing without resurrection
+ok 479 - deletion cancels an import paused in image processing without resurrection
+  ---
+  duration_ms: 9.014753
+  type: 'test'
+  ...
+# Subtest: delete waits for cancelled import publication writes and leaves no resurrected files
+ok 480 - delete waits for cancelled import publication writes and leaves no resurrected files
+  ---
+  duration_ms: 24.217941
+  type: 'test'
+  ...
+# Subtest: publication crash at authorized keeps retirement across restart and allows explicit retry
+ok 481 - publication crash at authorized keeps retirement across restart and allows explicit retry
+  ---
+  duration_ms: 257.214302
+  type: 'test'
+  ...
+# Subtest: publication crash at temporary keeps retirement across restart and allows explicit retry
+ok 482 - publication crash at temporary keeps retirement across restart and allows explicit retry
+  ---
+  duration_ms: 261.497945
+  type: 'test'
+  ...
+# Subtest: publication crash at published keeps retirement across restart and allows explicit retry
+ok 483 - publication crash at published keeps retirement across restart and allows explicit retry
+  ---
+  duration_ms: 241.518797
+  type: 'test'
+  ...
+# Subtest: publication crash at before-recycle keeps retirement across restart and allows explicit retry
+ok 484 - publication crash at before-recycle keeps retirement across restart and allows explicit retry
+  ---
+  duration_ms: 219.383072
+  type: 'test'
+  ...
+# Legacy retired-path hold requires manual handling: /tmp/legacy-holds-Oc6j2c/.chat-lifecycle/hold-visible.json /tmp/legacy-holds-Oc6j2c/visible.jsonl
+# Subtest: legacy holds restore absent retirements and preserve visible-path evidence
+ok 485 - legacy holds restore absent retirements and preserve visible-path evidence
+  ---
+  duration_ms: 9.887999
+  type: 'test'
+  ...
+# Subtest: a marker cannot be cleared before publication or authorized without a lock
+ok 486 - a marker cannot be cleared before publication or authorized without a lock
+  ---
+  duration_ms: 16.920323
+  type: 'test'
+  ...
+# Subtest: publication authorization is path-bound and revoked for inherited timers after failure
+ok 487 - publication authorization is path-bound and revoked for inherited timers after failure
+  ---
+  duration_ms: 28.176582
+  type: 'test'
+  ...
+# Subtest: legacy hold corrupt fails with actionable diagnostics
+ok 488 - legacy hold corrupt fails with actionable diagnostics
+  ---
+  duration_ms: 23.927907
+  type: 'test'
+  ...
+# Subtest: legacy hold missing fails with actionable diagnostics
+ok 489 - legacy hold missing fails with actionable diagnostics
+  ---
+  duration_ms: 1.549257
+  type: 'test'
+  ...
+# Subtest: legacy hold invalid fails with actionable diagnostics
+ok 490 - legacy hold invalid fails with actionable diagnostics
+  ---
+  duration_ms: 1.57438
+  type: 'test'
+  ...
+# Subtest: legacy hold traversal fails with actionable diagnostics
+ok 491 - legacy hold traversal fails with actionable diagnostics
+  ---
+  duration_ms: 8.045005
+  type: 'test'
+  ...
+# Subtest: legacy hold absolute fails with actionable diagnostics
+ok 492 - legacy hold absolute fails with actionable diagnostics
+  ---
+  duration_ms: 1.058023
+  type: 'test'
+  ...
+# Subtest: legacy hold reserved fails with actionable diagnostics
+ok 493 - legacy hold reserved fails with actionable diagnostics
+  ---
+  duration_ms: 3.813591
+  type: 'test'
+  ...
+# Subtest: legacy hold symlink fails with actionable diagnostics
+ok 494 - legacy hold symlink fails with actionable diagnostics
+  ---
+  duration_ms: 4.351268
+  type: 'test'
+  ...
+# Subtest: legacy target symlink fails with actionable diagnostics
+ok 495 - legacy target symlink fails with actionable diagnostics
+  ---
+  duration_ms: 2.878862
+  type: 'test'
+  ...
+# Subtest: a real frontend build failure exits the full application with status 1 before listening
+ok 496 - a real frontend build failure exits the full application with status 1 before listening
+  ---
+  duration_ms: 2264.865469
+  type: 'test'
+  ...
+# Subtest: exclusive ownership I/O failures exit 78 before data writes or listen
+    # Subtest: open: EACCES
+    ok 1 - open: EACCES
+      ---
+      duration_ms: 872.990281
+      type: 'test'
+      ...
+    # Subtest: open: EIO
+    ok 2 - open: EIO
+      ---
+      duration_ms: 1159.405834
+      type: 'test'
+      ...
+    # Subtest: open: EPERM
+    ok 3 - open: EPERM
+      ---
+      duration_ms: 957.648625
+      type: 'test'
+      ...
+    # Subtest: read: EACCES
+    ok 4 - read: EACCES
+      ---
+      duration_ms: 839.692803
+      type: 'test'
+      ...
+    # Subtest: read: EIO
+    ok 5 - read: EIO
+      ---
+      duration_ms: 961.255285
+      type: 'test'
+      ...
+    # Subtest: read: EPERM
+    ok 6 - read: EPERM
+      ---
+      duration_ms: 843.572991
+      type: 'test'
+      ...
+    # Subtest: rename: EACCES
+    ok 7 - rename: EACCES
+      ---
+      duration_ms: 739.250832
+      type: 'test'
+      ...
+    # Subtest: rename: EIO
+    ok 8 - rename: EIO
+      ---
+      duration_ms: 840.651085
+      type: 'test'
+      ...
+    # Subtest: rename: EPERM
+    ok 9 - rename: EPERM
+      ---
+      duration_ms: 724.60635
+      type: 'test'
+      ...
+    # Subtest: unlink: EACCES
+    ok 10 - unlink: EACCES
+      ---
+      duration_ms: 939.298927
+      type: 'test'
+      ...
+    # Subtest: unlink: EIO
+    ok 11 - unlink: EIO
+      ---
+      duration_ms: 940.043494
+      type: 'test'
+      ...
+    # Subtest: unlink: EPERM
+    ok 12 - unlink: EPERM
+      ---
+      duration_ms: 1071.556173
+      type: 'test'
+      ...
+    # Subtest: proc: EACCES
+    ok 13 - proc: EACCES
+      ---
+      duration_ms: 744.408354
+      type: 'test'
+      ...
+    # Subtest: proc: EIO
+    ok 14 - proc: EIO
+      ---
+      duration_ms: 850.808364
+      type: 'test'
+      ...
+    # Subtest: proc: EPERM
+    ok 15 - proc: EPERM
+      ---
+      duration_ms: 784.375327
+      type: 'test'
+      ...
+    1..15
+ok 497 - exclusive ownership I/O failures exit 78 before data writes or listen
+  ---
+  duration_ms: 13318.576797
+  type: 'test'
+  ...
+# Subtest: a corrupt legacy hold exits real server startup with recovery instructions
+ok 498 - a corrupt legacy hold exits real server startup with recovery instructions
+  ---
+  duration_ms: 859.901116
+  type: 'test'
+  ...
+# Subtest: real server SIGTERM bounds a hanging HTTP chat save to one 200ms deadline
+ok 499 - real server SIGTERM bounds a hanging HTTP chat save to one 200ms deadline
+  ---
+  duration_ms: 20288.165897
+  type: 'test'
+  ...
+# SIGTERM to report: 201.7ms; to exit: 281.8ms; exit=1
+# Subtest: registering the real startup route graph does not load Transformers or Vectra
+ok 500 - registering the real startup route graph does not load Transformers or Vectra
+  ---
+  duration_ms: 1009.223884
+  type: 'test'
+  ...
+# Subtest: first pipeline use configures local runtime and preserves model options and warm reuse
+ok 501 - first pipeline use configures local runtime and preserves model options and warm reuse
+  ---
+  duration_ms: 451.43496
+  type: 'test'
+  ...
+# Subtest: simultaneous image and pipeline requests configure the cold dependency exactly once
+ok 502 - simultaneous image and pipeline requests configure the cold dependency exactly once
+  ---
+  duration_ms: 499.536491
+  type: 'test'
+  ...
+# Subtest: a failed dependency import rejects pipeline use and a later request can retry
+ok 503 - a failed dependency import rejects pipeline use and a later request can retry
+  ---
+  duration_ms: 432.452628
+  type: 'test'
+  ...
+# Subtest: invalid image decoding keeps the existing null response
+ok 504 - invalid image decoding keeps the existing null response
+  ---
+  duration_ms: 446.862499
+  type: 'test'
+  ...
+# Subtest: a failed dependency import keeps image null behavior and a later image can retry
+ok 505 - a failed dependency import keeps image null behavior and a later image can retry
+  ---
+  duration_ms: 365.682461
+  type: 'test'
+  ...
+# Subtest: first vector list requests use real LocalIndex and preserve stored hashes without inference
+ok 506 - first vector list requests use real LocalIndex and preserve stored hashes without inference
+  ---
+  duration_ms: 1116.854867
+  type: 'test'
+  ...
+# Subtest: vector import failure is an HTTP error on first use and later requests retry
+ok 507 - vector import failure is an HTTP error on first use and later requests retry
+  ---
+  duration_ms: 1079.762941
+  type: 'test'
+  ...
+# Subtest: frontend cache survives a backend-only Git revision change
+ok 508 - frontend cache survives a backend-only Git revision change
+  ---
+  duration_ms: 32.45014
+  type: 'test'
+  ...
+# Subtest: frontend cache identity includes uncommitted webpack.config.js bytes
+ok 509 - frontend cache identity includes uncommitted webpack.config.js bytes
+  ---
+  duration_ms: 3.517885
+  type: 'test'
+  ...
+# Subtest: frontend cache identity includes uncommitted package.json bytes
+ok 510 - frontend cache identity includes uncommitted package.json bytes
+  ---
+  duration_ms: 10.061001
+  type: 'test'
+  ...
+# Subtest: frontend cache identity includes uncommitted package-lock.json bytes
+ok 511 - frontend cache identity includes uncommitted package-lock.json bytes
+  ---
+  duration_ms: 4.762832
+  type: 'test'
+  ...
+# Subtest: Webpack explicitly snapshots application config, package and lockfile
+ok 512 - Webpack explicitly snapshots application config, package and lockfile
+  ---
+  duration_ms: 6.152909
+  type: 'test'
+  ...
+# Recycled outdated cache directory: synthetic-old-cache
+# Subtest: a distribution without lockfiles still configures and builds real frontend output
+ok 513 - a distribution without lockfiles still configures and builds real frontend output
+  ---
+  duration_ms: 1873.035752
+  type: 'test'
+  ...
+# Subtest: optional package-lock.json presence, edits and absence change cache identity
+ok 514 - optional package-lock.json presence, edits and absence change cache identity
+  ---
+  duration_ms: 9.708021
+  type: 'test'
+  ...
+# Subtest: optional npm-shrinkwrap.json presence, edits and absence change cache identity
+ok 515 - optional npm-shrinkwrap.json presence, edits and absence change cache identity
+  ---
+  duration_ms: 10.330651
+  type: 'test'
+  ...
+# Subtest: missing package metadata remains fatal while its fixture bytes are recoverable
+ok 516 - missing package metadata remains fatal while its fixture bytes are recoverable
+  ---
+  duration_ms: 5.891722
+  type: 'test'
+  ...
+# Subtest: outdated caches are recoverable and the existing recycle directory is preserved
+ok 517 - outdated caches are recoverable and the existing recycle directory is preserved
+  ---
+  duration_ms: 11.54204
+  type: 'test'
+  ...
+# Subtest: dist output remains separate from the configured data root
+ok 518 - dist output remains separate from the configured data root
+  ---
+  duration_ms: 6.985506
+  type: 'test'
+  ...
+# Subtest: startup rejects run-error and closes its compiler
+ok 519 - startup rejects run-error and closes its compiler
+  ---
+  duration_ms: 0.729166
+  type: 'test'
+  ...
+# Subtest: startup rejects missing-stats and closes its compiler
+ok 520 - startup rejects missing-stats and closes its compiler
+  ---
+  duration_ms: 4.560324
+  type: 'test'
+  ...
+# Subtest: startup rejects stats-errors and closes its compiler
+ok 521 - startup rejects stats-errors and closes its compiler
+  ---
+  duration_ms: 0.608538
+  type: 'test'
+  ...
+# Subtest: startup rejects close-error and closes its compiler
+ok 522 - startup rejects close-error and closes its compiler
+  ---
+  duration_ms: 0.421756
+  type: 'test'
+  ...
+# Subtest: startup rejects run-throw and closes its compiler
+ok 523 - startup rejects run-throw and closes its compiler
+  ---
+  duration_ms: 0.410986
+  type: 'test'
+  ...
+# Subtest: startup rejects close-throw and closes its compiler
+ok 524 - startup rejects close-throw and closes its compiler
+  ---
+  duration_ms: 0.41713
+  type: 'test'
+  ...
+# Subtest: successful startup remains pending until compiler close finishes
+ok 525 - successful startup remains pending until compiler close finishes
+  ---
+  duration_ms: 1.678703
+  type: 'test'
+  ...
+# Subtest: real Webpack repairs output and invalidates changed entry and installed dependency
+ok 526 - real Webpack repairs output and invalidates changed entry and installed dependency
+  ---
+  duration_ms: 1945.762595
+  type: 'test'
+  ...
+# Synthetic fixtures retained at /workspace/sillytavern-perf-lab/.fixtures/startup-webpack-6ba1ce93-2204-46f3-a6f1-2fd4f483b676/real-compilation
+# Subtest: SentencePieceTokenizer: 50 cold callers share path resolution and construction
+ok 527 - SentencePieceTokenizer: 50 cold callers share path resolution and construction
+  ---
+  duration_ms: 17.178998
+  type: 'test'
+  ...
+# Subtest: SentencePieceTokenizer: late caller cannot observe an instance before initialization completes
+ok 528 - SentencePieceTokenizer: late caller cannot observe an instance before initialization completes
+  ---
+  duration_ms: 5.408164
+  type: 'test'
+  ...
+# Subtest: SentencePieceTokenizer: initialization rejection returns null to all callers and permits retry
+ok 529 - SentencePieceTokenizer: initialization rejection returns null to all callers and permits retry
+  ---
+  duration_ms: 3.42724
+  type: 'test'
+  ...
+# Subtest: SentencePieceTokenizer: path rejection is shared and fallback arguments survive retry
+ok 530 - SentencePieceTokenizer: path rejection is shared and fallback arguments survive retry
+  ---
+  duration_ms: 6.480834
+  type: 'test'
+  ...
+# Subtest: SentencePieceTokenizer: synchronous path failure does not latch a failed Promise
+ok 531 - SentencePieceTokenizer: synchronous path failure does not latch a failed Promise
+  ---
+  duration_ms: 0.698974
+  type: 'test'
+  ...
+# Subtest: SentencePieceTokenizer: synchronous factory failure leaves no partial cache
+ok 532 - SentencePieceTokenizer: synchronous factory failure leaves no partial cache
+  ---
+  duration_ms: 0.65433
+  type: 'test'
+  ...
+# Subtest: SentencePieceTokenizer: warm cache returns the same ready instance without new I/O
+ok 533 - SentencePieceTokenizer: warm cache returns the same ready instance without new I/O
+  ---
+  duration_ms: 3.505014
+  type: 'test'
+  ...
+# Subtest: SentencePieceTokenizer: distinct wrapper instances initialize independently
+ok 534 - SentencePieceTokenizer: distinct wrapper instances initialize independently
+  ---
+  duration_ms: 1.034912
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: 50 cold callers share path resolution and construction
+ok 535 - WebTokenizer: 50 cold callers share path resolution and construction
+  ---
+  duration_ms: 7.06953
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: late caller cannot observe an instance before initialization completes
+ok 536 - WebTokenizer: late caller cannot observe an instance before initialization completes
+  ---
+  duration_ms: 1.571327
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: initialization rejection returns null to all callers and permits retry
+ok 537 - WebTokenizer: initialization rejection returns null to all callers and permits retry
+  ---
+  duration_ms: 6.437482
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: path rejection is shared and fallback arguments survive retry
+ok 538 - WebTokenizer: path rejection is shared and fallback arguments survive retry
+  ---
+  duration_ms: 8.587484
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: synchronous path failure does not latch a failed Promise
+ok 539 - WebTokenizer: synchronous path failure does not latch a failed Promise
+  ---
+  duration_ms: 0.548624
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: synchronous factory failure leaves no partial cache
+ok 540 - WebTokenizer: synchronous factory failure leaves no partial cache
+  ---
+  duration_ms: 0.497592
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: warm cache returns the same ready instance without new I/O
+ok 541 - WebTokenizer: warm cache returns the same ready instance without new I/O
+  ---
+  duration_ms: 9.471802
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: distinct wrapper instances initialize independently
+ok 542 - WebTokenizer: distinct wrapper instances initialize independently
+  ---
+  duration_ms: 0.640638
+  type: 'test'
+  ...
+# Subtest: WebTokenizer: file read failure is shared and a subsequent request retries
+ok 543 - WebTokenizer: file read failure is shared and a subsequent request retries
+  ---
+  duration_ms: 7.683137
+  type: 'test'
+  ...
+# Instantiated the tokenizer for llama
+# Instantiated the tokenizer for llama
+# Real local tokenizer compatibility: llama; 50 cold + 5 warm encodes + 5 decodes; baseline equal; initialization=1
+# Subtest: llama: real bundled model handles 50 cold HTTP encodes and preserves baseline output
+ok 544 - llama: real bundled model handles 50 cold HTTP encodes and preserves baseline output
+  ---
+  duration_ms: 311.425267
+  type: 'test'
+  ...
+# Instantiated the tokenizer for llama3
+# Instantiated the tokenizer for llama3
+# Real local tokenizer compatibility: llama3; 50 cold + 5 warm encodes + 5 decodes; baseline equal; initialization=1
+# Subtest: llama3: real bundled model handles 50 cold HTTP encodes and preserves baseline output
+ok 545 - llama3: real bundled model handles 50 cold HTTP encodes and preserves baseline output
+  ---
+  duration_ms: 1178.960474
+  type: 'test'
+  ...
+# Subtest: webllm returns one ordered vector per text across batch boundaries
+ok 546 - webllm returns one ordered vector per text across batch boundaries
+  ---
+  duration_ms: 6.847204
+  type: 'test'
+  ...
+# Subtest: webllm preserves duplicate input order and missing embeddings
+ok 547 - webllm preserves duplicate input order and missing embeddings
+  ---
+  duration_ms: 0.592309
+  type: 'test'
+  ...
+# Subtest: koboldcpp returns one ordered vector per text across batch boundaries
+ok 548 - koboldcpp returns one ordered vector per text across batch boundaries
+  ---
+  duration_ms: 6.240385
+  type: 'test'
+  ...
+# Subtest: koboldcpp preserves duplicate input order and missing embeddings
+ok 549 - koboldcpp preserves duplicate input order and missing embeddings
+  ---
+  duration_ms: 0.508373
+  type: 'test'
+  ...
+# Subtest: an unknown source throws for nonempty input while empty input returns an empty list
+ok 550 - an unknown source throws for nonempty input while empty input returns an empty list
+  ---
+  duration_ms: 1.080417
+  type: 'test'
+  ...
+# Subtest: nomicai keeps remote provider batches at ten and forwards source arguments
+ok 551 - nomicai keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.667002
+  type: 'test'
+  ...
+# Subtest: togetherai keeps remote provider batches at ten and forwards source arguments
+ok 552 - togetherai keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.547183
+  type: 'test'
+  ...
+# Subtest: mistral keeps remote provider batches at ten and forwards source arguments
+ok 553 - mistral keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 4.64058
+  type: 'test'
+  ...
+# Subtest: openai keeps remote provider batches at ten and forwards source arguments
+ok 554 - openai keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.76407
+  type: 'test'
+  ...
+# Subtest: electronhub keeps remote provider batches at ten and forwards source arguments
+ok 555 - electronhub keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.761634
+  type: 'test'
+  ...
+# Subtest: openrouter keeps remote provider batches at ten and forwards source arguments
+ok 556 - openrouter keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.531641
+  type: 'test'
+  ...
+# Subtest: transformers keeps remote provider batches at ten and forwards source arguments
+ok 557 - transformers keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.516486
+  type: 'test'
+  ...
+# Subtest: extras keeps remote provider batches at ten and forwards source arguments
+ok 558 - extras keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 5.434311
+  type: 'test'
+  ...
+# Subtest: palm keeps remote provider batches at ten and forwards source arguments
+ok 559 - palm keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.582982
+  type: 'test'
+  ...
+# Subtest: vertexai keeps remote provider batches at ten and forwards source arguments
+ok 560 - vertexai keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.50361
+  type: 'test'
+  ...
+# Subtest: cohere keeps remote provider batches at ten and forwards source arguments
+ok 561 - cohere keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.538077
+  type: 'test'
+  ...
+# Subtest: llamacpp keeps remote provider batches at ten and forwards source arguments
+ok 562 - llamacpp keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.481746
+  type: 'test'
+  ...
+# Subtest: vllm keeps remote provider batches at ten and forwards source arguments
+ok 563 - vllm keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.470082
+  type: 'test'
+  ...
+# Subtest: ollama keeps remote provider batches at ten and forwards source arguments
+ok 564 - ollama keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 1.278694
+  type: 'test'
+  ...
+# Subtest: chutes keeps remote provider batches at ten and forwards source arguments
+ok 565 - chutes keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.540952
+  type: 'test'
+  ...
+# Subtest: nanogpt keeps remote provider batches at ten and forwards source arguments
+ok 566 - nanogpt keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.549789
+  type: 'test'
+  ...
+# Subtest: siliconflow keeps remote provider batches at ten and forwards source arguments
+ok 567 - siliconflow keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.519585
+  type: 'test'
+  ...
+# Subtest: workers_ai keeps remote provider batches at ten and forwards source arguments
+ok 568 - workers_ai keeps remote provider batches at ten and forwards source arguments
+  ---
+  duration_ms: 0.472624
+  type: 'test'
+  ...
+1..568
+# tests 588
+# suites 0
+# pass 587
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 39694.908398

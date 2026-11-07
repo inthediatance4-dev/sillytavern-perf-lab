@@ -1,0 +1,47 @@
+{
+  "status": "pass",
+  "checks": [
+    {
+      "group": "base-3000",
+      "endpoint": "<host>:60915",
+      "acceptingConnections": false,
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "group": "equivalence/2000-100-0-base",
+      "endpoint": "<host>:51467",
+      "acceptingConnections": false,
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "group": "equivalence/2000-100-0-head",
+      "endpoint": "<host>:41089",
+      "acceptingConnections": false,
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "group": "head-3000",
+      "endpoint": "<host>:39665",
+      "acceptingConnections": false,
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    },
+    {
+      "group": "head-3000-workflow",
+      "endpoint": "<host>:50485",
+      "acceptingConnections": false,
+      "serverExitCode": 0,
+      "shutdownIncomplete": false,
+      "ownerLockRemoved": true
+    }
+  ],
+  "browsers": "All browser drivers closed Playwright browser and exited 0.",
+  "dataRoots": "Retained; no synthetic roots, marker files or user data deleted."
+}

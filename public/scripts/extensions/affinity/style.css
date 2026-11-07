@@ -1,7 +1,13 @@
 .affinity_settings .inline-drawer-content {
+    display: none;
+}
+
+.affinity_settings_body {
     display: flex;
     flex-direction: column;
     gap: 0.5em;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .affinity_tagline {

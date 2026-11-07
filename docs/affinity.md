@@ -1,19 +1,19 @@
 # 好感度记忆
 
-好感度随「命运之笔」启用，设置抽屉只有开关和整理频率。默认每 10 条有效助手回复整理一次，可改为 5 条。关系分数仅供内部使用，范围为 -100…100；没有分数显示、角色面板或查询命令。
+「好感度记忆」与「命运之牌」分别安装、分别启用，设置抽屉只有开关和整理频率。默认每 10 条有效助手回复整理一次，可改为 5 条。关系分数仅供内部使用，范围为 -100…100；没有分数显示、角色面板或查询命令。
 
 ## 接入与隔离
 
-- `director_rebind_interceptor` 在提示组装前调用 `affinity.prepare`。最多注入五项当前角色的事实、未决约定和弱倾向，不要求恋爱或亲密。记忆以临时 narrator/system 消息附在本次请求副本末尾；文案要求以当前对话和个人边界为准，但这不会改变提供方或聊天模板的实际消息优先级，不能把它当作权限隔离。自由文本记忆仍有模型误读资料为指令的设计风险。
+- 独立的 `affinity_memory_interceptor` 在提示组装前调用 `affinity.prepare`。最多注入五项当前角色的事实、未决约定和弱倾向，不要求恋爱或亲密。记忆以临时 narrator/system 消息附在本次请求副本末尾；文案要求以当前对话和个人边界为准，但这不会改变提供方或聊天模板的实际消息优先级，不能把它当作权限隔离。自由文本记忆仍有模型误读资料为指令的设计风险。
 - 完整记忆先以保护宏分隔符与换行的 frame 加入当前 interceptor 的请求副本，参与原生上下文预算；不安装共享 extension prompt，也不参与世界书扫描。`GENERATE_AFTER_DATA` 根据该次原生生成类型恢复字面文本，未知的完整严格定界 frame 整段清除；聊天中的普通 marker 字面文本不删除。并发 quiet、impersonate 不获取记忆，也不清掉普通生成的计数归属。
 - `MESSAGE_RECEIVED(messageId, type)` 只登记候选；`GENERATION_COMPLETED` 才验证同一 chat、metadata、消息对象、最终文本和当前已保存的 swipe。`GENERATION_ENDED` 是 UI 解锁信号，流式时可早于消息保存，不能用来计数。下一次生成开始时，前次已经完成文本与 swipe、但仍等待保存的请求保留自己的完成归属；停止当前请求不会撤销另一条已完成请求。
 - 继续生成更新原逻辑消息，不新增计数；重生成保留被替换逻辑消息的凭据。群聊每个成功回复累计一次，以规范 avatar 区分同名角色，等 `GROUP_WRAPPER_FINISHED` 后才启动整理，不按角色分别发评估请求。
 - 旁路使用 `generateQuietPrompt({ isolated: true, jsonSchema, quietPrompt, signal, maxOutputTokens })`，沿用当前主提供方；没有单独模型配置。单次输出额度为模型上下文的四分之一，上限 2048 token、下限 128；只作用于该请求，正文回复设置与 `TempResponseLength` 不变。隔离路径使用 raw API 的本地 controller，并跳过正文提示及 CC/TC 参数修改事件，避免消耗别的请求的长度恢复钩子。新主生成、关闭功能或切聊天只取消旁路自己的 signal，正文不等待它。
-- 所有评估和保存工作均脱离正文事件 promise。失败不向正文抛出；控制器不把原文、响应或密钥写入错误日志。页面内仅累计解析、提取、核验、保存和预算失败的固定类别计数，刷新页面即清空，不写聊天元数据。可在浏览器控制台运行 `const d = await import('/scripts/extensions/director/index.js'); d.getAffinityDiagnostics()` 查询 `{ total, counts }`；该接口不返回关系分数、引文、聊天身份或模型响应，取消不算失败。
+- 所有评估和保存工作均脱离正文事件 promise。失败不向正文抛出；控制器不把原文、响应或密钥写入错误日志。页面内仅累计解析、提取、核验、保存和预算失败的固定类别计数，刷新页面即清空，不写聊天元数据。内置版本可在浏览器控制台运行 `const d = await import('/scripts/extensions/affinity/index.js'); d.getAffinityDiagnostics()` 查询 `{ total, counts }`；独立安装时将导入路径换成 `/scripts/extensions/third-party/<实际插件目录>/index.js`。该接口不返回关系分数、引文、聊天身份或模型响应，取消不算失败。
 
 ## 存储合同
 
-`chat_metadata.director.__affinity` 的版本为 1，保存宿主 scope UUID、单调 ID、已接受消息计数 `issued`、已尝试批次游标 `cursor`、当前证据和短期归档。其他 director 元数据不被覆盖。未知版本不自动重置。
+`chat_metadata.affinity.__affinity` 的版本为 1，保存宿主 scope UUID、单调 ID、已接受消息计数 `issued`、已尝试批次游标 `cursor`、当前证据和短期归档。旧的 `chat_metadata.director.__affinity` 会迁移到独立命名空间；其他 director 元数据不被覆盖。新设置缺失字段继承旧 `extension_settings.director.affinity` 中有效的开关和频率，显式的新设置优先。未知版本不自动重置。
 
 每个可引用的非系统消息及其各 swipe 的 `extra.__affinity` 保存很小的 `{ version, scope, id, receipt, evaluated? }`。`id` 是宿主生成的逻辑消息 UUID；`receipt` 只在关联的生成成功后分配。历史消息、用户消息与手工插入消息初始没有有效回复计数。消息正文、所选 swipe 和 fingerprint 与凭据一起校验；模型不能自行指定 ledger ID 或分值。
 

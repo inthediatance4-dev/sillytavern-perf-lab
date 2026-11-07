@@ -1,6 +1,6 @@
 import { Popper } from '../../../lib.js';
-import { activateSendButtons, deactivateSendButtons, doNavbarIconClick, is_send_press, isGenerating, saveChatConditional, setSendButtonState, showMoreMessages } from '../../../script.js';
-import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
+import { activateSendButtons, deactivateSendButtons, doNavbarIconClick, is_send_press, isGenerating, setSendButtonState, showMoreMessages } from '../../../script.js';
+import { extension_settings, getContext as nativeGetContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { hasPendingFileAttachment } from '../../chats.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
 import { uuidv4 } from '../../utils.js';
@@ -44,6 +44,10 @@ import {
 } from './instruct.js';
 import { createDefaultPresets, presetForDigit, resolvePresetArgument } from './presets.js';
 import { collectPresetInputs, containsExpandableMacro, renderDirectorTemplate } from './template.js';
+import { createPluginRuntime } from '../../plugin-runtime/runtime.js';
+
+let runtime;
+const getContext = () => runtime ? runtime.getContext() : nativeGetContext();
 
 const PRESET_MODE_LABELS = { narrator: '写入正文', comment: '只留给自己', instruct: '嘱咐下一笔' };
 
@@ -288,6 +292,8 @@ async function usePreset(preset, inputText) {
                 // Do not store the expanded 第N章 text or a chapter number.
                 metadata.chapter = { title: chapterTitleFromValues(values, preset.name) };
             }
+            await runtime.ensureStart(true);
+            if (!isCurrentChat(context, revision)) return;
             const index = context.chat.length;
             const attachMetadata = messageId => {
                 if (messageId === index && context.chat[index]) {
@@ -309,7 +315,7 @@ async function usePreset(preset, inputText) {
         }
     } catch (error) {
         console.error('Director preset failed', error);
-        toastr.error('无法用上这则命运之笔预设。');
+        toastr.error('无法用上这则命运之牌预设。');
     } finally {
         executing = false;
         button?.removeAttribute('data-director-busy');
@@ -549,7 +555,10 @@ function togglePopover() {
 }
 
 export async function init() {
-    if (extension_settings.disabledExtensions.includes('director') || document.getElementById('directorButton')) return;
+    if (document.getElementById('directorButton')) return;
+    runtime = await createPluginRuntime(import.meta.url, 'director');
+    if (extension_settings.disabledExtensions.includes(runtime.extensionId)) return;
+    await runtime.ensureStart();
     const settings = extension_settings.director ??= {};
     let seeded = false;
     if (!Array.isArray(settings.presets)) {
@@ -584,7 +593,7 @@ export async function init() {
     const fate = createFateController(getContext, {
         isGenerating, hasDraft, setSendButtonState, deactivateSendButtons, activateSendButtons, uuid:uuidv4, random:Math.random,
         generate: current => current.generate('normal'),
-        save: (_current, shouldSave) => saveChatConditional({ shouldSave }),
+        save: (_current, shouldSave) => getContext().saveChat({ shouldSave }),
         onRegenerateStart: () => setSendButtonState(true),
         onError: message => toastr.warning(message),
         onChange: () => {
@@ -624,9 +633,11 @@ export async function init() {
     initInstructLifecycle(getContext, refreshInstructChip);
     // The interceptor argument is a filtered copy. Swipe pops the target from
     // that copy before this runs, so reinject reads getContext().chat instead.
-    globalThis.director_rebind_interceptor = async function director_rebind_interceptor(requestChat, _contextSize, abort, type) {
+    globalThis[runtime.interceptorKey] = async function director_rebind_interceptor(requestChat, _contextSize, abort, type) {
+        if (!runtime.claim(requestChat)) return;
         clearBoundDeleteSkip();
         try {
+            runtime.prepare(type, requestChat);
             const current = getContext();
             // Quiet and impersonate must not send or consume a pending instruct,
             // and they must not copy boundInstruct back into the prompt.
@@ -652,10 +663,13 @@ export async function init() {
             }
         } catch (error) {
             console.error('Director rebind interceptor failed', error);
+            abort(true);
+        } finally {
+            try { await runtime.seal(requestChat); } catch { abort(true); }
         }
     };
     if (seeded) context.saveSettingsDebounced();
-    $('#extensions_settings').append(await renderExtensionTemplateAsync('director', 'settings'));
+    $('#extensions_settings').append(await renderExtensionTemplateAsync(runtime.extensionId, 'settings'));
     $('#director_hotkey').val(settings.hotkey).on('input', function () {
         settings.hotkey = String($(this).val()).trim();
         context.saveSettingsDebounced();
@@ -668,7 +682,7 @@ export async function init() {
         callback: async (_, value) => {
             const resolved = resolvePresetArgument(settings.presets, value);
             if (resolved) await usePreset(resolved.preset, resolved.text);
-            else toastr.error('找不到命运之笔的预设，请用名称，或从 1 开始的序号。');
+            else toastr.error('找不到命运之牌的预设，请用名称，或从 1 开始的序号。');
             return '';
         },
         unnamedArgumentList: [
@@ -680,7 +694,7 @@ export async function init() {
             }),
             SlashCommandArgument.fromProps({ description: '填入第一个输入框的文字', typeList: [ARGUMENT_TYPE.STRING] }),
         ],
-        helpString: '<p>用一则命运之笔预设，也可放进快速回复。例如：<code>/director 1 三天</code> 会插入「——三天后——」。文字填进第一个输入框，其余用默认值；没有默认值的会再问你。名称先按原文匹配，再忽略大小写。纯数字始终是从 1 开始的序号；名称里有空格时请加引号。</p>',
+        helpString: '<p>用一则命运之牌预设，也可放进快速回复。例如：<code>/director 1 三天</code> 会插入「——三天后——」。文字填进第一个输入框，其余用默认值；没有默认值的会再问你。名称先按原文匹配，再忽略大小写。纯数字始终是从 1 开始的序号；名称里有空格时请加引号。</p>',
         returns: '空字符串',
     }));
 
@@ -688,10 +702,10 @@ export async function init() {
     button.id = 'directorButton';
     button.className = 'interactable';
     button.textContent = '🎬';
-    button.title = '命运之笔';
+    button.title = '命运之牌';
     button.tabIndex = 0;
     button.setAttribute('role', 'button');
-    button.setAttribute('aria-label', '命运之笔');
+    button.setAttribute('aria-label', '命运之牌');
     button.setAttribute('aria-haspopup', 'dialog');
     button.setAttribute('aria-controls', 'directorPopover');
     button.setAttribute('aria-expanded', 'false');
@@ -704,7 +718,7 @@ export async function init() {
     popover.hidden = true;
     popover.tabIndex = -1;
     popover.setAttribute('role', 'dialog');
-    popover.setAttribute('aria-label', '命运之笔预设');
+    popover.setAttribute('aria-label', '命运之牌预设');
     document.body.append(popover);
     popper = Popper.createPopper(button, popover, { placement: 'top-start', modifiers: [{ name: 'offset', options: { offset: [0, 8] } }] });
     button.addEventListener('click', togglePopover);

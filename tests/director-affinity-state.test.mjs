@@ -48,22 +48,38 @@ test('parser accepts only complete JSON and complete json fences, without assist
     assert.deepEqual(parseAffinityResponse('{"events":[]}'), []);
 });
 
-test('parser rejects prototype keys at every depth and exact own-field schema violations', () => {
+test('parser rejects unsafe envelopes and discards unsafe or malformed individual events', () => {
     const item = proposal(ref(0, '角色原话。'));
     const raw = JSON.stringify({ events: [item] });
     for (const key of ['__proto__', 'constructor', 'prototype']) {
         assert.throws(() => parseAffinityResponse(raw.replace('"events":', `"${key}":{},"events":`)), TypeError);
-        assert.throws(() => parseAffinityResponse(raw.replace('"source":{', `"source":{"${key}":{},`)), TypeError);
+        assert.deepEqual(parseAffinityResponse(raw.replace('"source":{', `"source":{"${key}":{},`)), []);
     }
     for (const fields of [
         { source: { slot: 'slot-0', quote: '' } }, { source: { slot: 'slot-0', quote: 'x'.repeat(181) } },
         { fact: 'x'.repeat(161) }, { actor: '玩家小明' }, { recipient: '甲' }, { status: 'pledged' },
         { outcomeKnown: 'true' }, { knownToCharacter: 'maybe' }, { attitudeExplicit: 1 }, { id: 'llm-owned-id' },
-    ]) assert.throws(() => parseAffinityResponse(JSON.stringify({ events: [{ ...item, ...fields }] })), TypeError);
+    ]) assert.deepEqual(parseAffinityResponse(JSON.stringify({ events: [{ ...item, ...fields }] })), []);
     const missing = { ...item }; delete missing.actor;
-    assert.throws(() => parseAffinityResponse(JSON.stringify({ events: [missing] })), TypeError);
+    assert.deepEqual(parseAffinityResponse(JSON.stringify({ events: [missing] })), []);
     assert.throws(() => parseAffinityResponse(JSON.stringify({ events: Array(25).fill(item) })), TypeError);
     assert.throws(() => parseAffinityResponse(' '.repeat(80001)), TypeError);
+});
+
+test('parser preserves valid siblings and reports only aggregate rejection categories and counts', () => {
+    const first = proposal(ref(0, '甲原话。'));
+    const second = attitude(ref(1, '甲的第二句原话。'));
+    const unsafe = JSON.parse(JSON.stringify(first).replace('"source":{', '"source":{"__proto__":{"polluted":true},'));
+    const diagnostics = [];
+    const raw = JSON.stringify({ events: [first, null, { ...first, confidence: 'maybe' }, unsafe, second] });
+    assert.deepEqual(parseAffinityResponse(raw, { onRejected: issue => diagnostics.push(issue) }), [first, second]);
+    assert.deepEqual(diagnostics, [{ category: 'schema', count: 2 }, { category: 'unsafe', count: 1 }]);
+    assert.equal(Object.prototype.polluted, undefined);
+    assert.deepEqual(parseAffinityResponse(JSON.stringify({ events: [first] }), { onRejected: () => assert.fail('no rejection') }), [first]);
+    assert.deepEqual(parseAffinityResponse(raw, { onRejected: () => { throw new Error('diagnostic sink failed'); } }), [first, second]);
+    for (const envelope of [{ events: [first], extra: true }, { events: {} }, { events: Array(25).fill(null) }, [first]]) {
+        assert.throws(() => parseAffinityResponse(JSON.stringify(envelope)), TypeError);
+    }
 });
 
 test('application is immutable and exact quote/fingerprint/swipe binding survives JSON reload', () => {
@@ -870,4 +886,212 @@ test('malformed records fail closed and a character-named owner still records pl
     assert.equal(state.events[0].owner, 'character');
     assert.equal(state.events[0].actor, 'user');
     assert.equal(affinityScores(state).character, 0);
+});
+
+const sharedAcknowledgement = (fields = {}) => {
+    const source = ref(0, '玩家答应归还借来的书。', { owner: 'player' });
+    const result = ref(1, '玩家已经归还借来的书。', { owner: 'player' });
+    const ack = ref(2, '甲说：“这次履约使我改变了对你的信任。”');
+    const refs = [source, result, ack];
+    const base = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character' })], refs);
+    const completed = outcome(base.events[0], result, { ...fields, acknowledgement: { slot: ack.slot, quote: ack.text } });
+    const stated = attitude(ack, fields);
+    return { base, completed, stated, refs, result, ack };
+};
+
+for (const [valence, impact, expected] of [
+    ['positive', 'minor', 2], ['negative', 'minor', -3], ['positive', 'major', 5], ['negative', 'major', -8],
+]) {
+    for (const firstKind of ['outcome', 'attitude']) {
+        for (const mode of ['batch', 'sequential', 'stored migration']) {
+            test(`${mode}: ${firstKind} and ${valence} ${impact} evidence share one physical scoring quote`, () => {
+                const { base, completed, stated, refs } = sharedAcknowledgement({ valence, impact });
+                const items = firstKind === 'outcome' ? [completed, stated] : [stated, completed];
+                const options = { verified: new Set(items.map(item => candidateKey(item, refs))) };
+                let state;
+                if (mode === 'batch') state = apply(base, items, refs, options);
+                else if (mode === 'sequential') state = apply(apply(base, [items[0]], refs, options), [items[1]], refs, options);
+                else {
+                    const independent = items.map((item, index) => {
+                        const record = all(apply(base, [item], refs, options)).find(event => event.kind !== 'promise');
+                        return { ...record, id: `chat-scope:e:${index + 2}` };
+                    });
+                    state = reconcileAffinity({ ...base, nextId: 4, events: [independent[1]], archives: [...base.events, independent[0]] }, refs, owners);
+                }
+                assert.equal(all(state).length, 3, 'retain both grounded descriptions and the closed promise');
+                assert.equal(affinityScores(state)['a.png'], expected, 'one literal attitude must contribute only once');
+                assert.equal(all(state).filter(event => event.delta !== 0).length, 1);
+                assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /可略显信任|可略留戒心/, 'aliases are not independent corroboration');
+                const reloaded = reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners);
+                assert.equal(affinityScores(reloaded)['a.png'], expected);
+                assert.deepEqual(reloaded, state);
+            });
+        }
+    }
+}
+
+test('the first host scoring quote keeps its direction and magnitude across description kinds', () => {
+    const { base, completed, stated, refs } = sharedAcknowledgement();
+    const negative = { ...stated, valence: 'negative', impact: 'major' };
+    const options = { verified: new Set([candidateKey(negative, refs)]) };
+    assert.equal(affinityScores(apply(base, [negative, completed], refs, options))['a.png'], -8);
+    assert.equal(affinityScores(apply(base, [completed, negative], refs, options))['a.png'], 2);
+    const unverifiedFirst = apply(base, [{ ...completed, impact: 'major' }, stated], refs);
+    assert.equal(affinityScores(unverifiedFirst)['a.png'], 0, 'an unverified major cannot become minor points through an attitude alias');
+    assert.doesNotMatch(buildAffinityMemory(unverifiedFirst, refs, 'a.png'), /可略显信任|可略留戒心/);
+});
+
+test('removing the first scoring dependency allows the retained independent description to be projected again', () => {
+    const { base, completed, stated, refs, result } = sharedAcknowledgement();
+    const state = apply(base, [completed, stated], refs);
+    assert.equal(affinityScores(state)['a.png'], 2);
+    const remainingRefs = refs.filter(item => item.slot !== result.slot);
+    const revoked = reconcileAffinity(JSON.parse(JSON.stringify(state)), remainingRefs, owners);
+    assert.equal(all(revoked).filter(event => event.kind === 'outcome').length, 0);
+    assert.equal(affinityScores(revoked)['a.png'], 2, 'deduplication must not permanently rewrite eligible evidence to neutral');
+    assert.equal(all(revoked).find(event => event.kind === 'attitude').delta, 2);
+});
+
+test('non-overlapping scoring quotes remain independent across attitude and outcome descriptions', () => {
+    const { base, completed, refs, ack } = sharedAcknowledgement();
+    const text = '甲说：“这次履约让我更信任你。”随后又说：“你刚才的坦诚也让我更愿意相信你。”';
+    const liveAck = { ...ack, text };
+    const liveRefs = [...refs.slice(0, -1), liveAck];
+    const result = apply(base, [
+        { ...completed, acknowledgement: { slot: liveAck.slot, quote: '这次履约让我更信任你。' } },
+        attitude(liveAck, { source: { slot: liveAck.slot, quote: '你刚才的坦诚也让我更愿意相信你。' }, fact: '甲对另一次坦诚明确表达信任。' }),
+    ], liveRefs);
+    assert.equal(affinityScores(result)['a.png'], 4);
+    assert.match(buildAffinityMemory(result, liveRefs, 'a.png'), /可略显信任/);
+});
+
+for (const mode of ['batch', 'sequential', 'stored migration']) {
+    test(`${mode}: two promise anchors sharing one result and acknowledgement both close without duplicate rewards`, () => {
+        const sources = [ref(0, '我答应把书还给甲。', { owner: 'player' }), ref(1, '我再次答应把那本书还给甲。', { owner: 'player' })];
+        const result = ref(2, '玩家归还了那本书。', { owner: 'player' });
+        const ack = ref(3, '甲说：“我看见你还书了，这使我更信任你。”');
+        const refs = [...sources, result, ack];
+        const base = apply(fresh(), sources.map(source => promise(source, { actor: 'user', recipient: 'character' })), refs);
+        const items = base.events.map(anchor => outcome(anchor, result, { acknowledgement: { slot: ack.slot, quote: ack.text } }));
+        let state;
+        if (mode === 'batch') state = apply(base, items, refs);
+        else if (mode === 'sequential') state = apply(apply(base, [items[0]], refs), [items[1]], refs);
+        else {
+            const independent = items.map((item, index) => ({ ...all(apply(base, [item], refs)).find(event => event.kind === 'outcome'), id: `chat-scope:e:${index + 3}` }));
+            state = reconcileAffinity({ ...base, nextId: 5, events: [...base.events, ...independent] }, refs, owners);
+        }
+        assert.equal(all(state).filter(event => event.kind === 'outcome').length, 2, 'both dependencies must close');
+        assert.equal(affinityScores(state)['a.png'], 2);
+        assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /尚待兑现的约定|可略显信任/);
+        assert.equal(affinityScores(reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners))['a.png'], 2);
+    });
+}
+
+for (const mode of ['apply', 'stored migration']) {
+    test(`${mode}: the first neutral attitude keeps its full canonical source when a narrow alias first gains points`, () => {
+        const source = ref(0, '我相信你。你这次的坦诚让我更信任你了。');
+        const refs = [source];
+        const base = apply(fresh(), [attitude(source, { valence: 'none' })], refs);
+        const narrow = attitude(source, { source: { slot: source.slot, quote: '我相信你。' } });
+        let enriched;
+        if (mode === 'apply') enriched = apply(base, [narrow], refs);
+        else {
+            const alias = { ...all(apply(fresh(), [narrow], refs))[0], id: 'chat-scope:e:2' };
+            enriched = reconcileAffinity({ ...base, nextId: 3, events: [alias], archives: base.events }, refs, owners);
+        }
+        assert.deepEqual(all(enriched)[0].source, base.events[0].source);
+        const repeated = apply(enriched, [attitude(source, { source: { slot: source.slot, quote: '你这次的坦诚让我更信任你了。' } })], refs);
+        assert.equal(all(repeated).length, 1);
+        assert.equal(affinityScores(repeated)['a.png'], 2);
+        assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(repeated)), refs, owners), repeated);
+    });
+}
+
+const sharedPhysicalResult = (fields = {}) => {
+    const sources = [ref(0, '我答应归还这本书。', { owner: 'player' }), ref(1, '我再次答应归还那本书。', { owner: 'player' })];
+    const result = ref(2, '玩家已经归还那本书。', { owner: 'player' });
+    const acknowledgements = [ref(3, '甲说：“我看见你还书了，我改变了对你的信任。”'), ref(4, '甲又说：“对于这一次还书，我仍是刚才的态度。”')];
+    const refs = [...sources, result, ...acknowledgements];
+    const base = apply(fresh(), sources.map(source => promise(source, { actor: 'user', recipient: 'character' })), refs);
+    const items = base.events.map((anchor, index) => outcome(anchor, result, {
+        ...fields, acknowledgement: { slot: acknowledgements[index].slot, quote: acknowledgements[index].text },
+    }));
+    return { base, items, refs, acknowledgements };
+};
+
+for (const [valence, expected] of [['positive', 2], ['negative', -3]]) {
+    for (const mode of ['batch', 'sequential', 'stored migration']) {
+        test(`${mode}: ${valence} completions sharing one physical result and distinct acknowledgements score once`, () => {
+            const { base, items, refs } = sharedPhysicalResult({ valence });
+            let state;
+            if (mode === 'batch') state = apply(base, items, refs);
+            else if (mode === 'sequential') state = apply(apply(base, [items[0]], refs), [items[1]], refs);
+            else {
+                const independent = items.map((item, index) => ({ ...all(apply(base, [item], refs)).find(event => event.kind === 'outcome'), id: `chat-scope:e:${index + 3}` }));
+                state = reconcileAffinity({ ...base, nextId: 5, events: [independent[1]], archives: [...base.events, independent[0]] }, refs, owners);
+            }
+            assert.equal(all(state).filter(event => event.kind === 'outcome').length, 2);
+            assert.equal(affinityScores(state)['a.png'], expected);
+            assert.equal(all(state).filter(event => event.delta !== 0).length, 1);
+            assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /尚待兑现的约定|可略显信任|可略留戒心/);
+            assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners), state);
+        });
+    }
+}
+
+for (const attitudeFirst of [false, true]) {
+    test(`shared-result aliases also reserve their distinct acknowledgement against attitude reuse, attitude first=${attitudeFirst}`, () => {
+        const { base, items, refs, acknowledgements } = sharedPhysicalResult();
+        const stated = attitude(acknowledgements[1], { valence: 'negative' });
+        const initial = attitudeFirst ? [stated, items[0]] : [items[0], stated];
+        let state = apply(base, initial, refs);
+        state = apply(state, [items[1]], refs);
+        assert.equal(all(state).filter(event => event.kind === 'outcome').length, 2, 'scoring aliases still close their own anchors');
+        assert.equal(affinityScores(state)['a.png'], attitudeFirst ? -3 : 2, 'the earliest retained host ID owns the whole connected physical event');
+        assert.equal(all(state).filter(event => event.delta !== 0).length, 1);
+        assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /尚待兑现的约定|可略显信任|可略留戒心/);
+        assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners), state);
+    });
+}
+
+test('an unverified major cannot gain minor points through another promise and acknowledgement for the same result', () => {
+    const { base, items, refs, acknowledgements } = sharedPhysicalResult();
+    let state = apply(base, [{ ...items[0], impact: 'major' }], refs);
+    state = apply(state, [items[1], attitude(acknowledgements[1])], refs);
+    assert.equal(all(state).filter(event => event.kind === 'outcome').length, 2);
+    assert.equal(affinityScores(state)['a.png'], 0);
+    assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /可略显信任|可略留戒心/);
+    assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners), state);
+});
+
+test('different non-overlapping results and acknowledgements in shared messages remain independent completions', () => {
+    const sources = [ref(0, '我答应还书。', { owner: 'player' }), ref(1, '我答应修钟。', { owner: 'player' })];
+    const result = ref(2, '玩家归还了书。随后玩家修好了钟。', { owner: 'player' });
+    const ack = ref(3, '甲说：“还书让我更信任你。”又说：“修钟也让我更愿意相信你。”');
+    const refs = [...sources, result, ack];
+    const base = apply(fresh(), sources.map(source => promise(source, { actor: 'user', recipient: 'character' })), refs);
+    const resultQuotes = ['玩家归还了书。', '玩家修好了钟。'];
+    const ackQuotes = ['还书让我更信任你。', '修钟也让我更愿意相信你。'];
+    const state = apply(base, base.events.map((anchor, index) => outcome(anchor, { ...result, text: resultQuotes[index] }, {
+        fact: `甲确认独立履约${index}并明确增加信任。`, acknowledgement: { slot: ack.slot, quote: ackQuotes[index] },
+    })), refs);
+    assert.equal(affinityScores(state)['a.png'], 4);
+    assert.equal(all(state).filter(event => event.delta !== 0).length, 2);
+    assert.match(buildAffinityMemory(state, refs, 'a.png'), /可略显信任/);
+    assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners), state);
+});
+
+test('different owners may each acknowledge one shared physical player action without sharing score ownership', () => {
+    const source = ref(0, '我答应把共同借阅的书还给你们。', { owner: 'player' });
+    const result = ref(1, '玩家归还了那本共同借阅的书。', { owner: 'player' });
+    const acknowledgements = [ref(2, '甲说：“我看见了，更信任你了。”'), ref(3, '乙说：“我也看见了，更信任你了。”', { owner: 'b.png' })];
+    const refs = [source, result, ...acknowledgements];
+    const base = apply(fresh(), owners.map(owner => promise(source, { owner: owner.id, actor: 'user', recipient: 'character' })), refs);
+    const state = apply(base, base.events.map((anchor, index) => outcome(anchor, result, {
+        acknowledgement: { slot: acknowledgements[index].slot, quote: acknowledgements[index].text },
+    })), refs);
+    assert.deepEqual(affinityScores(state), { 'a.png': 2, 'b.png': 2 });
+    const absentOwner = reconcileAffinity(state, refs, [owners[0]]);
+    assert.deepEqual(affinityScores(absentOwner), { 'a.png': 2, 'b.png': 0 });
+    assert.deepEqual(reconcileAffinity(absentOwner, refs, owners), state);
 });

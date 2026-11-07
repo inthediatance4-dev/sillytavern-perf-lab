@@ -49,8 +49,8 @@ export function createAffinityState(id) {
     return { version: 1, id, nextId: 1, issued: 0, cursor: 0, events: [], archives: [] };
 }
 
-/** Parse only JSON or one complete JSON code fence; a malformed batch is rejected. */
-export function parseAffinityResponse(raw) {
+/** Keep the envelope strict; reject unsafe or malformed events without losing valid siblings. */
+export function parseAffinityResponse(raw, { onRejected } = {}) {
     if (typeof raw !== 'string' || raw.length > 80000) throw new TypeError('Invalid affinity response');
     let text = raw.trim();
     if (text.startsWith('```')) {
@@ -60,11 +60,21 @@ export function parseAffinityResponse(raw) {
     }
     let value;
     try { value = JSON.parse(text); } catch { throw new TypeError('Invalid affinity JSON'); }
-    if (!safeTree(value) || !object(value) || Object.keys(value).length !== 1 || !own(value, 'events')
-        || !Array.isArray(value.events) || value.events.length > 24 || !value.events.every(proposalShape)) {
+    if (!object(value) || Object.keys(value).length !== 1 || !own(value, 'events')
+        || !Array.isArray(value.events) || value.events.length > 24) {
         throw new TypeError('Invalid affinity response schema');
     }
-    return value.events;
+    const rejected = new Map();
+    const events = value.events.filter(event => {
+        const category = !safeTree(event) ? 'unsafe' : !proposalShape(event) ? 'schema' : null;
+        if (!category) return true;
+        rejected.set(category, (rejected.get(category) ?? 0) + 1);
+        return false;
+    });
+    if (typeof onRejected === 'function') for (const [category, count] of rejected) {
+        try { onRejected({ category, count }); } catch { /* Diagnostics cannot discard valid evidence. */ }
+    }
+    return events;
 }
 
 function referenceMap(refs) {
@@ -145,6 +155,12 @@ function canEnrich(previous, event) {
         && previous.recipient === event.recipient && affinityScoreEligible(event);
 }
 
+function enrichEvidence(previous, event) {
+    // The first accepted quote owns the entire physical range even when a
+    // narrower alias supplies its first grounded attitude or acknowledgement.
+    return { ...event, id: previous.id, source: { ...previous.source } };
+}
+
 export function affinityScoreEligible(event) {
     if (!object(event) || event.confidence !== 'high' || event.outcomeKnown !== true
         || event.knownToCharacter !== 'yes' || event.valence === 'none'
@@ -209,7 +225,9 @@ function bounded(state) {
     }
     const pinned = new Set(openPromises(all).map(event => event.id));
     const active = new Set(pinned);
-    const sizes = new Map(all.map(event => [event.id, JSON.stringify(event).length + 1]));
+    // Reserve the full nominal delta before projecting duplicate ranges to zero;
+    // eviction may expose a retained description as the scoring owner again.
+    const sizes = new Map(all.map(event => [event.id, JSON.stringify({ ...event, delta: deltaFor(event) }).length + 1]));
     let activeChars = 1 + [...pinned].reduce((sum, id) => sum + sizes.get(id), 0);
     for (let i = all.length - 1; i >= 0 && active.size < MAX_ACTIVE; i--) {
         const event = all[i];
@@ -291,6 +309,45 @@ function records(state) {
         ...(own(state, 'events') && Array.isArray(state.events) ? state.events : [])];
 }
 
+function scoringEvidence(events) {
+    const quote = event => event.kind === 'outcome' ? event.acknowledgement : event.source;
+    const serial = event => Number(event.id.split(':').at(-1));
+    // Acceptance order, not archive placement or later descriptions, owns a
+    // scoring range. Unverified majors reserve their range without earning points.
+    const candidates = events.filter(event => event.offline !== true && affinityScoreEligible(event))
+        .sort((a, b) => serial(a) - serial(b) || a.id.localeCompare(b.id));
+    const parents = candidates.map((_, index) => index);
+    const root = index => {
+        while (parents[index] !== index) {
+            parents[index] = parents[parents[index]];
+            index = parents[index];
+        }
+        return index;
+    };
+    for (let index = 0; index < candidates.length; index++) {
+        const event = candidates[index];
+        for (let previousIndex = 0; previousIndex < index; previousIndex++) {
+            const previous = candidates[previousIndex];
+            const sharedResult = event.kind === 'outcome' && previous.kind === 'outcome'
+                && event.result && previous.result && overlappingQuote(event.result, previous.result);
+            if (event.owner !== previous.owner || !(sharedResult || overlappingQuote(quote(previous), quote(event)))) continue;
+            const first = root(previousIndex);
+            const second = root(index);
+            parents[Math.max(first, second)] = Math.min(first, second);
+        }
+    }
+    // Keep every alias in the connected resource group: a later acknowledgement
+    // of the same physical result cannot earn fresh points through an attitude.
+    return candidates.filter((_, index) => root(index) === index);
+}
+
+function projectDeltas(state) {
+    const all = records(state);
+    const accepted = new Set(scoringEvidence(all));
+    for (const event of all) event.delta = accepted.has(event) ? deltaFor(event) : 0;
+    return state;
+}
+
 /** Rebind available quotes first, then validate the entire dependency graph atomically. */
 export function reconcileAffinity(state, refs, owners, { retainOffline = true } = {}) {
     if (!object(state) || !own(state, 'id')) throw new TypeError('Invalid affinity scope');
@@ -338,7 +395,7 @@ export function reconcileAffinity(state, refs, owners, { retainOffline = true } 
     const retain = event => {
         const previous = findEvidence(evidence, event);
         aliases.set(event.id, previous?.id ?? event.id);
-        const kept = !previous ? event : canEnrich(previous, event) ? { ...event, id: previous.id } : previous;
+        const kept = !previous ? event : canEnrich(previous, event) ? enrichEvidence(previous, event) : previous;
         rememberEvidence(evidence, kept);
         return kept;
     };
@@ -358,8 +415,7 @@ export function reconcileAffinity(state, refs, owners, { retainOffline = true } 
         if (isResolution(retain(rebound))) resolved.add(anchorId);
     }
     next.events = [...evidence.values()].flat();
-    for (const event of next.events) event.delta = deltaFor(event);
-    return bounded(next);
+    return projectDeltas(bounded(next));
 }
 
 function validStructure(proposal) {
@@ -405,7 +461,7 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
             || !validOwnerSource(proposal, source, map, allowedOwners)) continue;
         const anchor = current().find(event => event.id === proposal.anchorId && event.kind === 'promise');
         const key = candidateKey(proposal, refs);
-        const event = { ...proposal, id: `${next.id}:${proposal.kind === 'promise' ? 'p' : 'e'}:${next.nextId}`, key,
+        let event = { ...proposal, id: `${next.id}:${proposal.kind === 'promise' ? 'p' : 'e'}:${next.nextId}`, key,
             source, ...(result ? { result } : {}), ...(acknowledgement ? { acknowledgement } : {}), verified: verified instanceof Set && verified.has(key) };
         const previous = findEvidence(evidence, event);
         if (event.kind === 'outcome' && !validOutcome(event, anchor, map, false, previous)) continue;
@@ -413,7 +469,7 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
             // Only zero evidence may gain its first grounded score. Never replace
             // an acknowledgement, or let a new description amplify scored evidence.
             if (!canEnrich(previous, event)) continue;
-            event.id = previous.id;
+            event = enrichEvidence(previous, event);
             event.delta = deltaFor(event);
             next.events = next.events.filter(item => item.id !== previous.id).concat(event);
             next.archives = next.archives.filter(item => item.id !== previous.id);
@@ -439,15 +495,16 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
         next.events.push(event);
         rememberEvidence(evidence, event);
     }
-    return bounded(next);
+    return projectDeltas(bounded(next));
 }
 
 export function affinityScores(state) {
     const scores = new Map();
     const valid = records(state).filter(event => storedProposal(event) && own(event, 'id') && short(event.id, 240)
         && own(event.source, 'index') && natural(event.source.index) && (!event.result || (own(event.result, 'index') && natural(event.result.index))));
+    const accepted = new Set(scoringEvidence(valid));
     for (const event of valid.sort(order)) {
-        const value = (scores.get(event.owner) ?? 0) + deltaFor(event, scores.get(event.owner) ?? 0);
+        const value = (scores.get(event.owner) ?? 0) + (accepted.has(event) ? deltaFor(event, scores.get(event.owner) ?? 0) : 0);
         scores.set(event.owner, Math.max(-100, Math.min(100, value)));
     }
     return Object.fromEntries(scores);
@@ -474,7 +531,7 @@ export function buildAffinityMemory(state, refs, owner) {
     const seen = new Set();
     const items = candidates.filter(event => !seen.has(event.fact) && seen.add(event.fact)).slice(0, 5)
         .map(event => `${open.has(event.id) ? '尚待兑现的约定' : '已有经历'}：${event.fact}`);
-    const weighted = all.filter(affinityScoreEligible);
+    const weighted = scoringEvidence(all).filter(event => deltaFor(event) !== 0);
     if (items.length < 5 && weighted.length >= 2) {
         const total = affinityScores(live)[owner] ?? 0;
         if (total > 0) items.push('相处时可略显信任，仍以眼前言行和个人边界为准。');

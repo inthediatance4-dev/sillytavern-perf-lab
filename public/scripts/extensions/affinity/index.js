@@ -1,8 +1,8 @@
-import { createRawPrompt, getMaxContextTokens, getMaxPromptTokens, isGenerating, getGeneratingApi, getGeneratingModel } from '../../script.js';
-import { extension_settings, getContext, renderExtensionTemplateAsync } from '../extensions.js';
-import { countTokensOpenAIAsync, getTokenizerBestMatch } from '../tokenizers.js';
-import { getTextGenModel } from '../textgen-settings.js';
-import { uuidv4 } from '../utils.js';
+import { createRawPrompt, getMaxContextTokens, getMaxPromptTokens, isGenerating, getGeneratingApi, getGeneratingModel } from '../../../script.js';
+import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../extensions.js';
+import { countTokensOpenAIAsync, getTokenizerBestMatch } from '../../tokenizers.js';
+import { getTextGenModel } from '../../textgen-settings.js';
+import { uuidv4 } from '../../utils.js';
 import { AFFINITY_SCHEMA, createAffinityController } from './affinity.js';
 import { affinityOutputTokenLimit, fitAffinityPrompt, fitAffinityVerificationPrompts } from './affinity-prompt-budget.js';
 

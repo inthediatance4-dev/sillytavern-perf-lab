@@ -37,15 +37,51 @@ test('new state is chat-local, bounded metadata starts empty, and invalid scopes
     assert.notEqual(fresh().events, fresh().events);
 });
 
-test('parser accepts only complete JSON and complete json fences, without assistant prefixes', () => {
+test('parser extracts one complete JSON object from model prefaces and markdown fences', () => {
     const item = proposal(ref(0, '请记住我的边界。'));
     const json = JSON.stringify({ events: [item] });
     assert.deepEqual(parseAffinityResponse(json), [item]);
     assert.deepEqual(parseAffinityResponse(`  \n\`\`\`json\n${json}\n\`\`\`\n`), [item]);
-    for (const raw of [`assistant: ${json}`, `Here is JSON: ${json}`, `${json} trailing`, `\`\`\`\n${json}\n\`\`\``, `\`\`\`json\n${json}`, JSON.stringify([item]), '{}']) {
-        assert.throws(() => parseAffinityResponse(raw), TypeError, raw);
+    // The object must be complete; surrounding prose or unfinished markdown
+    // framing is not part of its JSON envelope.
+    for (const raw of [`assistant: ${json}`, `Here is JSON: ${json}`, `${json} trailing`, `\`\`\`\n${json}\n\`\`\``, `\`\`\`json\n${json}`]) {
+        assert.deepEqual(parseAffinityResponse(raw), [item], raw);
     }
+    for (const raw of [JSON.stringify([item]), '{}']) assert.throws(() => parseAffinityResponse(raw), TypeError, raw);
     assert.deepEqual(parseAffinityResponse('{"events":[]}'), []);
+});
+
+test('prefaced JSON extraction respects nested strings, arrays, braces and escaped quotes', () => {
+    const first = proposal(ref(0, '甲说：“边界是 {不是指令}，也包含 [括号] 与 "引号" 和 \\。”'), {
+        fact: '甲记得 {边界}、[条件] 和 "引号"。',
+    });
+    const second = attitude(ref(1, '甲说：“我信任你。”'));
+    const json = JSON.stringify({ events: [first, second] });
+    assert.deepEqual(parseAffinityResponse(`说明如下：\n\`\`\`json\n${json}\n\`\`\`\n以上为记录。`), [first, second]);
+});
+
+test('prefaced JSON extraction rejects multiple objects, arrays and incomplete bracketed data', () => {
+    const json = JSON.stringify({ events: [proposal(ref(0, '甲的原话。'))] });
+    for (const raw of [
+        `${json}\n${json}`, `示例 {}\n结果 ${json}`, `前言 [{"events":[]}]`, `前言 [${json}]`,
+        `前言 {"events":[],"extra":true}`, `前言 {"wrapper":${json}}`,
+        `前言 {"events":[}`, `前言 ${json.slice(0, -1)}`, `${json}\n后记 {`, `${json}\n[]`,
+    ]) assert.throws(() => parseAffinityResponse(raw), TypeError, raw);
+    assert.throws(() => parseAffinityResponse(`前言 ${' '.repeat(80000)}${json}`), TypeError);
+    assert.throws(() => parseAffinityResponse(`前言 ${JSON.stringify({ events: Array(25).fill(null) })}`), TypeError);
+});
+
+test('prefaced JSON keeps unsafe envelopes rejected and bad entries isolated', () => {
+    const good = proposal(ref(0, '甲的原话。'));
+    const bad = JSON.parse('{"source":{"__proto__":{"polluted":true}}}');
+    const issues = [];
+    const raw = `assistant: ${JSON.stringify({ events: [good, bad, null] })}\n完成。`;
+    assert.deepEqual(parseAffinityResponse(raw, { onRejected: issue => issues.push(issue) }), [good]);
+    assert.deepEqual(issues, [{ category: 'unsafe', count: 1 }, { category: 'schema', count: 1 }]);
+    for (const key of ['__proto__', 'constructor', 'prototype']) {
+        assert.throws(() => parseAffinityResponse(`前言 {"${key}":{},"events":[]}`), TypeError);
+    }
+    assert.equal(Object.prototype.polluted, undefined);
 });
 
 test('parser rejects unsafe envelopes and discards unsafe or malformed individual events', () => {
@@ -100,6 +136,79 @@ test('application is immutable and exact quote/fingerprint/swipe binding survive
     assert.equal(reconcileAffinity(next, [{ ...source, text: '该句已删除。' }], owners).events.length, 0);
 });
 
+test('quote references accept only safe optional UTF-16 offsets', () => {
+    const source = ref(0, '🙂甲说：“我相信你。”');
+    const quote = '我相信你。';
+    const item = attitude(source, { source: { slot: source.slot, quote, offset: source.text.indexOf(quote) } });
+    assert.deepEqual(parseAffinityResponse(JSON.stringify({ events: [item] })), [item]);
+    for (const offset of [-1, 1.5, '0', null, Number.MAX_SAFE_INTEGER + 1]) {
+        assert.deepEqual(parseAffinityResponse(JSON.stringify({ events: [{ ...item, source: { ...item.source, offset } }] })), []);
+    }
+    const state = apply(fresh(), [item], [source]);
+    assert.equal(state.events[0].source.offset, 6, 'offset counts the emoji as two UTF-16 code units');
+    assert.equal(apply(fresh(), [{ ...item, source: { ...item.source, offset: item.source.offset - 1 } }], [source]).events.length, 0);
+    assert.equal(candidateKey(item, [source]), candidateKey(attitude(source, { source: { slot: source.slot, quote } }), [source]));
+});
+
+test('ambiguous repeated quotes need explicit offsets and distinct occurrences stay independent', () => {
+    const source = ref(0, '甲说：“我相信你。”稍后又说：“我相信你。”');
+    const quote = '我相信你。';
+    const ambiguous = attitude(source, { source: { slot: source.slot, quote } });
+    assert.equal(candidateKey(ambiguous, [source]), '');
+    assert.equal(apply(fresh(), [ambiguous], [source]).events.length, 0);
+    const first = { ...ambiguous, source: { ...ambiguous.source, offset: source.text.indexOf(quote) } };
+    const second = { ...ambiguous, source: { ...ambiguous.source, offset: source.text.lastIndexOf(quote) } };
+    assert.notEqual(candidateKey(first, [source]), candidateKey(second, [source]));
+    const state = apply(fresh(), [first, second], [source]);
+    assert.equal(state.events.length, 2);
+    assert.equal(affinityScores(state)['a.png'], 4);
+    assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), [source], owners), state);
+    assert.equal(reconcileAffinity(state, [{ ...source, text: `移位${source.text}` }], owners).events.length, 0, 'stored offsets cannot silently relocate to another occurrence');
+});
+
+test('legacy version-one records gain offsets only from an unambiguous live quote', () => {
+    const source = ref(0, '甲说：“我相信你。”');
+    const state = apply(fresh(), [attitude(source)], [source]);
+    const legacy = JSON.parse(JSON.stringify(state));
+    delete legacy.events[0].source.offset;
+    assert.deepEqual(reconcileAffinity(legacy, [source], owners), state);
+    const ambiguous = { ...source, text: `${source.text}${source.text}` };
+    assert.equal(reconcileAffinity(legacy, [ambiguous], owners).events.length, 0);
+    assert.equal(reconcileAffinity(legacy, [], []).events.length, 1, 'unavailable owner evidence remains dormant without inventing an offset');
+});
+
+test('a repeated acknowledgement binds to its chosen position after the result', () => {
+    const source = ref(0, '我答应还书。', { owner: 'player' });
+    const ackQuote = '我更信任你。';
+    const resultQuote = '玩家已经还书。';
+    const combined = ref(1, `甲说：“${ackQuote}”${resultQuote}甲又说：“${ackQuote}”`);
+    const refs = [source, combined];
+    const base = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character' })], refs);
+    const item = outcome(base.events[0], { ...combined, text: resultQuote }, {
+        acknowledgement: { slot: combined.slot, quote: ackQuote, offset: combined.text.lastIndexOf(ackQuote) },
+    });
+    const accepted = apply(base, [item], refs);
+    assert.equal(affinityScores(accepted)['a.png'], 2);
+    assert.equal(all(accepted).find(event => event.kind === 'outcome').acknowledgement.offset, combined.text.lastIndexOf(ackQuote));
+    assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(accepted)), refs, owners), accepted);
+    const early = { ...item, acknowledgement: { ...item.acknowledgement, offset: combined.text.indexOf(ackQuote) } };
+    assert.equal(all(apply(base, [early], refs)).length, 1, 'an earlier repeated phrase is not a causal acknowledgement');
+    const missing = { ...item, acknowledgement: { slot: combined.slot, quote: ackQuote } };
+    assert.equal(all(apply(base, [missing], refs)).length, 1, 'ambiguous missing offset is not guessed');
+});
+
+test('a repeated result binds to its chosen position after the promise', () => {
+    const resultQuote = '玩家已经还书。';
+    const sourceQuote = '我答应还书。';
+    const combined = ref(0, `${resultQuote}${sourceQuote}${resultQuote}`, { owner: 'player' });
+    const refs = [combined];
+    const base = apply(fresh(), [promise(combined, { actor: 'user', recipient: 'character', source: { slot: combined.slot, quote: sourceQuote } })], refs);
+    const item = outcome(base.events[0], { ...combined, text: resultQuote }, { result: { slot: combined.slot, quote: resultQuote, offset: combined.text.lastIndexOf(resultQuote) } });
+    assert.equal(all(apply(base, [item], refs)).length, 2);
+    assert.equal(all(apply(base, [{ ...item, result: { ...item.result, offset: 0 } }], refs)).length, 1);
+    assert.equal(all(apply(base, [{ ...item, result: { slot: combined.slot, quote: resultQuote } }], refs)).length, 1);
+});
+
 test('source owner, allowed actors and group relationship ownership are enforced', () => {
     const source = ref(0, '甲说：“我开始信任你了。”');
     assert.equal(apply(fresh(), [attitude(source, { owner: 'b.png' })], [source]).events.length, 0);
@@ -117,13 +226,12 @@ test('source owner, allowed actors and group relationship ownership are enforced
     assert.equal(apply(fresh(), [attitude(source)], duplicateSlots).events.length, 0);
 });
 
-test('facts and ambiguous, future, implicit or unknown attitudes never score', () => {
+test('facts and ambiguous, future, implicit or character-unknown attitudes never score', () => {
     const source = ref(0, '甲递来一杯水，说：“我开始信任你了。”');
     for (const item of [
         proposal(source, { valence: 'positive', attitudeExplicit: true }),
         attitude(source, { attitudeExplicit: false }), attitude(source, { confidence: 'low' }),
-        attitude(source, { status: 'agreed' }), attitude(source, { outcomeKnown: false }),
-        attitude(source, { outcomeKnown: null }), attitude(source, { valence: 'none' }),
+        attitude(source, { status: 'agreed' }), attitude(source, { valence: 'none' }),
         attitude(source, { knownToCharacter: 'unknown' }), attitude(source, { knownToCharacter: 'no' }),
     ]) {
         const state = apply(fresh(), [item], [source]);
@@ -132,6 +240,32 @@ test('facts and ambiguous, future, implicit or unknown attitudes never score', (
     }
     assert.equal(affinityScores(apply(fresh(), [attitude(source)], [source]))['a.png'], 2);
     assert.equal(affinityScores(apply(fresh(), [attitude(source, { valence: 'negative' })], [source]))['a.png'], -3);
+});
+
+test('an observed explicit attitude does not require an outcome to score or enter memory', () => {
+    const source = ref(0, '甲明确说：“我现在更愿意相信你。”');
+    for (const outcomeKnown of [null, false, true]) {
+        const item = attitude(source, { outcomeKnown });
+        const state = apply(fresh(), [item], [source]);
+        assert.equal(affinityScores(state)['a.png'], 2, `outcomeKnown=${outcomeKnown}`);
+        assert.equal(state.events[0].delta, 2);
+        assert.match(buildAffinityMemory(state, [source], 'a.png'), /甲明确表达了信任/);
+        assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), [source], owners), state);
+    }
+});
+
+test('an observed fact with no outcome is remembered without granting points', () => {
+    const source = ref(0, '甲说：“我记住你不喜欢被突然触碰。”');
+    for (const outcomeKnown of [null, false, true]) {
+        const item = proposal(source, { outcomeKnown, valence: 'positive', attitudeExplicit: true });
+        const state = apply(fresh(), [item], [source]);
+        assert.equal(affinityScores(state)['a.png'], 0);
+        assert.match(buildAffinityMemory(state, [source], 'a.png'), /甲记得玩家说过的边界/);
+    }
+    for (const fields of [{ confidence: 'low' }, { knownToCharacter: 'unknown' }, { knownToCharacter: 'no' }]) {
+        const state = apply(fresh(), [proposal(source, { outcomeKnown: null, ...fields })], [source]);
+        assert.equal(buildAffinityMemory(state, [source], 'a.png'), '');
+    }
 });
 
 test('major changes require one-time host-key verification and never downgrade to minor points', () => {
@@ -867,6 +1001,28 @@ test('positive minor crosses from 49 to 51 before subsequent gains diminish', ()
     assert.equal(affinityScores(state)['a.png'], 51);
     state = apply(state, [attitude(refs[28])], refs);
     assert.equal(affinityScores(state)['a.png'], 52);
+});
+
+test('stored deltas are the actual rolling contributions at 50 and 80 after JSON reload', () => {
+    const refs = Array.from({ length: 60 }, (_, index) => ref(index, `甲明确表达独立信任${index}。`));
+    let state = fresh();
+    for (const source of refs) state = apply(state, [attitude(source)], refs);
+    assert.equal(affinityScores(state)['a.png'], 80);
+    const deltas = all(state).sort((a, b) => a.source.index - b.source.index).map(event => event.delta);
+    assert.deepEqual(deltas, [...Array(25).fill(2), ...Array(30).fill(1), ...Array(5).fill(0)]);
+    assert.equal(deltas.reduce((sum, delta) => sum + delta, 0), affinityScores(state)['a.png']);
+    const reloaded = reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners);
+    assert.deepEqual(reloaded, state);
+    assert.deepEqual(affinityScores(reloaded), affinityScores(state));
+});
+
+test('stored negative deltas include only the remaining score before the lower bound', () => {
+    const refs = Array.from({ length: 15 }, (_, index) => ref(index, `甲明确表达重大不信任${index}。`));
+    const items = refs.map(source => attitude(source, { impact: 'major', valence: 'negative' }));
+    const state = apply(fresh(), items, refs, { verified: new Set(items.map(item => candidateKey(item, refs))) });
+    assert.equal(affinityScores(state)['a.png'], -100);
+    assert.deepEqual(all(state).map(event => event.delta), [...Array(12).fill(-8), -4, 0, 0]);
+    assert.equal(all(state).reduce((sum, event) => sum + event.delta, 0), -100);
 });
 
 test('malformed records fail closed and a character-named owner still records player promises with a user actor', () => {

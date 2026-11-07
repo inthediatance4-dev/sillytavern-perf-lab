@@ -26,8 +26,9 @@ function safeTree(value, depth = 0) {
 }
 
 function quoteShape(value) {
-    return object(value) && Object.keys(value).length === 2 && own(value, 'slot') && own(value, 'quote')
-        && short(value.slot, 200) && short(value.quote, 180);
+    return object(value) && Object.keys(value).every(key => ['slot', 'quote', 'offset'].includes(key))
+        && own(value, 'slot') && own(value, 'quote') && short(value.slot, 200) && short(value.quote, 180)
+        && (!own(value, 'offset') || natural(value.offset));
 }
 
 function proposalShape(value) {
@@ -49,17 +50,47 @@ export function createAffinityState(id) {
     return { version: 1, id, nextId: 1, issued: 0, cursor: 0, events: [], archives: [] };
 }
 
+function responseValue(text) {
+    try { return JSON.parse(text); } catch { /* A model may surround one JSON object with prose. */ }
+    const stack = [];
+    let start = -1;
+    let end = -1;
+    let quoted = false;
+    let escaped = false;
+    for (let index = 0; index < text.length; index++) {
+        const char = text[index];
+        if (end !== -1) {
+            if ('{}[]'.includes(char)) throw new TypeError('Ambiguous affinity JSON');
+            continue;
+        }
+        if (start === -1) {
+            if (char === '{' || char === '[') start = index;
+            else {
+                if (char === '}' || char === ']') throw new TypeError('Invalid affinity JSON');
+                continue;
+            }
+        }
+        if (quoted) {
+            if (escaped) escaped = false;
+            else if (char === '\\') escaped = true;
+            else if (char === '"') quoted = false;
+            continue;
+        }
+        if (char === '"') quoted = true;
+        else if (char === '{' || char === '[') stack.push(char === '{' ? '}' : ']');
+        else if (char === '}' || char === ']') {
+            if (stack.pop() !== char) throw new TypeError('Invalid affinity JSON');
+            if (!stack.length) end = index + 1;
+        }
+    }
+    if (end === -1) throw new TypeError('Invalid affinity JSON');
+    try { return JSON.parse(text.slice(start, end)); } catch { throw new TypeError('Invalid affinity JSON'); }
+}
+
 /** Keep the envelope strict; reject unsafe or malformed events without losing valid siblings. */
 export function parseAffinityResponse(raw, { onRejected } = {}) {
     if (typeof raw !== 'string' || raw.length > 80000) throw new TypeError('Invalid affinity response');
-    let text = raw.trim();
-    if (text.startsWith('```')) {
-        const fenced = /^```json\s*\n([\s\S]*?)\n```$/i.exec(text);
-        if (!fenced) throw new TypeError('Invalid affinity JSON fence');
-        text = fenced[1];
-    }
-    let value;
-    try { value = JSON.parse(text); } catch { throw new TypeError('Invalid affinity JSON'); }
+    const value = responseValue(raw.trim());
     if (!object(value) || Object.keys(value).length !== 1 || !own(value, 'events')
         || !Array.isArray(value.events) || value.events.length > 24) {
         throw new TypeError('Invalid affinity response schema');
@@ -96,12 +127,16 @@ function referenceMap(refs) {
 
 function bindQuote(quote, refs) {
     const ref = refs.get(quote?.slot);
-    if (!ref || !short(quote.quote, 180) || !ref.text.includes(quote.quote)) return null;
-    return { slot: ref.slot, index: ref.index, swipe: ref.swipe, fingerprint: ref.fingerprint, quote: quote.quote, offset: ref.text.indexOf(quote.quote) };
+    if (!ref || !short(quote.quote, 180)) return null;
+    const offset = own(quote, 'offset') ? quote.offset : ref.text.indexOf(quote.quote);
+    if (!natural(offset) || ref.text.slice(offset, offset + quote.quote.length) !== quote.quote
+        || (!own(quote, 'offset') && ref.text.indexOf(quote.quote, offset + 1) !== -1)) return null;
+    return { slot: ref.slot, index: ref.index, swipe: ref.swipe, fingerprint: ref.fingerprint, quote: quote.quote, offset };
 }
 
 function sameQuote(a, b) {
-    return a?.slot === b?.slot && a?.swipe === b?.swipe && a?.fingerprint === b?.fingerprint && a?.quote === b?.quote;
+    return a?.slot === b?.slot && a?.swipe === b?.swipe && a?.fingerprint === b?.fingerprint && a?.quote === b?.quote
+        && (!natural(a?.offset) || !natural(b?.offset) || a.offset === b.offset);
 }
 
 // Two independent hashes reduce accidental collisions without browser crypto or asynchronous state.
@@ -124,7 +159,6 @@ function identity(owner, source, result) {
 function overlappingQuote(a, b) {
     if (!a || !b) return !a && !b;
     if (a.slot !== b.slot || a.swipe !== b.swipe || a.fingerprint !== b.fingerprint) return false;
-    if (a.quote === b.quote) return true;
     if (natural(a.offset) && natural(b.offset)) {
         return a.offset < b.offset + b.quote.length && b.offset < a.offset + a.quote.length;
     }
@@ -162,7 +196,7 @@ function enrichEvidence(previous, event) {
 }
 
 export function affinityScoreEligible(event) {
-    if (!object(event) || event.confidence !== 'high' || event.outcomeKnown !== true
+    if (!object(event) || event.confidence !== 'high'
         || event.knownToCharacter !== 'yes' || event.valence === 'none'
         || event.actor === 'other' || event.recipient === 'other') return false;
     if (event.kind === 'attitude') {
@@ -170,7 +204,7 @@ export function affinityScoreEligible(event) {
             && event.actor === 'character' && event.recipient === 'user';
     }
     // Only player actions can earn a change in the character's disposition; self-favour is not self-love.
-    return event.actor === 'user' && event.kind === 'outcome' && event.status === 'completed'
+    return event.actor === 'user' && event.kind === 'outcome' && event.status === 'completed' && event.outcomeKnown === true
         && event.recipient === 'character' && own(event, 'acknowledgement');
 }
 
@@ -272,23 +306,18 @@ function storedProposal(event) {
                 || !Object.keys(quote).every(field => ['slot', 'quote', 'index', 'swipe', 'fingerprint', 'offset'].includes(field))
                 || !natural(quote.index) || !natural(quote.swipe) || !short(quote.fingerprint, 160)
                 || (own(quote, 'offset') && !natural(quote.offset))) return null;
-            proposal[key] = { slot: proposal[key].slot, quote: proposal[key].quote };
+            proposal[key] = { slot: quote.slot, quote: quote.quote, ...(own(quote, 'offset') ? { offset: quote.offset } : {}) };
         }
     }
     return proposalShape(proposal) ? proposal : null;
 }
 
-function laterThan(source, result, refs) {
+function laterThan(source, result) {
     if (result.index > source.index) return true;
     if (result.index !== source.index || result.slot !== source.slot) return false;
-    const text = refs.get(source.slot)?.text ?? '';
-    // Resolve repeated literal phrases against the causal order of the evidence.
-    const sourceOffset = source.offset ?? text.indexOf(source.quote);
-    const resultOffset = result.offset ?? ((result.index === source.index) ? text.indexOf(result.quote) : 0);
-    const end = sourceOffset + source.quote.length;
-    if (resultOffset < end) return false;
-    result.offset = resultOffset;
-    return true;
+    // Live bindings have exact offsets. Without them, a dormant legacy record
+    // cannot establish causal order inside an unavailable message.
+    return natural(source.offset) && natural(result.offset) && result.offset >= source.offset + source.quote.length;
 }
 
 function validOwnerSource(proposal, source, refs, owners) {
@@ -341,10 +370,22 @@ function scoringEvidence(events) {
     return candidates.filter((_, index) => root(index) === index);
 }
 
+function scoreProjection(events) {
+    const scores = new Map();
+    const deltas = new Map();
+    const accepted = new Set(scoringEvidence(events));
+    for (const event of [...events].sort(order)) {
+        const current = scores.get(event.owner) ?? 0;
+        const next = Math.max(-100, Math.min(100, current + (accepted.has(event) ? deltaFor(event, current) : 0)));
+        scores.set(event.owner, next);
+        deltas.set(event, next - current);
+    }
+    return { scores, deltas };
+}
+
 function projectDeltas(state) {
-    const all = records(state);
-    const accepted = new Set(scoringEvidence(all));
-    for (const event of all) event.delta = accepted.has(event) ? deltaFor(event) : 0;
+    const { deltas } = scoreProjection(records(state));
+    for (const [event, delta] of deltas) event.delta = delta;
     return state;
 }
 
@@ -419,6 +460,8 @@ export function reconcileAffinity(state, refs, owners, { retainOffline = true } 
 }
 
 function validStructure(proposal) {
+    // outcomeKnown describes a result (true: known, false: not known, null:
+    // not applicable/not established). It does not invalidate an observation.
     if ((proposal.actor === 'other' || proposal.recipient === 'other') && proposal.kind !== 'fact') return false;
     if (proposal.kind === 'promise' && proposal.status !== 'agreed') return false;
     return proposal.kind === 'outcome' || !(proposal.result || proposal.anchorId || proposal.acknowledgement);
@@ -430,7 +473,7 @@ function validOutcome(event, anchor, refs, offline = false, previous = null) {
     if (previous?.kind === 'outcome') event.result = { ...previous.result };
     if (!anchor || anchor.owner !== event.owner || !overlappingQuote(anchor.source, event.source)
         || anchor.actor !== event.actor || anchor.recipient !== event.recipient || !event.result
-        || !laterThan(anchor.source, event.result, refs)) return false;
+        || !laterThan(anchor.source, event.result)) return false;
     const resultRef = refs.get(event.result.slot);
     if (resultRef ? ![event.owner, 'player'].includes(resultRef.owner) : !offline) return false;
     // An alias cannot shorten the causal boundary or swallow a later result.
@@ -440,7 +483,7 @@ function validOutcome(event, anchor, refs, offline = false, previous = null) {
     const ackRef = refs.get(event.acknowledgement.slot);
     return event.actor === 'user' && event.recipient === 'character'
         && (ackRef ? ackRef.owner === event.owner : offline)
-        && laterThan(event.result, event.acknowledgement, refs)
+        && laterThan(event.result, event.acknowledgement)
         && event.result.quote !== event.acknowledgement.quote;
 }
 
@@ -499,15 +542,9 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
 }
 
 export function affinityScores(state) {
-    const scores = new Map();
     const valid = records(state).filter(event => storedProposal(event) && own(event, 'id') && short(event.id, 240)
         && own(event.source, 'index') && natural(event.source.index) && (!event.result || (own(event.result, 'index') && natural(event.result.index))));
-    const accepted = new Set(scoringEvidence(valid));
-    for (const event of valid.sort(order)) {
-        const value = (scores.get(event.owner) ?? 0) + (accepted.has(event) ? deltaFor(event, scores.get(event.owner) ?? 0) : 0);
-        scores.set(event.owner, Math.max(-100, Math.min(100, value)));
-    }
-    return Object.fromEntries(scores);
+    return Object.fromEntries(scoreProjection(valid).scores);
 }
 
 // Literal word/bigram overlap selects memories; it never interprets textual sentiment.
@@ -526,12 +563,13 @@ export function buildAffinityMemory(state, refs, owner) {
     const query = words([...referenceMap(refs).values()].slice(-2).map(ref => ref.text).join('\n'));
     const overlap = event => [...words(event.fact)].filter(word => query.has(word)).length;
     const candidates = all.filter(event => event.knownToCharacter === 'yes' && event.confidence === 'high' && (open.has(event.id)
-        || (event.kind !== 'promise' && event.outcomeKnown === true && ['observed', 'completed'].includes(event.status))));
+        || (['fact', 'attitude'].includes(event.kind) && event.status === 'observed')
+        || isResolution(event)));
     candidates.sort((a, b) => Number(open.has(b.id)) - Number(open.has(a.id)) || overlap(b) - overlap(a) || order(b, a));
     const seen = new Set();
     const items = candidates.filter(event => !seen.has(event.fact) && seen.add(event.fact)).slice(0, 5)
         .map(event => `${open.has(event.id) ? '尚待兑现的约定' : '已有经历'}：${event.fact}`);
-    const weighted = scoringEvidence(all).filter(event => deltaFor(event) !== 0);
+    const weighted = all.filter(event => event.delta !== 0);
     if (items.length < 5 && weighted.length >= 2) {
         const total = affinityScores(live)[owner] ?? 0;
         if (total > 0) items.push('相处时可略显信任，仍以眼前言行和个人边界为准。');

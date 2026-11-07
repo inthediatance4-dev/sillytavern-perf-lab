@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test, { after } from 'node:test';
+import { get_encoding } from 'tiktoken';
 import { EventEmitter } from '../public/lib/eventemitter.js';
 import { event_types as eventTypes } from '../public/scripts/events.js';
-import { AFFINITY_PROMPT_KEY, createAffinityController, affinityOwners } from '../public/scripts/extensions/director/affinity.js';
+import { AFFINITY_PROMPT_KEY, AFFINITY_SCHEMA, createAffinityController, affinityOwners } from '../public/scripts/extensions/director/affinity.js';
 import { affinityScores, applyAffinityEvaluation, createAffinityState } from '../public/scripts/extensions/director/affinity-state.js';
 import { messageFingerprint } from '../public/scripts/extensions/director/instruct.js';
+import { fitAffinityPrompt } from '../public/scripts/extensions/director/affinity-prompt-budget.js';
 
 globalThis.localStorage = { getItem: () => null };
 const originalDebug = console.debug;
@@ -1349,7 +1351,7 @@ test('cross-review: prior outcomes expose their already consumed acknowledgement
     await settleMany(lab, 5);
     const prior = priorIn(lab.calls[0][0].quietPrompt);
     const shown = prior.find(event => event.kind === 'outcome');
-    assert.deepEqual(shown.acknowledgement, outcome.acknowledgement);
+    assert.deepEqual(shown.acknowledgement, { ...outcome.acknowledgement, offset: 0 });
     assert.equal(prior.filter(event => event.id === anchor.id).length, 1);
 });
 
@@ -1650,4 +1652,260 @@ test('cross-review lineage: a changed provider identity rejects an awaited evalu
     assert.equal(lab.calls.length, 1, 'the old provider result cannot launch a verifier');
     assert.equal(lab.state().events.length, 0);
     assert.equal(lab.controller.getDiagnostics().total, 0);
+});
+
+test('round3: historical prepare coalesces a detached save and keeps logical slots across reload', async () => {
+    const lab = fixture({ initial: { chat: [
+        { is_user: true, name: '玩家', mes: '历史问题。', extra: {} },
+        { is_user: false, name: '相同名字', mes: '历史回答。', extra: {} },
+    ] } });
+    let disk;
+    lab.context.saveChat = async options => {
+        assert.equal(options.shouldSave(), true);
+        lab.saves.push(true);
+        disk = structuredClone({ chat: lab.context.chat, chatMetadata: lab.context.chatMetadata });
+        return true;
+    };
+    lab.prepare('normal');
+    lab.prepare('normal');
+    const ids = lab.context.chat.map(message => lab.marker(message).id);
+    assert.equal(lab.saves.length, 0, 'foreground prepare never waits for or starts I/O');
+    await lab.controller.settle();
+    assert.equal(lab.saves.length, 1, 'repeated reads share one detached save');
+    assert.equal(lab.calls.length, 0);
+    const reloaded = fixture({ initial: disk });
+    reloaded.prepare('normal');
+    await reloaded.controller.settle();
+    assert.deepEqual(reloaded.context.chat.map(message => reloaded.marker(message).id), ids);
+    assert.equal(reloaded.calls.length, 0);
+});
+
+test('round3: a dry run persists new source identities without issuing an evaluator request', async () => {
+    const lab = fixture();
+    await lab.emit('GENERATION_STARTED', 'normal', {}, true);
+    lab.prepare('normal');
+    await lab.emit('GENERATE_AFTER_DATA', { prompt: 'dry request' }, true, { type: 'normal' });
+    await lab.controller.settle();
+    assert.equal(lab.saves.length, 1);
+    assert.equal(lab.state().issued, 0);
+    assert.equal(lab.calls.length, 0);
+});
+
+test('round3: save-only prepare cannot dispatch a loaded pending batch', async () => {
+    const { ledger, chat } = seededHistory(5);
+    ledger.cursor = 0;
+    chat.push({ is_user: true, name: '玩家', mes: 'A historical unmarked question.', extra: {} });
+    const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: ledger } } } });
+    lab.prepare('normal');
+    await lab.controller.settle();
+    assert.equal(lab.saves.length, 1);
+    assert.equal(lab.calls.length, 0, 'a projection read cannot authorize pending extraction');
+    assert.equal(lab.state().cursor, 0);
+});
+
+for (const gap of ['empty', 'replaced']) {
+    test(`round3: prepare save cannot write a silently ${gap} native load gap`, async () => {
+        const lab = fixture();
+        lab.prepare('normal');
+        if (gap === 'empty') lab.context.chat.splice(0);
+        else lab.context.chat.splice(0, lab.context.chat.length, { is_user: true, name: '玩家', mes: 'New transcript.', extra: {} });
+        await lab.controller.settle();
+        assert.equal(lab.saves.length, 0);
+        assert.equal(lab.calls.length, 0);
+    });
+}
+
+for (const hint of ['thumbnail', 'name']) {
+    test(`round3: a legacy group speaker resolved by ${hint} retains its own evidence after reload`, async () => {
+        const legacy = { is_user: false, name: '乙', mes: '我记得玩家希望先敲门。', extra: {},
+            ...(hint === 'thumbnail' ? { force_avatar: '/thumbnail?type=avatar&file=b.png&t=123' } : {}) };
+        const fact = '只有乙记得玩家的先敲门边界。';
+        const lab = fixture({ interval: 5, group: true, initial: { chat: [legacy] }, reply: () => JSON.stringify({ events: [factFor(legacy, { owner: 'b.png', fact })] }) });
+        lab.context.characters[1].name = '乙';
+        await settleMany(lab, 5);
+        assert.equal(lab.state().events.length, 1);
+        const evidenceId = lab.state().events[0].id;
+        const disk = structuredClone({ chat: lab.context.chat, chatMetadata: lab.context.chatMetadata });
+        const reloaded = fixture({ group: true, initial: disk });
+        reloaded.context.characters[1].name = '乙';
+        reloaded.controller.refresh();
+        await reloaded.controller.settle();
+        assert.equal(reloaded.state().events[0]?.id, evidenceId);
+        reloaded.context.characterId = 1;
+        reloaded.prepare('normal');
+        const data = { prompt: reloaded.preparedMemory };
+        await reloaded.emit('GENERATE_AFTER_DATA', data, false, { type: 'normal' });
+        assert.ok(data.prompt.includes(fact));
+        reloaded.context.characterId = 0;
+        reloaded.prepare('normal');
+        assert.equal(reloaded.preparedMemory, undefined);
+    });
+}
+
+for (const hint of [undefined, '/thumbnail?type=persona&file=b.png', 'https://foreign.invalid/thumbnail?type=avatar&file=b.png',
+    '/thumbnail?type=avatar&file=a.png&file=b.png', '/thumbnail?type=avatar&file=missing.png']) {
+    test(`round3: ambiguous or unsupported legacy group ownership skips evidence privately (${hint ?? 'same-name'})`, async () => {
+        const diagnosticEvents = [];
+        const legacy = { is_user: false, name: '相同名字', mes: 'PRIVATE_LEGACY_TEXT', extra: {}, ...(hint ? { force_avatar: hint } : {}) };
+        const lab = fixture({ group: true, initial: { chat: [legacy] }, controllerOptions: { onDiagnostic: event => diagnosticEvents.push(event) } });
+        lab.context.characterId = 1;
+        lab.prepare('normal');
+        await lab.controller.settle();
+        assert.equal(lab.marker(legacy), undefined);
+        assert.equal(lab.state().issued, 0);
+        assert.equal(lab.calls.length, 0);
+        assert.ok(lab.controller.getDiagnostics().counts.owner_ambiguous > 0);
+        assert.ok(!JSON.stringify(diagnosticEvents).includes(legacy.mes));
+    });
+}
+
+test('round3: an explicit unknown original avatar cannot fall back to a valid legacy thumbnail', async () => {
+    const message = { is_user: false, name: '乙', mes: 'Untrusted owner.', original_avatar: 'missing.png',
+        force_avatar: '/thumbnail?type=avatar&file=b.png', extra: {} };
+    const lab = fixture({ group: true, initial: { chat: [message] } });
+    lab.context.characters[1].name = '乙';
+    lab.prepare('normal');
+    await lab.controller.settle();
+    assert.equal(lab.marker(message), undefined);
+    assert.equal(lab.state().issued, 0);
+});
+
+test('round3: extraction teaches null outcome flags for observations and exact optional source offsets', async () => {
+    const source = AFFINITY_SCHEMA.value.properties.events.items.properties.source;
+    assert.deepEqual(source.properties.offset, { type: 'integer', minimum: 0 });
+    assert.deepEqual(source.required, ['slot', 'quote']);
+    const lab = fixture({ interval: 5 });
+    await settleMany(lab, 5);
+    const prompt = lab.calls[0][0].quietPrompt;
+    assert.match(prompt, /fact\/attitude\/promise.*outcomeKnown=null/);
+    assert.match(prompt, /fact\/attitude.*outcomeKnown.*门槛/);
+    assert.match(prompt, /UTF-16/);
+    assert.match(prompt, /摘录.*不能.*猜/);
+});
+
+test('round3: a repeated major quote verifies its bound tail occurrence and records that exact offset', async () => {
+    const quote = '我现在完全信任你。';
+    const head = `${quote}这是演戏台词，并不代表我对你的态度。`;
+    const tail = `真实经历之后，我郑重告诉你：${quote}`;
+    const text = head + '中'.repeat(4000) + tail;
+    let checked = false;
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        if (args[0].jsonSchema.name === 'relationship_verification') {
+            const packet = JSON.parse(args[0].quietPrompt.split('\n').slice(1).join('\n'));
+            assert.equal(packet.messages.length, 1);
+            assert.ok(packet.messages[0].text.includes(tail));
+            assert.ok(!packet.messages[0].text.includes('演戏台词'));
+            assert.equal(packet.messages[0].offset, text.lastIndexOf(quote) - 220);
+            checked = true;
+            return JSON.stringify({ confirmed: packet.candidates.map(candidate => candidate.key) });
+        }
+        const proposal = { ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', impact: 'major', attitudeExplicit: true };
+        proposal.source = { slot: proposal.source.slot, quote, offset: text.lastIndexOf(quote) };
+        return JSON.stringify({ events: [proposal] });
+    } });
+    await generateMany(lab, 4);
+    await lab.generate({ text });
+    await lab.controller.settle();
+    assert.equal(checked, true);
+    assert.equal(lab.state().events[0]?.source.offset, text.lastIndexOf(quote));
+    assert.equal(affinityScores(lab.state())['a.png'], 5);
+});
+
+test('round3: the production extraction renderer fits a long source within a 2k model context', async () => {
+    const encoder = get_encoding('o200k_base');
+    let fittedTokens;
+    try {
+        const lab = fixture({ interval: 5, controllerOptions: { maxOutputTokens: () => 512,
+            fitPrompt: async (render, refs, value, owners) => {
+                const wireTokens = encoder.encode(JSON.stringify(AFFINITY_SCHEMA.value)).length + 64;
+                const countTokens = async prompt => encoder.encode(prompt).length + wireTokens;
+                const fitted = await fitAffinityPrompt((shown, memory) => render(shown, memory, owners),
+                    { refs: [refs.at(-1)], state: value }, { maxTokens: 1536, countTokens });
+                fittedTokens = await countTokens(fitted.prompt);
+                return fitted;
+            } } });
+        await generateMany(lab, 4);
+        await lab.generate({ text: '角色明确表达对玩家的信任。'.repeat(10000) });
+        await lab.controller.settle();
+        assert.equal(lab.controller.getDiagnostics().counts.budget_failed, 0);
+        assert.equal(lab.calls.length, 1);
+        assert.ok(fittedTokens <= 1536);
+    } finally { encoder.free(); }
+});
+
+test('round3: a legacy thumbnail source freezes while its owner is absent and restores on rejoin', async () => {
+    const lab = fixture({ interval: 5, group: true, reply: ({ context }) => JSON.stringify({ events: [{
+        ...factFor(context.chat.at(-1), { owner: 'b.png' }), kind: 'attitude', valence: 'positive', attitudeExplicit: true,
+    }] }) });
+    await settleMany(lab, 5, { avatar: 'b.png' });
+    for (const message of lab.context.chat.filter(item => !item.is_user)) delete message.original_avatar;
+    lab.context.groups[0].members = ['a.png'];
+    await lab.emit('GROUP_UPDATED');
+    await lab.controller.settle();
+    assert.equal(lab.state().events.length, 1);
+    assert.equal(lab.state().events[0].offline, true);
+    assert.equal(affinityScores(lab.state())['b.png'], 0);
+    lab.context.groups[0].members.push('b.png');
+    await lab.emit('GROUP_UPDATED');
+    await lab.controller.settle();
+    assert.equal(affinityScores(lab.state())['b.png'], 2);
+    lab.context.groups[0].members = ['a.png'];
+    lab.context.chat.at(-1).mes = 'An actual edited legacy source.';
+    await lab.emit('MESSAGE_EDITED', lab.context.chat.length - 1);
+    await lab.controller.settle();
+    assert.equal(lab.state().events.length, 0, 'an offline canonical owner cannot hide a real source edit');
+});
+
+for (const valence of ['positive', 'negative']) {
+    test(`round3: a ${valence} major with no remaining score contribution cannot request verification`, async () => {
+        const { ledger, chat, refs } = seededHistory(valence === 'positive' ? 55 : 50);
+        let state = { ...ledger, nextId: 1, events: [], archives: [] };
+        for (let index = 0; index < chat.length; index += 24) {
+            state = applyAffinityEvaluation(state, chat.slice(index, index + 24).map(message => ({
+                ...factFor(message), kind: 'attitude', valence, attitudeExplicit: true,
+            })), refs, [{ id: 'a.png' }]);
+        }
+        const expected = valence === 'positive' ? 80 : -100;
+        assert.equal(affinityScores(state)['a.png'], expected);
+        const lab = fixture({ interval: 5, initial: { chat, chatMetadata: { director: { __affinity: state } } },
+            reply: ({ context }) => JSON.stringify({ events: [{ ...factFor(context.chat.at(-1)),
+                kind: 'attitude', valence, attitudeExplicit: true, impact: 'major' }] }) });
+        await settleMany(lab, 5);
+        assert.equal(lab.calls.length, 1, 'a zero contribution major needs extraction only');
+        assert.equal(affinityScores(lab.state())['a.png'], expected);
+        assert.equal(lab.state().events.at(-1).delta, 0);
+    });
+}
+
+test('round3: GENERATION_STOPPED flushes a finalized lineage without needing GENERATION_ENDED', async () => {
+    const lab = fixture();
+    const original = await lab.begin();
+    const message = await lab.receive({ text: 'A complete original reply.' });
+    await lab.end();
+    await lab.begin('continue');
+    message.mes += ' A continued tail.';
+    await lab.emit('GENERATION_COMPLETED', original);
+    assert.equal(lab.state().issued, 0, 'unfinalized swipe cannot mint a receipt yet');
+    lab.finalize(message);
+    await lab.emit('GENERATION_STOPPED');
+    lab.generating = false;
+    await lab.controller.settle();
+    assert.equal(lab.state().issued, 1, 'STOPPED alone flushes the finalized lineage');
+    assert.equal(lab.marker(message).receipt, 1);
+});
+
+test('round3: GENERATION_STOPPED clears a leaked groupReplay so later messages get fresh markers', async () => {
+    const lab = fixture({ interval: 5, group: true });
+    await lab.emit('GROUP_WRAPPER_STARTED', { selected_group: 'group', type: 'normal' });
+    await lab.generate({ avatar: 'a.png', text: 'Original reply.' });
+    await lab.emit('GROUP_WRAPPER_FINISHED', { selected_group: 'group', type: 'normal' });
+    await lab.controller.settle();
+    const originalMarkerId = lab.marker(lab.context.chat.at(-1)).id;
+    await lab.emit('GROUP_REGENERATION_STARTED', { generationId: 99 });
+    await lab.emit('GENERATION_STOPPED');
+    lab.generating = false;
+    await lab.controller.settle();
+    const fresh = await lab.generate({ avatar: 'a.png', text: 'A completely new message after aborted regen.' });
+    await lab.controller.settle();
+    assert.notEqual(lab.marker(fresh).id, originalMarkerId, 'a stopped regen cannot leak its replay map into later generations');
 });

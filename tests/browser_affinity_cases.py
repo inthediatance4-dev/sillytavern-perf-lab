@@ -24,6 +24,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
     connect_api(page)
     endpoint = fake_url.removesuffix('/v1')
     audit = result.setdefault('affinityReview', {})
+    audit['fixtureOutcomeKnown'] = None
     failures = []
     state = {'serial': 0, 'mode': 'fact', 'hold': False, 'holdStory': False, 'failStory': False,
         'held': [], 'heldStory': [], 'calls': [], 'saves': [], 'fixtureErrors': [], 'verify': True}
@@ -46,7 +47,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
     def fixture_event(ref, fact=literal, impact='minor'):
         return {'owner': ref['owner'], 'kind': 'fact', 'fact': fact, 'actor': 'character', 'recipient': 'user',
             'status': 'observed', 'valence': 'none', 'impact': impact, 'confidence': 'high',
-            'attitudeExplicit': False, 'outcomeKnown': True, 'knownToCharacter': 'yes',
+            'attitudeExplicit': False, 'outcomeKnown': None, 'knownToCharacter': 'yes',
             'source': {'slot': ref['slot'], 'quote': ref['text'].split('\n[…]')[0][:150]}}
 
     def generation_route(route):
@@ -71,7 +72,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
                     events = []
                 elif state['mode'] == 'group':
                     owners = {ref['owner']: ref for ref in characters}
-                    events = [fixture_event(ref, 'AFF_GROUP_PRIVATE_' + owner + ': remembers the shared river journey.')
+                    events = [fixture_event(ref, 'AFF_GROUP_PRIVATE_' + owner + ': {{char}} remembers the shared river journey.')
                         for owner, ref in owners.items()]
                 elif state['mode'] == 'major':
                     event = fixture_event(characters[-1], 'The character explicitly expresses new trust.', 'major')
@@ -94,6 +95,11 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         elif 'AFF_EXTERNAL_QUIET' in text:
             configure('AFF_EXTERNAL_QUIET_DONE')
         else:
+            if state['mode'] == 'group':
+                record['nativeGroupSpeaker'] = page.evaluate("""()=>{
+                    const c=SillyTavern.getContext();
+                    return {groupId:c.groupId,avatar:c.characters[c.characterId]?.avatar};
+                }""")
             if state['holdStory']:
                 state['heldStory'].append(route)
                 return
@@ -219,6 +225,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
 
     def no_frames(batch):
         assert not marker.search(serialized(batch)), 'Affinity assembly marker reached a model request'
+        assert not re.search(r'[\uE010-\uE019]', serialized(batch)), 'Affinity frame delimiter reached a model request'
 
     def cadence():
         open_manager(page)
@@ -516,12 +523,51 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         evidence_calls = [call for call in group_calls if call['kind'] == 'relationship_evidence']
         assert len(evidence_calls) == 1
         assert evidence_calls[0]['groupStages'][-1] == 'finish', evidence_calls[0]['groupStages']
-        before = len(requests())
-        send(2)
-        own_requests = requests()[before:]
-        for index, owner in enumerate(fixture['members']):
-            assert serialized(own_requests[index]).count('AFF_GROUP_PRIVATE_' + owner) == 1
-            assert all('AFF_GROUP_PRIVATE_' + other not in serialized(own_requests[index]) for other in expected - {owner})
+        memory_facts = {event['owner']: event['fact'] for event in value['events']}
+
+        def own_group_requests():
+            before = len(requests())
+            calls_before = len(state['calls'])
+            send(2)
+            own_requests = requests()[before:]
+            main_calls = [call for call in state['calls'][calls_before:] if call['kind'] == 'story']
+            main_requests = [request for request in own_requests
+                if request.get('response_format', {}).get('type') != 'json_schema']
+            assert len(main_requests) == len(main_calls) == 2, {'requests': own_requests, 'calls': main_calls}
+            speakers = [call['nativeGroupSpeaker'] for call in main_calls]
+            assert speakers == [{'groupId': fixture['groupId'], 'avatar': owner} for owner in fixture['members']], speakers
+            proof = []
+            for index, owner in enumerate(fixture['members']):
+                content = serialized(main_requests[index])
+                assert content.count(memory_facts[owner]) == 1, {'owner': owner, 'request': main_requests[index]}
+                assert all('AFF_GROUP_PRIVATE_' + other not in content for other in expected - {owner}), content
+                no_frames([main_requests[index]])
+                proof.append({'nativeSpeaker': owner, 'memoryLiteral': memory_facts[owner], 'request': main_requests[index]})
+            return proof
+
+        prompt_proof = own_group_requests()
+        audit['group'] = {'actualAvatars': avatars, 'members': fixture['members'], 'initialIssued': 6,
+            'initialEvaluatorRequests': 1, 'nativeMemberPromptProof': prompt_proof}
+        result['checks']['affinityActualGroupAvatarsAndWholeBatchCadence'] = True
+        result['checks']['affinityNativeGroupMembersReceiveOnlyOwnLiteralMemory'] = True
+        # Legacy group chats may carry only their native thumbnail URL. Resolve
+        # that avatar, never the shared display name or stale current speaker.
+        legacy_events = {event['id'] for event in ledger()['events']}
+        legacy = page.evaluate("""async()=>{
+            const c=SillyTavern.getContext();
+            const speakers=c.chat.filter(message=>message.is_user===false&&!message.is_system);
+            const native=speakers.map(message=>({avatar:message.original_avatar,forceAvatar:message.force_avatar,name:message.name}));
+            if(!native.length||native.some(message=>!message.avatar||!message.forceAvatar))throw new Error('Legacy fixture lacks native avatar identity');
+            for(const message of speakers)delete message.original_avatar;
+            if(await c.saveChat()===false)throw new Error('Legacy group save failed');
+            await c.reloadCurrentChat();
+            return native;
+        }""")
+        audit['group']['legacyNativeAvatars'] = legacy
+        assert {event['id'] for event in ledger()['events']} == legacy_events, {'legacy': legacy, 'ledger': ledger()}
+        legacy_prompt_proof = own_group_requests()
+        audit['group']['legacyMemberPromptProof'] = legacy_prompt_proof
+        evaluated(10, events=2)
         saved = {event['id']: event for event in ledger()['events'] if event['owner'] == fixture['avatar']}
         assert saved
         page.evaluate("""async({groupId,members})=>{
@@ -541,9 +587,8 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         }""", {'groupId': fixture['groupId'], 'members': fixture['members']})
         restored = [event for event in ledger()['events'] if event['owner'] == fixture['avatar']]
         assert {event['id'] for event in restored} == set(saved) and all(event.get('offline') is not True for event in restored), restored
-        audit['group'] = {'actualAvatars': avatars, 'members': fixture['members'], 'initialIssued': 6,
-            'initialEvaluatorRequests': 1, 'offlineEvidenceIds': sorted(saved), 'restoredSameEvidence': True}
-        result['checks']['affinityActualGroupAvatarsAndWholeBatchCadence'] = True
+        audit['group'].update({'offlineEvidenceIds': sorted(saved), 'restoredSameEvidence': True})
+        result['checks']['affinityLegacyGroupThumbnailIdentityPreservesMemory'] = True
         result['checks']['affinityGroupOwnerRemovalFreezesAndRejoinRestoresMemory'] = True
 
     def overlap():

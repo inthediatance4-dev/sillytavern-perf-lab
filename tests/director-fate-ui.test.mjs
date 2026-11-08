@@ -323,6 +323,20 @@ test('log reveal follows tap, auto and off and shares flips with the current car
     await fixture.close();
 });
 
+test('ritual preferences stay out of the modal panel and live in the settings drawer', async t => {
+    const fixture = lab(t);
+    const popup = fixture.open();
+    for (const id of ['director_fate_settings_toggle', 'director_fate_settings', 'director_fate_reveal', 'director_fate_sound', 'director_fate_motion']) {
+        assert.equal(popup.content.querySelector(`#${id}`), null, id);
+    }
+    await fixture.close();
+    const html = readFileSync(new URL('../public/scripts/extensions/director/settings.html', import.meta.url), 'utf8');
+    for (const id of ['director_fate_reveal', 'director_fate_sound', 'director_fate_motion']) {
+        assert.equal(html.includes(`id="${id}"`), true, id);
+        assert.equal(html.includes(`for="${id}"`), true, id);
+    }
+});
+
 test('flipping the current card reveals the same log entry without another flip', async t => {
     const fixture = lab(t);
     fixture.open();
@@ -471,7 +485,7 @@ test('narrow fate controls keep short labels on one line and mirror hover on tou
     assert.equal(/flex-shrink:\s*0/.test(buttons), true);
     assert.equal(/transition-property:\s*background-color,\s*border-color,\s*filter,\s*box-shadow/.test(buttons), true);
     assert.equal(/transition-property:[^;]*\b(?:all|min-height|height|width)\b/.test(buttons), false);
-    assert.equal(/#director_fate_panel #director_fate_settings_toggle,\s*#director_fate_panel #director_fate_clear_log \{[^}]*width:\s*100%/.test(css), true);
+    assert.equal(/#director_fate_panel #director_fate_clear_log \{[^}]*width:\s*100%/.test(css), true);
     assert.equal(/\.director_fate_actions \.menu_button \{[^}]*white-space:\s*normal/.test(css), false);
     assert.equal(/\.director_fate_log_actions \.menu_button \{[^}]*white-space:\s*normal/.test(css), false);
     assert.equal(css.includes('.director_fate_choice:not(:disabled):hover,\n.director_fate_choice:focus-visible'), false);

@@ -8,7 +8,7 @@ function rerollsLeft(view) {
 /** Events cross into the face only after completion and the user's reveal policy. */
 export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn,
     settings = { reveal: 'tap', sound: false, motion: 'system' }, sound = { play() {} },
-    saveSettings = () => {}, restoreFocus = () => document.getElementById('director_fate_open')?.focus(), jumpToMessage }) {
+    restoreFocus = () => document.getElementById('director_fate_open')?.focus(), jumpToMessage }) {
     let panel = null;
     let popup = null;
     let error = '';
@@ -488,30 +488,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             await controller.clearLog();
         }, '未能清空记录，请重试。'));
         log.append(logList, empty, clear);
-        const preferences = document.createElement('div');
-        preferences.id = 'director_fate_settings';
-        preferences.hidden = true;
-        const gear = button('director_fate_settings_toggle', '⚙ 命运牌设置', () => {
-            preferences.hidden = !preferences.hidden;
-            gear.setAttribute('aria-expanded', String(!preferences.hidden));
-        });
-        gear.setAttribute('aria-controls', preferences.id);
-        gear.setAttribute('aria-expanded', 'false');
-        const revealMode = select('director_fate_reveal', { tap: '点击翻牌', auto: '自动揭晓', off: '不揭晓' }, settings.reveal);
-        const audio = document.createElement('input');
-        audio.id = 'director_fate_sound';
-        audio.type = 'checkbox';
-        audio.checked = settings.sound;
-        const motion = select('director_fate_motion', { system: '跟随系统', off: '关闭动效' }, settings.motion);
-        for (const [control, key, text] of [[revealMode, 'reveal', '揭晓方式'], [audio, 'sound', '播放音效'], [motion, 'motion', '动效']]) {
-            control.addEventListener('change', () => {
-                settings[key] = control.type === 'checkbox' ? control.checked : control.value;
-                saveSettings();
-                refresh();
-            });
-            preferences.append(labelFor(control, text), control);
-        }
-        panel.append(heading, tabs, current, log, gear, preferences);
+        panel.append(heading, tabs, current, log);
         // The dialog focuses its autofocus control inside showModal. onOpen runs
         // only after the opening animation, which is too late for a caller that
         // reads document.activeElement as soon as the panel is visible.

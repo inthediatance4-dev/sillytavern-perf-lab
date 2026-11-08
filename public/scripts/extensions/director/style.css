@@ -323,12 +323,11 @@
 #director_fate_panel .menu_button:not(.disabled):not([disabled]):focus-visible {
     background-color: var(--white30a);
 }
-#director_fate_panel #director_fate_settings_toggle,
 #director_fate_panel #director_fate_clear_log {
     width: 100%;
     margin: 12px 0 0;
 }
-#director_fate_settings:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 12px; }
+#director_fate_settings { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 12px; }
 #director_fate_settings label { min-width: 0; }
 #director_fate_settings select { min-width: 0; max-width: 100%; }
 #director_fate_panel [hidden] { display: none; }
@@ -1034,7 +1033,7 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     #director_fate_strength,
     #director_fate_settings select { min-height: 44px; }
 
-    #director_fate_settings:not([hidden]) { grid-auto-rows: minmax(44px, auto); }
+    #director_fate_settings { grid-auto-rows: minmax(44px, auto); }
 
     #director_fate_settings input[type="checkbox"] {
         width: 22px;

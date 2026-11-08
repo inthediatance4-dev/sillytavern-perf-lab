@@ -624,7 +624,6 @@ export async function init() {
     fatePanel = createFatePanel(fate, {
         Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, jumpToMessage, warn: message => toastr.warning(message),
         settings: settings.fate, sound: createFateSound(() => settings.fate.sound),
-        saveSettings: () => getContext().saveSettingsDebounced(),
         restoreFocus: () => {
             if (popover.hidden) togglePopover();
             document.getElementById('director_fate_open')?.focus();
@@ -674,6 +673,18 @@ export async function init() {
         settings.hotkey = String($(this).val()).trim();
         context.saveSettingsDebounced();
     });
+    for (const [id, key] of [['director_fate_reveal', 'reveal'], ['director_fate_sound', 'sound'], ['director_fate_motion', 'motion']]) {
+        const control = document.getElementById(id);
+        if (control.type === 'checkbox') control.checked = settings.fate[key];
+        else control.value = settings.fate[key];
+        control.addEventListener('change', () => {
+            settings.fate[key] = control.type === 'checkbox' ? control.checked : control.value;
+            // refresh() only touches the open panel; the chat-wide motion class must follow even when it is closed.
+            if (key === 'motion') document.documentElement.classList.toggle('director_fate_nomotion', settings.fate.motion === 'off');
+            context.saveSettingsDebounced();
+            fatePanel?.refresh();
+        });
+    }
     initPresetManager();
     SlashCommandParser.addCommandObject(SlashCommand.fromProps({
         name: 'director',

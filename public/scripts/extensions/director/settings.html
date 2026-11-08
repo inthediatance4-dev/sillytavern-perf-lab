@@ -15,6 +15,23 @@
             <label for="director_hotkey">快捷键</label>
             <input id="director_hotkey" class="text_pole" type="text" placeholder="Ctrl+Shift+D（留空关闭）" autocomplete="off">
             <hr>
+            <p>命运牌的演出偏好放在这里，牌桌弹窗保持轻量。改动即时生效。</p>
+            <div id="director_fate_settings">
+                <label for="director_fate_reveal">揭晓方式</label>
+                <select id="director_fate_reveal" class="text_pole">
+                    <option value="tap">点击翻牌</option>
+                    <option value="auto">自动揭晓</option>
+                    <option value="off">不揭晓</option>
+                </select>
+                <label for="director_fate_sound">播放音效</label>
+                <input id="director_fate_sound" type="checkbox">
+                <label for="director_fate_motion">动效</label>
+                <select id="director_fate_motion" class="text_pole">
+                    <option value="system">跟随系统</option>
+                    <option value="off">关闭动效</option>
+                </select>
+            </div>
+            <hr>
             <p>预设的顺序就是菜单里的 1–9。拖动手柄或点箭头排序，最多 50 个。</p>
             <ol id="director_presets" aria-label="命运之牌预设"></ol>
             <div class="director_manager_actions">

@@ -79,4 +79,9 @@ test('visible settings and manifest use the renamed fate-card brand', () => {
     assert.match(affinity, /独立于命运之牌运行/);
     assert.equal(manifest.generate_interceptor, 'director_rebind_interceptor');
     assert.match(director, /id="director_presets"/);
+    for (const id of ['director_fate_reveal', 'director_fate_sound', 'director_fate_motion']) {
+        assert.match(director, new RegExp(`id="${id}"`));
+        assert.match(director, new RegExp(`for="${id}"`));
+    }
+    assert.doesNotMatch(director, /director_fate_settings_toggle/);
 });

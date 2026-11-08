@@ -170,9 +170,19 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         return toast
 
     def settings():
-        if not page.locator('#director_fate_settings').is_visible():
-            page.locator('#director_fate_settings_toggle').click()
+        # Ritual preferences live in the extension drawer. The modal card table
+        # makes the rest of the page inert, so it must close before they open.
+        if page.locator('#director_fate_panel').is_visible():
+            close_panel()
+        if not page.locator('#rm_extensions_block').evaluate("node => node.classList.contains('openDrawer')"):
+            page.locator('#extensions-settings-button .drawer-toggle').click()
+        if not page.locator('#director_settings .inline-drawer-content').is_visible():
+            page.locator('#director_settings .inline-drawer-toggle').click()
         page.locator('#director_fate_reveal').wait_for(state='visible')
+        page.locator('#director_fate_reveal').scroll_into_view_if_needed()
+
+    def close_settings():
+        page.locator('#extensions-settings-button .drawer-toggle').click()
 
     def saved_settings_match(response, **expected):
         if not response.url.endswith('/api/settings/save') or response.request.method != 'POST':
@@ -244,11 +254,10 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
             const jumps = [...document.querySelectorAll('.director_fate_log_jump')].filter(visible).map(measure);
             const tabs = [...document.querySelectorAll('.director_fate_tab')].filter(visible).map(measure);
             const cards = [...document.querySelectorAll('.director_fate_choice')].filter(visible).map(measure);
-            const settings = buttons.find(box => box.id === 'director_fate_settings_toggle');
             const panel = document.querySelector('#director_fate_panel');
             const pageFits = document.documentElement.scrollWidth <= window.innerWidth;
             const panelFits = !!panel && panel.scrollWidth <= panel.clientWidth;
-            const ok = pageFits && panelFits && !!settings && singleLine(settings)
+            const ok = pageFits && panelFits
                 && buttons.every(singleLine)
                 && tabs.every(box => box.height >= 44 && box.width >= 44)
                 && cards.every(box => box.height >= 44 && box.width >= 44)
@@ -257,7 +266,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
                 ok, pageFits, panelFits,
                 scrollWidth: document.documentElement.scrollWidth,
                 innerWidth: window.innerWidth,
-                settings, jumps, buttons, tabs, cards,
+                jumps, buttons, tabs, cards,
             };
         }""", require_jumps)
         assert report['ok'], report
@@ -318,8 +327,13 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
                 page.emulate_media(reduced_motion='no-preference')
                 settings()
                 page.locator('#director_fate_motion').select_option('off')
+                close_settings()
+                open_panel()
                 fade_only()
+                settings()
                 page.locator('#director_fate_motion').select_option('system')
+                close_settings()
+                open_panel()
                 result['checks']['fateApplyingReducedMotionAndMotionOffDisableAnimations'] = True
                 assert len(pending) == 1
                 close_panel()
@@ -369,13 +383,19 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     fade_only()
     page.emulate_media(reduced_motion='no-preference')
     result['checks']['fateSystemReducedMotionUsesFadeWithoutBreathing'] = True
+    screenshots=Path(__file__).resolve().parents[1] / '.evidence' / 'fate'
+    screenshots.mkdir(parents=True, exist_ok=True)
     settings()
     assert page.locator('#director_fate_reveal').input_value() == 'tap'
     assert not page.locator('#director_fate_sound').is_checked()
     assert page.locator('#director_fate_motion').input_value() == 'system'
     for control in ('director_fate_reveal', 'director_fate_sound', 'director_fate_motion'):
         assert page.locator('label[for="' + control + '"]').count() == 1
-    page.locator('#director_fate_settings_toggle').click()
+    page.screenshot(path=str(screenshots / 'settings-drawer.png'))
+    close_settings()
+    open_panel()
+    assert page.locator('#director_fate_settings_toggle').count() == 0
+    assert page.locator('#director_fate_panel #director_fate_settings').count() == 0
     result['checks']['fateSealedMarkupPrivateAndDefaultRitualSettings'] = True
     result['checks']['fateDrawSealedAndExistingInstructionPreserved'] = True
 
@@ -384,8 +404,6 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert page.locator('.director_fate_card').evaluate('n => { const r=n.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }')
     assert_narrow_fate_controls()
     hidden(secret)
-    screenshots=Path(__file__).resolve().parents[1] / '.evidence' / 'fate'
-    screenshots.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=str(screenshots / 'mobile.png'))
     result['checks']['fateRitualMobileCardHasNoOverflow'] = True
     page.set_viewport_size({'width':1440,'height':1000})
@@ -839,9 +857,9 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
 
     # Reveal policies use the same completed binding. The event must remain
     # absent while sealed even when the next completed card will reveal itself.
-    open_panel()
     settings()
     page.locator('#director_fate_reveal').select_option('auto')
+    close_settings()
     auto = draw('FATE_AUTO_PRIVATE: An old keepsake returns in an unexpected place.')
     ritual_hidden(auto['event'])
     was_reduced = page.evaluate("document.body.classList.contains('reduced-motion')")
@@ -865,6 +883,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
 
     settings()
     page.locator('#director_fate_reveal').select_option('off')
+    close_settings()
     off = draw('FATE_OFF_PRIVATE: A hidden stairway opens beyond the ruined gate.')
     ritual_hidden(off['event'])
     page.emulate_media(reduced_motion='reduce')
@@ -893,22 +912,28 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         page.locator('#director_fate_sound').check()
         page.locator('#director_fate_motion').select_option('off')
     assert saved_settings.value.ok
+    close_settings()
+    open_panel()
     assert page.locator('#director_fate_panel').evaluate('node => node.classList.contains("director_fate_nomotion")')
     fade_only()
     reload_browser()
-    open_panel()
     settings()
     assert page.locator('#director_fate_reveal').input_value() == 'off'
     assert page.locator('#director_fate_sound').is_checked()
     assert page.locator('#director_fate_motion').input_value() == 'off'
+    close_settings()
+    open_panel()
     ritual_hidden(off['event'])
     result['checks']['fateRitualSettingsPersistAfterBrowserReload'] = True
 
     # A flip lasts only for this page lifetime. Keeping the same bound card on
     # disk must not cause tap mode to disclose its event after another reload.
+    settings()
     with page.expect_response(lambda response: saved_settings_match(response, reveal='tap', sound=True, motion='off')) as saved_tap:
         page.locator('#director_fate_reveal').select_option('tap')
     assert saved_tap.value.ok
+    close_settings()
+    open_panel()
     ritual_hidden(off['event'])
     tab('log')
     hidden(off['event'])
@@ -934,7 +959,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         page.locator('#director_fate_sound').uncheck()
         page.locator('#director_fate_motion').select_option('system')
     assert restored_settings.value.ok
-    close_panel()
+    close_settings()
 
     # Deal three local backs, keep them through a failed pick and a reload, then seal one.
     offer_secret = 'FATE_OFFER_PRIVATE: Three sealed backs hide one concrete turn.'
@@ -944,6 +969,8 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.locator('#director_fate_draw').click()
     page.locator('.director_fate_offer').wait_for(state='visible')
     page.wait_for_function("() => { const cards=[...document.querySelectorAll('.director_fate_choice')]; return cards.length===3 && cards.every(card => !card.disabled); }")
+    # Steady state: the staggered deal animation has fully settled on all three backs.
+    page.wait_for_function("() => [...document.querySelectorAll('.director_fate_choice')].every(card => getComputedStyle(card).opacity === '1')")
     assert page.locator('#director_fate_draw').inner_text() == '换一组 (1)'
     assert not page.locator('#director_fate_draw').is_disabled()
     labels = page.locator('.director_fate_choice').evaluate_all("nodes => nodes.map(node => node.getAttribute('aria-label'))")
@@ -961,6 +988,10 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     }""")
     assert layout['row'] and layout['fits'] and layout['separated'] and layout['panelFits'], layout
     assert all(70 <= width <= 140 for width in layout['widths']), layout
+    page.screenshot(path=str(screenshots / 'offer-mobile.png'))
+    page.set_viewport_size({'width':1440,'height':1000})
+    page.screenshot(path=str(screenshots / 'offer-desktop.png'))
+    page.set_viewport_size({'width':390,'height':844})
     hidden(offer_secret)
     first_offer = fate()['offer']['id']
     assert fate().get('rerolls', 1) == 1
@@ -1025,6 +1056,8 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert held['event'] == offer_secret
     settings()
     page.locator('#director_fate_motion').select_option('off')
+    close_settings()
+    open_panel()
     apply(held)
     assert_mark_motion_suppressed(held, fate()['bound']['slotIndex'])
     result['checks']['fateMotionOffSkipsMessageMarkPulse'] = True

@@ -6046,10 +6046,17 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
 
             if (isStreamFinished) {
                 const completedStream = streamingProcessor;
+                const completedMessage = chat[completedStream.messageId];
                 await streamingProcessor.onFinishStreaming(streamingProcessor.messageId, getMessage);
+                // Finalization listeners may remove private appended content. Return
+                // the same normal reply that was displayed and saved, including its chunk.
+                if (type === 'normal' && typeof completedMessage?.mes === 'string') {
+                    getMessage = completedMessage.mes;
+                    messageChunk = getMessage;
+                }
                 if (!completedStream.abortController.signal.aborted) await notifyGenerationCompleted();
                 streamingProcessor = null;
-                triggerAutoContinue(messageChunk, isImpersonate);
+                if (chat[completedStream.messageId] === completedMessage) triggerAutoContinue(messageChunk, isImpersonate);
                 return Object.defineProperties(new String(getMessage), {
                     'messageChunk': { value: messageChunk },
                     'fromStream': { value: true },
@@ -6146,6 +6153,7 @@ export async function Generate(type, { automatic_trigger, force_name2, quiet_pro
             } else {
                 ({ type, getMessage } = await saveReply({ type: 'appendFinal', getMessage, title, swipes, reasoning, imageUrls, reasoningSignature }));
             }
+            if (type === 'normal') messageChunk = getMessage;
 
             // This relies on `saveReply` having been called to add the message to the chat, so it must be last.
             parseAndSaveLogprobs(data, continue_mag);

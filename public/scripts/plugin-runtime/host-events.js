@@ -33,6 +33,8 @@ const ownerOf = context => ({ chatId: context.chatId, chatMetadata: context.chat
     groupId: context.groupId, avatar: context.characters?.[context.characterId]?.avatar });
 const currentOwner = (context, owner) => context.chat === owner.chat && context.chatMetadata === owner.chatMetadata
     && context.chatId === owner.chatId && context.groupId === owner.groupId;
+const replyStamp = message => JSON.stringify([message.name, message.gen_started, message.gen_finished,
+    message.send_date, message.extra?.gen_id]);
 
 /** Official hosts lack typed completion receipts. Observe transport and native saves;
  * UI unlock alone is deliberately never treated as successful generation. */
@@ -40,13 +42,15 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
     const native = getContext().eventSource;
     const names = getContext().eventTypes;
     if (names.GENERATION_COMPLETED) return { eventSource: native, eventTypes: names,
-        prepare() {}, seal() {}, runGenerate: (...args) => core.Generate(...args), dispose() {} };
+        prepare() {}, seal() {}, registerReplySanitizer() {}, runGenerate: (...args) => core.Generate(...args), dispose() {} };
     const events = new Events();
     const eventTypes = { ...names, GENERATION_COMPLETED: 'standalone_generation_completed',
+        CHAT_SAVE_PREPARED: 'standalone_chat_save_prepared',
         GROUP_REGENERATION_STARTED: 'standalone_group_regeneration_started', GROUP_REGENERATION_FINISHED: 'standalone_group_regeneration_finished' };
     const subscriptions = [];
     const tokens = new Map();
     const requests = new Set();
+    const sanitizers = new Map();
     const uuid = options.uuid ?? (() => crypto.randomUUID());
     const target = options.fetchTarget ?? globalThis;
     const originalFetch = target.fetch;
@@ -57,9 +61,24 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
     const on = (name, callback) => {
         if (!names[name]) return;
         native.on(names[name], callback);
+        if (name === 'MESSAGE_RECEIVED') native.makeFirst?.(names[name], callback);
         subscriptions.push([names[name], callback]);
     };
     const prepared = new WeakMap();
+    function registerReplySanitizer(index, sanitize) {
+        const context = getContext();
+        const message = context.chat?.[index];
+        if (typeof sanitize !== 'function' || !message || message.is_user || message.is_system
+            || !(message.gen_started || message.gen_finished || message.send_date)) return;
+        // No chat graphs, request bodies or private text survive a chat switch.
+        // These compact provenance stamps protect native snapshots whose async
+        // compression finishes only after CHAT_CHANGED has cleared live requests.
+        const scope = { chatId: context.chatId, groupId: context.groupId,
+            avatar: context.characters?.[context.characterId]?.avatar, index, stamp: replyStamp(message), sanitize };
+        const key = JSON.stringify([scope.chatId, scope.groupId, scope.avatar, index, scope.stamp]);
+        sanitizers.set(key, scope);
+        if (sanitizers.size > 128) sanitizers.delete(sanitizers.keys().next().value);
+    }
     function prepare(type, requestChat) {
         if (!Array.isArray(requestChat) || prepared.has(requestChat)) return;
         const record = { type: type || 'normal', ...ownerOf(getContext()), stopped: false, sent: false, ok: false, candidates: [] };
@@ -89,28 +108,58 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
             if (requests.size > 128) requests.delete(requests.values().next().value);
         }
     }
-    function receive(id, type) {
+    function captureReceived(id, type) {
         const context = getContext();
         const message = context.chat?.[id];
         if (!message || message.is_user || message.is_system) return;
         const record = [...requests].reverse().find(item => item.sent && !item.stopped && FOREGROUND.has(item.type)
             && (item.type === type || item.type === 'regenerate' && type === 'normal') && currentOwner(context, item));
         if (!record) return;
-        record.candidates.push({ index: id, message, text: message.mes, swipe: message.swipe_id ?? 0 });
+        return { record, index: id, message, swipe: message.swipe_id ?? 0 };
+    }
+    function receive(candidate) {
+        if (!candidate) return;
+        const { record, index, message, swipe } = candidate;
+        const context = getContext();
+        if (!currentOwner(context, record) || context.chat[index] !== message || (message.swipe_id ?? 0) !== swipe) return;
+        // Freeze after our awaited finalization listeners, so controlled privacy
+        // cleanup is part of the receipt. Later edits still fail the saved-text check.
+        record.candidates.push({ index, message, text: message.mes, swipe });
         if (record.stream) {
             const stream = record.processor;
             record.ok = !!stream && stream.isFinished === true && stream.isStopped !== true
                 && !stream.abortController?.signal.aborted && !stream.toolCalls?.length;
         }
     }
+    const matchesSaveOwner = (record, body, url) => record.groupId != null && record.groupId !== ''
+        ? url === '/api/chats/group/save' && body.id === record.chatId
+        : url === '/api/chats/save' && body.file_name === record.chatId && body.avatar_url === record.avatar;
+    async function prepareSave(body, url, plan) {
+        if (!Array.isArray(body?.chat)) return false;
+        let changed = false;
+        for (const { record, candidate } of plan) {
+            if (!matchesSaveOwner(record, body, url)) continue;
+            const message = body.chat[candidate.index + 1];
+            if (!message || message.is_user || message.is_system) continue;
+            const payload = { data: record.data, type: record.type, chatId: record.chatId, chatMetadata: record.chatMetadata,
+                groupId: record.groupId, messageId: candidate.index, message, liveMessage: candidate.message, changed: false };
+            await events.emit(eventTypes.CHAT_SAVE_PREPARED, payload);
+            changed ||= payload.changed === true;
+        }
+        for (const scope of sanitizers.values()) {
+            if (!matchesSaveOwner(scope, body, url)) continue;
+            const message = body.chat[scope.index + 1];
+            if (!message || message.is_user || message.is_system || replyStamp(message) !== scope.stamp) continue;
+            const stripped = scope.sanitize(message);
+            changed = stripped || changed;
+        }
+        return changed;
+    }
     async function saved(body, url) {
         if (!Array.isArray(body?.chat)) return;
         for (const record of [...requests]) {
             if (record.stopped || !record.ok || !currentOwner(getContext(), record) || !FOREGROUND.has(record.type)) continue;
-            const matchesOwner = record.groupId != null && record.groupId !== ''
-                ? url.endsWith('/api/chats/group/save') && body.id === record.chatId
-                : url.endsWith('/api/chats/save') && body.file_name === record.chatId && body.avatar_url === record.avatar;
-            if (!matchesOwner) continue;
+            if (!matchesSaveOwner(record, body, url)) continue;
             const candidates = record.candidates.filter(candidate => {
                 const message = body.chat[candidate.index + 1];
                 return message && !message.is_user && !message.is_system && message.mes === candidate.text
@@ -129,9 +178,28 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
         const polling = pathname === '/api/horde/task-status';
         const saving = pathname === '/api/chats/save' || pathname === '/api/chats/group/save';
         if (!generating && !saving && !polling) return originalFetch.call(this, input, init);
-        // Start transport immediately. Body decoding is observation, never a gate.
+        // Generation transport is immediate; native saves wait for scoped cleanup.
         const bodyPromise = jsonBody(input, init).catch(() => null);
-        const responsePromise = saving ? saveTail.then(() => originalFetch.call(this, input, init)) : originalFetch.call(this, input, init);
+        // Bind cleanup before decoding/queueing: an already captured old-chat save
+        // must also be scrubbed if the UI switches chats while it waits.
+        const context = saving ? getContext() : null;
+        const plan = saving ? [...requests].filter(record => currentOwner(context, record)).flatMap(record => record.candidates
+            .filter(candidate => context.chat[candidate.index] === candidate.message).map(candidate => ({ record, candidate }))) : [];
+        const dispatchSave = async () => {
+            const body = await bodyPromise;
+            let outgoing = init;
+            if (body && await prepareSave(body, pathname, plan)) {
+                const headers = new Headers(init?.headers ?? (typeof Request !== 'undefined' && input instanceof Request ? input.headers : {}));
+                let serialized = JSON.stringify(body);
+                if (headers.get('Content-Encoding') === 'gzip' && typeof CompressionStream === 'function') {
+                    serialized = await new Response(new Blob([serialized]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
+                } else headers.delete('Content-Encoding');
+                headers.delete('Content-Length');
+                outgoing = { ...init, headers, body: serialized };
+            }
+            return originalFetch.call(this, input, outgoing);
+        };
+        const responsePromise = saving ? saveTail.then(dispatchSave) : originalFetch.call(this, input, init);
         if (saving) saveTail = responsePromise.then(() => {}, () => {});
         responsePromise.catch(() => {});
         let record;
@@ -176,7 +244,7 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
     for (const [name, value] of Object.entries(names)) {
         if (name === 'GENERATE_AFTER_DATA') { on(name, afterData); continue; }
         on(name, async (...args) => {
-            if (name === 'MESSAGE_RECEIVED') receive(...args);
+            const candidate = name === 'MESSAGE_RECEIVED' ? captureReceived(...args) : null;
             if (name === 'GENERATION_STARTED' && !args[2] && args[0] !== 'quiet' && args[0] !== 'impersonate') {
                 active = null;
                 for (const record of requests) if (record.stopped || !record.candidates.length) requests.delete(record);
@@ -184,6 +252,7 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
             if (name === 'GENERATION_STOPPED' && active) active.stopped = true;
             if (name === 'CHAT_CHANGED') { requests.clear(); tokens.clear(); active = null; }
             await events.emit(value, ...args);
+            if (candidate) receive(candidate);
         });
     }
     async function regenerateGroup() {
@@ -235,7 +304,7 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
         regenerateGroup().catch(() => core.setSendButtonState?.(false));
     };
     document?.addEventListener('click', click, true);
-    return { eventSource: events, eventTypes, prepare, seal() {}, runGenerate: (...args) => core.Generate(...args),
+    return { eventSource: events, eventTypes, prepare, seal() {}, registerReplySanitizer, runGenerate: (...args) => core.Generate(...args),
         dispose() {
             if (disposed) return;
             disposed = true;
@@ -243,6 +312,6 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
             if (target.fetch === observedFetch) target.fetch = originalFetch;
             if (command?.callback === wrappedCallback) command.callback = callback;
             document?.removeEventListener('click', click, true);
-            requests.clear(); tokens.clear(); active = null;
+            requests.clear(); tokens.clear(); sanitizers.clear(); active = null;
         } };
 }

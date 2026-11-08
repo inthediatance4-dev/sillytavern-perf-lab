@@ -598,6 +598,7 @@ export async function init() {
         onRegenerateStart: () => setSendButtonState(true),
         onError: message => toastr.warning(message),
         piggyback: () => settings.fate.piggyback === true,
+        registerReplySanitizer: runtime.registerReplySanitizer,
         repaintMessage: messageId => {
             // Only streaming has painted the row before MESSAGE_RECEIVED; the
             // non-streaming path renders the already-stripped message itself.

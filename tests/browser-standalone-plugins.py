@@ -102,10 +102,11 @@ def main():
             page.on('console', lambda message: result.setdefault('consoleErrors', []).append(message.text) if message.type == 'error' else None)
             memory_text = 'ST_AFF_PRIVATE {{char}} remembers the river promise.'
             fate_text = 'ST_FATE_PRIVATE {{char}}: A courier leaves a sealed invitation.'
-            fixture_state = {'failNext': False, 'expectingFailure': False, 'group': False}
+            fixture_state = {'failNext': False, 'expectingFailure': False, 'group': False, 'piggyback': None}
 
             def provider_route(route):
                 payload = route.request.post_data_json
+                fixture_options = {}
                 text = '\n'.join(str(m.get('content', '')) for m in payload.get('messages', []))
                 if (payload.get('json_schema') or {}).get('name') == 'relationship_evidence':
                     refs = json.loads(text.rsplit('消息：', 1)[1])
@@ -118,10 +119,14 @@ def main():
                     reply = json.dumps({'events': events})
                 elif 'Invent one unexpected event for the current story.' in text:
                     reply = json.dumps({'event': fate_text})
+                elif fixture_state['piggyback']:
+                    reply = 'Synthetic piggyback story.'
+                    fixture_options = {'piggyback': {'story': reply, 'events': ['PRIVATE_INSTALLED_EVENT_'+str(i) for i in range(3)]},
+                                       'piggybackChannel': fixture_state['piggyback']}
                 else:
                     reply = 'Synthetic standalone reply.'
                 req = urllib.request.Request(fake_url.replace('/v1', '') + '/__configure',
-                                             data=json.dumps({'reply': reply, 'nextStatus': 500 if fixture_state['failNext'] else 0}).encode(), headers={'Content-Type': 'application/json'})
+                                             data=json.dumps({'reply': reply, 'nextStatus': 500 if fixture_state['failNext'] else 0, **fixture_options}).encode(), headers={'Content-Type': 'application/json'})
                 if fixture_state['failNext']:
                     page.evaluate('window.__standaloneFailedRequested=true')
                 fixture_state['failNext'] = False
@@ -390,6 +395,46 @@ def main():
             assert budget['baselineTokens'] <= 1792 and budget['adoptedTokens'] <= 1792, budget
             assert json.dumps(adopted[0], ensure_ascii=False).count(fate_text) == 1
             result['checks']['full400CodepointCardPaysForRealHistoryWithin2048Budget'] = True
+            stage = 'installed piggyback primary, extra candidate, reasoning and stream'
+            for channel, stream in [('story', False), ('candidate', False), ('reasoning', False), ('story', True)]:
+                page.evaluate("""async stream=>{const c=SillyTavern.getContext();
+                    window.__standaloneMain.updateChatMetadata({integrity:c.chatMetadata.integrity},true);
+                    c.chat.splice(0,c.chat.length,{name:'Synthetic Tester',is_user:true,is_system:false,mes:'Synthetic piggyback scene.',extra:{}});
+                    await c.saveChat();await c.reloadCurrentChat();
+                    c.extensionSettings.director.fate.piggyback=true;
+                    Object.assign((await import('/scripts/openai.js')).oai_settings,{custom_model:'gpt-4o',openai_max_context:8192,
+                        openai_max_tokens:1536,stream_openai:stream,send_if_empty:'',show_thoughts:true});}""", stream)
+                fixture_state['piggyback'] = channel
+                before = len(json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests')))
+                returned = page.evaluate("""async()=>{const value=await SillyTavern.getContext().generate('normal');
+                    return {text:String(value),chunk:value?.messageChunk,fromStream:value?.fromStream,
+                        hostHasCompletion:!!SillyTavern.getContext().eventTypes.GENERATION_COMPLETED};}""")
+                page.wait_for_function('SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length===3', timeout=30000)
+                page.wait_for_function('!window.__standaloneMain.isGenerating() && !window.__standaloneMain.isChatSaving')
+                requests = json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests'))[before:]
+                assert len(requests) == 1
+                message = page.evaluate('JSON.parse(JSON.stringify(SillyTavern.getContext().chat.at(-1)))')
+                assert message['mes'] == 'Synthetic piggyback story.'
+                assert '[[DIRECTOR_FATE_OFFER]]' not in json.dumps(message, ensure_ascii=False)
+                assert 'PRIVATE_INSTALLED_EVENT_' not in json.dumps(message, ensure_ascii=False)
+                assert 'PRIVATE_INSTALLED_EVENT_' not in page.locator('#chat').inner_text()
+                if channel == 'candidate':
+                    assert len(message.get('swipes', [])) >= 2
+                if channel == 'reasoning':
+                    assert message.get('extra', {}).get('reasoning')
+                if returned['hostHasCompletion']:
+                    assert returned['text'] == message['mes'], returned
+                    assert returned['chunk'] == message['mes'], returned
+                location = page.evaluate('()=>({id:SillyTavern.getContext().chatId,avatar:SillyTavern.getContext().characters[SillyTavern.getContext().characterId].avatar})')
+                saved = fixture / 'data/default-user/chats' / Path(location['avatar']).stem / (location['id']+'.jsonl')
+                rows = [json.loads(line) for line in saved.read_text(encoding='utf-8').splitlines() if line.strip()]
+                assert 'PRIVATE_INSTALLED_EVENT_' not in json.dumps(rows[1:], ensure_ascii=False)
+                assert '[[DIRECTOR_FATE_OFFER]]' not in json.dumps(rows[1:], ensure_ascii=False)
+                key = 'installedPiggyback_' + channel + ('_stream' if stream else '_nonstream')
+                result['checks'][key] = True
+                result.setdefault('piggyback', {})[key] = {'providerCalls': len(requests), 'diskMessageClean': True,
+                    'nativeReturnChecked': returned['hostHasCompletion']}
+            fixture_state['piggyback'] = None
             result['providerRequests'] = len(json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests')))
             assert not result['errors'], result['errors']
             browser.close()

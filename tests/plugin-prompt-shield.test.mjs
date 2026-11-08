@@ -37,3 +37,13 @@ test('unknown complete private reservations fail closed without stripping ordina
     shield.restore(data);
     assert.equal(data.prompt, 'plain stprivate text  end');
 });
+
+test('the new piggyback instruction uses the same opaque WI reservation as other private rows', async () => {
+    const shield = api.createPromptShield({ uuid: () => 'piggyback', count: async text => text.length });
+    const request = [{ mes: 'PRIVATE_TASK encounter {{char}}', extra: { directorFatePiggyback: true } }];
+    await shield.seal(request);
+    assert.doesNotMatch(request[0].mes, /PRIVATE_TASK|encounter|char/);
+    const data = { prompt: request[0].mes };
+    shield.restore(data);
+    assert.equal(data.prompt, 'PRIVATE_TASK encounter {{char}}');
+});

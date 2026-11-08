@@ -12,6 +12,25 @@ const STRENGTHS = { light: 'a small, plausible ripple', medium: 'a meaningful bu
 const categoryById = new Map(CATEGORIES.map(category => [category.id, category]));
 const isGroup = context => context.groupId !== undefined && context.groupId !== null && context.groupId !== '';
 const isAi = message => message?.is_user === false && !message.is_system;
+/** Pure snapshot cleanup: safe to retain without a controller or chat graph. */
+export function sanitizePiggybackMessage(message) {
+    if (!isAi(message)) return false;
+    let stripped = false;
+    const clean = text => {
+        if (typeof text !== 'string') return text;
+        const next = stripPiggyback(text);
+        stripped ||= next !== text;
+        return next;
+    };
+    if (typeof message.mes === 'string') message.mes = clean(message.mes);
+    const swipes = Array.isArray(message.swipes) ? message.swipes : [];
+    for (let index = 0; index < swipes.length; index++) swipes[index] = clean(swipes[index]);
+    if (message.extra && typeof message.extra.reasoning === 'string') message.extra.reasoning = clean(message.extra.reasoning);
+    for (const info of Array.isArray(message.swipe_info) ? message.swipe_info : []) {
+        if (info?.extra && typeof info.extra.reasoning === 'string') info.extra.reasoning = clean(info.extra.reasoning);
+    }
+    return stripped;
+}
 const validEvent = value => typeof value === 'string' && value.trim().length > 0
     && Array.from(value).length <= 400 && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value);
 
@@ -230,7 +249,8 @@ export function createFateController(getContext, options = {}) {
         random = Math.random, generate = context => context.generate('normal'), onChange = () => {},
         save = context => context.saveMetadata(), setSendButtonState = () => {},
         deactivateSendButtons = () => {}, activateSendButtons = () => {}, onRegenerateStart = () => {},
-        onError = () => {}, onReveal = () => {}, piggyback = () => false, repaintMessage = () => {} } = options;
+        onError = () => {}, onReveal = () => {}, piggyback = () => false, repaintMessage = () => {},
+        registerReplySanitizer = () => {} } = options;
     let revision = 0;
     let nonce = 0;
     let tokenSerial = 0;
@@ -652,7 +672,11 @@ export function createFateController(getContext, options = {}) {
         }
     };
     const { eventSource, eventTypes } = getContext();
-    const on = (name, handler) => { if (eventTypes[name]) eventSource.on(eventTypes[name], handler); };
+    const on = (name, handler) => {
+        if (!eventTypes[name]) return;
+        eventSource.on(eventTypes[name], handler);
+        if (name === 'MESSAGE_RECEIVED') eventSource.makeFirst?.(eventTypes[name], handler);
+    };
     on('CHAT_CHANGED', () => {
         clearPrompt();
         revision++;
@@ -767,9 +791,11 @@ export function createFateController(getContext, options = {}) {
     });
     on('GENERATION_COMPLETED', async ({ data, type, chatId, chatMetadata }) => {
         const record = piggybackRequests.get(data);
-        piggybackRequests.delete(data);
-        if (!record || record.invalid || type !== 'normal' || !current(record.snapshot)
+        if (!record || record.completed || record.invalid || type !== 'normal' || !current(record.snapshot)
             || chatId !== record.snapshot.chatId || chatMetadata !== record.snapshot.metadata) return;
+        // Keep the weak association for native saves already queued with this
+        // request's old snapshot. Repeated completions must not deal twice.
+        record.completed = true;
         if (latestPiggyback === record) latestPiggyback = null;
         const value = state(chatMetadata);
         // A card drawn or dealt while the reply was generating owns the state now.
@@ -815,24 +841,10 @@ export function createFateController(getContext, options = {}) {
     const stripPiggybackMessage = (message, record) => {
         if (!isAi(message)) return false;
         const swipes = Array.isArray(message.swipes) ? message.swipes : [];
-        const swipeInfo = Array.isArray(message.swipe_info) ? message.swipe_info : [];
         const raw = [message.mes, swipes[swipeIdOf(message) ?? 0], ...swipes]
             .find(text => typeof text === 'string' && piggybackBlockStart(text) >= 0);
         if (raw && record) record.raw ??= raw;
-        let stripped = false;
-        const clean = text => {
-            if (typeof text !== 'string') return text;
-            const next = stripPiggyback(text);
-            if (next !== text) stripped = true;
-            return next;
-        };
-        if (typeof message.mes === 'string') message.mes = clean(message.mes);
-        for (let index = 0; index < swipes.length; index++) swipes[index] = clean(swipes[index]);
-        if (message.extra && typeof message.extra.reasoning === 'string') message.extra.reasoning = clean(message.extra.reasoning);
-        for (const info of swipeInfo) {
-            if (info?.extra && typeof info.extra.reasoning === 'string') info.extra.reasoning = clean(info.extra.reasoning);
-        }
-        return stripped;
+        return sanitizePiggybackMessage(message);
     };
     const piggybackTarget = messageId => {
         const record = latestPiggyback;
@@ -843,6 +855,7 @@ export function createFateController(getContext, options = {}) {
         const context = getContext();
         const piggybackRecord = piggybackTarget(messageId);
         if (piggybackRecord) {
+            registerReplySanitizer(Number(messageId), sanitizePiggybackMessage);
             // Runs before the native save and render. Streaming has already appended
             // swipes; non-streaming appends them later via MESSAGE_SWIPES_APPENDED.
             if (stripPiggybackMessage(context.chat[Number(messageId)], piggybackRecord)) {
@@ -862,6 +875,21 @@ export function createFateController(getContext, options = {}) {
     on('MESSAGE_SWIPES_APPENDED', messageId => {
         const record = piggybackTarget(messageId);
         if (record) stripPiggybackMessage(getContext().chat[Number(messageId)], record);
+    });
+    on('CHAT_SAVE_PREPARED', payload => {
+        const record = piggybackRequests.get(payload?.data);
+        if (!record || payload.type !== 'normal' || payload.messageId !== record.slotIndex
+            || payload.chatId !== record.snapshot.chatId || payload.chatMetadata !== record.snapshot.metadata
+            || payload.groupId !== record.snapshot.groupId) return;
+        // Official hosts append candidates without a post-append event. Scrub the
+        // exact native snapshot before HTTP, including saves captured before a chat
+        // switch; only touch live UI state while it still owns the same message.
+        const ownsLive = current(record.snapshot) && getContext().chat[payload.messageId] === payload.liveMessage;
+        const stripped = stripPiggybackMessage(payload.message, ownsLive && !record.invalid ? record : null);
+        payload.changed = stripped || payload.changed;
+        if (ownsLive && stripPiggybackMessage(payload.liveMessage, null)) {
+            try { repaintMessage(payload.messageId); } catch { /* A repaint cannot block safe persistence. */ }
+        }
     });
     on('MESSAGE_DELETED', () => {
         const context = getContext();

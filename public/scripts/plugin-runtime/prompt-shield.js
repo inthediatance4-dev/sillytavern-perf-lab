@@ -15,7 +15,7 @@ export function createPromptShield({ uuid, count }) {
     async function seal(requestChat) {
         for (let index = 0; index < requestChat.length; index++) {
             const message = requestChat[index];
-            if ((!message.extra?.directorFatePrompt && !message.extra?.affinityPrompt) || typeof message.mes !== 'string') continue;
+            if ((!message.extra?.directorFatePrompt && !message.extra?.directorFatePiggyback && !message.extra?.affinityPrompt) || typeof message.mes !== 'string') continue;
             if (frames.has(message.mes)) continue;
             const raw = message.mes;
             const tag = `stprivate${++serial}x${uuid().replace(/[^a-zA-Z0-9-]/g, '')}`;

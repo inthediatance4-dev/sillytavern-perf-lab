@@ -82,6 +82,7 @@ export function createRuntimeFromHost(url, kind, host, target = globalThis) {
             : (kind === 'director' ? 'standalone_director_cards_interceptor' : 'standalone_affinity_memory_interceptor'),
         claim(request) { if (claims.has(request)) return false; claims.add(request); return true; },
         prepare: shared.bridge.prepare,
+        registerReplySanitizer: shared.bridge.registerReplySanitizer,
         seal: request => shared.official ? shared.shield.seal(request) : Promise.resolve(),
         async countPromptTokens(prompt, schema) {
             const current = getContext();

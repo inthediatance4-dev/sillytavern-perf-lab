@@ -7,6 +7,9 @@ export const event_types = {
     MESSAGE_SWIPED: 'message_swiped',
     MESSAGE_SENT: 'message_sent',
     MESSAGE_RECEIVED: 'message_received',
+    // Non-streaming saveReply appends extra n>1 candidates after MESSAGE_RECEIVED;
+    // this fires once they (and their reasoning) are attached, before the chat save.
+    MESSAGE_SWIPES_APPENDED: 'message_swipes_appended',
     MESSAGE_EDITED: 'message_edited',
     MESSAGE_DELETED: 'message_deleted',
     MESSAGE_UPDATED: 'message_updated',

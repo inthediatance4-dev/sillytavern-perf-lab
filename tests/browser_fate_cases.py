@@ -1448,6 +1448,66 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     held = fate()['held']
     apply(held)
 
+    # Non-streaming n>1: extra candidates are appended after MESSAGE_RECEIVED, so a
+    # block riding in a later candidate must still be stripped before the chat save.
+    configure(pb_story, piggyback={'story': pb_story, 'events': pb_events}, piggybackChannel='candidate')
+    before = len(requests())
+    pb_send()
+    idle()
+    page.wait_for_function("() => SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length === 3")
+    assert len(requests()) == before + 1
+    row = page.evaluate("() => { const m=SillyTavern.getContext().chat.at(-1); return {mes:m.mes, swipes:m.swipes ?? []}; }")
+    assert row['mes'] == pb_story
+    assert len(row['swipes']) >= 2, 'the n>1 candidate must have been appended'
+    assert all(pb_marker not in swipe for swipe in row['swipes'])
+    assert pb_marker not in page.locator('#chat').evaluate('node => node.outerHTML')
+    for event in pb_events:
+        hidden(event)
+    pb_disk_clean(expect_events=True)
+    pb_candidate_order = pb_expected()
+    assert [card['event'] for card in fate()['offer']['cards']] == pb_candidate_order
+    result['checks']['fatePiggybackExtraCandidateStrippedAfterAppend'] = True
+    before = len(requests())
+    open_panel()
+    page.locator('.director_fate_choice').nth(0).click()
+    page.wait_for_function("() => { const f=SillyTavern.getContext().chatMetadata.director?.fate; return f?.held && !f.offer; }")
+    idle()
+    assert len(requests()) == before, 'a pregenerated candidate pick must spend no provider call'
+    assert fate()['held']['event'] == pb_candidate_order[0]
+    apply(fate()['held'])
+
+    # Reasoning channel: a block emitted in reasoning_content must be stripped from
+    # extra.reasoning and its swipe copy before save, never reaching disk or the DOM.
+    show_thoughts_before = page.evaluate("async () => (await import('/scripts/openai.js')).oai_settings.show_thoughts")
+    page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.show_thoughts = true; }")
+    configure(pb_story, piggyback={'story': pb_story, 'events': pb_events}, piggybackChannel='reasoning')
+    before = len(requests())
+    pb_send()
+    idle()
+    page.wait_for_function("() => SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length === 3")
+    assert len(requests()) == before + 1
+    row = page.evaluate("""() => { const m=SillyTavern.getContext().chat.at(-1);
+        return {mes:m.mes, reasoning:m.extra?.reasoning ?? null, swipeReasoning:(m.swipe_info ?? []).map(s=>s.extra?.reasoning ?? null)}; }""")
+    assert row['mes'] == pb_story
+    assert row['reasoning'] is not None and pb_marker not in row['reasoning']
+    assert all(pb_marker not in (value or '') for value in row['swipeReasoning'])
+    for event in pb_events:
+        assert event not in (row['reasoning'] or '')
+    assert pb_marker not in page.locator('#chat').evaluate('node => node.outerHTML')
+    for event in pb_events:
+        hidden(event)
+    pb_disk_clean()
+    result['checks']['fatePiggybackReasoningChannelStrippedBeforeSave'] = True
+    page.evaluate("async value => { (await import('/scripts/openai.js')).oai_settings.show_thoughts = value; }", show_thoughts_before)
+    # The block lived only in reasoning, so the faces carry no event; the pick draws quietly.
+    configure(json.dumps({'event':'FATE_PB_REASONING_PICK: a quiet draw after a reasoning-only block.'}))
+    open_panel()
+    page.locator('.director_fate_choice').nth(0).click()
+    page.wait_for_function("() => { const f=SillyTavern.getContext().chatMetadata.director?.fate; return f?.held && !f.offer; }")
+    idle()
+    assert fate()['held']['event'] == 'FATE_PB_REASONING_PICK: a quiet draw after a reasoning-only block.'
+    apply(fate()['held'])
+
     # Streaming paints the block while tokens arrive; the finalized row, DOM and
     # disk copy must all be clean, and the offer still commits.
     page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }")

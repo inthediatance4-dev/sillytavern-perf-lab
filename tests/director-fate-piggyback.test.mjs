@@ -12,6 +12,7 @@ globalThis.localStorage = { getItem: () => null };
 const events = Object.fromEntries([
     'CHAT_CHANGED', 'GENERATION_STARTED', 'GENERATION_STOPPED', 'GENERATION_ENDED',
     'GENERATE_AFTER_DATA', 'GENERATION_COMPLETED', 'MESSAGE_SENT', 'MESSAGE_RECEIVED', 'MESSAGE_DELETED',
+    'MESSAGE_SWIPES_APPENDED',
 ].map(name => [name, name]));
 
 const faces = [
@@ -76,9 +77,11 @@ function lab({ piggyback = true, group = false } = {}) {
             await emit('GENERATE_AFTER_DATA', data, false);
             return { prepared, requestChat, data, token: row.mes };
         },
-        async receive(text, { swipes = null, slot = null } = {}) {
+        async receive(text, { swipes = null, slot = null, extra = null, swipeInfo = null } = {}) {
             const message = { is_user: false, name: 'Bot', mes: text };
             if (swipes) { message.swipes = swipes; message.swipe_id = 0; }
+            if (extra) message.extra = extra;
+            if (swipeInfo) message.swipe_info = swipeInfo;
             if (slot === null) context.chat.push(message);
             else context.chat[slot] = message;
             const index = slot === null ? context.chat.length - 1 : slot;
@@ -165,17 +168,20 @@ test('one normal reply carries the offer: shielded injection, restore, strip bef
     assert.ok(fate.offer);
     assert.equal(fate.offer.cards.length, 3);
     assert.equal(fate.rerolls, 1);
+    assert.equal(fate.offer.strength, 'medium');
     assert.deepEqual(fate.offer.cards.map(card => card.event), privateEvents);
     assert.deepEqual(fixture.controller.view().offer.cards, rolledFaces.map(({ category, title, rarity }) => ({ category, title, rarity })));
+    assert.equal(fixture.controller.view().offer.pregenerated, true);
+    assert.equal(fixture.controller.view().offer.strength, 'medium');
     assert.equal(JSON.stringify(fixture.controller.view()).includes('PRIVATE_EVENT'), false);
 
     const savesBefore = fixture.saves;
-    assert.equal(await fixture.controller.pick(1, 'strong'), true);
+    assert.equal(await fixture.controller.pick(1, 'medium'), true);
     assert.equal(fixture.quietCalls.length, 0);
     assert.equal(fixture.saves, savesBefore + 1);
     assert.equal(fixture.metadata.director.fate.offer, null);
     assert.equal(fixture.metadata.director.fate.held.event, privateEvents[1]);
-    assert.equal(fixture.metadata.director.fate.held.strength, 'strong');
+    assert.equal(fixture.metadata.director.fate.held.strength, 'medium');
     assert.equal(fixture.metadata.director.fate.held.rarity, rolledFaces[1].rarity);
 });
 
@@ -340,4 +346,87 @@ test('faces rolled for the instruction respect recent categories and pity', asyn
     assert.equal((instruction.match(/第\d张: /g) ?? []).length, 3);
     // random() === 0 rolls three commons; pity >= 8 must upgrade one to rare.
     assert.equal(instruction.includes(RARITIES.rare.line), true);
+});
+
+test('a long story prefix does not reject an otherwise valid block', () => {
+    const raw = `${'长'.repeat(20000)}\n${blockFor(faces)}`;
+    assert.deepEqual(parsePiggybackEvents(raw, faces), privateEvents.map(text => text.trim()));
+});
+
+test('the reasoning channels are stripped alongside the story text', async () => {
+    const fixture = lab();
+    const request = await fixture.request();
+    const message = await fixture.receive(`Story.\n${blockFor()}`, {
+        swipes: [`Story.\n${blockFor()}`],
+        extra: { reasoning: `Thinking.\n${blockFor()}` },
+        swipeInfo: [{ extra: { reasoning: `Swipe think.\n${blockFor()}` } }],
+    });
+    assert.equal(message.mes, 'Story.');
+    assert.deepEqual(message.swipes, ['Story.']);
+    assert.equal(message.extra.reasoning, 'Thinking.');
+    assert.equal(message.swipe_info[0].extra.reasoning, 'Swipe think.');
+    await fixture.complete(request.data);
+    assert.deepEqual(fixture.metadata.director.fate.offer.cards.map(card => card.event), privateEvents);
+});
+
+test('non-streaming candidates appended after MESSAGE_RECEIVED are stripped before save', async () => {
+    const fixture = lab();
+    const request = await fixture.request();
+    // The primary candidate is clean; the block rides in an n>1 candidate appended later.
+    const message = await fixture.receive('Clean primary.');
+    assert.equal(message.mes, 'Clean primary.');
+    assert.deepEqual(fixture.repaints, []);
+    // Native saveReply appends the extra candidates and their reasoning after MESSAGE_RECEIVED.
+    message.swipes = ['Clean primary.', `Alt candidate.\n${blockFor()}`];
+    message.swipe_id = 0;
+    message.swipe_info = [{ extra: {} }, { extra: { reasoning: `Think.\n${blockFor()}` } }];
+    await fixture.emit('MESSAGE_SWIPES_APPENDED', 1);
+    assert.deepEqual(message.swipes, ['Clean primary.', 'Alt candidate.']);
+    assert.equal(message.swipe_info[1].extra.reasoning, 'Think.');
+    await fixture.complete(request.data);
+    assert.deepEqual(fixture.metadata.director.fate.offer.cards.map(card => card.event), privateEvents);
+});
+
+test('picking a pregenerated offer at another strength falls back to a quiet draw', async () => {
+    for (const strength of ['light', 'strong']) {
+        const fixture = lab();
+        await fixture.round(`Reply.\n${blockFor()}`);
+        assert.equal(fixture.controller.view().offer.pregenerated, true);
+        assert.equal(fixture.controller.view().offer.strength, 'medium');
+        assert.equal(await fixture.controller.pick(1, strength), true);
+        assert.equal(fixture.quietCalls.length, 1);
+        assert.equal(fixture.metadata.director.fate.held.event, 'QUIET_FALLBACK_EVENT');
+        assert.equal(fixture.metadata.director.fate.held.strength, strength);
+    }
+});
+
+test('a spent swap stays spent through a piggyback reply; applying refills it', async () => {
+    const fixture = lab();
+    fixture.metadata.director = { fate: { version: 1, rerolls: 0 } };
+    await fixture.round(`Reply.\n${blockFor()}`);
+    assert.ok(fixture.metadata.director.fate.offer);
+    assert.equal(fixture.metadata.director.fate.rerolls, 0, 'dealing must not refill a spent swap');
+    assert.equal(await fixture.controller.pick(0, 'medium'), true);
+    fixture.setGenerate(async () => {
+        await fixture.emit('GENERATION_STARTED', 'normal', {}, false);
+        const requestChat = fixture.context.chat.map(message => ({ ...message }));
+        fixture.controller.prepare('normal', requestChat);
+        const row = requestChat.find(message => message.extra?.directorFatePrompt);
+        assert.ok(row, 'apply must inject the held event');
+        const data = { prompt: row.mes, input: row.mes };
+        await fixture.emit('GENERATE_AFTER_DATA', data, false);
+        await fixture.receive('The event happens.');
+        await fixture.complete(data);
+    });
+    assert.equal(await fixture.controller.apply(), true);
+    assert.equal(fixture.metadata.director.fate.rerolls, 1, 'applying is the fresh deal that refills');
+});
+
+test('a corrupt stored offer strength drops the offer on read', async () => {
+    const fixture = lab();
+    await fixture.round(`Reply.\n${blockFor()}`);
+    fixture.metadata.director.fate.offer.strength = 'overwhelming';
+    assert.equal(fixture.controller.view().offer, null);
+    fixture.metadata.director.fate.offer.strength = 'medium';
+    assert.ok(fixture.controller.view().offer);
 });

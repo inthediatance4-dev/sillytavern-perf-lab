@@ -656,3 +656,31 @@ test('the draw button shows one free swap, then locks with a hint until the offe
     assert.equal(fixture.query('#director_fate_status').textContent, '抽取一张牌，让故事迎来转折。');
     await fixture.close();
 });
+
+test('the cost hint tells whether picking spends a model call', async t => {
+    const fixture = lab(t);
+    fixture.open();
+    const cost = fixture.query('#director_fate_cost');
+    const strength = fixture.query('#director_fate_strength');
+    const cards = [{ title: '一', rarity: 'common' }, { title: '二', rarity: 'rare' }, { title: '三', rarity: 'legendary' }];
+    // No offer: the classic deal-then-write explanation.
+    assert.ok(cost.textContent.includes('不连模型'));
+    assert.ok(cost.textContent.includes('生成一次'));
+    // A pregenerated offer picked at its bound strength is free.
+    fixture.setView({ offer: { id: 'offer', cards, strength: 'medium', pregenerated: true } });
+    strength.value = 'medium';
+    strength.fire('change');
+    assert.ok(cost.textContent.includes('不再调用模型'));
+    // Another strength must rewrite the face, so it costs one call.
+    strength.value = 'strong';
+    strength.fire('change');
+    assert.ok(cost.textContent.includes('再调用一次模型'));
+    assert.ok(cost.textContent.includes('明显转折'));
+    // A face-only offer keeps the two-call explanation even at medium.
+    fixture.setView({ offer: { id: 'offer2', cards, strength: null, pregenerated: false } });
+    strength.value = 'medium';
+    strength.fire('change');
+    assert.ok(cost.textContent.includes('生成一次'));
+    assert.equal(cost.textContent.includes('不再调用模型'), false);
+    await fixture.close();
+});

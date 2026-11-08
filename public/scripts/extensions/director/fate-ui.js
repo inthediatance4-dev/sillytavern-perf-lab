@@ -275,6 +275,21 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         }
     }
 
+    function syncCost(view) {
+        const cost = panel.querySelector('#director_fate_cost');
+        if (!cost) return;
+        const offer = view.offer;
+        const strength = panel.querySelector('#director_fate_strength')?.value;
+        // Piggyback offers arrive pre-written at one strength; only that strength picks for free.
+        if (offer?.pregenerated && strength === offer.strength) {
+            cost.textContent = '这批牌已随上一条回复写好，按当前强度选牌不再调用模型；点「让意外发生」就立刻续写剧情。';
+        } else if (offer?.pregenerated) {
+            cost.textContent = `这批牌已按「${labels[offer.strength] ?? labels.medium}」预先写好；改用其他强度选牌，会再调用一次模型重写牌面。点「让意外发生」就立刻续写剧情。`;
+        } else {
+            cost.textContent = '发牌在这台设备上完成，不连模型。选定一张后，会再用当前的模型连接生成一次，把牌面写出来；点「让意外发生」就立刻续写剧情。';
+        }
+    }
+
     function refresh() {
         if (!panel) return;
         const view = controller.view();
@@ -304,6 +319,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         panel.querySelector('#director_fate_strength_label').textContent = card ? labels[card.strength] : '尚未抽牌';
         panel.querySelector('#director_fate_rarity').textContent = card ? rarityLabel(reveal?.rarity ?? card.rarity) : '';
         syncOffer(view);
+        syncCost(view);
         panel.querySelector('#director_fate_status').textContent = error || (view.busy
             ? applying ? '命运在转动…' : '正在为当前剧情抽牌…'
             : showOffer ? (rerollSpent ? '三张牌已备好，请选择一张。本次已换过一组。' : '三张牌已备好，请选择一张。')
@@ -419,6 +435,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         offer.setAttribute('role', 'group');
         offer.setAttribute('aria-label', '三张命运牌');
         const strength = select('director_fate_strength', labels, 'medium');
+        strength.addEventListener('change', refresh);
         const status = document.createElement('p');
         status.id = 'director_fate_status';
         status.setAttribute('role', 'status');
@@ -471,7 +488,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         });
         controls.append(draw, apply, discard, flip, jump);
         const cost = document.createElement('small');
-        cost.textContent = '发牌在这台设备上完成，不连模型。选定一张后，会再用当前的模型连接生成一次，把牌面写出来；点「让意外发生」就立刻续写剧情。';
+        cost.id = 'director_fate_cost';
         current.append(card, offer, labelFor(strength, '下一张的强度'), strength, status, controls, cost);
         const log = document.createElement('div');
         log.id = 'director_fate_log';

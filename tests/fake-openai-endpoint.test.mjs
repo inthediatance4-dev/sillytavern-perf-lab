@@ -87,3 +87,30 @@ test('piggyback mode echoes the faces named in the request and clears on reconfi
         assert.equal(cleared, 'Plain again');
     } finally { await fake.close(); }
 });
+
+test('piggyback channel routes the private block into an extra candidate or reasoning', async () => {
+    const fake = await createFakeOpenAI({ reply: 'Story body.', rate: 10000, tokens: 8 });
+    try {
+        const piggyback = { story: 'Story body.', events: ['ONE', 'TWO', 'THREE'] };
+        const instruction = '第1张: category="echo", title="尘封的低语"。\n第2张: category="gift", title="命运的馈赠"。\n第3张: category="turn", title="悄然转向"。';
+        const block = '[[DIRECTOR_FATE_OFFER]]\n' + JSON.stringify({ events: [
+            { category: 'echo', title: '尘封的低语', event: 'ONE' },
+            { category: 'gift', title: '命运的馈赠', event: 'TWO' },
+            { category: 'turn', title: '悄然转向', event: 'THREE' },
+        ] });
+        const body = { model: 'synthetic', messages: [{ role: 'system', content: instruction }], stream: false };
+        const configure = channel => fetch(new URL('/__configure', fake.url), { method: 'POST', body: JSON.stringify({ reply: 'Story body.', tokens: 8, rate: 10000, piggyback, piggybackChannel: channel }) });
+        await configure('candidate');
+        const candidate = (await (await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify(body) })).json()).choices;
+        assert.equal(candidate.length, 2);
+        assert.equal(candidate[0].message.content, 'Story body.');
+        assert.equal(candidate[0].message.reasoning_content, undefined);
+        assert.equal(candidate[1].message.content, 'Story body.\n' + block);
+        await configure('reasoning');
+        const reasoning = (await (await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify(body) })).json()).choices;
+        assert.equal(reasoning.length, 1);
+        assert.equal(reasoning[0].message.content, 'Story body.');
+        assert.equal(reasoning[0].message.reasoning_content, 'Synthetic reasoning.\nStory body.\n' + block);
+        assert.equal((await fetch(new URL('/__configure', fake.url), { method: 'POST', body: JSON.stringify({ piggybackChannel: 'bogus' }) })).status, 400);
+    } finally { await fake.close(); }
+});

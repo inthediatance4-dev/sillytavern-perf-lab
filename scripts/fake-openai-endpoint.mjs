@@ -52,6 +52,7 @@ function piggybackReply(payload, piggyback) {
 export async function createFakeOpenAI(options = {}) {
     let fixture = streamingFixture(options);
     let piggyback = null;
+    let piggybackChannel = 'story';
     let currentOptions = options;
     let nextStatus = 0;
     const requests = [], generations = [];
@@ -69,8 +70,11 @@ export async function createFakeOpenAI(options = {}) {
         let payload;
         try { payload = JSON.parse(body); } catch { response.writeHead(400).end('{}'); return; }
         if (pathname === '/__configure') {
-            const { nextStatus: status = 0, piggyback: piggybackOption, ...fixtureOptions } = payload;
+            const { nextStatus: status = 0, piggyback: piggybackOption, piggybackChannel: channelOption, ...fixtureOptions } = payload;
             if (status !== 0 && (!Number.isInteger(status) || status < 400 || status > 599)) {
+                response.writeHead(400).end('{}'); return;
+            }
+            if (channelOption !== undefined && !['story', 'candidate', 'reasoning'].includes(channelOption)) {
                 response.writeHead(400).end('{}'); return;
             }
             if (piggybackOption && (typeof piggybackOption.story !== 'string' || !Array.isArray(piggybackOption.events)
@@ -81,6 +85,7 @@ export async function createFakeOpenAI(options = {}) {
                 if (Object.keys(fixtureOptions).length) { fixture = streamingFixture(fixtureOptions); currentOptions = fixtureOptions; }
             } catch { response.writeHead(400).end('{}'); return; }
             piggyback = piggybackOption ?? null;
+            piggybackChannel = channelOption ?? 'story';
             nextStatus = status;
             response.end(JSON.stringify({ configured: true }));
             return;
@@ -95,10 +100,17 @@ export async function createFakeOpenAI(options = {}) {
             response.writeHead(generation.status).end(JSON.stringify({ error: { message: 'Synthetic configured API failure' } }));
             return;
         }
-        const active = piggyback ? streamingFixture({ ...currentOptions, reply: piggybackReply(payload, piggyback) }) : fixture;
+        const compliant = piggyback ? piggybackReply(payload, piggyback) : null;
+        const active = piggyback ? streamingFixture({ ...currentOptions, reply: piggybackChannel === 'story' ? compliant : piggyback.story }) : fixture;
         if (!payload.stream) {
             generation.lastChunkEpochMs = performance.timeOrigin + performance.now();
-            response.end(JSON.stringify({ id: 'synthetic', object: 'chat.completion', model: payload.model, usage: { prompt_tokens: 1, completion_tokens: active.tokens, total_tokens: active.tokens + 1 }, choices: [{ index: 0, message: { role: 'assistant', content: active.content }, finish_reason: 'stop' }] }));
+            const primary = { role: 'assistant', content: active.content };
+            // A compliant model may leak the private block into an extra n>1 candidate
+            // or into reasoning_content instead of the story; both must be sanitized.
+            if (piggyback && piggybackChannel === 'reasoning') primary.reasoning_content = 'Synthetic reasoning.\n' + compliant;
+            const choices = [{ index: 0, message: primary, finish_reason: 'stop' }];
+            if (piggyback && piggybackChannel === 'candidate') choices.push({ index: 1, message: { role: 'assistant', content: compliant }, finish_reason: 'stop' });
+            response.end(JSON.stringify({ id: 'synthetic', object: 'chat.completion', model: payload.model, usage: { prompt_tokens: 1, completion_tokens: active.tokens, total_tokens: active.tokens + 1 }, choices }));
             return;
         }
         response.setHeader('Content-Type', 'text/event-stream');

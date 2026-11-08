@@ -1,6 +1,6 @@
 import { messageFingerprint } from './instruct.js';
 import { ALL_TITLES, CATEGORIES, CATEGORY_IDS, RARITIES, findCategoryByTitle, rollOffer } from './fate-decks.js';
-import { buildPiggybackInstruction, parsePiggybackEvents, piggybackBlockStart, stripPiggyback } from './fate-piggyback.js';
+import { buildPiggybackInstruction, parsePiggybackEvents, piggybackBlockStart, stripPiggyback, PIGGYBACK_STRENGTH } from './fate-piggyback.js';
 
 /** Legacy shared key is only cleaned up; new Fate prompts are request-local. */
 export const FATE_PROMPT_KEY = 'director_fate';
@@ -44,6 +44,8 @@ function readOffer(value) {
         if (Object.hasOwn(card, 'event') && !validEvent(card.event)) return null;
         seen.add(category.id);
     }
+    // A piggyback offer records the strength its events were written at.
+    if (Object.hasOwn(value, 'strength') && !Object.hasOwn(STRENGTHS, value.strength)) return null;
     return value;
 }
 
@@ -267,6 +269,7 @@ export function createFateController(getContext, options = {}) {
     };
     const publicOffer = offer => offer ? {
         id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity })),
+        strength: offer.strength ?? null, pregenerated: offer.cards.every(card => validEvent(card.event)),
     } : null;
     const view = () => {
         const context = getContext();
@@ -427,8 +430,10 @@ export function createFateController(getContext, options = {}) {
         nonce++;
         const snapshot = capture(context);
         const chosen = offer.cards[index];
-        // A piggyback offer already carries the event; picking it spends no provider call.
-        if (validEvent(chosen.event)) {
+        // A piggyback offer already carries the event written at its bound strength;
+        // picking it there spends no provider call. Another strength needs its own draw
+        // so the event matches the choice rather than just relabelling a medium event.
+        if (validEvent(chosen.event) && strength === (offer.strength ?? PIGGYBACK_STRENGTH)) {
             const operation = busy = { snapshot, phase: 'drawing' };
             notify();
             try {
@@ -769,7 +774,9 @@ export function createFateController(getContext, options = {}) {
         // A deviating model keeps the faces; each pick then falls back to its own quiet draw.
         const cards = record.cards.map((card, index) => events ? { ...card, event: events[index] } : { ...card });
         try {
-            await commit(record.snapshot, { ...value, offer: { id: uuid(), cards }, rerolls: 1 });
+            // Dealing never refills the swap; only applying a held card does. Keep the
+            // allowance as-is and bind the offer to the strength the events were written at.
+            await commit(record.snapshot, { ...value, offer: { id: uuid(), cards, strength: PIGGYBACK_STRENGTH } });
         } catch {
             if (current(record.snapshot)) onError('这一组命运牌没能记下来，请手动抽取。');
         }
@@ -797,23 +804,44 @@ export function createFateController(getContext, options = {}) {
     };
     on('GENERATION_ENDED', () => finish(false));
     on('GENERATION_STOPPED', () => finish(true));
+    // Strip the private block from every channel a reply can persist or render: the
+    // active text, all swipe candidates, and the reasoning copies. Captures the raw
+    // story text for the offer parse before stripping. Idempotent, so the native
+    // post-append pass (non-streaming swipes arrive after MESSAGE_RECEIVED) is safe.
+    const stripPiggybackMessage = (message, record) => {
+        if (!isAi(message)) return false;
+        const swipes = Array.isArray(message.swipes) ? message.swipes : [];
+        const swipeInfo = Array.isArray(message.swipe_info) ? message.swipe_info : [];
+        const raw = [message.mes, swipes[swipeIdOf(message) ?? 0], ...swipes]
+            .find(text => typeof text === 'string' && piggybackBlockStart(text) >= 0);
+        if (raw && record) record.raw ??= raw;
+        let stripped = false;
+        const clean = text => {
+            if (typeof text !== 'string') return text;
+            const next = stripPiggyback(text);
+            if (next !== text) stripped = true;
+            return next;
+        };
+        if (typeof message.mes === 'string') message.mes = clean(message.mes);
+        for (let index = 0; index < swipes.length; index++) swipes[index] = clean(swipes[index]);
+        if (message.extra && typeof message.extra.reasoning === 'string') message.extra.reasoning = clean(message.extra.reasoning);
+        for (const info of swipeInfo) {
+            if (info?.extra && typeof info.extra.reasoning === 'string') info.extra.reasoning = clean(info.extra.reasoning);
+        }
+        return stripped;
+    };
+    const piggybackTarget = messageId => {
+        const record = latestPiggyback;
+        return record && current(record.snapshot) && Number(messageId) === record.slotIndex ? record : null;
+    };
     on('MESSAGE_SENT', clearBound);
     on('MESSAGE_RECEIVED', messageId => {
         const context = getContext();
-        const piggybackRecord = latestPiggyback;
-        if (piggybackRecord && current(piggybackRecord.snapshot) && Number(messageId) === piggybackRecord.slotIndex) {
-            const message = context.chat[Number(messageId)];
-            // Runs before the native save in both streaming and non-streaming paths,
-            // so the private block never reaches disk. Streaming already synced swipes.
-            const swipes = Array.isArray(message?.swipes) ? message.swipes : [];
-            const raw = isAi(message) && [message.mes, swipes[swipeIdOf(message) ?? 0], ...swipes]
-                .find(text => typeof text === 'string' && piggybackBlockStart(text) >= 0);
-            if (raw) {
-                piggybackRecord.raw = raw;
-                if (typeof message.mes === 'string') message.mes = stripPiggyback(message.mes);
-                for (let index = 0; index < swipes.length; index++) {
-                    if (typeof swipes[index] === 'string') swipes[index] = stripPiggyback(swipes[index]);
-                }
+        const piggybackRecord = piggybackTarget(messageId);
+        if (piggybackRecord) {
+            // Runs before the native save and render. Streaming has already appended
+            // swipes; non-streaming appends them later via MESSAGE_SWIPES_APPENDED.
+            if (stripPiggybackMessage(context.chat[Number(messageId)], piggybackRecord)) {
                 try { repaintMessage(Number(messageId)); } catch { /* A repaint failure must not break the save. */ }
             }
         }
@@ -826,6 +854,10 @@ export function createFateController(getContext, options = {}) {
             if (groupScope?.card === value.bound) groupScope.card = bound;
             context.saveMetadataDebounced?.();
         } else clearBound();
+    });
+    on('MESSAGE_SWIPES_APPENDED', messageId => {
+        const record = piggybackTarget(messageId);
+        if (record) stripPiggybackMessage(getContext().chat[Number(messageId)], record);
     });
     on('MESSAGE_DELETED', () => {
         const context = getContext();

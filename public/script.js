@@ -4374,7 +4374,10 @@ class StreamingProcessor {
         await this.finalizeIntermediaryMessage(messageId, text, { unlockUI: true });
 
         const isAborted = this.abortController.signal.aborted;
-        if (!isAborted && power_user.auto_swipe && generatedTextFiltered(text)) {
+        // MESSAGE_RECEIVED handlers may have cleaned the reply; filter what was kept,
+        // not the raw stream, so a private appended block cannot sway the auto-swipe.
+        const filteredText = (this.type === 'continue' || this.type === 'append') ? text : (chat[messageId]?.mes ?? text);
+        if (!isAborted && power_user.auto_swipe && generatedTextFiltered(filteredText)) {
             return await swipe(null, SWIPE_DIRECTION.RIGHT, { source: SWIPE_SOURCE.AUTO_SWIPE, repeated: true, forceMesId: chat.length - 1 });
         }
         await saveChatConditional();
@@ -7447,8 +7450,14 @@ export async function saveReply({ type, getMessage, fromStreaming = false, title
         parseReasoningInSwipes(swipes, swipeInfoArray, item.extra?.reasoning_duration);
         for (const swipe of [...swipes]) item.swipes.push(swipe);
         for (const swipeInfo of swipeInfoArray) item.swipe_info.push(swipeInfo);
+        // Candidates arrive after MESSAGE_RECEIVED; let extensions sanitize the full
+        // message (extra swipes and their reasoning) before it is saved or swiped to.
+        !fromStreaming && await eventSource.emit(event_types.MESSAGE_SWIPES_APPENDED, chat.length - 1);
     }
 
+    // Extensions may have cleaned the reply at MESSAGE_RECEIVED (e.g. a private
+    // block); the caller's auto-swipe filter and return value must use that text.
+    if (type === 'normal' && typeof item.mes === 'string') getMessage = item.mes;
     statMesProcess(item, type, characters, this_chid, oldMessage);
     return { type, getMessage };
 }

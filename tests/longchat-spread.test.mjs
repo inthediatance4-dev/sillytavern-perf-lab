@@ -134,7 +134,7 @@ test('reply swipe append preserves aliased input, array identity and render even
         console: { debug() {} }, getMessageTimeStamp: () => 'fixed',
         getGeneratingApi: () => 'synthetic', getGeneratingModel: () => 'synthetic',
         processImageAttachment: async () => {}, parseReasoningInSwipes() {}, statMesProcess() {},
-        event_types: { MESSAGE_RECEIVED: 'received', CHARACTER_MESSAGE_RENDERED: 'rendered' },
+        event_types: { MESSAGE_RECEIVED: 'received', CHARACTER_MESSAGE_RENDERED: 'rendered', MESSAGE_SWIPES_APPENDED: 'swipes_appended' },
         eventSource: { emit: async (...args) => events.push(args) },
         addOneMessage: (item, options) => { assert.equal(item, message); events.push(['render', options.type]); },
     });
@@ -143,7 +143,7 @@ test('reply swipe append preserves aliased input, array identity and render even
     assert.equal(message.swipes, swipes);
     assert.deepEqual(swipes, ['original continued', 'original continued']);
     assert.equal(message.swipe_info.length, 2);
-    assert.deepEqual(events, [['received', 0, 'append'], ['render', 'swipe'], ['rendered', 0, 'append']]);
+    assert.deepEqual(events, [['received', 0, 'append'], ['render', 'swipe'], ['rendered', 0, 'append'], ['swipes_appended', 0]]);
 });
 
 test('message flattening and API chat assembly retain order and fields for 300k messages', () => {

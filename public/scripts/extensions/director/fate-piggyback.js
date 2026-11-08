@@ -4,6 +4,9 @@ import { CATEGORIES, RARITIES } from './fate-decks.js';
  * round of fate costs one provider call instead of two. The block is stripped
  * before the reply is saved or left visible. */
 export const PIGGYBACK_MARKER = '[[DIRECTOR_FATE_OFFER]]';
+// Pregenerated events are written at this strength; a pick at another strength
+// falls back to its own quiet draw so the event always matches the choice.
+export const PIGGYBACK_STRENGTH = 'medium';
 const MAX_BLOCK_LENGTH = 16000;
 const MAX_EVENT_LENGTH = 400;
 const STRENGTH_LINE = 'a meaningful but manageable turn';
@@ -68,9 +71,11 @@ function firstObject(raw) {
  * faces and fall back to the normal per-pick draw.
  */
 export function parsePiggybackEvents(raw, cards) {
-    if (typeof raw !== 'string' || raw.length > MAX_BLOCK_LENGTH || !Array.isArray(cards) || cards.length !== 3) return null;
+    if (typeof raw !== 'string' || !Array.isArray(cards) || cards.length !== 3) return null;
     const start = piggybackBlockStart(raw);
     if (start < 0) return null;
+    // Budget only the private block; a long story prefix must not reject it.
+    if (raw.length - start > MAX_BLOCK_LENGTH) return null;
     let value;
     try {
         value = firstObject(raw.slice(start + PIGGYBACK_MARKER.length));

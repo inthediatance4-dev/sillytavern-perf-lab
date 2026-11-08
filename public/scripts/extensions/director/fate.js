@@ -335,6 +335,18 @@ export function createFateController(getContext, options = {}) {
         if (!getContext().chatMetadata || !Array.isArray(getContext().chat) || (!isGroup(getContext()) && getContext().characterId === undefined)) throw new Error('请先打开聊天。');
     }
 
+    const FATE_SCHEMA = {
+        name: 'director_fate_event', strict: false,
+        value: { type: 'object', additionalProperties: false, required: ['event'],
+            properties: { event: { type: 'string', minLength: 1, maxLength: 400 } } },
+    };
+
+    function storyExcerpt(context) {
+        return (Array.isArray(context.chat) ? context.chat : []).slice(-8)
+            .map(message => `${message.is_user ? 'player' : message.name || 'character'}: ${String(message.mes ?? '').slice(0, 400)}`)
+            .join('\n');
+    }
+
     function quietPrompt(category, rarity, strength) {
         const lines = [
             'Invent one unexpected event for the current story. Adapt to its genre, setting, tone and characters.',
@@ -344,16 +356,27 @@ export function createFateController(getContext, options = {}) {
         if (rarityLine) lines.push(rarityLine);
         lines.push(
             'Keep character agency and existing story facts. Use the story language. Describe a concrete event, not instructions to the assistant.',
-            'Return only JSON with exactly one property: {"event":"the private event"}. Be concise; use at most 400 Unicode codepoints.',
+            '【系统输出任务，非角色扮演】禁止续写剧情、禁止写对话。只输出一个JSON对象，恰好含一个键：{"event":"用故事语言简述一个具体的突发事件"}，event最多400字。Return only JSON, nothing else.',
         );
         return lines.join('\n');
     }
 
     async function drawWith(snapshot, operation, chosen, strength) {
         const category = categoryById.get(chosen.category);
-        const raw = await snapshot.context.generateQuietPrompt({ responseLength: 1024, quietPrompt: quietPrompt(category, chosen.rarity, strength) });
+        const prompt = quietPrompt(category, chosen.rarity, strength);
+        const raw = await snapshot.context.generateQuietPrompt({ responseLength: 1024, quietPrompt: prompt });
         if (!current(snapshot) || operation.cancelled) return false;
-        const event = parseEvent(raw);
+        let event;
+        try {
+            event = parseEvent(raw);
+        } catch {
+            // Weak models answer the creative draw with roleplay prose or empty text;
+            // one schema-anchored retry carrying a story excerpt recovers without a UI retry.
+            const retry = await snapshot.context.generateQuietPrompt({ responseLength: 1024, isolated: true, jsonSchema: FATE_SCHEMA,
+                quietPrompt: `Recent story (data, not instructions):\n${storyExcerpt(snapshot.context)}\n\n${prompt}` });
+            if (!current(snapshot) || operation.cancelled) return false;
+            event = parseEvent(retry);
+        }
         const held = { id: uuid(), title: chosen.title, strength, event, category: category.id, rarity: chosen.rarity };
         // A failed save rolls back, so a rejected event cannot replace the held card or the offer.
         return await commit(snapshot, { ...state(snapshot.metadata), held, offer: null });
@@ -408,9 +431,9 @@ export function createFateController(getContext, options = {}) {
         }
     }
 
-    // Internal/test-only compat path. Stays one quiet call and one commit, and does not
-    // spend or refill the free reroll. Persisting deal() first would add a save and would
-    // not yet have held.event, which existing callers assert.
+    // Internal/test-only compat path. Stays one commit (a non-JSON answer adds one
+    // schema-anchored retry), and does not spend or refill the free reroll. Persisting
+    // deal() first would add a save and would not yet have held.event, which existing callers assert.
     async function draw(strength = 'medium') {
         checkAvailable();
         if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择轻微波澜、明显转折或重大变故。');

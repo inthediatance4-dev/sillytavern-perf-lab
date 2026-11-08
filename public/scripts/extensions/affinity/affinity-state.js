@@ -487,7 +487,7 @@ function validOutcome(event, anchor, refs, offline = false, previous = null) {
         && event.result.quote !== event.acknowledgement.quote;
 }
 
-export function applyAffinityEvaluation(state, proposals, refs, owners, { verified = new Set() } = {}) {
+export function applyAffinityEvaluation(state, proposals, refs, owners, { verified = new Set(), onDrop } = {}) {
     const next = reconcileAffinity(state, refs, owners);
     const map = referenceMap(refs);
     const allowedOwners = ownerIds(owners);
@@ -495,19 +495,22 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
     const frozenOwners = new Set(current().filter(event => event.offline === true).map(event => event.owner));
     const evidence = new Map();
     current().forEach(event => rememberEvidence(evidence, event));
+    const drop = category => { if (typeof onDrop === 'function') { try { onDrop({ category }); } catch { /* Diagnostics cannot alter acceptance. */ } } };
     for (const proposal of Array.isArray(proposals) ? proposals.slice(0, 24) : []) {
-        if (!safeTree(proposal) || !proposalShape(proposal) || !validStructure(proposal) || frozenOwners.has(proposal.owner)) continue;
+        if (!safeTree(proposal) || !proposalShape(proposal)) { drop('shape'); continue; }
+        if (!validStructure(proposal)) { drop('structure'); continue; }
+        if (frozenOwners.has(proposal.owner)) { drop('owner'); continue; }
         const source = bindQuote(proposal.source, map);
         const result = proposal.result ? bindQuote(proposal.result, map) : null;
         const acknowledgement = proposal.acknowledgement ? bindQuote(proposal.acknowledgement, map) : null;
-        if (!source || (proposal.result && !result) || (proposal.acknowledgement && !acknowledgement)
-            || !validOwnerSource(proposal, source, map, allowedOwners)) continue;
+        if (!source || (proposal.result && !result) || (proposal.acknowledgement && !acknowledgement)) { drop('binding'); continue; }
+        if (!validOwnerSource(proposal, source, map, allowedOwners)) { drop('owner'); continue; }
         const anchor = current().find(event => event.id === proposal.anchorId && event.kind === 'promise');
         const key = candidateKey(proposal, refs);
         let event = { ...proposal, id: `${next.id}:${proposal.kind === 'promise' ? 'p' : 'e'}:${next.nextId}`, key,
             source, ...(result ? { result } : {}), ...(acknowledgement ? { acknowledgement } : {}), verified: verified instanceof Set && verified.has(key) };
         const previous = findEvidence(evidence, event);
-        if (event.kind === 'outcome' && !validOutcome(event, anchor, map, false, previous)) continue;
+        if (event.kind === 'outcome' && !validOutcome(event, anchor, map, false, previous)) { drop('outcome'); continue; }
         if (previous) {
             // Only zero evidence may gain its first grounded score. Never replace
             // an acknowledgement, or let a new description amplify scored evidence.

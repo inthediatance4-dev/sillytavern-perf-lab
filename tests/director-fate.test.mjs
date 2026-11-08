@@ -168,6 +168,8 @@ test('draw persists a private event but exposes only curated title, strength and
     assert.equal(fixture.context.chat.length, 1);
     assert.equal(fixture.quietCalls[0].responseLength, 1024);
     assert.match(fixture.quietCalls[0].quietPrompt, /JSON/);
+    assert.match(fixture.quietCalls[0].quietPrompt, /禁止续写剧情、禁止写对话/);
+    assert.match(fixture.quietCalls[0].quietPrompt, /Return only JSON, nothing else/);
     view.held.title = 'spoiler';
     assert.notEqual(fixture.controller.view().held.title, 'spoiler');
 });
@@ -360,6 +362,29 @@ test('strict JSON validation never exposes invalid model text and failed redraw 
     assert.equal(fixture.metadata.director.fate.held.event, 'genre-adapted twist');
     assert.equal(fixture.metadata.director.fate.bound.event, before.bound.event);
     await assert.rejects(fixture.controller.draw('invalid'));
+});
+
+test('a non-JSON draw answer recovers through one schema-anchored retry carrying the story excerpt', async () => {
+    const fixture = lab();
+    let answers = 0;
+    fixture.setResponse(() => ++answers === 1 ? '林晚继续说着故事，没有输出任何JSON。' : JSON.stringify({ event: '  recovered twist  ' }));
+    assert.equal(await fixture.controller.draw(), true);
+    assert.equal(fixture.quietCalls.length, 2);
+    assert.equal(fixture.quietCalls[0].isolated, undefined);
+    assert.equal(fixture.quietCalls[1].isolated, true);
+    assert.equal(fixture.quietCalls[1].jsonSchema.name, 'director_fate_event');
+    assert.match(fixture.quietCalls[1].quietPrompt, /Recent story \(data, not instructions\):/);
+    assert.equal(fixture.metadata.director.fate.held.event, 'recovered twist');
+});
+
+test('a failed schema retry still rolls back without exposing model text', async () => {
+    const fixture = lab();
+    await fixture.adopt();
+    const before = structuredClone(fixture.metadata.director.fate);
+    fixture.setResponse('still prose');
+    await assert.rejects(fixture.controller.draw(), error => !String(error).includes('still prose') && /抽取失败/.test(error.message));
+    assert.equal(fixture.quietCalls.length, 3);
+    assert.deepEqual(fixture.metadata.director.fate, before);
 });
 
 test('draw is blocked during generation and late draw results cannot cross chat, owner or revision changes', async () => {

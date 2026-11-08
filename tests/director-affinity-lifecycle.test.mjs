@@ -1776,10 +1776,22 @@ test('round3: extraction teaches null outcome flags for observations and exact o
     const lab = fixture({ interval: 5 });
     await settleMany(lab, 5);
     const prompt = lab.calls[0][0].quietPrompt;
-    assert.match(prompt, /fact\/attitude\/promise.*outcomeKnown=null/);
+    assert.match(prompt, /fact\/attitude\/promise outcomeKnown 必填 null/);
+    assert.match(prompt, /anchorId\/result\/ack仅限outcome/);
     assert.match(prompt, /fact\/attitude.*outcomeKnown.*门槛/);
     assert.match(prompt, /UTF-16/);
     assert.match(prompt, /摘录.*不能.*猜/);
+});
+
+test('apply-stage structural drops are diagnosed: a promise carrying a stray anchorId is rejected visibly', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [{
+        ...factFor(context.chat.at(-1)), kind: 'promise', status: 'agreed', outcomeKnown: null, anchorId: 'invented-anchor',
+    }] }) });
+    await settleMany(lab, 5);
+    assert.equal(lab.state().events.length, 0);
+    const diagnostics = lab.controller.getDiagnostics();
+    assert.equal(diagnostics.counts.parse_schema, 0, 'the proposal passes the parse envelope');
+    assert.ok(diagnostics.counts.apply_structure > 0, 'the structural drop is visible in diagnostics');
 });
 
 test('round3: a repeated major quote verifies its bound tail occurrence and records that exact offset', async () => {

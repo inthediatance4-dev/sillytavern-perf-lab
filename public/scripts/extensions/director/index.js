@@ -1,5 +1,5 @@
 import { Popper } from '../../../lib.js';
-import { activateSendButtons, deactivateSendButtons, doNavbarIconClick, is_send_press, isGenerating, setSendButtonState, showMoreMessages } from '../../../script.js';
+import { activateSendButtons, addOneMessage, deactivateSendButtons, doNavbarIconClick, is_send_press, isGenerating, setSendButtonState, showMoreMessages } from '../../../script.js';
 import { extension_settings, getContext as nativeGetContext, renderExtensionTemplateAsync } from '../../extensions.js';
 import { hasPendingFileAttachment } from '../../chats.js';
 import { POPUP_RESULT, POPUP_TYPE, Popup } from '../../popup.js';
@@ -574,13 +574,14 @@ export async function init() {
         seeded = true;
     }
     if (!settings.fate || typeof settings.fate !== 'object' || Array.isArray(settings.fate)) {
-        settings.fate = { reveal: 'tap', sound: false, motion: 'system' };
+        settings.fate = { reveal: 'tap', sound: false, motion: 'system', piggyback: false };
         seeded = true;
     }
     for (const [key, fallback, valid] of [
         ['reveal', 'tap', ['tap', 'auto', 'off']],
         ['sound', false, [true, false]],
         ['motion', 'system', ['system', 'off']],
+        ['piggyback', false, [true, false]],
     ]) {
         if (!valid.includes(settings.fate[key])) {
             settings.fate[key] = fallback;
@@ -596,6 +597,15 @@ export async function init() {
         save: (_current, shouldSave) => getContext().saveChat({ shouldSave }),
         onRegenerateStart: () => setSendButtonState(true),
         onError: message => toastr.warning(message),
+        piggyback: () => settings.fate.piggyback === true,
+        repaintMessage: messageId => {
+            // Only streaming has painted the row before MESSAGE_RECEIVED; the
+            // non-streaming path renders the already-stripped message itself.
+            const message = getContext().chat[messageId];
+            if (message && document.querySelector(`#chat .mes[mesid="${messageId}"]`)) {
+                addOneMessage(message, { type: 'swipe', forceId: messageId, scroll: false, showSwipes: false });
+            }
+        },
         onChange: () => {
             fateMarks?.invalidate();
             // clearLog has no message-render event; remove its old marks now.
@@ -673,7 +683,7 @@ export async function init() {
         settings.hotkey = String($(this).val()).trim();
         context.saveSettingsDebounced();
     });
-    for (const [id, key] of [['director_fate_reveal', 'reveal'], ['director_fate_sound', 'sound'], ['director_fate_motion', 'motion']]) {
+    for (const [id, key] of [['director_fate_reveal', 'reveal'], ['director_fate_sound', 'sound'], ['director_fate_motion', 'motion'], ['director_fate_piggyback', 'piggyback']]) {
         const control = document.getElementById(id);
         if (control.type === 'checkbox') control.checked = settings.fate[key];
         else control.value = settings.fate[key];

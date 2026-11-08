@@ -2,6 +2,8 @@
 import gzip
 import json
 from pathlib import Path
+import re
+import time
 import urllib.request
 import uuid
 
@@ -193,7 +195,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         saved = json.loads(data)['extension_settings']['director']['fate']
         return all(saved.get(key) == value for key, value in expected.items())
 
-    def reload_browser():
+    def reload_browser(chat_file=None):
         page.reload()
         page.locator('#directorButton').wait_for(state='visible', timeout=30000)
         page.evaluate("async () => { window.__fateLabMain = await import('/script.js'); }")
@@ -203,13 +205,13 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
                 && !document.querySelector('.splash-screen')
                 && !window.__fateLabMain.isChatSaving && !window.__fateLabMain.isGenerating();
         }""", arg=sample['avatar'], timeout=30000)
-        page.evaluate("""async sample => {
+        page.evaluate("""async ({sample, chatFile}) => {
             const c=SillyTavern.getContext();
             const id = c.characters.findIndex(card=>card.avatar===sample.avatar);
-            if (id < 0 || await c.selectCharacterById(String(id), { chatFile:sample.chatName }) !== true) {
+            if (id < 0 || await c.selectCharacterById(String(id), { chatFile }) !== true) {
                 throw new Error('Fate reload did not select the expected character and chat');
             }
-        }""", sample)
+        }""", {'sample': sample, 'chatFile': chat_file or sample['chatName']})
         connect_api(page)
 
     def fade_only():
@@ -1301,4 +1303,196 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert not fate().get('log')
     assert page.locator('#chat .director_fate_mark').count() == 0
     result['checks']['fateClearLogImmediatelyRemovesValidMarksAndPersistsAfterReload'] = True
-    print('Fate sealed draw, adoption, replay, failure/stop, groups, reveal ritual, history and message mark checks passed', flush=True)
+
+    # Piggyback mode: one normal provider call writes the story AND the next
+    # offer's three events. The private block must never reach disk or the final
+    # DOM, and picking a pregenerated card must spend no provider call.
+    pb_marker = '[[DIRECTOR_FATE_OFFER]]'
+    pb_events = ['FATE_PB_ONE: A synthetic first pregenerated turn.',
+                 'FATE_PB_TWO: A synthetic second pregenerated turn.',
+                 'FATE_PB_THREE: A synthetic third pregenerated turn.']
+    pb_story = 'Synthetic piggyback story reply.'
+
+    def pb_disk_offer():
+        return page.evaluate("""async () => {
+            const c = SillyTavern.getContext();
+            const character = c.characters[c.characterId];
+            const response = await fetch('/api/chats/get', { method: 'POST', headers: c.getRequestHeaders(),
+                body: JSON.stringify({ avatar_url: character.avatar, ch_name: character.name, file_name: character.chat }) });
+            if (!response.ok) throw new Error('Piggyback chat read failed');
+            const saved = await response.json();
+            return { saved, offer: saved[0]?.chat_metadata?.director?.fate?.offer ?? null };
+        }""")
+
+    def pb_disk_clean(expect_events=False):
+        # The offer commit saves after the metadata mutation; wait for the disk
+        # header to carry it before judging persistence.
+        deadline = time.time() + 15
+        while True:
+            disk = pb_disk_offer()
+            offer = disk['offer']
+            ready = offer and len(offer.get('cards', [])) == 3 and (not expect_events or all('event' in card for card in offer['cards']))
+            if ready or time.time() > deadline:
+                break
+            time.sleep(0.2)
+        assert ready, f'Committed offer never reached the chat file: {json.dumps(disk["offer"], ensure_ascii=False)}'
+        # The metadata header legitimately stores the committed offer (that is how
+        # it survives reloads); only the message rows must stay free of the block.
+        messages = json.dumps(disk['saved'][1:], ensure_ascii=False)
+        assert pb_marker not in messages
+        for event in pb_events:
+            assert event not in messages
+
+    def pb_send(text='Synthetic piggyback continuation.'):
+        page.locator('#send_textarea').fill(text)
+        page.locator('#send_but').click()
+
+    def pb_expected():
+        # The fake provider echoes the faces in request order; the local roll is
+        # random, so the expected event order follows the faces actually sent.
+        text = '\n'.join(message.get('content', '') for message in requests()[-1].get('messages', [])
+                         if isinstance(message.get('content'), str))
+        faces = re.findall(r'category="([^"]+)", title="([^"]+)"', text)
+        assert len(faces) == 3
+        offer_faces = [(card['category'], card['title']) for card in fate()['offer']['cards']]
+        assert offer_faces == faces
+        return [pb_events[faces.index(face)] for face in offer_faces]
+
+    settings()
+    page.locator('#director_fate_piggyback').wait_for(state='visible')
+    assert not page.locator('#director_fate_piggyback').is_checked()
+    with page.expect_response(lambda response: saved_settings_match(response, piggyback=True)):
+        page.locator('#director_fate_piggyback').check()
+    close_settings()
+    result['checks']['fatePiggybackSettingSeedsOffAndTogglesOn'] = True
+
+    page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }")
+    configure(pb_story, piggyback={'story': pb_story, 'events': pb_events})
+    before = len(requests())
+    chat_before = page.evaluate('SillyTavern.getContext().chat.length')
+    page.evaluate("async () => { await window.__fateLabMain.Generate('normal'); }")
+    idle()
+    page.wait_for_function("() => SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length === 3")
+    assert len(requests()) == before + 1, 'piggyback round must spend exactly one provider call'
+    assert pb_marker in body(before) and '系统附加任务' in body(before)
+    assert '\uE000' not in body(before)
+    assert page.evaluate('SillyTavern.getContext().chat.length') == chat_before + 1
+    assert page.evaluate('SillyTavern.getContext().chat.at(-1).mes') == pb_story
+    assert pb_marker not in page.locator('#chat').evaluate('node => node.outerHTML')
+    for event in pb_events:
+        hidden(event)
+    pb_disk_clean(expect_events=True)
+    offer = fate()['offer']
+    pb_order = pb_expected()
+    assert [card['event'] for card in offer['cards']] == pb_order
+    assert fate()['rerolls'] == 1
+    open_panel()
+    hidden(pb_events[0])
+    close_panel()
+    result['checks']['fatePiggybackOneCallStripsBeforeSaveAndDealsEvents'] = True
+
+    idle()
+    # The piggyback round runs in whichever chat is open (a log fixture chat here),
+    # so reload that exact file instead of the lab's original sample chat.
+    pb_chat_file = page.evaluate('SillyTavern.getContext().characters[SillyTavern.getContext().characterId].chat')
+    reload_browser(pb_chat_file)
+    assert [card['event'] for card in fate()['offer']['cards']] == pb_order
+    open_panel()
+    hidden(pb_events[0])
+    close_panel()
+    result['checks']['fatePiggybackOfferSurvivesReloadWithoutLeakingEvents'] = True
+
+    # An open offer blocks further piggyback injection on the next normal reply.
+    configure('Synthetic plain reply while an offer is open.')
+    before = len(requests())
+    page.evaluate("async () => { await window.__fateLabMain.Generate('normal'); }")
+    idle()
+    assert pb_marker not in body(before)
+    assert [card['event'] for card in fate()['offer']['cards']] == pb_order
+    result['checks']['fatePiggybackSkipsWhileOfferOpen'] = True
+
+    before = len(requests())
+    open_panel()
+    page.locator('.director_fate_choice').nth(0).click()
+    page.wait_for_function("() => { const f=SillyTavern.getContext().chatMetadata.director?.fate; return f?.held && !f.offer; }")
+    idle()
+    assert len(requests()) == before, 'picking a pregenerated card must not call the provider'
+    held = fate()['held']
+    assert held['event'] == pb_order[0]
+    hidden(pb_events[0])
+    result['checks']['fatePiggybackPickSpendsNoProviderCall'] = True
+
+    apply(held)
+    assert fate()['bound']['id'] == held['id']
+    result['checks']['fatePiggybackHeldCardAppliesThroughNativePath'] = True
+
+    # A deviating block keeps the faces; the pick then falls back to one quiet draw.
+    configure(pb_story + '\n' + pb_marker + '\n{"events": "not the contract"}')
+    before = len(requests())
+    pb_send()
+    idle()
+    page.wait_for_function("() => SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length === 3")
+    assert len(requests()) == before + 1
+    assert all('event' not in card for card in fate()['offer']['cards'])
+    assert page.evaluate('SillyTavern.getContext().chat.at(-1).mes') == pb_story
+    pb_disk_clean()
+    open_panel()
+    configure(json.dumps({'event':'FATE_PB_FALLBACK: quiet draw after a deviating block.'}))
+    before = len(requests())
+    page.locator('.director_fate_choice').nth(1).click()
+    page.wait_for_function("() => { const f=SillyTavern.getContext().chatMetadata.director?.fate; return f?.held && !f.offer; }")
+    idle()
+    assert len(requests()) == before + 1
+    assert fate()['held']['event'] == 'FATE_PB_FALLBACK: quiet draw after a deviating block.'
+    result['checks']['fatePiggybackMalformedBlockFallsBackToQuietPick'] = True
+    held = fate()['held']
+    apply(held)
+
+    # Streaming paints the block while tokens arrive; the finalized row, DOM and
+    # disk copy must all be clean, and the offer still commits.
+    page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }")
+    configure(pb_story, rate=20, piggyback={'story': pb_story, 'events': pb_events})
+    before = len(requests())
+    pb_send()
+    page.wait_for_function("marker => document.querySelector('#chat .mes.last_mes .mes_text')?.textContent?.includes(marker)", arg=pb_marker, timeout=30000)
+    idle()
+    page.wait_for_function("() => SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length === 3")
+    assert len(requests()) == before + 1
+    assert page.evaluate('SillyTavern.getContext().chat.at(-1).mes') == pb_story
+    assert pb_marker not in page.locator('#chat').evaluate('node => node.outerHTML')
+    for event in pb_events:
+        hidden(event)
+    pb_disk_clean(expect_events=True)
+    pb_stream_order = pb_expected()
+    assert [card['event'] for card in fate()['offer']['cards']] == pb_stream_order
+    page.screenshot(path=str(screenshots / 'piggyback-stream-clean.png'))
+    result['checks']['fatePiggybackStreamingFinalRowDomAndDiskClean'] = True
+    page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = false; }")
+
+    # Turning the setting off returns to the two-call flow without injection.
+    open_panel()
+    page.locator('.director_fate_choice').nth(2).click()
+    page.wait_for_function("() => { const f=SillyTavern.getContext().chatMetadata.director?.fate; return f?.held && !f.offer; }")
+    held = fate()['held']
+    assert held['event'] == pb_stream_order[2]
+    apply(held)
+    settings()
+    with page.expect_response(lambda response: saved_settings_match(response, piggyback=False)):
+        page.locator('#director_fate_piggyback').uncheck()
+    close_settings()
+    disabled_reply = 'Synthetic reply with piggyback disabled.'
+    configure(disabled_reply)
+    before = len(requests())
+    pb_send()
+    # idle() alone can pass before the click's async generation even starts.
+    page.wait_for_function("text => SillyTavern.getContext().chat.at(-1)?.mes === text", arg=disabled_reply, timeout=30000)
+    idle()
+    assert len(requests()) == before + 1
+    assert pb_marker not in body(before)
+    assert not fate().get('offer')
+    reload_browser()
+    settings()
+    assert not page.locator('#director_fate_piggyback').is_checked()
+    close_settings()
+    result['checks']['fatePiggybackDisabledStopsInjectionAndPersists'] = True
+    print('Fate sealed draw, adoption, replay, failure/stop, groups, reveal ritual, history, message mark and piggyback checks passed', flush=True)

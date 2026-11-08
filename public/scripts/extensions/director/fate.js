@@ -1,11 +1,13 @@
 import { messageFingerprint } from './instruct.js';
 import { ALL_TITLES, CATEGORIES, CATEGORY_IDS, RARITIES, findCategoryByTitle, rollOffer } from './fate-decks.js';
+import { buildPiggybackInstruction, parsePiggybackEvents, piggybackBlockStart, stripPiggyback } from './fate-piggyback.js';
 
 /** Legacy shared key is only cleaned up; new Fate prompts are request-local. */
 export const FATE_PROMPT_KEY = 'director_fate';
 const FATE_NARRATOR_NAME = 'Narrator';
 // Remove an entire unknown frame, including private text, or an old short token.
 const FATE_FRAMES = /\uE000(directorfate\d+x[a-zA-Z0-9]+)\uE001[\s\S]*?\uE002\1\uE003|(\uE000directorfate\d+x[a-zA-Z0-9]+\uE001[\s\S]*$)|directorfate\d+x[a-zA-Z0-9]+/g;
+const PIGGYBACK_FRAMES = /\uE000(directorpb\d+x[a-zA-Z0-9]+)\uE001[\s\S]*?\uE002\1\uE003|(\uE000directorpb\d+x[a-zA-Z0-9]+\uE001[\s\S]*$)|directorpb\d+x[a-zA-Z0-9]+/g;
 const STRENGTHS = { light: 'a small, plausible ripple', medium: 'a meaningful but manageable turn', strong: 'a major, consequential upheaval' };
 const categoryById = new Map(CATEGORIES.map(category => [category.id, category]));
 const isGroup = context => context.groupId !== undefined && context.groupId !== null && context.groupId !== '';
@@ -38,6 +40,8 @@ function readOffer(value) {
     for (const card of value.cards) {
         const category = categoryById.get(card?.category);
         if (!category || !category.titles.includes(card.title) || !Object.hasOwn(RARITIES, card.rarity) || seen.has(category.id)) return null;
+        // Piggyback offers carry a pregenerated event; a corrupt one drops the offer.
+        if (Object.hasOwn(card, 'event') && !validEvent(card.event)) return null;
         seen.add(category.id);
     }
     return value;
@@ -224,7 +228,7 @@ export function createFateController(getContext, options = {}) {
         random = Math.random, generate = context => context.generate('normal'), onChange = () => {},
         save = context => context.saveMetadata(), setSendButtonState = () => {},
         deactivateSendButtons = () => {}, activateSendButtons = () => {}, onRegenerateStart = () => {},
-        onError = () => {}, onReveal = () => {} } = options;
+        onError = () => {}, onReveal = () => {}, piggyback = () => false, repaintMessage = () => {} } = options;
     let revision = 0;
     let nonce = 0;
     let tokenSerial = 0;
@@ -232,8 +236,11 @@ export function createFateController(getContext, options = {}) {
     let armed = null;
     let regenerateDelete = null;
     let groupScope = null;
+    let latestPiggyback = null;
     const tokens = new Map();
+    const piggybackTokens = new Map();
     const requests = new WeakMap();
+    const piggybackRequests = new WeakMap();
     const activeRequests = new Set();
     const dirtyMetadata = new WeakSet();
     const notify = () => { try { onChange(); } catch { /* UI failures cannot expose the private response. */ } };
@@ -419,10 +426,26 @@ export function createFateController(getContext, options = {}) {
         if (!offer || !Number.isInteger(index) || index < 0 || index > 2) throw new Error('请选择三张牌中的一张。');
         nonce++;
         const snapshot = capture(context);
+        const chosen = offer.cards[index];
+        // A piggyback offer already carries the event; picking it spends no provider call.
+        if (validEvent(chosen.event)) {
+            const operation = busy = { snapshot, phase: 'drawing' };
+            notify();
+            try {
+                const category = categoryById.get(chosen.category);
+                const held = { id: uuid(), title: chosen.title, strength, event: chosen.event.trim(), category: category.id, rarity: chosen.rarity };
+                return await commit(snapshot, { ...state(snapshot.metadata), held, offer: null });
+            } catch {
+                if (!current(snapshot)) return false;
+                throw new Error('命运牌抽取失败，请重试。');
+            } finally {
+                finishDrawing(operation, snapshot);
+            }
+        }
         const operation = busy = { snapshot, phase: 'drawing' };
         notify();
         try {
-            return await drawWith(snapshot, operation, offer.cards[index], strength);
+            return await drawWith(snapshot, operation, chosen, strength);
         } catch {
             if (!current(snapshot) || operation.cancelled) return false;
             throw new Error('命运牌抽取失败，请重试。');
@@ -556,7 +579,25 @@ export function createFateController(getContext, options = {}) {
             scope = scoped ? groupScope : null;
             slotIndex = bound.slotIndex;
         }
-        if (!card) return false;
+        if (!card) {
+            // Piggyback mode rolls the next offer's faces locally and asks the story
+            // reply to carry their events, so a fate round costs one provider call.
+            // It stays out of applies, groups, and chats that already hold a card
+            // or an open offer the player has not answered yet.
+            if (type !== 'normal' || !piggyback() || attempt || isGroup(context) || value.held || value.offer) return false;
+            const cards = rollOffer(random, { recent: value.recent, pity: value.pity });
+            const text = buildPiggybackInstruction(cards);
+            let tag;
+            do { tag = `directorpb${++tokenSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`; } while (text.includes(tag));
+            const delimiters = { '{': '\uE004', '}': '\uE005', '<': '\uE006', '>': '\uE007', '\r': '\uE008', '\n': '\uE009' };
+            const shielded = text.replace(/[{}<>\r\n]/g, character => delimiters[character]);
+            const token = `\uE000${tag}\uE001${shielded}\uE002${tag}\uE003`;
+            piggybackTokens.set(token, { token, text, cards, slotIndex: context.chat.length,
+                snapshot: capture(context, true), invalid: false });
+            requestChat.push({ name: FATE_NARRATOR_NAME, is_user: false, is_system: true, mes: token,
+                extra: { type: 'narrator', directorFatePiggyback: true } });
+            return true;
+        }
         const text = `[Director Fate: introduce this fixed event naturally in this story reply.]\n${card.event}`;
         // Budget the complete text. Also protect whitespace that text-completion
         // assembly normalizes, so restoring literals cannot grow the reserved input.
@@ -607,8 +648,9 @@ export function createFateController(getContext, options = {}) {
         clearPrompt();
         revision++;
         nonce++;
-        busy = armed = regenerateDelete = groupScope = null;
+        busy = armed = regenerateDelete = groupScope = latestPiggyback = null;
         tokens.clear();
+        piggybackTokens.clear();
         activeRequests.clear();
         notify();
     });
@@ -619,6 +661,9 @@ export function createFateController(getContext, options = {}) {
         for (const record of activeRequests) record.invalid = true;
         activeRequests.clear();
         tokens.clear();
+        if (latestPiggyback) latestPiggyback.invalid = true;
+        latestPiggyback = null;
+        piggybackTokens.clear();
         regenerateDelete = null;
         const context = getContext();
         const bound = state(context.chatMetadata).bound;
@@ -631,6 +676,7 @@ export function createFateController(getContext, options = {}) {
     on('GENERATE_AFTER_DATA', (data, dryRun) => {
         if (!data || typeof data !== 'object') return;
         const matched = new Set();
+        const piggybackMatched = new Set();
         const seen = new WeakSet();
         for (const key of ['prompt', 'input']) if (Object.hasOwn(data, key)) {
             data[key] = visit(data[key], value => value.replace(FATE_FRAMES, (frame, _tag, malformedFrame) => {
@@ -638,6 +684,12 @@ export function createFateController(getContext, options = {}) {
                 const record = tokens.get(frame);
                 if (!record || record.invalid || !current(record.snapshot)) return '';
                 matched.add(record);
+                return record.text;
+            }).replace(PIGGYBACK_FRAMES, (frame, _tag, malformedFrame) => {
+                if (malformedFrame) console.warn('Director Fate stripped a malformed piggyback frame and the remaining prompt');
+                const record = piggybackTokens.get(frame);
+                if (!record || record.invalid || !current(record.snapshot)) return '';
+                piggybackMatched.add(record);
                 return record.text;
             }), seen);
         }
@@ -647,6 +699,12 @@ export function createFateController(getContext, options = {}) {
                 activeRequests.add(record);
                 if (record.attempt) record.attempt.claimed = true;
                 if (record.scope) record.scope.injected = true;
+            }
+        }
+        for (const record of piggybackMatched) {
+            if (!dryRun && !record.invalid) {
+                piggybackRequests.set(data, record);
+                latestPiggyback = record;
             }
         }
         if (!dryRun) clearPrompt();
@@ -698,12 +756,34 @@ export function createFateController(getContext, options = {}) {
         }
         await persist(record.snapshot, next, record.attempt ? publicReveal(bound) : null);
     });
+    on('GENERATION_COMPLETED', async ({ data, type, chatId, chatMetadata }) => {
+        const record = piggybackRequests.get(data);
+        piggybackRequests.delete(data);
+        if (!record || record.invalid || type !== 'normal' || !current(record.snapshot)
+            || chatId !== record.snapshot.chatId || chatMetadata !== record.snapshot.metadata) return;
+        if (latestPiggyback === record) latestPiggyback = null;
+        const value = state(chatMetadata);
+        // A card drawn or dealt while the reply was generating owns the state now.
+        if (value.held || value.offer) return;
+        const events = parsePiggybackEvents(record.raw ?? null, record.cards);
+        // A deviating model keeps the faces; each pick then falls back to its own quiet draw.
+        const cards = record.cards.map((card, index) => events ? { ...card, event: events[index] } : { ...card });
+        try {
+            await commit(record.snapshot, { ...value, offer: { id: uuid(), cards }, rerolls: 1 });
+        } catch {
+            if (current(record.snapshot)) onError('这一组命运牌没能记下来，请手动抽取。');
+        }
+    });
     const finish = stopped => {
         clearPrompt();
         regenerateDelete = null;
         if (stopped) {
             for (const record of tokens.values()) record.invalid = true;
             for (const record of activeRequests) record.invalid = true;
+            for (const record of piggybackTokens.values()) record.invalid = true;
+            // Keep latestPiggyback so a stopped partial reply still gets stripped;
+            // its invalid flag only blocks the offer commit.
+            if (latestPiggyback) latestPiggyback.invalid = true;
             if (armed && current(armed.snapshot)) {
                 // Not claimed yet: Generate has no abortController for this call. The interceptor must abort it.
                 if (!armed.claimed) armed.stopped = true;
@@ -720,6 +800,23 @@ export function createFateController(getContext, options = {}) {
     on('MESSAGE_SENT', clearBound);
     on('MESSAGE_RECEIVED', messageId => {
         const context = getContext();
+        const piggybackRecord = latestPiggyback;
+        if (piggybackRecord && current(piggybackRecord.snapshot) && Number(messageId) === piggybackRecord.slotIndex) {
+            const message = context.chat[Number(messageId)];
+            // Runs before the native save in both streaming and non-streaming paths,
+            // so the private block never reaches disk. Streaming already synced swipes.
+            const swipes = Array.isArray(message?.swipes) ? message.swipes : [];
+            const raw = isAi(message) && [message.mes, swipes[swipeIdOf(message) ?? 0], ...swipes]
+                .find(text => typeof text === 'string' && piggybackBlockStart(text) >= 0);
+            if (raw) {
+                piggybackRecord.raw = raw;
+                if (typeof message.mes === 'string') message.mes = stripPiggyback(message.mes);
+                for (let index = 0; index < swipes.length; index++) {
+                    if (typeof swipes[index] === 'string') swipes[index] = stripPiggyback(swipes[index]);
+                }
+                try { repaintMessage(Number(messageId)); } catch { /* A repaint failure must not break the save. */ }
+            }
+        }
         const value = state(context.chatMetadata);
         if (!value.bound || Number(messageId) <= value.bound.slotIndex) return;
         const message = context.chat[Number(messageId)];

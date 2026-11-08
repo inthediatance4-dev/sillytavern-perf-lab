@@ -29,7 +29,11 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
     state = {'serial': 0, 'mode': 'fact', 'hold': False, 'holdStory': False, 'failStory': False,
         'held': [], 'heldStory': [], 'calls': [], 'saves': [], 'fixtureErrors': [], 'verify': True}
     literal = 'AFF_MEMORY_PRIVATE {{char}}: The character remembers the river promise.'
-    marker = re.compile(r'AFFINITY_LITERAL_|affinity', re.IGNORECASE)
+    # Match the literal sentinel and real assembly tags (affinity<serial>x<id>),
+    # not the bare word: restored memory legitimately quotes owner avatar names
+    # such as AffinityTwin-<suffix>.png. Shield/delimiter codepoints are checked
+    # separately in no_frames.
+    marker = re.compile(r'AFFINITY_LITERAL_|affinity[1-9]\d*x[a-zA-Z0-9]')
 
     def configure(text, **extra):
         payload = {'reply': text, 'tokens': 8, 'rate': 10000, 'jitter': 0, **extra}
@@ -149,8 +153,15 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
     def close_settings():
         page.locator('#extensions-settings-button .drawer-toggle').click()
 
+    def open_settings():
+        if not page.locator('#rm_extensions_block').evaluate("node => node.classList.contains('openDrawer')"):
+            page.locator('#extensions-settings-button .drawer-toggle').click()
+        if not page.locator('#affinity_settings .inline-drawer-content').is_visible():
+            page.locator('#affinity_settings .inline-drawer-toggle').click()
+        page.locator('#affinity_enabled').wait_for(state='visible')
+
     def settings(enabled=True, interval=5):
-        open_manager(page)
+        open_settings()
         page.locator('#affinity_enabled').set_checked(enabled)
         page.locator('#affinity_interval').select_option(str(interval))
         close_settings()
@@ -228,7 +239,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         assert not re.search(r'[\uE010-\uE019]', serialized(batch)), 'Affinity frame delimiter reached a model request'
 
     def cadence():
-        open_manager(page)
+        open_settings()
         defaults = page.evaluate("""()=>({enabled:document.querySelector('#affinity_enabled').checked,
             interval:document.querySelector('#affinity_interval').value})""")
         close_settings()
@@ -318,7 +329,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         assert score == 5 and ledger()['events'][0]['verified'] is True, {'score': score, 'events': ledger()['events']}
         assert page.evaluate('offset=>window.__affinityBrowser.completed.slice(offset).map(item=>item.type)', completed) == ['normal'] * 5
         page.set_viewport_size({'width': 390, 'height': 844})
-        open_manager(page)
+        open_settings()
         enabled = page.locator('#affinity_enabled')
         interval = page.locator('#affinity_interval')
         assert enabled.is_visible() and interval.is_visible()
@@ -344,7 +355,7 @@ def run_affinity_checks(page, sample, fake_url, result, connect_api, swipe_messa
         assert stored == {'enabled': False, 'interval': 10}, stored
         close_settings()
         page.evaluate('async()=>{await SillyTavern.getContext().reloadCurrentChat();}')
-        open_manager(page)
+        open_settings()
         assert not enabled.is_checked() and interval.input_value() == '10'
         enabled.check()
         evidence = Path(__file__).resolve().parents[1] / '.evidence' / 'affinity-review'

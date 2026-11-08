@@ -34,8 +34,25 @@ export function streamingFixture({ tokens = 3000, seed = 'opus-streaming-s0', ra
     } finally { encoder.free(); }
 }
 
+// Mimics a compliant piggyback model: echo the faces named in the request's
+// instruction lines so the synthetic block always matches the local roll.
+function piggybackReply(payload, piggyback) {
+    const faces = [];
+    for (const message of payload.messages ?? []) {
+        const text = typeof message.content === 'string' ? message.content : '';
+        for (const match of text.matchAll(/category="([^"]+)", title="([^"]+)"/g)) {
+            faces.push({ category: match[1], title: match[2] });
+        }
+    }
+    if (faces.length !== 3) return piggyback.story;
+    const events = faces.map((face, index) => ({ ...face, event: piggyback.events[index] }));
+    return piggyback.story + '\n[[DIRECTOR_FATE_OFFER]]\n' + JSON.stringify({ events });
+}
+
 export async function createFakeOpenAI(options = {}) {
     let fixture = streamingFixture(options);
+    let piggyback = null;
+    let currentOptions = options;
     let nextStatus = 0;
     const requests = [], generations = [];
     const server = http.createServer(async (request, response) => {
@@ -52,13 +69,18 @@ export async function createFakeOpenAI(options = {}) {
         let payload;
         try { payload = JSON.parse(body); } catch { response.writeHead(400).end('{}'); return; }
         if (pathname === '/__configure') {
-            const { nextStatus: status = 0, ...fixtureOptions } = payload;
+            const { nextStatus: status = 0, piggyback: piggybackOption, ...fixtureOptions } = payload;
             if (status !== 0 && (!Number.isInteger(status) || status < 400 || status > 599)) {
                 response.writeHead(400).end('{}'); return;
             }
+            if (piggybackOption && (typeof piggybackOption.story !== 'string' || !Array.isArray(piggybackOption.events)
+                || piggybackOption.events.length !== 3 || piggybackOption.events.some(event => typeof event !== 'string'))) {
+                response.writeHead(400).end('{}'); return;
+            }
             try {
-                if (Object.keys(fixtureOptions).length) fixture = streamingFixture(fixtureOptions);
+                if (Object.keys(fixtureOptions).length) { fixture = streamingFixture(fixtureOptions); currentOptions = fixtureOptions; }
             } catch { response.writeHead(400).end('{}'); return; }
+            piggyback = piggybackOption ?? null;
             nextStatus = status;
             response.end(JSON.stringify({ configured: true }));
             return;
@@ -73,7 +95,7 @@ export async function createFakeOpenAI(options = {}) {
             response.writeHead(generation.status).end(JSON.stringify({ error: { message: 'Synthetic configured API failure' } }));
             return;
         }
-        const active = fixture;
+        const active = piggyback ? streamingFixture({ ...currentOptions, reply: piggybackReply(payload, piggyback) }) : fixture;
         if (!payload.stream) {
             generation.lastChunkEpochMs = performance.timeOrigin + performance.now();
             response.end(JSON.stringify({ id: 'synthetic', object: 'chat.completion', model: payload.model, usage: { prompt_tokens: 1, completion_tokens: active.tokens, total_tokens: active.tokens + 1 }, choices: [{ index: 0, message: { role: 'assistant', content: active.content }, finish_reason: 'stop' }] }));

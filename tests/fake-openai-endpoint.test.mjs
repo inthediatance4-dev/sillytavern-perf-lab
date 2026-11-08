@@ -59,3 +59,31 @@ test('HTTP fixture control fails exactly the next API request and keeps request 
         assert.equal(fake.generations[0].status, 500);
     } finally { await fake.close(); }
 });
+
+test('piggyback mode echoes the faces named in the request and clears on reconfigure', async () => {
+    const fake = await createFakeOpenAI({ reply: 'Plain', rate: 10000, tokens: 8 });
+    try {
+        const piggyback = { story: 'Story body.', events: ['ONE', 'TWO', 'THREE'] };
+        const configured = await fetch(new URL('/__configure', fake.url), { method: 'POST', body: JSON.stringify({ reply: 'Story body.', tokens: 8, rate: 10000, piggyback }) });
+        assert.equal(configured.status, 200);
+        const instruction = '第1张: category="echo", title="尘封的低语"。\n第2张: category="gift", title="命运的馈赠"。\n第3张: category="turn", title="悄然转向"。';
+        const body = { model: 'synthetic', messages: [{ role: 'system', content: instruction }], stream: false };
+        const expected = 'Story body.\n[[DIRECTOR_FATE_OFFER]]\n' + JSON.stringify({ events: [
+            { category: 'echo', title: '尘封的低语', event: 'ONE' },
+            { category: 'gift', title: '命运的馈赠', event: 'TWO' },
+            { category: 'turn', title: '悄然转向', event: 'THREE' },
+        ] });
+        const content = (await (await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify(body) })).json()).choices[0].message.content;
+        assert.equal(content, expected);
+        body.stream = true;
+        const text = await (await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify(body) })).text();
+        const streamed = text.split('\n\n').filter(Boolean).map(s => s.slice(6)).slice(0, -1).map(s => JSON.parse(s).choices[0].delta.content || '').join('');
+        assert.equal(streamed, expected);
+        const plain = (await (await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify({ ...body, stream: false, messages: [] }) })).json()).choices[0].message.content;
+        assert.equal(plain, 'Story body.');
+        assert.equal((await fetch(new URL('/__configure', fake.url), { method: 'POST', body: JSON.stringify({ piggyback: { story: 'x', events: ['a'] } }) })).status, 400);
+        await fetch(new URL('/__configure', fake.url), { method: 'POST', body: JSON.stringify({ reply: 'Plain again', tokens: 8 }) });
+        const cleared = (await (await fetch(fake.url + '/chat/completions', { method: 'POST', body: JSON.stringify({ ...body, stream: false }) })).json()).choices[0].message.content;
+        assert.equal(cleared, 'Plain again');
+    } finally { await fake.close(); }
+});

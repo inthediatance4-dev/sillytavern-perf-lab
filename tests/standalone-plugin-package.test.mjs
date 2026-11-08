@@ -11,7 +11,7 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const builderUrl = new URL('../scripts/build-standalone-plugins.mjs', import.meta.url);
 const evidence = path.join(repository, '.evidence', 'standalone-plugins', 'package-tests');
 const sourceFiles = {
-    director: ['chapters.js', 'fate-decks.js', 'fate-marks.js', 'fate-sound.js', 'fate-ui.js', 'fate.js', 'index.js', 'instruct.js', 'manager.js', 'presets.js', 'template.js', 'manifest.json', 'settings.html', 'style.css'],
+    director: ['chapters.js', 'fate-decks.js', 'fate-marks.js', 'fate-piggyback.js', 'fate-sound.js', 'fate-ui.js', 'fate.js', 'index.js', 'instruct.js', 'manager.js', 'presets.js', 'template.js', 'manifest.json', 'settings.html', 'style.css'],
     affinity: ['affinity-prompt-budget.js', 'affinity-state.js', 'affinity.js', 'index.js', 'manifest.json', 'settings.html', 'style.css'],
 };
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -206,4 +206,30 @@ test('rejects source files containing machine-specific absolute paths', async ()
     const root = await fixture();
     await writeFile(path.join(root, 'public/scripts/extensions/director/presets.js'), String.raw`export const local = 'C:\\Users\\SYNTHETIC_TEST\\private';`);
     await assert.rejects(buildFixture(root), /machine.specific|absolute.path/i);
+});
+
+test('real production sources build reproducible standalone ZIPs including piggyback dependencies', async () => {
+    const output = path.join(repository, '.evidence', '4177d6b-fixes', 'production-package-tests');
+    await mkdir(output, { recursive: true });
+    const outputDir = await mkdtemp(path.join(output, 'builds-'));
+    const { buildStandalonePackages } = await loadBuilder();
+    const first = await buildStandalonePackages({ repoRoot: repository, outputDir });
+    const second = await buildStandalonePackages({ repoRoot: repository, outputDir });
+    assert.notEqual(first.buildDir, second.buildDir);
+    for (const [index, item] of first.packages.entries()) {
+        const entries = await zipEntries(first, item);
+        const prefix = `${item.folderName}/`;
+        const info = JSON.parse(strFromU8(entries[prefix + 'build-info.json']));
+        assert.equal(item.sha256, second.packages[index].sha256);
+        assert.equal(item.sourceHash, second.packages[index].sourceHash);
+        assert.deepEqual(await readFile(path.join(first.buildDir, item.fileName)), await readFile(path.join(second.buildDir, item.fileName)));
+        for (const source of info.sourceFiles) assert.equal(digest(await readFile(path.join(repository, source.path))), source.sha256);
+        for (const file of info.files) assert.equal(digest(entries[prefix + file.path]), file.sha256);
+        if (item.id === 'director') {
+            assert.ok(entries[prefix + 'fate-piggyback.js']);
+            assert.match(strFromU8(entries[prefix + 'fate.js']), /from '\.\/fate-piggyback\.js'/);
+            const sourcePath = 'public/scripts/extensions/director/fate-piggyback.js';
+            assert.equal(info.sourceFiles.find(file => file.path === sourcePath)?.sha256, digest(await readFile(path.join(repository, sourcePath))));
+        }
+    }
 });

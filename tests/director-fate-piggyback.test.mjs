@@ -430,3 +430,35 @@ test('a corrupt stored offer strength drops the offer on read', async () => {
     fixture.metadata.director.fate.offer.strength = 'medium';
     assert.ok(fixture.controller.view().offer);
 });
+
+test('a retained cleanup association cannot resurrect an already completed offer', async () => {
+    const fixture = lab();
+    const request = await fixture.round(`Reply.\n${blockFor()}`);
+    assert.ok(fixture.metadata.director.fate.offer);
+    fixture.metadata.director.fate.offer = null;
+    await fixture.complete(request.data);
+    assert.equal(fixture.metadata.director.fate.offer, null);
+});
+
+test('loaded legacy pregenerated offers expose their medium default and pick without a model call', async () => {
+    const fixture = lab();
+    // Parent-format persisted offers predate the explicit strength field.
+    fixture.metadata.director = JSON.parse(JSON.stringify({ fate: { version: 1, offer: {
+        id: 'legacy-offer', cards: faces.map((card, index) => ({ ...card, event: privateEvents[index] })),
+    } } }));
+    const offer = fixture.controller.view().offer;
+    assert.equal(offer.pregenerated, true);
+    assert.equal(offer.strength, 'medium');
+    assert.equal(JSON.stringify(offer).includes('PRIVATE_EVENT'), false);
+    assert.equal(await fixture.controller.pick(0), true);
+    assert.equal(fixture.quietCalls.length, 0);
+    assert.equal(fixture.metadata.director.fate.held.strength, offer.strength);
+    assert.equal(fixture.metadata.director.fate.held.event, privateEvents[0]);
+});
+
+test('loaded legacy face-only offers do not claim a pregenerated default strength', () => {
+    const fixture = lab();
+    fixture.metadata.director = { fate: { version: 1, offer: { id: 'legacy-faces', cards: faces } } };
+    assert.equal(fixture.controller.view().offer.pregenerated, false);
+    assert.equal(fixture.controller.view().offer.strength, null);
+});

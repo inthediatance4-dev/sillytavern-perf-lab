@@ -267,10 +267,14 @@ export function createFateController(getContext, options = {}) {
         if (Object.hasOwn(entry, 'swipeIds')) value.swipeIds = entry.swipeIds.slice();
         return value;
     };
-    const publicOffer = offer => offer ? {
-        id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity })),
-        strength: offer.strength ?? null, pregenerated: offer.cards.every(card => validEvent(card.event)),
-    } : null;
+    const publicOffer = offer => {
+        if (!offer) return null;
+        const pregenerated = offer.cards.every(card => validEvent(card.event));
+        return {
+            id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity })),
+            strength: offer.strength ?? (pregenerated ? PIGGYBACK_STRENGTH : null), pregenerated,
+        };
+    };
     const view = () => {
         const context = getContext();
         const value = state(context.chatMetadata);

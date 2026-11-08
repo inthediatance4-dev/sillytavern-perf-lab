@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { initAccessibility } from '../public/scripts/a11y.js';
+import { createFateController } from '../public/scripts/extensions/director/fate.js';
+import { rollOffer } from '../public/scripts/extensions/director/fate-decks.js';
 import { createFatePanel } from '../public/scripts/extensions/director/fate-ui.js';
 
 // Exercise the panel and the real app accessibility rules together. Layout and
@@ -124,7 +126,7 @@ const entry = (id, fields = {}) => ({
     replays: 0, status: 'ok', ...fields,
 });
 
-function lab(t, { entries = [entry('first')], reveal = 'tap', motion = 'system' } = {}) {
+function lab(t, { entries = [entry('first')], reveal = 'tap', motion = 'system', realController = null } = {}) {
     const previous = Object.fromEntries(['document', 'Element', 'Node', 'Option', 'MutationObserver'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
     const html = new Element('html');
     const body = new Element('body');
@@ -192,7 +194,7 @@ function lab(t, { entries = [entry('first')], reveal = 'tap', motion = 'system' 
     const jumps = [];
     const warnings = [];
     const settings = { reveal, motion, sound: false };
-    const controller = {
+    const controller = realController ?? {
         view: () => ({ ...view, logCount: logs.length }),
         log: () => logs.map(value => ({ ...value })),
         async clearLog() { clears++; logs = []; },
@@ -682,5 +684,39 @@ test('the cost hint tells whether picking spends a model call', async t => {
     strength.fire('change');
     assert.ok(cost.textContent.includes('生成一次'));
     assert.equal(cost.textContent.includes('不再调用模型'), false);
+    await fixture.close();
+});
+
+test('a loaded parent-format offer shows the free medium pick in the real controller panel', async t => {
+    const metadata = JSON.parse(JSON.stringify({ director: { fate: { version: 1, offer: {
+        id: 'legacy-offer', cards: rollOffer(() => 0, { recent: [], pity: 0 }).map(card => ({ ...card, event: secret })),
+    } } } }));
+    let quietCalls = 0;
+    let fixture;
+    const context = {
+        chatMetadata: metadata, chatId: 'legacy-chat', characterId: 0, chat: [], extensionPrompts: {},
+        eventTypes: {}, eventSource: { on() {} },
+        generateQuietPrompt: async () => { quietCalls++; return JSON.stringify({ event: 'Rewritten event.' }); },
+    };
+    const controller = createFateController(() => context, {
+        uuid: () => 'picked-legacy', save: async () => {}, onChange: () => fixture?.panel.refresh(),
+    });
+    fixture = lab(t, { entries: [], realController: controller });
+    fixture.open();
+    const cost = fixture.query('#director_fate_cost');
+    const strength = fixture.query('#director_fate_strength');
+    assert.ok(cost.textContent.includes('不再调用模型'));
+    assertSecretAbsent(fixture.popups.at(-1).content);
+    strength.value = 'strong';
+    strength.fire('change');
+    assert.ok(cost.textContent.includes('再调用一次模型'));
+    strength.value = 'medium';
+    strength.fire('change');
+    assert.ok(cost.textContent.includes('不再调用模型'));
+    fixture.query('.director_fate_offer').children[0].click();
+    await settle();
+    assert.equal(quietCalls, 0);
+    assert.equal(metadata.director.fate.held.strength, 'medium');
+    assert.equal(metadata.director.fate.held.event, secret);
     await fixture.close();
 });

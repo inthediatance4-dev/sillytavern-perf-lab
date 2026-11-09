@@ -141,6 +141,32 @@ test('a failing reveal hook cannot undo consumption or prevent persistence', asy
     assert.equal(fixture.errors.length, 0);
 });
 
+test('stopping a separate helper request does not suppress the adopted card reveal', async () => {
+    const fixture = lab();
+    await fixture.controller.draw();
+    fixture.setGenerate(async () => {
+        const request = await fixture.request();
+        // Tavern Helper identifies its own request; native stop has no ID.
+        await fixture.emit('GENERATION_STOPPED', 'synthetic-helper-request');
+        await fixture.complete(request);
+    });
+    assert.equal(await fixture.controller.apply(), true);
+    assert.equal(fixture.controller.view().held, null);
+    assert.equal(fixture.controller.view().reveal.event, privateEvent);
+    assert.equal(fixture.reveals.length, 1);
+});
+
+test('stopping a separate helper request does not cancel a quiet card draw', async () => {
+    const fixture = lab();
+    const pending = deferred();
+    fixture.context.generateQuietPrompt = () => pending.promise;
+    const drawing = fixture.controller.draw();
+    await fixture.emit('GENERATION_STOPPED', 'synthetic-helper-request');
+    pending.resolve(JSON.stringify({ event: privateEvent }));
+    assert.equal(await drawing, true);
+    assert.ok(fixture.controller.view().held);
+});
+
 test('a stopped request retains the sealed card and cannot announce or reveal a late completion', async () => {
     const fixture = lab();
     await fixture.controller.draw();

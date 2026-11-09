@@ -244,6 +244,9 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
     for (const [name, value] of Object.entries(names)) {
         if (name === 'GENERATE_AFTER_DATA') { on(name, afterData); continue; }
         on(name, async (...args) => {
+            // A helper-scoped cancellation cannot revoke a native transport
+            // receipt or cancel another plugin's native generation lifecycle.
+            if (name === 'GENERATION_STOPPED' && typeof args[0] === 'string') return;
             const candidate = name === 'MESSAGE_RECEIVED' ? captureReceived(...args) : null;
             if (name === 'GENERATION_STARTED' && !args[2] && args[0] !== 'quiet' && args[0] !== 'impersonate') {
                 active = null;

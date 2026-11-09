@@ -111,6 +111,28 @@ test('official bridge restores the exact request type and removes correlation fr
     h.bridge.dispose();
 });
 
+test('a helper-scoped stop does not revoke the official native completion receipt', async () => {
+    const h = harness();
+    const request = await h.dispatch();
+    await h.emit('GENERATION_STOPPED', 'synthetic-helper-request');
+    await h.receive();
+    await h.save();
+    assert.equal(h.completed.length, 1);
+    assert.equal(h.completed[0].data, request.data);
+    h.bridge.dispose();
+});
+
+test('an aborted native transport still cannot complete after a helper-scoped stop', async () => {
+    const h = harness();
+    const request = await h.dispatch();
+    request.signal.abort();
+    await h.emit('GENERATION_STOPPED', 'synthetic-helper-request');
+    await h.receive();
+    await h.save();
+    assert.equal(h.completed.length, 0);
+    h.bridge.dispose();
+});
+
 test('official normal completion requires successful generation, real received candidate, and matching successful native save', async () => {
     const h = harness();
     const record = await h.dispatch();

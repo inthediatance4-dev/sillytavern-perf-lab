@@ -37,11 +37,62 @@ def ready(page, origin):
         window.__standaloneGroups=await import('/scripts/group-chats.js')}""")
 
 
+def check_fate_reveal(page, origin, fate_text, result, out):
+    """Installed packages, native completion/save and the actual rendered face."""
+    def open_panel():
+        if not page.locator('#directorPopover').is_visible():
+            page.locator('#directorButton').click()
+        page.locator('#director_fate_open').click()
+        page.locator('#director_fate_panel').wait_for(state='visible')
+
+    for stream, width in [(False, 1440), (True, 390)]:
+        page.set_viewport_size({'width': width, 'height': 1000 if width > 400 else 844})
+        page.evaluate("""stream=>{const c=SillyTavern.getContext();
+            c.chatCompletionSettings.stream_openai=stream;
+        }""", stream)
+        open_panel()
+        page.locator('#director_fate_draw').click()
+        page.locator('.director_fate_choice').first.click()
+        page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director?.fate?.held')
+        assert page.locator('.director_fate_face').text_content() == ''
+        page.evaluate("""()=>{const c=SillyTavern.getContext();
+            window.__helperScopedStopFired=false;
+            c.eventSource.once(c.eventTypes.CHAT_COMPLETION_PROMPT_READY,async()=>{
+                window.__helperScopedStopFired=true;
+                await c.eventSource.emit(c.eventTypes.GENERATION_STOPPED,'synthetic-independent-helper');
+            });}""")
+        page.locator('#director_fate_apply').click()
+        page.wait_for_function("""()=>{const c=SillyTavern.getContext();
+            return window.__helperScopedStopFired && !c.chatMetadata.director.fate.held
+                && !!c.chatMetadata.director.fate.bound && !window.__standaloneMain.isGenerating()
+                && !window.__standaloneMain.isChatSaving;}""", timeout=45000)
+        open_panel()
+        page.locator('#director_fate_flip').click()
+        face = page.locator('.director_fate_face')
+        assert face.text_content() == fate_text
+        page.wait_for_function('getComputedStyle(document.querySelector(".director_fate_face")).opacity === "1"')
+        face.evaluate('async n=>{await Promise.all(n.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))}')
+        assert face.is_visible() and face.get_attribute('aria-hidden') == 'false'
+        assert face.evaluate('n=>getComputedStyle(n).visibility') == 'visible'
+        page.screenshot(path=str(out.parent / (out.stem + '-reveal-' + str(width) + '.png')))
+        page.locator('#director_fate_tab_log').click()
+        assert page.locator('.director_fate_log_event').first.text_content() == fate_text
+        result['checks']['adoptRevealDespiteHelperStop_' + ('stream_mobile' if stream else 'nonstream_desktop')] = True
+        page.keyboard.press('Escape')
+        page.locator('#director_fate_panel').wait_for(state='hidden')
+    page.evaluate('SillyTavern.getContext().reloadCurrentChat()')
+    open_panel()
+    assert page.locator('.director_fate_face').text_content() == fate_text
+    result['checks']['completedRevealSurvivesNativeReload'] = True
+    page.keyboard.press('Escape')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--host-root', type=Path, required=True)
     parser.add_argument('--node', default='node')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--fate-reveal-only', action='store_true')
     args = parser.parse_args()
     host = args.host_root.resolve()
     out = args.output.resolve()
@@ -155,6 +206,12 @@ def main():
                 await c.selectCharacterById(String(index));return {avatar};
             }""", uuid.uuid4().hex[:8])
             connect_api(page)
+            if args.fate_reveal_only:
+                stage = 'native adoption and rendered reveal with helper-scoped stop'
+                check_fate_reveal(page, origin, fate_text, result, out)
+                assert not result['errors'], result['errors']
+                result['passed'] = True
+                return
             stage = 'standalone affinity only'
             page.evaluate("""async()=>{const c=SillyTavern.getContext();
                 c.extensionSettings.disabledExtensions.push('third-party/st-director-fate-cards');

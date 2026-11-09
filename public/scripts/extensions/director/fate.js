@@ -833,7 +833,12 @@ export function createFateController(getContext, options = {}) {
         if (!stopped && busy?.phase === 'applying') busy.ownsSendLock = false;
     };
     on('GENERATION_ENDED', () => finish(false));
-    on('GENERATION_STOPPED', () => finish(true));
+    on('GENERATION_STOPPED', generationId => {
+        // Tavern Helper stops carry its own request ID. Fate uses native
+        // Generate, whose global stop has no ID; a helper stop cannot own it.
+        if (typeof generationId === 'string') return;
+        finish(true);
+    });
     // Strip the private block from every channel a reply can persist or render: the
     // active text, all swipe candidates, and the reasoning copies. Captures the raw
     // story text for the offer parse before stripping. Idempotent, so the native

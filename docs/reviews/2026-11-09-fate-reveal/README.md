@@ -43,3 +43,5 @@ python tests/browser-standalone-plugins.py --host-root .worktrees/official-plugi
 ```
 
 第一次新增浏览器用例在第二轮打开菜单时超时：Esc 已恢复菜单，测试再次切换反而把它关闭。更正夹具为按可见状态打开菜单后，两宿主通过；失败记录和夹具仍保留，没有算入通过结果。
+
+远程 Node 22/Linux 首轮 CI 暴露了原有压缩保存测试的时序假设：8 次 setImmediate 不保证解压已进入传输，导致 finishSave 尚未赋值。测试改为等待传输开始的明确通知，再修改当前消息和释放响应；保留原断言与真实 gzip 路径，不修改生产代码。

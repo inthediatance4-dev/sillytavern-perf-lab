@@ -218,9 +218,13 @@ test('compressed native save confirms its frozen payload despite a controlled li
     const normal = await h.dispatch();
     const message = await h.receive();
     let finishSave;
-    h.pending.push(() => new Promise(resolve => { finishSave = resolve; }));
+    let saveEntered;
+    const entered = new Promise(resolve => { saveEntered = resolve; });
+    h.pending.push(() => new Promise(resolve => { finishSave = resolve; saveEntered(); }));
     const saving = h.save(h.saveBody(), { gzip: true });
-    await flush();
+    // gzip decoding crosses the worker pool: event-loop turns do not prove
+    // that the native fetch has started, especially in a busy CI matrix.
+    await entered;
     await h.emit('GENERATION_STARTED', 'continue', {}, false);
     message.mes += ' continued';
     finishSave(new Response('{}', { status: 200 }));

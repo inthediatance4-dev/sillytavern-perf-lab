@@ -87,12 +87,94 @@ def check_fate_reveal(page, origin, fate_text, result, out):
     page.keyboard.press('Escape')
 
 
+def check_fate_pick_mobile(page, fate_text, result, out):
+    """Reproduce a held card plus a replacement offer and a slow model on touch."""
+    page.set_viewport_size({'width': 390, 'height': 700})
+    page.evaluate("document.documentElement.style.setProperty('--fontScale','1.25')")
+    if not page.locator('#directorPopover').is_visible():
+        page.locator('#directorButton').click()
+    page.locator('#director_fate_open').click()
+    page.locator('#director_fate_draw').tap()
+    page.locator('.director_fate_choice').first.tap()
+    page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director?.fate?.held')
+    previous = page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held.id')
+    page.locator('#director_fate_draw').tap()
+    page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director.fate.offer')
+    page.screenshot(path=str(out.parent / (out.stem + '-before-pick.png')))
+    page.evaluate("""()=>{const original=window.fetch;
+        window.__fatePickGate={entered:false};
+        window.fetch=async function(input,init){
+            if(String(input).includes('/api/backends/chat-completions/generate')&&!window.__fatePickGate.entered){
+                window.__fatePickGate.entered=true;
+                await new Promise(resolve=>window.__fatePickGate.resume=resolve);
+            }
+            return original.call(this,input,init);
+        };}""")
+    page.locator('.director_fate_choice').first.tap()
+    page.wait_for_function('!!window.__fatePickGate.resume')
+    metrics = page.locator('#director_fate_panel').evaluate("""panel=>{
+        const content=panel.closest('.popup-content');
+        const status=panel.querySelector('#director_fate_status');
+        return {oldCardHidden:panel.querySelector('.director_fate_card').hidden,
+            oldApplyHidden:panel.querySelector('#director_fate_apply').hidden,
+            overflowY:getComputedStyle(content).overflowY,scrollHeight:content.scrollHeight,clientHeight:content.clientHeight,
+            pendingStatus:status.textContent,hasTouch:matchMedia('(pointer:coarse)').matches};}""")
+    result['pickMobile'] = metrics
+    page.screenshot(path=str(out.parent / (out.stem + '-pending.png')))
+    try:
+        assert metrics['overflowY'] == 'auto', metrics
+        assert not metrics['oldCardHidden'] and not metrics['oldApplyHidden'], metrics
+        assert metrics['hasTouch'] and '正在' in metrics['pendingStatus'], metrics
+        assert page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held.id') == previous
+        page.locator('dialog[open] .popup-button-cancel').tap()
+        page.locator('#director_fate_panel').wait_for(state='hidden')
+        if not page.locator('#directorPopover').is_visible():
+            page.locator('#directorButton').click()
+        page.locator('#director_fate_open').click()
+        assert page.locator('#director_fate_status').text_content() == metrics['pendingStatus']
+        page.wait_for_function('!document.querySelector("dialog[open]").hasAttribute("opening")')
+        scroller = page.locator('dialog[open] .popup-content')
+        scroller.evaluate('n=>n.scrollTop=0')
+        bounds = scroller.bounding_box()
+        touch = page.context.new_cdp_session(page)
+        x = bounds['x'] + bounds['width'] / 2
+        y = bounds['y'] + bounds['height'] - 25
+        touch.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y}]})
+        for step in range(1, 13):
+            touch.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x, 'y': y - step * 20}]})
+            page.evaluate('()=>new Promise(requestAnimationFrame)')
+        touch.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+        touch.detach()
+        page.wait_for_function('document.querySelector("dialog[open] .popup-content").scrollTop>0')
+        metrics['touchScrollTop'] = scroller.evaluate('n=>n.scrollTop')
+        result['checks']['nativePopupRespondsToTouchSwipe'] = True
+        status = page.locator('#director_fate_status')
+        status.scroll_into_view_if_needed()
+        assert status.evaluate("""n=>{const r=n.getBoundingClientRect(),p=n.closest('.popup-content').getBoundingClientRect();
+            return r.top>=p.top-1&&r.bottom<=p.bottom+1;}""")
+        result['checks']['pendingPickCanCloseReopenAndScrollToProgress'] = True
+    finally:
+        page.evaluate('window.__fatePickGate.resume()')
+    page.wait_for_function('id=>!SillyTavern.getContext().chatMetadata.director.fate.offer && SillyTavern.getContext().chatMetadata.director.fate.held.id!==id', arg=previous)
+    page.locator('#director_fate_panel').evaluate("p=>p.closest('.popup-content').scrollTop=p.closest('.popup-content').scrollHeight")
+    page.locator('#director_fate_apply').tap()
+    page.wait_for_function('!SillyTavern.getContext().chatMetadata.director.fate.held && !!SillyTavern.getContext().chatMetadata.director.fate.bound')
+    if not page.locator('#directorPopover').is_visible():
+        page.locator('#directorButton').click()
+    page.locator('#director_fate_open').click()
+    page.locator('#director_fate_flip').tap()
+    assert page.locator('.director_fate_face').text_content() == fate_text
+    result['checks']['touchPickRetainsOldCardAndControlsReachable'] = True
+    result['checks']['delayedModelThenAdoptAndFlip'] = True
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--host-root', type=Path, required=True)
     parser.add_argument('--node', default='node')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--fate-reveal-only', action='store_true')
+    parser.add_argument('--fate-pick-only', action='store_true')
     args = parser.parse_args()
     host = args.host_root.resolve()
     out = args.output.resolve()
@@ -147,7 +229,11 @@ def main():
         helpers.wait_http(origin, server)
         with sync_playwright() as p:
             browser = launch_chromium(p)
-            page = browser.new_page(viewport={'width': 1440, 'height': 1000})
+            page = browser.new_page(viewport={'width': 1440, 'height': 1000},
+                                    is_mobile=args.fate_pick_only, has_touch=args.fate_pick_only)
+            if args.fate_pick_only:
+                page.on('response', lambda response: result.setdefault('httpErrors', []).append(
+                    {'status': response.status, 'url': response.url}) if response.status >= 400 else None)
             page.on('pageerror', lambda error: result.setdefault('expectedProviderFailures', []).append(str(error))
                     if fixture_state.get('expectingFailure') and 'Internal Server Error' in str(error) else result['errors'].append(str(error)))
             page.on('console', lambda message: result.setdefault('consoleErrors', []).append(message.text) if message.type == 'error' else None)
@@ -206,6 +292,12 @@ def main():
                 await c.selectCharacterById(String(index));return {avatar};
             }""", uuid.uuid4().hex[:8])
             connect_api(page)
+            if args.fate_pick_only:
+                stage = 'touch replacement pick with retained card and delayed model'
+                check_fate_pick_mobile(page, fate_text, result, out)
+                assert not result['errors'], result['errors']
+                result['passed'] = True
+                return
             if args.fate_reveal_only:
                 stage = 'native adoption and rendered reveal with helper-scoped stop'
                 check_fate_reveal(page, origin, fate_text, result, out)

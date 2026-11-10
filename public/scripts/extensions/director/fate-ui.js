@@ -530,7 +530,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             }
         }
         popup = new Popup(panel, POPUP_TYPE.TEXT, '', {
-            okButton: false, cancelButton: '关闭', onOpen: () => {
+            okButton: false, cancelButton: '关闭', allowVerticalScrolling: true, onOpen: () => {
                 const target = openedFocusTarget();
                 if (!target) return;
                 const active = document.activeElement;

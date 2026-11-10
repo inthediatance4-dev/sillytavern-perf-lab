@@ -237,6 +237,26 @@ function assertSecretAbsent(panel) {
     }
 }
 
+test('a pending replacement preserves the held card and reports model work until the pick settles', async t => {
+    const fixture = lab(t);
+    fixture.open();
+    const held = entry('retained');
+    const offer = { id: 'replacement-offer', cards: [
+        { title: '一', rarity: 'rare' }, { title: '二', rarity: 'common' }, { title: '三', rarity: 'common' },
+    ] };
+    fixture.setView({ held, bound: null, reveal: null, offer });
+    assert.equal(fixture.controller.view().held, held, 'opening the deal keeps the old card in state');
+    fixture.setView({ busy: true, phase: 'drawing' });
+    assert.equal(fixture.controller.view().held, held);
+    assert.equal(fixture.query('#director_fate_apply').disabled, true);
+    assert.equal(fixture.query('#director_fate_discard').disabled, true);
+    assert.match(fixture.query('#director_fate_status').textContent, /正在/);
+    fixture.setView({ busy: false, phase: 'idle', offer: null, held: entry('replacement') });
+    assert.equal(fixture.query('.director_fate_card').hidden, false);
+    assert.equal(fixture.query('#director_fate_apply').hidden, false);
+    await fixture.close();
+});
+
 test('Fate tab roles survive the unchanged core a11y observer and keyboard navigation wraps', async t => {
     const fixture = lab(t);
     fixture.open();

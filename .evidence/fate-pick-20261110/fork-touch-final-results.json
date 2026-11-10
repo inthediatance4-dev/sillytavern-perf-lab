@@ -1,0 +1,58 @@
+{
+  "hostCommit": "5d5b2ac20faca64c71d8d0044cdeb54e9535fa07",
+  "checks": {
+    "installedEntriesTemplatesAndLegacyOptOut": true,
+    "drawerInitiallyCollapsed": true,
+    "nativePopupRespondsToTouchSwipe": true,
+    "pendingPickCanCloseReopenAndScrollToProgress": true,
+    "touchPickRetainsOldCardAndControlsReachable": true,
+    "delayedModelThenAdoptAndFlip": true
+  },
+  "realModel": false,
+  "errors": [],
+  "packages": [
+    {
+      "id": "director",
+      "folderName": "st-director-fate-cards",
+      "displayName": "命运之牌",
+      "version": "1.3.2",
+      "fileName": "st-director-fate-cards-1.3.2.zip",
+      "sha256": "7b5580ab1c3adf0b6da02e93229ebd28aae8e3b23100180e73a12ffe5bfdc81d",
+      "sourceHash": "dea7078eb2ae0ddf0f0f363e9df2535c6a088a4543c2db8219d8c5f480a9c60a",
+      "bytes": 100725,
+      "entries": 23
+    },
+    {
+      "id": "affinity",
+      "folderName": "st-affinity-memory",
+      "displayName": "好感度记忆",
+      "version": "1.1.2",
+      "fileName": "st-affinity-memory-1.1.2.zip",
+      "sha256": "b9ef7fd1f3c939a25f949032399ce5b11c60cbf0d1281946807b130ce070f519",
+      "sourceHash": "d3909d8784d6d5a74150aa647ade62b5be169ba2032cb1376f93e3c899512f10",
+      "bytes": 60777,
+      "entries": 15
+    }
+  ],
+  "httpErrors": [
+    {
+      "status": 404,
+      "url": "http://<host>/sounds/message.mp3"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pickMobile": {
+    "oldCardHidden": false,
+    "oldApplyHidden": false,
+    "overflowY": "auto",
+    "scrollHeight": 905,
+    "clientHeight": 600,
+    "pendingStatus": "正在为当前剧情抽牌…",
+    "hasTouch": true,
+    "touchScrollTop": 235
+  },
+  "passed": true,
+  "runnerSha256": "56c83e2502f99ba4ebfc9c511f8def72206bd1c89112646bd59d38516902bc2f"
+}

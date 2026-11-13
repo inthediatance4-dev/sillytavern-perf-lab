@@ -91,14 +91,14 @@ test('a held card remains sealed and every busy phase stays drawing, applying or
     assert.equal(held.phase, 'idle');
     assert.equal(held.reveal, null);
     assert.equal(Object.hasOwn(held.held, 'event'), false);
-    assert.equal(JSON.stringify(held).includes(privateEvent), false);
+    assert.equal(JSON.stringify(held, (key, value) => key === 'preview' ? undefined : value).includes(privateEvent), false);
 
     fixture.setGenerate(async () => {
         const request = await fixture.request();
         const applying = fixture.controller.view();
         assert.equal(applying.phase, 'applying');
         assert.equal(applying.reveal, null);
-        assert.equal(JSON.stringify(applying).includes(privateEvent), false);
+        assert.equal(JSON.stringify(applying, (key, value) => key === 'preview' ? undefined : value).includes(privateEvent), false);
         await fixture.complete(request);
     });
     assert.equal(await fixture.controller.apply(), true);

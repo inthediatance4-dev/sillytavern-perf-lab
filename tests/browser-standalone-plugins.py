@@ -45,8 +45,16 @@ def check_fate_reveal(page, origin, fate_text, result, out):
         page.locator('#director_fate_open').click()
         page.locator('#director_fate_panel').wait_for(state='visible')
 
-    for stream, width in [(False, 1440), (True, 390)]:
+    touch = page.context.new_cdp_session(page)
+    cases = [(stream, width, activation) for stream, width in [(False, 1440), (True, 390)]
+             for activation in ['surface', 'Enter', 'Space', 'button']]
+    for stream, width, activation in cases:
+        mode = 'stream_mobile' if stream else 'nonstream_desktop'
+        touch.send('Emulation.setTouchEmulationEnabled', {'enabled': stream})
         page.set_viewport_size({'width': width, 'height': 1000 if width > 400 else 844})
+        assert page.evaluate("matchMedia('(pointer:coarse)').matches") == stream
+        card = page.locator('.director_fate_card')
+        surface_activate = card.tap if stream else card.click
         page.evaluate("""stream=>{const c=SillyTavern.getContext();
             c.chatCompletionSettings.stream_openai=stream;
         }""", stream)
@@ -54,7 +62,14 @@ def check_fate_reveal(page, origin, fate_text, result, out):
         page.locator('#director_fate_draw').click()
         page.locator('.director_fate_choice').first.click()
         page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director?.fate?.held')
+        held = page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held')
+        assert card.get_attribute('role') is None and card.get_attribute('tabindex') == '-1'
+        surface_activate()
+        assert page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held') == held
         assert page.locator('.director_fate_face').text_content() == ''
+        assert page.locator('.director_fate_face').get_attribute('aria-hidden') == 'true'
+        assert page.locator('#director_fate_flip').is_hidden()
+        result['checks']['heldCardSurfaceCannotReveal_' + mode] = True
         page.evaluate("""()=>{const c=SillyTavern.getContext();
             window.__helperScopedStopFired=false;
             c.eventSource.once(c.eventTypes.CHAT_COMPLETION_PROMPT_READY,async()=>{
@@ -67,17 +82,44 @@ def check_fate_reveal(page, origin, fate_text, result, out):
                 && !!c.chatMetadata.director.fate.bound && !window.__standaloneMain.isGenerating()
                 && !window.__standaloneMain.isChatSaving;}""", timeout=45000)
         open_panel()
-        page.locator('#director_fate_flip').click()
+        assert page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.bound.id') == held['id']
+        assert card.get_attribute('role') == 'button' and card.get_attribute('tabindex') == '0'
         face = page.locator('.director_fate_face')
+        assert face.text_content() == '' and face.get_attribute('aria-hidden') == 'true'
+        assert page.locator('#director_fate_flip').is_visible()
+        # Count actual face writes, not just the final text: duplicate reveals
+        # would otherwise look identical after repeated activation.
+        face.evaluate("""n=>{window.__fateFaceWrites=0;
+            window.__fateFaceObserver=new MutationObserver(records=>{
+                window.__fateFaceWrites+=records.filter(r=>r.type==='childList'&&r.addedNodes.length).length;
+            });window.__fateFaceObserver.observe(n,{childList:true});}""")
+        if activation == 'surface':
+            surface_activate()
+        elif activation == 'button':
+            page.locator('#director_fate_flip').click()
+        else:
+            card.press(activation)
         assert face.text_content() == fate_text
         page.wait_for_function('getComputedStyle(document.querySelector(".director_fate_face")).opacity === "1"')
         face.evaluate('async n=>{await Promise.all(n.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))}')
         assert face.is_visible() and face.get_attribute('aria-hidden') == 'false'
         assert face.evaluate('n=>getComputedStyle(n).visibility') == 'visible'
-        page.screenshot(path=str(out.parent / (out.stem + '-reveal-' + str(width) + '.png')))
+        assert page.locator('#director_fate_flip').is_hidden()
+        assert page.locator('#director_fate_jump').evaluate('n=>document.activeElement===n')
+        assert card.get_attribute('role') is None and card.get_attribute('tabindex') == '-1'
+        result['checks']['completedReveal_' + activation + '_' + mode] = True
+        surface_activate()
+        surface_activate()
+        assert face.text_content() == fate_text
+        assert page.evaluate('window.__fateFaceWrites') == 1, (mode, activation)
+        page.evaluate('window.__fateFaceObserver.disconnect()')
+        result['checks']['repeatedActivationRevealsOnce_' + activation + '_' + mode] = True
+        suffix = '' if activation == 'surface' else '-' + activation
+        page.screenshot(path=str(out.parent / (out.stem + '-reveal-' + str(width) + suffix + '.png')))
         page.locator('#director_fate_tab_log').click()
-        assert page.locator('.director_fate_log_event').first.text_content() == fate_text
-        result['checks']['adoptRevealDespiteHelperStop_' + ('stream_mobile' if stream else 'nonstream_desktop')] = True
+        entry = page.locator('.director_fate_log_entry[data-entry-id="' + held['id'] + '"]')
+        assert entry.count() == 1 and entry.locator('.director_fate_log_event').text_content() == fate_text
+        result['checks']['adoptRevealDespiteHelperStop_' + mode] = True
         page.keyboard.press('Escape')
         page.locator('#director_fate_panel').wait_for(state='hidden')
     page.evaluate('SillyTavern.getContext().reloadCurrentChat()')
@@ -85,6 +127,7 @@ def check_fate_reveal(page, origin, fate_text, result, out):
     assert page.locator('.director_fate_face').text_content() == fate_text
     result['checks']['completedRevealSurvivesNativeReload'] = True
     page.keyboard.press('Escape')
+    touch.detach()
 
 
 def check_fate_pick_mobile(page, fate_text, result, out):
@@ -168,6 +211,125 @@ def check_fate_pick_mobile(page, fate_text, result, out):
     result['checks']['delayedModelThenAdoptAndFlip'] = True
 
 
+def check_piggyback(page, fake_url, fixture, fixture_state, result):
+    def count_requests():
+        return json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests'))
+
+    def open_panel():
+        if not page.locator('#directorPopover').is_visible():
+            page.locator('#directorButton').click()
+        page.locator('#director_fate_open').click()
+        page.locator('#director_fate_panel').wait_for(state='visible')
+
+    cases = [('story', False, False), ('candidate', False, False), ('reasoning', False, False),
+             ('story', True, False), ('story', False, True), ('story', True, True)]
+    for channel, stream, cleanup in cases:
+        page.evaluate(r"""async options=>{const c=SillyTavern.getContext();
+            window.__standaloneMain.updateChatMetadata({integrity:c.chatMetadata.integrity},true);
+            c.chat.splice(0,c.chat.length,{name:'Synthetic Tester',is_user:true,is_system:false,mes:'Synthetic piggyback scene.',extra:{}});
+            await c.saveChat();await c.reloadCurrentChat();
+            c.extensionSettings.director.fate.piggyback=true;
+            c.extensionSettings.director.fate.reveal='tap';
+            Object.assign((await import('/scripts/openai.js')).oai_settings,{custom_model:'gpt-4o',openai_max_context:8192,
+                openai_max_tokens:1536,stream_openai:options.stream,send_if_empty:'',show_thoughts:true});
+            (await import('/scripts/power-user.js')).power_user.trim_sentences=options.cleanup;
+            c.extensionSettings.regex=options.cleanup?[{id:'synthetic-marker-regex',scriptName:'Synthetic marker cleanup',
+                findRegex:'/\\[\\[DIRECTOR_FATE_OFFER\\]\\]/g',replaceString:'',trimStrings:[],placement:[2],
+                disabled:false,markdownOnly:false,promptOnly:false,runOnEdit:true,substituteRegex:0}]:[];
+            window.__piggybackLeak=false;
+            window.__piggybackObserver=new MutationObserver(records=>{
+                const text=records.map(r=>[r.oldValue||'',r.target.textContent||'',...[...r.addedNodes].map(n=>n.textContent||'')].join('')).join('');
+                if(/DIRECTOR_FATE_OFFER|PRIVATE_INSTALLED_EVENT_/.test(text))window.__piggybackLeak=true;
+            });window.__piggybackObserver.observe(document.querySelector('#chat'),{childList:true,subtree:true,characterData:true,characterDataOldValue:true});
+        }""", {'stream': stream, 'cleanup': cleanup})
+        page.set_viewport_size({'width': 390 if stream else 1440, 'height': 844 if stream else 1000})
+        fixture_state['piggyback'] = channel
+        fixture_state['pretty'] = cleanup
+        before = len(count_requests())
+        page.evaluate("""()=>{window.__piggybackRun=(async()=>{const value=await SillyTavern.getContext().generate('normal');
+            return {text:String(value),chunk:value?.messageChunk,fromStream:value?.fromStream,
+                hostHasCompletion:!!SillyTavern.getContext().eventTypes.GENERATION_COMPLETED};})();}""")
+        if stream:
+            page.wait_for_function("document.querySelector('#chat').textContent.includes('Synthetic piggyback story.') && window.__standaloneMain.isGenerating()", timeout=30000)
+        returned = page.evaluate('window.__piggybackRun')
+        page.wait_for_function('SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length===3', timeout=30000)
+        page.wait_for_function('!window.__standaloneMain.isGenerating() && !window.__standaloneMain.isChatSaving')
+        requests = count_requests()[before:]
+        assert len(requests) == 1
+        message = page.evaluate('JSON.parse(JSON.stringify(SillyTavern.getContext().chat.at(-1)))')
+        assert message['mes'] == 'Synthetic piggyback story.', message['mes']
+        assert '[[DIRECTOR_FATE_OFFER]]' not in json.dumps(message, ensure_ascii=False)
+        assert 'PRIVATE_INSTALLED_EVENT_' not in json.dumps(message, ensure_ascii=False)
+        assert not page.evaluate('window.__piggybackLeak'), 'Private block entered intermediate chat DOM'
+        page.evaluate('window.__piggybackObserver.disconnect()')
+        if channel == 'candidate':
+            assert len(message.get('swipes', [])) >= 2
+        if channel == 'reasoning':
+            assert message.get('extra', {}).get('reasoning')
+        if returned['hostHasCompletion']:
+            assert returned['text'] == message['mes'], returned
+            assert returned['chunk'] == message['mes'], returned
+        offer = page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.offer')
+        expected = ['PRIVATE_INSTALLED_EVENT_'+str(i) for i in range(3)]
+        if channel != 'reasoning':
+            assert [card.get('event') for card in offer['cards']] == expected, offer
+        else:
+            assert all('event' not in card for card in offer['cards'])
+        location = page.evaluate('()=>({id:SillyTavern.getContext().chatId,avatar:SillyTavern.getContext().characters[SillyTavern.getContext().characterId].avatar})')
+        saved = fixture / 'data/default-user/chats' / Path(location['avatar']).stem / (location['id']+'.jsonl')
+        rows = [json.loads(line) for line in saved.read_text(encoding='utf-8').splitlines() if line.strip()]
+        assert 'PRIVATE_INSTALLED_EVENT_' not in json.dumps(rows[1:], ensure_ascii=False)
+        assert '[[DIRECTOR_FATE_OFFER]]' not in json.dumps(rows[1:], ensure_ascii=False)
+        await_reload = page.evaluate('SillyTavern.getContext().reloadCurrentChat()')
+        assert page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.offer') == offer, await_reload
+        open_panel()
+        page.locator('#director_fate_strength').select_option('medium')
+        if channel != 'reasoning':
+            assert page.locator('.director_fate_choice_preview').all_text_contents() == expected
+        pick_before = len(count_requests())
+        fixture_state['piggyback'] = None
+        page.locator('.director_fate_choice').nth(1).click()
+        page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director.fate.held', timeout=30000)
+        page.wait_for_function('!document.querySelector("#director_fate_apply").disabled')
+        pick_calls = len(count_requests()) - pick_before
+        assert pick_calls == (1 if channel == 'reasoning' else 0), pick_calls
+        selected = page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held.event')
+        if channel != 'reasoning':
+            assert selected == expected[1]
+        assert page.locator('.director_fate_face').text_content() == ''
+        card = page.locator('.director_fate_card')
+        card.tap() if stream else card.click()
+        assert selected in page.locator('.director_fate_face').text_content()
+        assert page.locator('#director_fate_jump').is_hidden()
+        fixture_state['piggyback'] = 'story'
+        apply_before = len(count_requests())
+        page.locator('#director_fate_apply').click()
+        page.wait_for_function('!SillyTavern.getContext().chatMetadata.director.fate.held && !!SillyTavern.getContext().chatMetadata.director.fate.bound', timeout=45000)
+        page.wait_for_function('!window.__standaloneMain.isGenerating() && !window.__standaloneMain.isChatSaving')
+        adopted = count_requests()[apply_before:]
+        assert len(adopted) == 1
+        assert json.dumps(adopted[0], ensure_ascii=False).count(selected) == 1
+        page.wait_for_function('SillyTavern.getContext().chatMetadata.director.fate.offer?.cards.every(c=>c.event)', timeout=30000)
+        open_panel()
+        assert page.locator('.director_fate_choice_preview').all_text_contents() == expected
+        page.locator('#director_fate_tab_log').click()
+        page.locator('.director_fate_log_flip').first.click()
+        assert page.locator('.director_fate_log_event').first.text_content() == selected
+        page.locator('#director_fate_tab_current').click()
+        next_before = len(count_requests())
+        page.locator('.director_fate_choice').first.click()
+        page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director.fate.held')
+        assert len(count_requests()) == next_before
+        page.keyboard.press('Escape')
+        page.locator('#director_fate_panel').wait_for(state='hidden')
+        key = 'installedPiggyback_' + channel + ('_stream' if stream else '_nonstream') + ('_cleanup' if cleanup else '')
+        result['checks'][key] = True
+        result.setdefault('piggyback', {})[key] = {'providerCalls': len(requests), 'pickCalls': pick_calls,
+            'adoptCalls': len(adopted), 'diskMessageClean': True, 'intermediateDomClean': True,
+            'eventsSurviveReload': True, 'previewBeforeAdopt': True, 'nextRoundReadyAfterAdopt': True, 'nextRoundPickCalls': 0, 'nativeReturnChecked': returned['hostHasCompletion']}
+    fixture_state['piggyback'] = None
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--host-root', type=Path, required=True)
@@ -175,6 +337,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--fate-reveal-only', action='store_true')
     parser.add_argument('--fate-pick-only', action='store_true')
+    parser.add_argument('--piggyback-only', action='store_true')
     args = parser.parse_args()
     host = args.host_root.resolve()
     out = args.output.resolve()
@@ -230,7 +393,7 @@ def main():
         with sync_playwright() as p:
             browser = launch_chromium(p)
             page = browser.new_page(viewport={'width': 1440, 'height': 1000},
-                                    is_mobile=args.fate_pick_only, has_touch=args.fate_pick_only)
+                                    is_mobile=args.fate_pick_only or args.piggyback_only, has_touch=args.fate_pick_only or args.fate_reveal_only or args.piggyback_only)
             if args.fate_pick_only:
                 page.on('response', lambda response: result.setdefault('httpErrors', []).append(
                     {'status': response.status, 'url': response.url}) if response.status >= 400 else None)
@@ -259,7 +422,14 @@ def main():
                 elif fixture_state['piggyback']:
                     reply = 'Synthetic piggyback story.'
                     fixture_options = {'piggyback': {'story': reply, 'events': ['PRIVATE_INSTALLED_EVENT_'+str(i) for i in range(3)]},
-                                       'piggybackChannel': fixture_state['piggyback']}
+                                       'piggybackChannel': fixture_state['piggyback'], 'rate': 80}
+                    if fixture_state.get('pretty'):
+                        faces = re.findall(r'category="([^"]+)", title="([^"]+)"', text)
+                        assert len(faces) == 3, faces
+                        reply += '\n[[DIRECTOR_FATE_OFFER]]\n' + json.dumps({'events': [
+                            {'category': category, 'title': title, 'event': 'PRIVATE_INSTALLED_EVENT_'+str(i)}
+                            for i, (category, title) in enumerate(faces)]}, ensure_ascii=False, indent=2)
+                        fixture_options = {'rate': 80}
                 else:
                     reply = 'Synthetic standalone reply.'
                 req = urllib.request.Request(fake_url.replace('/v1', '') + '/__configure',
@@ -301,6 +471,12 @@ def main():
             if args.fate_reveal_only:
                 stage = 'native adoption and rendered reveal with helper-scoped stop'
                 check_fate_reveal(page, origin, fate_text, result, out)
+                assert not result['errors'], result['errors']
+                result['passed'] = True
+                return
+            if args.piggyback_only:
+                stage = 'installed piggyback full lifecycle'
+                check_piggyback(page, fake_url, fixture, fixture_state, result)
                 assert not result['errors'], result['errors']
                 result['passed'] = True
                 return
@@ -544,46 +720,8 @@ def main():
             assert budget['baselineTokens'] <= 1792 and budget['adoptedTokens'] <= 1792, budget
             assert json.dumps(adopted[0], ensure_ascii=False).count(fate_text) == 1
             result['checks']['full400CodepointCardPaysForRealHistoryWithin2048Budget'] = True
-            stage = 'installed piggyback primary, extra candidate, reasoning and stream'
-            for channel, stream in [('story', False), ('candidate', False), ('reasoning', False), ('story', True)]:
-                page.evaluate("""async stream=>{const c=SillyTavern.getContext();
-                    window.__standaloneMain.updateChatMetadata({integrity:c.chatMetadata.integrity},true);
-                    c.chat.splice(0,c.chat.length,{name:'Synthetic Tester',is_user:true,is_system:false,mes:'Synthetic piggyback scene.',extra:{}});
-                    await c.saveChat();await c.reloadCurrentChat();
-                    c.extensionSettings.director.fate.piggyback=true;
-                    Object.assign((await import('/scripts/openai.js')).oai_settings,{custom_model:'gpt-4o',openai_max_context:8192,
-                        openai_max_tokens:1536,stream_openai:stream,send_if_empty:'',show_thoughts:true});}""", stream)
-                fixture_state['piggyback'] = channel
-                before = len(json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests')))
-                returned = page.evaluate("""async()=>{const value=await SillyTavern.getContext().generate('normal');
-                    return {text:String(value),chunk:value?.messageChunk,fromStream:value?.fromStream,
-                        hostHasCompletion:!!SillyTavern.getContext().eventTypes.GENERATION_COMPLETED};}""")
-                page.wait_for_function('SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length===3', timeout=30000)
-                page.wait_for_function('!window.__standaloneMain.isGenerating() && !window.__standaloneMain.isChatSaving')
-                requests = json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests'))[before:]
-                assert len(requests) == 1
-                message = page.evaluate('JSON.parse(JSON.stringify(SillyTavern.getContext().chat.at(-1)))')
-                assert message['mes'] == 'Synthetic piggyback story.'
-                assert '[[DIRECTOR_FATE_OFFER]]' not in json.dumps(message, ensure_ascii=False)
-                assert 'PRIVATE_INSTALLED_EVENT_' not in json.dumps(message, ensure_ascii=False)
-                assert 'PRIVATE_INSTALLED_EVENT_' not in page.locator('#chat').inner_text()
-                if channel == 'candidate':
-                    assert len(message.get('swipes', [])) >= 2
-                if channel == 'reasoning':
-                    assert message.get('extra', {}).get('reasoning')
-                if returned['hostHasCompletion']:
-                    assert returned['text'] == message['mes'], returned
-                    assert returned['chunk'] == message['mes'], returned
-                location = page.evaluate('()=>({id:SillyTavern.getContext().chatId,avatar:SillyTavern.getContext().characters[SillyTavern.getContext().characterId].avatar})')
-                saved = fixture / 'data/default-user/chats' / Path(location['avatar']).stem / (location['id']+'.jsonl')
-                rows = [json.loads(line) for line in saved.read_text(encoding='utf-8').splitlines() if line.strip()]
-                assert 'PRIVATE_INSTALLED_EVENT_' not in json.dumps(rows[1:], ensure_ascii=False)
-                assert '[[DIRECTOR_FATE_OFFER]]' not in json.dumps(rows[1:], ensure_ascii=False)
-                key = 'installedPiggyback_' + channel + ('_stream' if stream else '_nonstream')
-                result['checks'][key] = True
-                result.setdefault('piggyback', {})[key] = {'providerCalls': len(requests), 'diskMessageClean': True,
-                    'nativeReturnChecked': returned['hostHasCompletion']}
-            fixture_state['piggyback'] = None
+            stage = 'installed piggyback full lifecycle'
+            check_piggyback(page, fake_url, fixture, fixture_state, result)
             result['providerRequests'] = len(json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests')))
             assert not result['errors'], result['errors']
             browser.close()

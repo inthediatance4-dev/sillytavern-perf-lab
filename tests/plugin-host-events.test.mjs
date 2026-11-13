@@ -92,6 +92,38 @@ test('fork forwards native completion exactly once without injecting markers', a
     h.bridge.dispose();
 });
 
+test('later native prompt edits retain the same request provenance at transport time', async () => {
+    const h = harness();
+    h.native.on(h.context.eventTypes.GENERATE_AFTER_DATA, data => { data.prompt += ' native suffix'; });
+    const request = await h.dispatch();
+    await h.receive();
+    await h.save();
+    assert.equal(h.completed.length, 1);
+    assert.equal(h.completed[0].data, request.data);
+    h.bridge.dispose();
+});
+
+test('native received listeners finish editing before the first rendered candidate is frozen', async () => {
+    const h = harness();
+    await h.dispatch();
+    h.native.on(h.context.eventTypes.MESSAGE_RECEIVED, id => { h.context.chat[id].mes += ' native footer'; });
+    await h.receive();
+    await h.save();
+    assert.equal(h.completed.length, 1);
+    h.bridge.dispose();
+});
+
+test('a later rerender cannot authorize edited text as a generated candidate', async () => {
+    const h = harness();
+    await h.dispatch();
+    await h.receive();
+    h.context.chat.at(-1).mes = 'manual edit';
+    await h.emit('CHARACTER_MESSAGE_RENDERED', 1, 'normal');
+    await h.save();
+    assert.equal(h.completed.length, 0);
+    h.bridge.dispose();
+});
+
 test('official bridge restores the exact request type and removes correlation from prompt and source chat', async () => {
     const h = harness();
     const source = { mes: 'plain' };

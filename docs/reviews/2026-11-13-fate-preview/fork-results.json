@@ -1,0 +1,118 @@
+{
+  "hostCommit": "3b4cae75c812266b31dde0f57cd1704d361b1f1d",
+  "checks": {
+    "installedEntriesTemplatesAndLegacyOptOut": true,
+    "drawerInitiallyCollapsed": true,
+    "installedPiggyback_story_nonstream": true,
+    "installedPiggyback_candidate_nonstream": true,
+    "installedPiggyback_reasoning_nonstream": true,
+    "installedPiggyback_story_stream": true,
+    "installedPiggyback_story_nonstream_cleanup": true,
+    "installedPiggyback_story_stream_cleanup": true
+  },
+  "realModel": false,
+  "errors": [],
+  "packages": [
+    {
+      "id": "director",
+      "folderName": "st-director-fate-cards",
+      "displayName": "命运之牌",
+      "version": "1.3.3",
+      "fileName": "st-director-fate-cards-1.3.3.zip",
+      "sha256": "dcb6b1a83c282aaa2de8d1a564ff1b47946e5fe17ab1ca664a336d4b4fc8d8b4",
+      "sourceHash": "2e98c400462031b93b0b82b7e409fa1c8012c01663b9b2fc1fbf81bdab94bd5e",
+      "bytes": 104588,
+      "entries": 24
+    },
+    {
+      "id": "affinity",
+      "folderName": "st-affinity-memory",
+      "displayName": "好感度记忆",
+      "version": "1.1.3",
+      "fileName": "st-affinity-memory-1.1.3.zip",
+      "sha256": "434c9c58f82d25677a70eaee0d95b3e61f66d3ec8fdb69e4daf4f512d5b5835a",
+      "sourceHash": "967a6715e8943b7f31f3422484a14803f7b458f59c8561254577c6fb2eceb89d",
+      "bytes": 62232,
+      "entries": 16
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "piggyback": {
+    "installedPiggyback_story_nonstream": {
+      "providerCalls": 1,
+      "pickCalls": 0,
+      "adoptCalls": 1,
+      "diskMessageClean": true,
+      "intermediateDomClean": true,
+      "eventsSurviveReload": true,
+      "previewBeforeAdopt": true,
+      "nextRoundReadyAfterAdopt": true,
+      "nextRoundPickCalls": 0,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_candidate_nonstream": {
+      "providerCalls": 1,
+      "pickCalls": 0,
+      "adoptCalls": 1,
+      "diskMessageClean": true,
+      "intermediateDomClean": true,
+      "eventsSurviveReload": true,
+      "previewBeforeAdopt": true,
+      "nextRoundReadyAfterAdopt": true,
+      "nextRoundPickCalls": 0,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_reasoning_nonstream": {
+      "providerCalls": 1,
+      "pickCalls": 1,
+      "adoptCalls": 1,
+      "diskMessageClean": true,
+      "intermediateDomClean": true,
+      "eventsSurviveReload": true,
+      "previewBeforeAdopt": true,
+      "nextRoundReadyAfterAdopt": true,
+      "nextRoundPickCalls": 0,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_story_stream": {
+      "providerCalls": 1,
+      "pickCalls": 0,
+      "adoptCalls": 1,
+      "diskMessageClean": true,
+      "intermediateDomClean": true,
+      "eventsSurviveReload": true,
+      "previewBeforeAdopt": true,
+      "nextRoundReadyAfterAdopt": true,
+      "nextRoundPickCalls": 0,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_story_nonstream_cleanup": {
+      "providerCalls": 1,
+      "pickCalls": 0,
+      "adoptCalls": 1,
+      "diskMessageClean": true,
+      "intermediateDomClean": true,
+      "eventsSurviveReload": true,
+      "previewBeforeAdopt": true,
+      "nextRoundReadyAfterAdopt": true,
+      "nextRoundPickCalls": 0,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_story_stream_cleanup": {
+      "providerCalls": 1,
+      "pickCalls": 0,
+      "adoptCalls": 1,
+      "diskMessageClean": true,
+      "intermediateDomClean": true,
+      "eventsSurviveReload": true,
+      "previewBeforeAdopt": true,
+      "nextRoundReadyAfterAdopt": true,
+      "nextRoundPickCalls": 0,
+      "nativeReturnChecked": true
+    }
+  },
+  "passed": true,
+  "runnerSha256": "7f94f6191769ecf02dd03ba9c5c55a850d7b76b86c9bf1a3a58153ecc801a207"
+}

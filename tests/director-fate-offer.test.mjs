@@ -112,7 +112,7 @@ test('deal stores three backs and does not call a model', async () => {
     assert.equal(new Set(offer.cards.map(card => card.category)).size, 3);
     assert.equal(fixture.metadata.director.fate.version, 1);
     assert.equal(fixture.controller.view().offer.id, offer.id);
-    assert.equal(JSON.stringify(fixture.controller.view()).includes('event'), false);
+    assert.equal(JSON.stringify(fixture.controller.view(), (key, value) => key === 'preview' ? undefined : value).includes('event'), false);
 });
 
 test('pick asks once, puts the theme and rarity only in the quiet prompt, and keeps them out of the story request', async () => {
@@ -128,7 +128,7 @@ test('pick asks once, puts the theme and rarity only in the quiet prompt, and ke
     assert.equal(fixture.metadata.director.fate.offer, null);
     assert.equal(fixture.metadata.director.fate.held.category, 'echo');
     assert.equal(fixture.metadata.director.fate.held.rarity, 'common');
-    assert.equal(JSON.stringify(fixture.controller.view()).includes(privateEvent), false);
+    assert.equal(JSON.stringify(fixture.controller.view(), (key, value) => key === 'preview' ? undefined : value).includes(privateEvent), false);
 
     fixture.metadata.director.fate.offer = fixedOffer('common', 'offer-rare');
     assert.equal(await fixture.controller.pick(1), true);
@@ -189,7 +189,7 @@ test('a failed, invalid or stopped pick keeps the offer and the previous held ca
         assert.equal(fixture.metadata.director.fate.offer, offer, kind);
         assert.equal(fixture.metadata.director.fate.held, held, kind);
         assert.equal(fixture.controller.view().busy, false, kind);
-        assert.equal(JSON.stringify(fixture.controller.view()).includes(privateEvent), false, kind);
+        assert.equal(JSON.stringify(fixture.controller.view(), (key, value) => key === 'preview' ? undefined : value).includes(privateEvent), false, kind);
     }
 });
 
@@ -201,7 +201,7 @@ test('a new controller reads the same saved offer', async () => {
     assert.deepEqual(reloaded.view().offer, fixture.controller.view().offer);
     assert.deepEqual(fixture.metadata.director.fate.offer, saved);
     fixture.metadata.director.fate.offer.cards[0].event = privateEvent;
-    assert.equal(JSON.stringify(fixture.controller.view()).includes(privateEvent), false);
+    assert.equal(JSON.stringify(fixture.controller.view(), (key, value) => key === 'preview' ? undefined : value).includes(privateEvent), false);
     fixture.metadata.director.fate.offer = { id: 'short', cards: saved.cards.slice(0, 2) };
     assert.equal(fixture.controller.view().offer, null);
 });
@@ -268,7 +268,7 @@ test('legacy cards without category or rarity still read, apply and replay', asy
     assert.equal(fixture.controller.view().held.rarity, 'common');
     assert.equal(fixture.controller.view().held.title, '意外的回声');
     assert.equal(Object.hasOwn(fixture.metadata.director.fate.held, 'rarity'), false);
-    assert.equal(JSON.stringify(fixture.controller.view()).includes(privateEvent), false);
+    assert.equal(JSON.stringify(fixture.controller.view(), (key, value) => key === 'preview' ? undefined : value).includes(privateEvent), false);
     fixture.setGenerate(async () => { await fixture.complete(await fixture.request()); });
     assert.equal(await fixture.controller.apply(), true);
     assert.equal(fixture.metadata.director.fate.bound.category, 'echo');

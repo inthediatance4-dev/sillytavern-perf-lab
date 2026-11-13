@@ -34,6 +34,7 @@ function lab({ piggyback = true, group = false } = {}) {
     let saves = 0;
     let saveResult = true;
     const quietCalls = [];
+    const responseFilters = new Map();
     const repaints = [];
     const errors = [];
     let changes = 0;
@@ -53,12 +54,13 @@ function lab({ piggyback = true, group = false } = {}) {
         generate: () => generate(),
         save: async () => { saves++; if (!saveResult) return false; },
         repaintMessage: id => repaints.push(id),
+        registerResponseFilter: (data, filter) => responseFilters.set(data, filter),
         onError: message => errors.push(message),
         onChange: () => { changes++; },
     });
     const emit = (name, ...args) => eventSource.emit(events[name], ...args);
     const api = {
-        controller, metadata, quietCalls, repaints, errors, emit,
+        controller, metadata, quietCalls, repaints, errors, emit, responseFilters,
         get context() { return context; }, get saves() { return saves; }, get changes() { return changes; },
         setSaveResult(value) { saveResult = value; },
         setResponse(value) { response = value; },
@@ -102,6 +104,62 @@ function lab({ piggyback = true, group = false } = {}) {
     };
     return api;
 }
+
+test('transport captures intact multiline events before sentence trimming or marker-removing regex', async () => {
+    const h = lab();
+    const { data } = await h.request();
+    const raw = 'Story.\n' + PIGGYBACK_MARKER + '\n' + JSON.stringify({ events: rolledFaces.map((card, i) => ({
+        category: card.category, title: card.title, event: privateEvents[i],
+    })) }, null, 2);
+    assert.equal(typeof h.responseFilters.get(data), 'function');
+    const response = await h.responseFilters.get(data)(new Response(JSON.stringify({ choices: [{ message: { content: raw } }] })));
+    const text = (await response.json()).choices[0].message.content;
+    assert.equal(text, 'Story.');
+    await h.receive(text.replaceAll(PIGGYBACK_MARKER, '').replace(/[^.!?。]*$/, ''));
+    await h.complete(data);
+    assert.deepEqual(h.metadata.director.fate.offer.cards.map(card => card.event), privateEvents);
+    await h.controller.pick(1, 'medium');
+    assert.equal(h.quietCalls.length, 0);
+});
+
+for (const reasoning of [false, true]) test(`stream hides split markers before every frame is rendered, reasoning=${reasoning}`, async () => {
+    const h = lab();
+    const { data } = await h.request();
+    const field = reasoning ? 'reasoning_content' : 'content';
+    const raw = 'Story.\n' + blockFor();
+    const frames = Array.from(raw).map(content => `data: ${JSON.stringify({ choices: [{ index: 0, delta: { [field]: content } }] })}\r\n\r\n`).join('') + 'data: [DONE]\r\n\r\n';
+    const bytes = new TextEncoder().encode(frames);
+    const body = new ReadableStream({ start(controller) {
+        for (let i = 0; i < bytes.length; i += 7) controller.enqueue(bytes.slice(i, i + 7));
+        controller.close();
+    } });
+    assert.equal(typeof h.responseFilters.get(data), 'function');
+    const response = await h.responseFilters.get(data)(new Response(body), { stream: true });
+    const clean = await response.text();
+    assert.doesNotMatch(clean, /DIRECTOR_FATE|PRIVATE_EVENT/);
+    const rendered = clean.split(/\r?\n\r?\n/).filter(frame => frame.startsWith('data: ') && !frame.includes('[DONE]'))
+        .map(frame => JSON.parse(frame.slice(6)).choices[0].delta[field]).join('');
+    assert.equal(rendered.trimEnd(), 'Story.');
+    await h.receive('Story.');
+    await h.complete(data);
+    assert.equal(h.controller.view().offer.pregenerated, !reasoning);
+});
+
+test('transport strips all candidates and reasoning but only story channels can supply events', async () => {
+    const h = lab();
+    const { data } = await h.request();
+    assert.equal(typeof h.responseFilters.get(data), 'function');
+    const response = await h.responseFilters.get(data)(new Response(JSON.stringify({ choices: [
+        { message: { content: 'Story.', reasoning_content: 'Thought.\n' + blockFor() } },
+        { message: { content: 'Alternate.\n' + blockFor() } },
+    ] })));
+    const result = await response.json();
+    assert.doesNotMatch(JSON.stringify(result), /DIRECTOR_FATE|PRIVATE_EVENT/);
+    assert.equal(result.choices[0].message.reasoning_content, 'Thought.');
+    await h.receive('Story.');
+    await h.complete(data);
+    assert.equal(h.controller.view().offer.pregenerated, true);
+});
 
 test('instruction names every face, the marker and the rarity lines', () => {
     const text = buildPiggybackInstruction(faces);
@@ -170,10 +228,10 @@ test('one normal reply carries the offer: shielded injection, restore, strip bef
     assert.equal(fate.rerolls, 1);
     assert.equal(fate.offer.strength, 'medium');
     assert.deepEqual(fate.offer.cards.map(card => card.event), privateEvents);
-    assert.deepEqual(fixture.controller.view().offer.cards, rolledFaces.map(({ category, title, rarity }) => ({ category, title, rarity })));
+    assert.deepEqual(fixture.controller.view().offer.cards, rolledFaces.map(({ category, title, rarity }, i) => ({ category, title, rarity, preview: privateEvents[i] })));
     assert.equal(fixture.controller.view().offer.pregenerated, true);
     assert.equal(fixture.controller.view().offer.strength, 'medium');
-    assert.equal(JSON.stringify(fixture.controller.view()).includes('PRIVATE_EVENT'), false);
+    assert.equal(fixture.controller.view().offer.cards.every(card => !Object.hasOwn(card, 'event')), true);
 
     const savesBefore = fixture.saves;
     assert.equal(await fixture.controller.pick(1, 'medium'), true);
@@ -315,8 +373,8 @@ test('after an apply and the next user send, a new round piggybacks again', asyn
         const requestChat = fixture.context.chat.map(message => ({ ...message }));
         assert.equal(fixture.controller.prepare('normal', requestChat), true);
         const row = requestChat.find(message => message.extra?.directorFatePrompt);
-        assert.ok(row, 'apply must inject the held event, not a piggyback instruction');
-        assert.equal(requestChat.some(message => message.extra?.directorFatePiggyback), false);
+        assert.ok(row, 'apply must inject the held event');
+        assert.equal(requestChat.some(message => message.extra?.directorFatePiggyback), true);
         const data = { prompt: row.mes, input: row.mes };
         await fixture.emit('GENERATE_AFTER_DATA', data, false);
         assert.equal(data.input.includes(privateEvents[0]), true);
@@ -326,8 +384,8 @@ test('after an apply and the next user send, a new round piggybacks again', asyn
     assert.equal(await fixture.controller.apply(), true);
     assert.ok(fixture.metadata.director.fate.bound);
     assert.equal(fixture.metadata.director.fate.held, null);
-    // While the bound stands, an unsent normal generation does not piggyback.
-    assert.equal((await fixture.start()).prepared, false);
+    // A normal continuation can prepare the next offer even while the old binding remains.
+    assert.equal((await fixture.start()).prepared, true);
     await fixture.emit('MESSAGE_SENT');
     const next = await fixture.request();
     assert.ok(next.data, 'after the bound clears, the next reply piggybacks again');
@@ -449,7 +507,7 @@ test('loaded legacy pregenerated offers expose their medium default and pick wit
     const offer = fixture.controller.view().offer;
     assert.equal(offer.pregenerated, true);
     assert.equal(offer.strength, 'medium');
-    assert.equal(JSON.stringify(offer).includes('PRIVATE_EVENT'), false);
+    assert.equal(offer.cards.every(card => !Object.hasOwn(card, 'event')), true);
     assert.equal(await fixture.controller.pick(0), true);
     assert.equal(fixture.quietCalls.length, 0);
     assert.equal(fixture.metadata.director.fate.held.strength, offer.strength);
@@ -461,4 +519,94 @@ test('loaded legacy face-only offers do not claim a pregenerated default strengt
     fixture.metadata.director = { fate: { version: 1, offer: { id: 'legacy-faces', cards: faces } } };
     assert.equal(fixture.controller.view().offer.pregenerated, false);
     assert.equal(fixture.controller.view().offer.strength, null);
+});
+
+
+test('ready offers and held cards expose bounded event previews without a second provider call', async () => {
+    const h = lab();
+    await h.round(`Story.\n${blockFor()}`);
+    assert.equal(h.controller.view().offer.cards[0].preview, privateEvents[0]);
+    await h.controller.pick(0);
+    assert.equal(h.controller.view().held.preview, privateEvents[0]);
+    assert.equal(h.quietCalls.length, 0);
+    assert.equal(h.controller.view().held.event, undefined);
+});
+
+test('adopting a card prepares the next round in that same successful reply', async () => {
+    const h = lab();
+    await h.controller.draw();
+    const held = h.metadata.director.fate.held;
+    h.setGenerate(async () => {
+        await h.emit('GENERATION_STARTED', 'normal', {}, false);
+        const rows = [];
+        h.controller.prepare('normal', rows);
+        assert.equal(rows.filter(r => r.extra?.directorFatePrompt).length, 1);
+        assert.equal(rows.filter(r => r.extra?.directorFatePiggyback).length, 1);
+        const data = { prompt: rows.map(r => r.mes).join('\n') };
+        await h.emit('GENERATE_AFTER_DATA', data, false);
+        assert.equal(data.prompt.split(held.event).length - 1, 1);
+        const faces = [...data.prompt.matchAll(/category="([^"]+)", title="([^"]+)"/g)]
+            .map(([, category, title], i) => ({ category, title, event: `Next round event ${i}.` }));
+        await h.receive('Event happens.\n' + PIGGYBACK_MARKER + JSON.stringify({ events: faces }));
+        await h.complete(data);
+    });
+    assert.equal(await h.controller.apply(), true);
+    assert.equal(h.metadata.director.fate.bound.id, held.id);
+    assert.equal(h.metadata.director.fate.held, null);
+    assert.equal(h.controller.view().offer.pregenerated, true);
+    assert.equal(h.controller.view().offer.cards[0].preview, 'Next round event 0.');
+    const calls = h.quietCalls.length;
+    await h.controller.pick(0);
+    assert.equal(h.quietCalls.length, calls);
+});
+
+
+for (const stream of [false, true]) {
+    test(`transport preserves ordinary trailing marker prefixes, stream=${stream}`, async () => {
+        const h = lab(); const { data } = await h.request();
+        const value = { choices: [{ index: 0, [stream ? 'delta' : 'message']: { content: 'She wrote [' } }] };
+        const source = stream ? `data: ${JSON.stringify(value)}\n\ndata: [DONE]\n\n` : JSON.stringify(value);
+        const filtered = await h.responseFilters.get(data)(new Response(source), { stream });
+        const raw = await filtered.text();
+        const parsed = JSON.parse(stream ? raw.split('\n')[0].slice(6) : raw);
+        assert.equal(parsed.choices[0][stream ? 'delta' : 'message'].content, 'She wrote [');
+    });
+    test(`transport joins multipart text for private marker capture, stream=${stream}`, async () => {
+        const h = lab(); const { data } = await h.request();
+        const raw = 'Story.' + blockFor();
+        const value = { choices: [{ index: 0, [stream ? 'delta' : 'message']: { content:
+            [raw.slice(0, 10), raw.slice(10, 32), raw.slice(32)].map(text => ({ type: 'text', text })) } }] };
+        const source = stream ? `data: ${JSON.stringify(value)}\n\ndata: [DONE]\n\n` : JSON.stringify(value);
+        const filtered = await h.responseFilters.get(data)(new Response(source), { stream });
+        const clean = await filtered.text();
+        assert.doesNotMatch(clean, /DIRECTOR_FATE|PRIVATE_EVENT/);
+        const parsed = JSON.parse(stream ? clean.split('\n')[0].slice(6) : clean);
+        assert.equal(parsed.choices[0][stream ? 'delta' : 'message'].content.map(p => p.text).join(''), 'Story.');
+        await h.receive('Story.'); await h.complete(data);
+        assert.deepEqual(h.metadata.director.fate.offer.cards.map(card => card.event), privateEvents);
+    });
+}
+
+
+test('event preview is at most 80 code points plus ellipsis and never changes the adopted event', async () => {
+    const h = lab(); const event = '🌠'.repeat(100);
+    h.setResponse(JSON.stringify({ event })); await h.controller.draw();
+    assert.equal(h.controller.view().held.preview, '🌠'.repeat(80) + '…');
+    assert.equal(h.metadata.director.fate.held.event, event);
+});
+
+
+test('a pending reasoning prefix does not block ordinary story frames', async () => {
+    const h = lab(); const { data } = await h.request();
+    let source;
+    const body = new ReadableStream({ start(controller) { source = controller; } });
+    const filtered = await h.responseFilters.get(data)(new Response(body), { stream: true });
+    const reader = filtered.body.getReader();
+    const send = delta => source.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ choices: [{ index: 0, delta }] }) + '\n\n'));
+    send({ reasoning_content: 'Thought [' }); send({ content: 'Visible story.' });
+    let timer;
+    try {
+        const chunk = await Promise.race([reader.read(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Story blocked by another channel')), 2000); })]);
+        assert.match(new TextDecoder().decode(chunk.value), /Visible story/);
+    } finally { clearTimeout(timer); source.close(); await reader.cancel(); }
 });

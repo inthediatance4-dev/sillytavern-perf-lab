@@ -33,7 +33,7 @@
                 <label for="director_fate_piggyback">随正文备牌</label>
                 <input id="director_fate_piggyback" type="checkbox" title="普通回复顺带写好下一组三张牌的事件，抽牌不再单独调用模型；按次计费更省。模型没写对时自动退回逐张抽取。">
             </div>
-            <p class="director_settings_hint">「随正文备牌」让下一组命运牌的事件跟着普通回复一次写成：正文照常，末尾的私密块会在保存前移除。手里有牌或牌桌上已有待选的一组时不会附加。</p>
+            <p class="director_settings_hint">「随正文备牌」让下一组命运牌的事件跟着普通回复一次写成：正文照常，末尾的备牌数据会在正文显示和保存前移除。采用当前牌的单人回复也会备好下一组；已有待选牌组、未采用手牌或群聊时不重复备牌。</p>
             <hr>
             <p>预设的顺序就是菜单里的 1–9。拖动手柄或点箭头排序，最多 50 个。</p>
             <ol id="director_presets" aria-label="命运之牌预设"></ol>

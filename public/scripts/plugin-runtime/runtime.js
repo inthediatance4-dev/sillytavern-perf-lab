@@ -1,4 +1,5 @@
 import { createHostEventBridge } from './host-events.js';
+import { createResponseFilters } from './response-filters.js';
 import { buildIsolatedRequest, createIsolatedGenerator, createOwnedChatSaver } from './requests.js';
 import { ensureLiteralStart, hideLiteralStart } from './literal-start.js';
 import { createPromptShield } from './prompt-shield.js';
@@ -27,6 +28,7 @@ export function createRuntimeFromHost(url, kind, host, target = globalThis) {
         koboldSettings: kobold?.kai_settings, novelSettings: novel?.nai_settings, hordeSettings: horde?.horde_settings });
     if (!shared) {
         const bridge = createHostEventBridge(nativeContext, core, groups, { uuid: utils.uuidv4, fetchTarget: target, document: target.document });
+        const responseFilters = createResponseFilters(nativeContext, target);
         const isolated = createIsolatedGenerator(enrich, { core, fetch: (...args) => target.fetch(...args) });
         // Fate drawing needs the current story. Only explicitly isolated evidence
         // evaluation bypasses the native quiet prompt builder and lifecycle.
@@ -39,9 +41,10 @@ export function createRuntimeFromHost(url, kind, host, target = globalThis) {
         const restore = data => shield.restore(data);
         bridge.eventSource.on(bridge.eventTypes.GENERATE_AFTER_DATA, restore);
         bridge.eventSource.makeFirst(bridge.eventTypes.GENERATE_AFTER_DATA, restore);
-        shared = { bridge, isolated, quiet, saver, official, shield, directorRegistered: false };
+        shared = { bridge, responseFilters, isolated, quiet, saver, official, shield, directorRegistered: false };
         registry.set(nativeEvents, shared);
     }
+    shared.responseFilters ??= createResponseFilters(nativeContext, target);
     const getContext = () => {
         const current = enrich();
         const settings = current.extensionSettings ?? extensions.extension_settings;
@@ -83,6 +86,7 @@ export function createRuntimeFromHost(url, kind, host, target = globalThis) {
         claim(request) { if (claims.has(request)) return false; claims.add(request); return true; },
         prepare: shared.bridge.prepare,
         registerReplySanitizer: shared.bridge.registerReplySanitizer,
+        registerResponseFilter: shared.responseFilters.register,
         seal: request => shared.official ? shared.shield.seal(request) : Promise.resolve(),
         async countPromptTokens(prompt, schema) {
             const current = getContext();

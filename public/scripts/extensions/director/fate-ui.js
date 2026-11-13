@@ -5,7 +5,7 @@ function rerollsLeft(view) {
     return Number.isInteger(view?.rerolls) ? Math.max(0, view.rerolls) : 1;
 }
 
-/** Events cross into the face only after completion and the user's reveal policy. */
+/** Prepared cards expose a bounded preview; full reveals follow completion and reveal policy. */
 export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn,
     settings = { reveal: 'tap', sound: false, motion: 'system' }, sound = { play() {} },
     restoreFocus = () => document.getElementById('director_fate_open')?.focus(), jumpToMessage }) {
@@ -15,6 +15,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
     let activeTab = 'current';
     let logPresentation = 0;
     const flipped = new Set();
+    const previewed = new Set();
     const labels = { light: '轻微波澜', medium: '明显转折', strong: '重大变故' };
     const rarities = { common: '寻常', rare: '稀有', legendary: '传说' };
 
@@ -214,7 +215,10 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             const rarity = document.createElement('span');
             rarity.className = 'director_fate_choice_rarity';
             rarity.textContent = rarityLabel(card.rarity);
-            choice.append(seal, title, rarity);
+            const preview = document.createElement('span');
+            preview.className = 'director_fate_choice_preview';
+            preview.textContent = card.preview ?? '事件尚未生成，选中后写作';
+            choice.append(seal, title, rarity, preview);
             choice.addEventListener('click', () => choose(index));
             box.append(choice);
         });
@@ -275,13 +279,32 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         }
     }
 
+    function flipCurrentCard() {
+        if (!panel) return;
+        const view = controller.view();
+        if (view.held?.preview && !view.busy) {
+            if (previewed.has(view.held.id)) previewed.delete(view.held.id);
+            else { previewed.add(view.held.id); sound.play('flip'); }
+            refresh();
+            return;
+        }
+        if (settings.reveal !== 'tap' || view.busy || view.held || view.offer || view.phase === 'applying'
+            || !view.reveal || view.reveal.id !== view.bound?.id || flipped.has(view.reveal.id)) return;
+        flipped.add(view.reveal.id);
+        sound.play('flip');
+        refresh();
+        panel.querySelector('#director_fate_jump').focus();
+    }
+
     function syncCost(view) {
         const cost = panel.querySelector('#director_fate_cost');
         if (!cost) return;
         const offer = view.offer;
         const strength = panel.querySelector('#director_fate_strength')?.value;
         // Piggyback offers arrive pre-written at one strength; only that strength picks for free.
-        if (offer?.pregenerated && strength === offer.strength) {
+        if (view.held && !offer) {
+            cost.textContent = '牌已写好；点击牌面或「查看概述」可先看事件概要。点击「让意外发生」才会采用，正文完成后可翻牌看完整事件。';
+        } else if (offer?.pregenerated && strength === offer.strength) {
             cost.textContent = '这批牌已随上一条回复写好，按当前强度选牌不再调用模型；点「让意外发生」就立刻续写剧情。';
         } else if (offer?.pregenerated) {
             cost.textContent = `这批牌已按「${labels[offer.strength] ?? labels.medium}」预先写好；改用其他强度选牌，会再调用一次模型重写牌面。点「让意外发生」就立刻续写剧情。`;
@@ -299,6 +322,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         // An open offer is the choice being made. Do not show a previous reveal behind it.
         const card = view.held ?? (showOffer ? null : view.bound);
         const reveal = !view.held && !applying && !showOffer && view.reveal?.id === card?.id ? view.reveal : null;
+        const previewShown = Boolean(view.held?.preview && previewed.has(view.held.id));
         const shown = Boolean(reveal && (settings.reveal === 'auto' || (settings.reveal === 'tap' && flipped.has(reveal.id))));
         const state = applying ? 'applying' : view.held ? 'sealed' : reveal ? 'revealed' : view.bound && !showOffer ? 'stale' : 'empty';
         const element = panel.querySelector('.director_fate_card');
@@ -307,14 +331,23 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         // Card stock follows the rarity already printed on the back. No event text.
         if (card) element.dataset.rarity = reveal?.rarity ?? card.rarity;
         else delete element.dataset.rarity;
-        element.classList.toggle('director_fate_flipped', shown);
+        element.classList.toggle('director_fate_flipped', shown || previewShown);
+        const canFlip = Boolean(!view.busy && (view.held?.preview || (reveal && settings.reveal === 'tap' && !shown)));
+        element.tabIndex = canFlip ? 0 : -1;
+        if (canFlip) {
+            element.setAttribute('role', 'button');
+            element.setAttribute('aria-label', `${view.held ? '查看概述' : '翻开命运牌'}：${card.title}`);
+        } else {
+            element.removeAttribute('role');
+            element.removeAttribute('aria-label');
+        }
         panel.classList.toggle('director_fate_nomotion', settings.motion === 'off');
         document.documentElement?.classList.toggle('director_fate_nomotion', settings.motion === 'off');
-        panel.querySelector('.director_fate_back').setAttribute('aria-hidden', String(shown));
+        panel.querySelector('.director_fate_back').setAttribute('aria-hidden', String(shown || previewShown));
         const face = panel.querySelector('.director_fate_face');
         // Do not prefill hidden text, attributes, accessibility names or tooltips.
-        face.textContent = shown ? reveal.event : '';
-        face.setAttribute('aria-hidden', String(!shown));
+        face.textContent = previewShown ? `事件概述（尚未采用）\n${view.held.preview}` : shown ? reveal.event : '';
+        face.setAttribute('aria-hidden', String(!shown && !previewShown));
         panel.querySelector('#director_fate_title').textContent = card?.title ?? '故事的下一次转折';
         panel.querySelector('#director_fate_strength_label').textContent = card ? labels[card.strength] : '尚未抽牌';
         panel.querySelector('#director_fate_rarity').textContent = card ? rarityLabel(reveal?.rarity ?? card.rarity) : '';
@@ -322,13 +355,15 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         syncCost(view);
         panel.querySelector('#director_fate_status').textContent = error || (view.busy
             ? applying ? '命运在转动…' : '正在为当前剧情抽牌…'
-            : showOffer ? (rerollSpent ? '三张牌已备好，请选择一张。本次已换过一组。' : '三张牌已备好，请选择一张。')
-                : state === 'sealed' ? '牌已封存。'
+            : showOffer ? (view.offer.pregenerated ? '事件已随上一条回复写好，按原强度选牌无需等待模型。' : '三张牌面已备好，事件尚未生成；选择后会调用模型。') + (rerollSpent ? '本次已换过一组。' : '')
+                : state === 'sealed' ? '牌已写好，点击牌面查看概述。'
                     : state === 'revealed' ? shown ? '命运已揭晓。' : settings.reveal === 'off' ? '命运已降临，翻牌已关闭。' : '命运已降临，点击翻牌。'
                         : state === 'stale' ? '这张牌的消息已变化，无法翻牌。' : '抽取一张牌，让故事迎来转折。');
         panel.querySelector('#director_fate_apply').hidden = !view.held;
         panel.querySelector('#director_fate_discard').hidden = !view.held;
-        panel.querySelector('#director_fate_flip').hidden = !reveal || settings.reveal !== 'tap' || shown;
+        const flip = panel.querySelector('#director_fate_flip');
+        flip.textContent = view.held?.preview ? previewShown ? '返回牌面' : '查看概述' : '翻牌';
+        flip.hidden = view.held?.preview ? false : !reveal || settings.reveal !== 'tap' || shown;
         panel.querySelector('#director_fate_jump').hidden = !shown;
         for (const control of panel.querySelectorAll('.director_fate_actions button, #director_fate_strength, .director_fate_choice')) control.disabled = view.busy;
         // After the busy pass, so a spent swap stays disabled once the deal settles.
@@ -411,6 +446,13 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const card = document.createElement('div');
         card.className = 'director_fate_card';
         card.tabIndex = -1;
+        card.addEventListener('click', flipCurrentCard);
+        card.addEventListener('keydown', event => {
+            if (card.getAttribute('role') !== 'button' || !['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            flipCurrentCard();
+        });
         const back = document.createElement('div');
         back.className = 'director_fate_back';
         const ornament = document.createElement('span');
@@ -473,14 +515,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             }, '剧情未完成，牌仍保留，可重试。');
         });
         const discard = button('director_fate_discard', '弃牌', () => action(() => controller.discard(), '未能弃牌，请重试。'));
-        const flip = button('director_fate_flip', '翻牌', () => {
-            const view = controller.view();
-            if (settings.reveal !== 'tap' || view.held || view.phase === 'applying' || !view.reveal) return;
-            flipped.add(view.reveal.id);
-            sound.play('flip');
-            refresh();
-            panel.querySelector('#director_fate_jump').focus();
-        });
+        const flip = button('director_fate_flip', '翻牌', flipCurrentCard);
         const jump = button('director_fate_jump', '跳到该消息', () => {
             const reveal = controller.view().reveal;
             if (!reveal) return;

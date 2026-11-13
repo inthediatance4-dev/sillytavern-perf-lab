@@ -46,6 +46,109 @@ export function stripPiggyback(text) {
     return text.slice(0, start).replace(/\s+$/, '');
 }
 
+function visitResponseText(value, replace, path = '', reasoning = false) {
+    if (!value || typeof value !== 'object') return;
+    reasoning ||= value.thought === true || value.type === 'thinking';
+    if (Array.isArray(value)) {
+        value.forEach((item, index) => visitResponseText(item, replace, (/\.(?:content|parts)$/.test(path) ? path : `${path}.${item?.index ?? index}`), reasoning));
+        return;
+    }
+    for (const key of Object.keys(value)) {
+        if (['tool_calls', 'function_call', 'logprobs', 'usage', 'inlineData', 'images'].includes(key)) continue;
+        const thought = reasoning || /reasoning|thinking/.test(key);
+        if (typeof value[key] === 'string' && ['content', 'text', 'output', 'token', 'completion', 'response', 'reasoning', 'reasoning_content', 'thinking', 'tool_plan'].includes(key)) {
+            value[key] = replace(value[key], `${path}.${key}:${thought}`, thought, value, key);
+        } else visitResponseText(value[key], replace, `${path}.${key}`, thought);
+    }
+}
+
+export async function filterPiggybackResponse(response, capture, stream = response.headers.get('Content-Type')?.includes('text/event-stream')) {
+    const headers = new Headers(response.headers);
+    headers.delete('Content-Length');
+    headers.delete('Content-Encoding');
+    const options = { status: response.status, statusText: response.statusText, headers };
+    const channels = new Map();
+    let currentFrame = null;
+    const finish = () => {
+        for (const state of channels.values()) {
+            if (state.private !== null && !state.reasoning) capture(state.private);
+            else if (state.pending) state.restorePending();
+        }
+        channels.clear();
+    };
+    const replace = (text, channel, reasoning, owner, key) => {
+        let state = channels.get(channel);
+        if (!state) channels.set(channel, state = { pending: '', private: null, reasoning });
+        if (state.private !== null) {
+            state.private = (state.private + text).slice(0, MAX_BLOCK_LENGTH + 1);
+            return '';
+        }
+        const combined = state.pending + text;
+        const start = piggybackBlockStart(combined);
+        if (start >= 0) {
+            state.private = combined.slice(start, start + MAX_BLOCK_LENGTH + 1);
+            state.pending = '';
+            return combined.slice(0, start).trimEnd();
+        }
+        // Withhold only a possible marker prefix, never the rest of the story.
+        let held = Math.min(PIGGYBACK_MARKER.length - 1, combined.length);
+        while (held && !PIGGYBACK_MARKER.startsWith(combined.slice(-held))) held--;
+        state.pending = held ? combined.slice(-held) : '';
+        state.frame = currentFrame;
+        state.restorePending = () => { owner[key] += state.pending; };
+        return held ? combined.slice(0, -held) : combined;
+    };
+    if (!stream) {
+        const data = await response.json();
+        visitResponseText(data, replace);
+        finish();
+        return new Response(JSON.stringify(data), options);
+    }
+    let buffer = '';
+    let queued = [];
+    const drain = () => {
+        const blocked = new Set([...channels.values()].filter(state => state.pending).map(state => state.frame));
+        const ready = queued.filter(frame => !blocked.has(frame));
+        queued = queued.filter(frame => blocked.has(frame));
+        return ready.map(frame => frame.render()).join('');
+    };
+    const processFrame = frame => {
+        const lines = frame.split(/\r?\n/);
+        const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n');
+        if (data === '[DONE]') { finish(); return drain() + frame + '\n\n'; }
+        if (!data) queued.push({ render: () => frame + '\n\n' });
+        else {
+            const value = JSON.parse(data);
+            currentFrame = {};
+            visitResponseText(value, replace);
+            // Hold a possible marker prefix until it either completes or becomes
+            // ordinary text. Keep the original frame so EOF can restore it exactly.
+            currentFrame.render = () => lines.filter(line => !line.startsWith('data:'))
+                .concat('data: ' + JSON.stringify(value)).join('\n') + '\n\n';
+            queued.push(currentFrame);
+        }
+        return drain();
+    };
+    const body = response.body.pipeThrough(new TextDecoderStream()).pipeThrough(new TransformStream({
+        transform(chunk, controller) {
+            buffer += chunk;
+            let separator;
+            while ((separator = /\r?\n\r?\n/.exec(buffer))) {
+                const output = processFrame(buffer.slice(0, separator.index));
+                if (output) controller.enqueue(output);
+                buffer = buffer.slice(separator.index + separator[0].length);
+            }
+        },
+        flush(controller) {
+            if (buffer.trim()) controller.enqueue(processFrame(buffer));
+            finish();
+            const output = drain();
+            if (output) controller.enqueue(output);
+        },
+    })).pipeThrough(new TextEncoderStream());
+    return new Response(body, options);
+}
+
 function firstObject(raw) {
     const start = raw.indexOf('{');
     if (start < 0) throw new Error();

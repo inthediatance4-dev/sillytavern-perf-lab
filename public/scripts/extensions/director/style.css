@@ -64,6 +64,8 @@
     text-align: center;
 }
 
+.director_fate_card[role="button"] { cursor: pointer; }
+
 .director_fate_card:focus-visible {
     border-radius: 18px;
     outline: 2px solid var(--SmartThemeQuoteColor);
@@ -1078,3 +1080,5 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     margin: 6px 0;
     line-height: 1.6;
 }
+
+.director_fate_choice_preview { font-size: 0.85em; line-height: 1.45; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }

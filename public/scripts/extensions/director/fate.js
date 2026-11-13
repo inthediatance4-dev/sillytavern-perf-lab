@@ -1,6 +1,6 @@
 import { messageFingerprint } from './instruct.js';
 import { ALL_TITLES, CATEGORIES, CATEGORY_IDS, RARITIES, findCategoryByTitle, rollOffer } from './fate-decks.js';
-import { buildPiggybackInstruction, parsePiggybackEvents, piggybackBlockStart, stripPiggyback, PIGGYBACK_STRENGTH } from './fate-piggyback.js';
+import { buildPiggybackInstruction, filterPiggybackResponse, parsePiggybackEvents, piggybackBlockStart, stripPiggyback, PIGGYBACK_STRENGTH } from './fate-piggyback.js';
 
 /** Legacy shared key is only cleaned up; new Fate prompts are request-local. */
 export const FATE_PROMPT_KEY = 'director_fate';
@@ -250,7 +250,7 @@ export function createFateController(getContext, options = {}) {
         save = context => context.saveMetadata(), setSendButtonState = () => {},
         deactivateSendButtons = () => {}, activateSendButtons = () => {}, onRegenerateStart = () => {},
         onError = () => {}, onReveal = () => {}, piggyback = () => false, repaintMessage = () => {},
-        registerReplySanitizer = () => {} } = options;
+        registerReplySanitizer = () => {}, registerResponseFilter = () => {} } = options;
     let revision = 0;
     let nonce = 0;
     let tokenSerial = 0;
@@ -279,6 +279,11 @@ export function createFateController(getContext, options = {}) {
         for (const record of tokens.values()) delete record.snapshot.context.extensionPrompts?.[FATE_PROMPT_KEY];
     };
     const anchorMatches = (context, bound) => messageFingerprint(context.chat?.[bound.slotIndex - 1]) === bound.prevFingerprint;
+    const preview = event => {
+        if (!validEvent(event)) return null;
+        const points = Array.from(event.trim().replace(/\s+/g, ' '));
+        return points.slice(0, 80).join('') + (points.length > 80 ? '…' : '');
+    };
     const publicCard = card => card ? { id: card.id, title: card.title, strength: card.strength, rarity: cardRarity(card) } : null;
     const publicReveal = card => ({ ...publicCard(card), slotIndex: card.slotIndex });
     const publicEntry = entry => {
@@ -291,7 +296,7 @@ export function createFateController(getContext, options = {}) {
         if (!offer) return null;
         const pregenerated = offer.cards.every(card => validEvent(card.event));
         return {
-            id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity })),
+            id: offer.id, cards: offer.cards.map(card => ({ category: card.category, title: card.title, rarity: card.rarity, preview: preview(card.event) })),
             strength: offer.strength ?? (pregenerated ? PIGGYBACK_STRENGTH : null), pregenerated,
         };
     };
@@ -301,7 +306,7 @@ export function createFateController(getContext, options = {}) {
         const visibleBusy = busy && current(busy.snapshot);
         const reveal = value.bound && anchorMatches(context, value.bound) && isAi(context.chat[value.bound.slotIndex])
             ? { ...publicReveal(value.bound), event: value.bound.event } : null;
-        return { held: publicCard(value.held), bound: publicCard(value.bound), reveal, offer: publicOffer(value.offer),
+        return { held: value.held ? { ...publicCard(value.held), preview: preview(value.held.event) } : null, bound: publicCard(value.bound), reveal, offer: publicOffer(value.offer),
             busy: Boolean(visibleBusy), phase: visibleBusy ? busy.phase : 'idle', logCount: value.log.length,
             rerolls: value.rerolls };
     };
@@ -581,6 +586,25 @@ export function createFateController(getContext, options = {}) {
         }
     }
 
+    function prepareNextOffer(context, value, requestChat, attempt = null) {
+        if (!piggyback() || isGroup(context) || value.offer || (value.held && !attempt)) return false;
+        const cards = rollOffer(random, {
+            recent: attempt ? [cardCategoryId(attempt.card), ...value.recent].filter(Boolean).slice(0, 2) : value.recent,
+            pity: attempt ? (cardRarity(attempt.card) === 'common' ? value.pity + 1 : 0) : value.pity,
+        });
+        const text = buildPiggybackInstruction(cards);
+        let tag;
+        do { tag = `directorpb${++tokenSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`; } while (text.includes(tag));
+        const delimiters = { '{': '\uE004', '}': '\uE005', '<': '\uE006', '>': '\uE007', '\r': '\uE008', '\n': '\uE009' };
+        const shielded = text.replace(/[{}<>\r\n]/g, character => delimiters[character]);
+        const token = `\uE000${tag}\uE001${shielded}\uE002${tag}\uE003`;
+        piggybackTokens.set(token, { token, text, cards, slotIndex: context.chat.length,
+            snapshot: capture(context, true), invalid: false });
+        requestChat.push({ name: FATE_NARRATOR_NAME, is_user: false, is_system: true, mes: token,
+            extra: { type: 'narrator', directorFatePiggyback: true } });
+        return true;
+    }
+
     function prepare(type, requestChat) {
         clearPrompt();
         if (!Array.isArray(requestChat) || !['normal', 'swipe', 'regenerate'].includes(type)) return false;
@@ -602,31 +626,13 @@ export function createFateController(getContext, options = {}) {
                 : type === 'regenerate' && context.chat.length === bound.slotIndex;
             const scoped = type === 'normal' && groupScope && !groupScope.injected && current(groupScope.snapshot)
                 && groupScope.card === bound && context.chat.length === bound.slotIndex;
-            if (!exact && !scoped) return false;
+            if (!exact && !scoped) return type === 'normal' && prepareNextOffer(context, value, requestChat);
             if (!anchorMatches(context, bound)) { clearBound(); return false; }
             card = bound;
             scope = scoped ? groupScope : null;
             slotIndex = bound.slotIndex;
         }
-        if (!card) {
-            // Piggyback mode rolls the next offer's faces locally and asks the story
-            // reply to carry their events, so a fate round costs one provider call.
-            // It stays out of applies, groups, and chats that already hold a card
-            // or an open offer the player has not answered yet.
-            if (type !== 'normal' || !piggyback() || attempt || isGroup(context) || value.held || value.offer) return false;
-            const cards = rollOffer(random, { recent: value.recent, pity: value.pity });
-            const text = buildPiggybackInstruction(cards);
-            let tag;
-            do { tag = `directorpb${++tokenSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`; } while (text.includes(tag));
-            const delimiters = { '{': '\uE004', '}': '\uE005', '<': '\uE006', '>': '\uE007', '\r': '\uE008', '\n': '\uE009' };
-            const shielded = text.replace(/[{}<>\r\n]/g, character => delimiters[character]);
-            const token = `\uE000${tag}\uE001${shielded}\uE002${tag}\uE003`;
-            piggybackTokens.set(token, { token, text, cards, slotIndex: context.chat.length,
-                snapshot: capture(context, true), invalid: false });
-            requestChat.push({ name: FATE_NARRATOR_NAME, is_user: false, is_system: true, mes: token,
-                extra: { type: 'narrator', directorFatePiggyback: true } });
-            return true;
-        }
+        if (!card) return type === 'normal' && prepareNextOffer(context, value, requestChat);
         const text = `[Director Fate: introduce this fixed event naturally in this story reply.]\n${card.event}`;
         // Budget the complete text. Also protect whitespace that text-completion
         // assembly normalizes, so restoring literals cannot grow the reserved input.
@@ -641,6 +647,7 @@ export function createFateController(getContext, options = {}) {
         // chat. Other quiet requests therefore cannot inherit or remove its row.
         requestChat.push({ name: FATE_NARRATOR_NAME, is_user: false, is_system: true, mes: token,
             extra: { type: 'narrator', directorFatePrompt: true } });
+        if (attempt && type === 'normal') prepareNextOffer(context, value, requestChat, attempt);
         return true;
     }
 
@@ -738,6 +745,10 @@ export function createFateController(getContext, options = {}) {
             if (!dryRun && !record.invalid) {
                 piggybackRequests.set(data, record);
                 latestPiggyback = record;
+                registerResponseFilter(data, (response, request) => filterPiggybackResponse(response, raw => {
+                    if (record.invalid || !current(record.snapshot)) return;
+                    record.raw ??= raw;
+                }, request ? request.stream === true || request.streaming === true : undefined));
             }
         }
         if (!dryRun) clearPrompt();

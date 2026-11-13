@@ -99,7 +99,7 @@ class Element {
         this.listeners.set(type, (this.listeners.get(type) ?? []).filter(item => item !== handler));
     }
     fire(type, fields = {}) {
-        const event = { target: this, type, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...fields };
+        const event = { target: this, type, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, stopPropagation() {}, ...fields };
         for (const handler of [...(this.listeners.get(type) ?? [])]) handler(event);
         return event;
     }
@@ -357,6 +357,76 @@ test('ritual preferences stay out of the modal panel and live in the settings dr
         assert.equal(html.includes(`id="${id}"`), true, id);
         assert.equal(html.includes(`for="${id}"`), true, id);
     }
+});
+
+test('clicking the completed card surface reveals once and shares the log reveal', async t => {
+    const fixture = lab(t);
+    fixture.open();
+    const card = fixture.query('.director_fate_card');
+    assertSecretAbsent(fixture.popups.at(-1).content);
+    card.click();
+    assert.equal(fixture.query('.director_fate_face').textContent, secret);
+    card.click();
+    fixture.query('#director_fate_flip').click();
+    assert.deepEqual(fixture.sounds, ['flip']);
+    fixture.query('#director_fate_tab_log').click();
+    assert.equal(fixture.query('.director_fate_log_event').textContent, secret);
+    await fixture.close();
+});
+
+for (const key of ['Enter', ' ']) {
+    test(`the completed card is keyboard operable with ${JSON.stringify(key)}`, async t => {
+        const fixture = lab(t);
+        fixture.open();
+        fixture.applyA11y();
+        const card = fixture.query('.director_fate_card');
+        assert.equal(card.getAttribute('role'), 'button');
+        assert.equal(card.tabIndex, 0);
+        assert.match(card.getAttribute('aria-label'), /翻开/);
+        const event = card.fire('keydown', { key });
+        assert.equal(event.defaultPrevented, true);
+        assert.equal(fixture.query('.director_fate_face').textContent, secret);
+        assert.equal(card.getAttribute('role'), null);
+        assert.equal(card.tabIndex, -1);
+        assert.deepEqual(fixture.sounds, ['flip']);
+        await fixture.close();
+    });
+}
+
+test('card-surface activation cannot reveal held, applying, stale, offer-covered or disabled cards', async t => {
+    const fixture = lab(t);
+    fixture.open();
+    for (const view of [
+        { held: entry('held'), bound: null, reveal: null },
+        { held: null, bound: entry('first'), reveal: entry('first'), phase: 'applying', busy: true },
+        { phase: 'idle', busy: false, bound: entry('first'), reveal: null },
+        { bound: entry('other'), reveal: entry('first') },
+        { bound: entry('first'), reveal: entry('first'), offer: { id: 'offer', cards: [] } },
+    ]) {
+        fixture.setView(view);
+        const card = fixture.query('.director_fate_card');
+        card.click();
+        card.fire('keydown', { key: 'Enter' });
+        fixture.query('#director_fate_flip').click();
+        assert.equal(card.getAttribute('role'), null);
+        assert.equal(card.tabIndex, -1);
+        assertSecretAbsent(fixture.popups.at(-1).content);
+    }
+    fixture.settings.reveal = 'off';
+    fixture.setView({ offer: null });
+    fixture.query('.director_fate_card').click();
+    assertSecretAbsent(fixture.popups.at(-1).content);
+    assert.deepEqual(fixture.sounds, []);
+    await fixture.close();
+});
+
+test('sealed card guidance names adoption as the next action without exposing its event', async t => {
+    const fixture = lab(t);
+    fixture.open();
+    fixture.setView({ held: entry('picked'), bound: null, reveal: null });
+    assert.match(fixture.query('#director_fate_cost').textContent, /让意外发生.*翻牌/);
+    assertSecretAbsent(fixture.popups.at(-1).content);
+    await fixture.close();
 });
 
 test('flipping the current card reveals the same log entry without another flip', async t => {
@@ -639,7 +709,7 @@ test('the draw button shows one free swap, then locks with a hint until the offe
     fixture.setView({ held: null, bound: null, reveal: null, offer });
     assert.equal(draw.textContent, '换一组 (1)');
     assert.equal(draw.disabled, false);
-    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌已备好，请选择一张。');
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；选择后会调用模型。');
     draw.click();
     await settle();
     assert.deepEqual(deals, ['deal']);
@@ -648,7 +718,7 @@ test('the draw button shows one free swap, then locks with a hint until the offe
     fixture.controller.deal = async () => { throw new Error('本次已换过一组'); };
     draw.click();
     await settle();
-    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌已备好，请选择一张。');
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；选择后会调用模型。');
     assert.equal(draw.disabled, false);
 
     fixture.setView({ rerolls: 0 });
@@ -656,7 +726,7 @@ test('the draw button shows one free swap, then locks with a hint until the offe
     assert.equal(draw.disabled, true);
     assert.equal(draw.getAttribute('title'), '本次已换过一组');
     assert.equal(draw.getAttribute('aria-label'), '换一组 (0)，本次已换过一组');
-    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌已备好，请选择一张。本次已换过一组。');
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；选择后会调用模型。本次已换过一组。');
     draw.click();
     await settle();
     assert.deepEqual(deals, ['deal']);
@@ -726,7 +796,7 @@ test('a loaded parent-format offer shows the free medium pick in the real contro
     const cost = fixture.query('#director_fate_cost');
     const strength = fixture.query('#director_fate_strength');
     assert.ok(cost.textContent.includes('不再调用模型'));
-    assertSecretAbsent(fixture.popups.at(-1).content);
+    assert.equal(fixture.query('.director_fate_choice_preview').textContent, secret);
     strength.value = 'strong';
     strength.fire('change');
     assert.ok(cost.textContent.includes('再调用一次模型'));
@@ -739,4 +809,31 @@ test('a loaded parent-format offer shows the free medium pick in the real contro
     assert.equal(metadata.director.fate.held.strength, 'medium');
     assert.equal(metadata.director.fate.held.event, secret);
     await fixture.close();
+});
+
+
+test('held card face opens an event preview before adoption and toggles back', async t => {
+    const h = lab(t);
+    h.open();
+    t.after(() => h.close());
+    h.setView({ held: entry('preview', { preview: 'A visitor arrives with an unopened letter.' }), bound: null, reveal: null });
+    h.query('.director_fate_card').click();
+    assert.match(h.query('.director_fate_face').textContent, /A visitor arrives/);
+    assert.equal(h.query('#director_fate_apply').hidden, false);
+    assert.equal(h.query('#director_fate_jump').hidden, true);
+    h.query('.director_fate_card').click();
+    assert.equal(h.query('.director_fate_face').textContent, '');
+});
+
+test('ready choices show real event previews while ungenerated choices say they are not ready', async t => {
+    const h = lab(t);
+    h.open();
+    t.after(() => h.close());
+    h.setView({ held: null, bound: null, reveal: null, offer: { id: 'previews', cards: [
+        { title: 'First', rarity: 'rare', preview: 'A letter arrives.' },
+        { title: 'Second', rarity: 'common', preview: null },
+    ] } });
+    const cards = h.query('.director_fate_offer').children;
+    assert.match(cards[0].textContent, /A letter arrives/);
+    assert.match(cards[1].textContent, /尚未生成/);
 });

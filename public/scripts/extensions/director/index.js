@@ -599,6 +599,7 @@ export async function init() {
         onError: message => toastr.warning(message),
         piggyback: () => settings.fate.piggyback === true,
         registerReplySanitizer: runtime.registerReplySanitizer,
+        registerResponseFilter: runtime.registerResponseFilter,
         repaintMessage: messageId => {
             // Only streaming has painted the row before MESSAGE_RECEIVED; the
             // non-streaming path renders the already-stripped message itself.

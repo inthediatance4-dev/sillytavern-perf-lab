@@ -103,7 +103,6 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
         await events.emit(eventTypes.GENERATE_AFTER_DATA, data, dryRun, { type: record?.type });
         if (record && FOREGROUND.has(record.type) && !dryRun && currentOwner(getContext(), record)) {
             record.data = data;
-            record.key = requestKey(data);
             requests.add(record);
             if (requests.size > 128) requests.delete(requests.values().next().value);
         }
@@ -124,7 +123,7 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
         if (!currentOwner(context, record) || context.chat[index] !== message || (message.swipe_id ?? 0) !== swipe) return;
         // Freeze after our awaited finalization listeners, so controlled privacy
         // cleanup is part of the receipt. Later edits still fail the saved-text check.
-        record.candidates.push({ index, message, text: message.mes, swipe });
+        record.candidates.push({ index, message, text: message.mes, swipe, rendered: false });
         if (record.stream) {
             const stream = record.processor;
             record.ok = !!stream && stream.isFinished === true && stream.isStopped !== true
@@ -205,7 +204,7 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
         let record;
         const body = await bodyPromise;
         if (generating && body) {
-            record = [...requests].find(item => !item.sent && item.key === requestKey(body)
+            record = [...requests].find(item => !item.sent && requestKey(item.data) === requestKey(body)
                 && (!body.type || body.type === item.type || item.type === 'regenerate' && body.type === 'normal'));
             if (record) {
                 record.sent = true;
@@ -253,6 +252,20 @@ export function createHostEventBridge(getContext, core, groups, options = {}) {
                 for (const record of requests) if (record.stopped || !record.candidates.length) requests.delete(record);
             }
             if (name === 'GENERATION_STOPPED' && active) active.stopped = true;
+            // Finalize native received-listener edits once; later rerenders cannot reauthorize manual edits.
+            if (name === 'CHARACTER_MESSAGE_RENDERED') {
+                const context = getContext();
+                for (const record of requests) {
+                    if (!currentOwner(context, record)) continue;
+                    for (const candidate of record.candidates) {
+                        if (candidate.rendered || candidate.index !== Number(args[0])
+                            || context.chat[candidate.index] !== candidate.message
+                            || (candidate.message.swipe_id ?? 0) !== candidate.swipe) continue;
+                        candidate.text = candidate.message.mes;
+                        candidate.rendered = true;
+                    }
+                }
+            }
             if (name === 'CHAT_CHANGED') { requests.clear(); tokens.clear(); active = null; }
             await events.emit(value, ...args);
             if (candidate) receive(candidate);

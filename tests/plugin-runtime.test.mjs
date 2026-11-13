@@ -60,3 +60,14 @@ test('budget counts the same single literal message sent by isolated transport, 
     const expected = JSON.stringify([{ role: 'user', content: prompt }]).length + JSON.stringify(schema.value).length + 64;
     assert.equal(await runtime.countPromptTokens(prompt, schema), expected);
 });
+
+
+test('new Director augments an older shared runtime without another bridge', () => {
+    const f = fixture();
+    const old = createRuntimeFromHost('https://fixture.invalid/scripts/extensions/affinity/index.js', 'affinity', f.host, f.target);
+    const shared = f.target[Symbol.for('sillytavern.independent-director-affinity.runtime.v1')].get(f.context.eventSource);
+    shared.responseFilters.dispose(); delete shared.responseFilters;
+    const next = createRuntimeFromHost('https://fixture.invalid/scripts/extensions/director/index.js', 'director', f.host, f.target);
+    assert.equal(typeof next.registerResponseFilter, 'function');
+    assert.equal(next.getContext().saveChat, old.getContext().saveChat);
+});

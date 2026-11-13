@@ -10,5 +10,8 @@ node_modules/
 /config.yaml
 *.log
 *.bak
+.windsurf/
 .env
 .env.*
+__pycache__/
+*.pyc

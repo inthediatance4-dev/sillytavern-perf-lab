@@ -1,0 +1,100 @@
+{
+  "hostCommit": "4177d6be7d95c68431e28bb3e6785553835d765f",
+  "checks": {
+    "installedEntriesTemplatesAndLegacyOptOut": true,
+    "drawerInitiallyCollapsed": true,
+    "affinityAloneFiveNativeCompletionsAndExtraction": true,
+    "isolatedEvaluatorUsesOneLiteralMessageAndOwnBudget": true,
+    "extractedObservationActuallyEntersNextPromptLiterallyOnce": true,
+    "nativeStreamCountsOnceContinueRegenerateSwipeKeepLogicalCount": true,
+    "failedNativeGenerationDoesNotCount": true,
+    "directorLoadsWithoutAffinity": true,
+    "firstNarrativeLiteralAfterNativeGenerationAndReload": true,
+    "nativeQuietDoesNotStealFateAndOnlySavedReplyConsumesCard": true,
+    "bothPluginsGroupRepliesAndEachNativeSpeakerOwnMemory": true,
+    "nativeGroupCardInjectsOnceAndPersistsWhileSpeakerChanges": true,
+    "nativeGroupRegeneratePreservesLogicalReceipts": true,
+    "full400CodepointCardPaysForRealHistoryWithin2048Budget": true,
+    "installedPiggyback_story_nonstream": true,
+    "installedPiggyback_candidate_nonstream": true,
+    "installedPiggyback_reasoning_nonstream": true,
+    "installedPiggyback_story_stream": true
+  },
+  "realModel": false,
+  "errors": [],
+  "packages": [
+    {
+      "id": "director",
+      "folderName": "st-director-fate-cards",
+      "displayName": "命运之牌",
+      "version": "1.3.0",
+      "fileName": "st-director-fate-cards-1.3.0.zip",
+      "sha256": "2f8acbf7e9547f54c86a62dfabafbb604c62d144af63c17d56bf62588b501823",
+      "sourceHash": "be51b8d19c3d51ac701dae6485afe73286ceac8af2177f8d7b3136a0e796de5f",
+      "bytes": 100542,
+      "entries": 23
+    },
+    {
+      "id": "affinity",
+      "folderName": "st-affinity-memory",
+      "displayName": "好感度记忆",
+      "version": "1.1.1",
+      "fileName": "st-affinity-memory-1.1.1.zip",
+      "sha256": "f05651a5a2daa143df487e227531f48245b64bba43b324e9ef5c803fb9cbfc44",
+      "sourceHash": "01bec4575f59a6f0dc9b2872d6ca286ea7e0dc297ecb3c65539a63e432c5794a",
+      "bytes": 60694,
+      "entries": 15
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "expectedProviderFailures": [
+    "Internal Server Error"
+  ],
+  "fateConcurrency": {
+    "requests": 2,
+    "eventOccurrences": [
+      0,
+      1
+    ]
+  },
+  "smallContextBudget": {
+    "context": 2048,
+    "reply": 256,
+    "eventCodepoints": 400,
+    "baselineTokens": 1756,
+    "adoptedTokens": 1708,
+    "historyWithoutCard": 29,
+    "historyWithCard": 22
+  },
+  "piggyback": {
+    "installedPiggyback_story_nonstream": {
+      "providerCalls": 1,
+      "diskMessageClean": true,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_candidate_nonstream": {
+      "providerCalls": 1,
+      "diskMessageClean": true,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_reasoning_nonstream": {
+      "providerCalls": 1,
+      "diskMessageClean": true,
+      "nativeReturnChecked": true
+    },
+    "installedPiggyback_story_stream": {
+      "providerCalls": 1,
+      "diskMessageClean": true,
+      "nativeReturnChecked": true
+    }
+  },
+  "providerRequests": 37,
+  "passed": true,
+  "runnerSha256": "9a77c8c7e92de661071b43666c70e4267946867de480d1597fcefc7ae2f6e67b"
+}

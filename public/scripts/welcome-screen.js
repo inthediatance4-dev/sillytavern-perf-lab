@@ -13,9 +13,9 @@ import {
     getSystemMessageByType,
     getThumbnailUrl,
     is_send_press,
+    isChatSaving,
     neutralCharacterName,
     newAssistantChat,
-    openCharacterChat,
     printCharactersDebounced,
     renameGroupOrCharacterChat,
     saveSettingsDebounced,
@@ -29,7 +29,7 @@ import {
     updateRemoteChatName,
 } from '../script.js';
 import { getRegexedString, regex_placement } from './extensions/regex/engine.js';
-import { deleteGroupChatByName, getGroupAvatar, groups, is_group_generating, openGroupById, openGroupChat } from './group-chats.js';
+import { deleteGroupChatByName, getGroupAvatar, groups, is_group_generating, openGroupById, openGroupChat, selected_group } from './group-chats.js';
 import { t } from './i18n.js';
 import { callGenericPopup, POPUP_TYPE } from './popup.js';
 import { getMessageTimeStamp } from './RossAscends-mods.js';
@@ -44,6 +44,8 @@ const defaultAssistantAvatar = 'default_Assistant.png';
 
 const DEFAULT_MAX_DISPLAYED = 15;
 const DEFAULT_COLLAPSED_DISPLAYED = 3;
+let recentCharacterChatOpening = false;
+let recentGroupChatOpenSerial = 0;
 
 /**
  * Gets the current recent chats settings from account storage.
@@ -476,25 +478,28 @@ async function sendWelcomePanel(chats, expand = false) {
  * @param {string} fileName Chat file name
  */
 async function openRecentCharacterChat(avatarId, fileName) {
+    if (recentCharacterChatOpening) {
+        return;
+    }
     const characterId = characters.findIndex(x => x.avatar === avatarId);
     if (characterId === -1) {
         console.error(`Character not found for avatar ID: ${avatarId}`);
         return;
     }
 
+    recentCharacterChatOpening = true;
     try {
-        await selectCharacterById(characterId);
-        setActiveCharacter(avatarId);
-        saveSettingsDebounced();
-        const currentChatId = getCurrentChatId();
-        if (currentChatId === fileName) {
-            console.debug(`Chat ${fileName} is already open.`);
+        const accepted = await selectCharacterById(characterId, { chatFile: fileName });
+        if (!accepted) {
             return;
         }
-        await openCharacterChat(fileName);
+        setActiveCharacter(avatarId);
+        saveSettingsDebounced();
     } catch (error) {
         console.error('Error opening recent chat:', error);
         toastr.error(t`Failed to open recent chat. See console for details.`);
+    } finally {
+        recentCharacterChatOpening = false;
     }
 }
 
@@ -510,8 +515,16 @@ async function openRecentGroupChat(groupId, fileName) {
         return;
     }
 
+    const openSerial = ++recentGroupChatOpenSerial;
+    const alreadySelected = selected_group === groupId;
+    const expectedChatId = group.chat_id;
     try {
-        await openGroupById(groupId);
+        const opened = await openGroupById(groupId);
+        // Legacy false also means the group was already selected, which still permits history navigation.
+        if (openSerial !== recentGroupChatOpenSerial || (!opened && !alreadySelected)
+            || selected_group !== groupId || groups.find(x => x.id === groupId) !== group
+            || (expectedChatId != null && group.chat_id !== expectedChatId)
+            || isChatSaving || is_send_press || is_group_generating) return;
         setActiveGroup(groupId);
         saveSettingsDebounced();
         const currentChatId = getCurrentChatId();

@@ -1,0 +1,130 @@
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+Event emitted: GENERATION_STARTED
+Event emitted: GENERATE_AFTER_DATA
+Event emitted: MESSAGE_RECEIVED
+Event emitted: GENERATION_ENDED
+Event emitted: GENERATION_COMPLETED
+✖ S1 draw extracts explanation before and after (2.2659ms)
+✖ S1 draw extracts a fenced object inside explanation (0.344ms)
+✖ S1 draw extracts braces and escaped quotes inside the event (0.1914ms)
+✖ S1 draw extracts an event ending with a literal backslash (0.1453ms)
+✖ S1 draw extracts the first complete object before another object (0.4409ms)
+✔ S1 draw extracts exactly 400 Unicode codepoints (0.8195ms)
+✔ S1 draw still rejects empty output (0.6183ms)
+✔ S1 draw still rejects an empty object before a valid object (0.262ms)
+✔ S1 draw still rejects a wrong event type before a valid object (0.2502ms)
+✔ S1 draw still rejects an invalid first JSON object before a valid object (0.424ms)
+✔ S1 draw still rejects an extra property before a valid object (0.2195ms)
+✔ S1 draw still rejects a nested object in the wrong first object (0.2232ms)
+✔ S1 draw still rejects an empty event (0.1649ms)
+✔ S1 draw still rejects 401 Unicode codepoints (0.153ms)
+✔ S1 draw still rejects a control character in the event (0.1457ms)
+✔ S1 draw still rejects an array (0.1206ms)
+✔ S1 draw still rejects null (0.1053ms)
+✖ S3 successful native swipe does not save an unchanged Fate binding again (3.6514ms)
+✔ S3 group replay still saves a changed generation ID (0.5774ms)
+✖ S4 failed Fate save preserves a concurrently added Director instruction binding (0.8741ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 13
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 148.1506
+
+✖ failing tests:
+
+test at tests\director-fate-followups.test.mjs:83:5
+✖ S1 draw extracts explanation before and after (2.2659ms)
+  Error: 命运卡抽取失败，请重试。
+      at Object.draw (file:///<repo>/public/scripts/extensions/director/fate.js:149:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:86:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at tests\director-fate-followups.test.mjs:83:5
+✖ S1 draw extracts a fenced object inside explanation (0.344ms)
+  Error: 命运卡抽取失败，请重试。
+      at Object.draw (file:///<repo>/public/scripts/extensions/director/fate.js:149:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:86:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate-followups.test.mjs:83:5
+✖ S1 draw extracts braces and escaped quotes inside the event (0.1914ms)
+  Error: 命运卡抽取失败，请重试。
+      at Object.draw (file:///<repo>/public/scripts/extensions/director/fate.js:149:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:86:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate-followups.test.mjs:83:5
+✖ S1 draw extracts an event ending with a literal backslash (0.1453ms)
+  Error: 命运卡抽取失败，请重试。
+      at Object.draw (file:///<repo>/public/scripts/extensions/director/fate.js:149:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:86:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate-followups.test.mjs:83:5
+✖ S1 draw extracts the first complete object before another object (0.4409ms)
+  Error: 命运卡抽取失败，请重试。
+      at Object.draw (file:///<repo>/public/scripts/extensions/director/fate.js:149:19)
+      at async TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:86:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-fate-followups.test.mjs:118:1
+✖ S3 successful native swipe does not save an unchanged Fate binding again (3.6514ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  3 !== 2
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:126:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate-followups.test.mjs:139:1
+✖ S4 failed Fate save preserves a concurrently added Director instruction binding (0.8741ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - {
+  -   slotIndex: 1,
+  -   text: 'A concurrently bound Director instruction.'
+  - }
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-fate-followups.test.mjs:152:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { text: 'A concurrently bound Director instruction.', slotIndex: 1 },
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+exit=1

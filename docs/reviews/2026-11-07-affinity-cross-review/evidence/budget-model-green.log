@@ -1,0 +1,26 @@
+✔ sidecar output has an independent upper bound and scales down on small contexts (1.1492ms)
+✔ uses actual model tokens to fit long Chinese evidence without editing sources (225.0567ms)
+✔ a fitting prompt keeps all text and prior memory byte for byte (0.3654ms)
+✔ temporarily trims oversized prior memory without deleting stored open promises (0.9346ms)
+✔ omits optional old labels before new receipts when headers exhaust context (0.5705ms)
+✔ an impossible budget or invalid tokenizer never produces an oversized prompt (1.5546ms)
+✔ cancellation during tokenization stops before any fitted prompt is returned (0.4285ms)
+✔ a budget changed during tokenization is checked again before accepting the result (0.6224ms)
+✔ cancellation releases a stalled tokenizer without waiting for its response (0.3775ms)
+✔ same-turn cancellation and tokenizer rejection are both consumed (6.8247ms)
+✔ Unicode excerpts do not introduce unpaired surrogate characters (0.3184ms)
+✔ major checks split within the token budget without truncating source evidence (0.5318ms)
+✔ a major candidate too large to fit alone does not displace smaller valid checks (0.1278ms)
+✔ a shrinking context budget never returns a previously fitted oversized verification batch (0.125ms)
+✔ verification batches can recheck the current tokenizer and budget immediately before dispatch (0.1438ms)
+✔ cancellation releases a verification dispatch recheck waiting on its tokenizer (0.2297ms)
+✔ a tokenizer response for a previous model cannot fit an extraction prompt (0.1321ms)
+✔ a model switch while a verification dispatch count awaits cannot approve a stale count (0.1318ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 358.7158

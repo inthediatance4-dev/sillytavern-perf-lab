@@ -1,0 +1,365 @@
+﹣ selection from characters formats only selected notes (0.705452ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ selection from characters never writes draft field values (0.093396ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ selection from create formats only selected notes (0.092142ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ selection from create never writes draft field values (0.051194ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ selected world, embedded-world and favorite helpers run once with selected arguments (0.053897ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ selected chrome does not hide controls immediately before showing them (0.05468ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: ordinary (0.041015ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: draft entry (0.038003ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: group peek (0.088717ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: no menu switch (0.116219ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: group without menu switch (0.057689ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: legacy optional fields (0.094191ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: empty optional fields (0.088876ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: media globally forbidden (0.031956ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: media allowed override (0.032181ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: media forbidden override (0.033383ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: group media override (0.05547ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ final editor state and terminal ordering match independent base: residual controls (0.031837ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ default create restoration remains identical to base (switchMenu=true) (0.022776ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ default create restoration remains identical to base (switchMenu=false) (0.040127ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ opening an existing character then returning to create restores the unchanged draft (0.023481ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ legacy draft FileList restoration and asynchronous avatar path match base (create) (0.023186ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ legacy draft FileList restoration and asynchronous avatar path match base (selected) (0.01996ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ an avatar draft is not restored when the previous selected button is not create (0.019966ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ legacy selected draft-avatar crop outcome remains identical (cancelled) (0.019938ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ legacy selected draft-avatar crop outcome remains identical (accepted) (0.020923ms) # Historical Git oracle unavailable; use a full-history checkout
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/ordered-source.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/ordered-target.jsonl
+Successfully renamed chat file.
+✔ rename waits for an in-flight save, then rejects late saves at the retired name (676.482351ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/force-source.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/force-target.jsonl
+Successfully renamed chat file.
+✔ force does not revive a renamed or deleted chat (628.256766ms)
+✔ delete waits for a queued save and retains the completed contents in recovery storage (354.795208ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/save-as-source.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/save-as-target.jsonl
+Successfully renamed chat file.
+✔ new untombstoned names still save and saved-as data does not alter the renamed target (1147.684576ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/occupied-source.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/occupied-target.jsonl
+✔ rename never overwrites an existing target and source remains writable (431.637048ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/competing-a.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/competing-target.jsonl
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/competing-b.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/competing-target.jsonl
+Successfully renamed chat file.
+✔ two concurrent sources competing for one target publish only one complete chat (560.606068ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/reverse-a.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/reverse-b.jsonl
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/reverse-b.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/reverse-a.jsonl
+✔ reverse multi-path requests settle without deadlock and preserve both occupied files (611.30822ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/restart-source.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/restart-target.jsonl
+Successfully renamed chat file.
+✔ retirement is enforced by a fresh process after module state is lost (10646.753883ms)
+✔ CAI multi-history import retains every distinct history with noncolliding names (313.284483ms)
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+    at file://<AUDIT_WORKTREE>/src/endpoints/chats.js:794:35
+✔ invalid JSON import fails without destroying the original upload (13.665519ms)
+✔ unsupported import format settles with an error and retains the upload (8.771503ms)
+✔ concurrent group imports do not replace each other and retain uploads recoverably (209.464008ms)
+✔ deleting an entire group retires its chats and metadata against late writers (355.402871ms)
+﹣ Windows case aliases refer to the same retired path (0.084149ms) # SKIP
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/marker-failure.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/marker-failed-target.jsonl
+Error renaming chat file: Error: artificial marker failure
+    at fs.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:231:85)
+    at node:internal/util:513:21
+    at new Promise (<anonymous>)
+    at node:internal/util:499:12
+    at writeFileAsync (<DEPENDENCY_CHECKOUT>/node_modules/write-file-atomic/lib/index.js:142:31)
+    at async retireChatPath (file://<AUDIT_WORKTREE>/src/chat-io.js:420:5)
+    at async file://<AUDIT_WORKTREE>/src/chat-io.js:545:26
+    at async usingRetiredPathReuses (file://<AUDIT_WORKTREE>/src/chat-io.js:379:24)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/chats.js:622:13 {
+  code: 'EIO'
+}
+✔ marker creation failure leaves the rename source active and removes the published candidate recoverably (681.307869ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/recycle-failure.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/recycle-failed-target.jsonl
+Error renaming chat file: Error: artificial source move failure
+    at fs.promises.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:245:61)
+    at recycleChatPath (file://<AUDIT_WORKTREE>/src/chat-io.js:410:23)
+    at async file://<AUDIT_WORKTREE>/src/chat-io.js:546:13
+    at async usingRetiredPathReuses (file://<AUDIT_WORKTREE>/src/chat-io.js:379:24)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/chats.js:622:13 {
+  code: 'EIO'
+}
+✔ a failed source recycle rolls back this rename marker and candidate without sealing the original path (908.003392ms)
+Error: artificial deletion failure
+    at fs.promises.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:259:61)
+    at recycleChatPath (file://<AUDIT_WORKTREE>/src/chat-io.js:410:23)
+    at async recycleRetiredChat (file://<AUDIT_WORKTREE>/src/chat-io.js:523:18)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/chats.js:646:13 {
+  code: 'EIO'
+}
+✔ a failed deletion move rolls back only its own marker and allows a subsequent save (396.910131ms)
+Error: artificial second publication failure
+    at fs.promises.link (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:274:97)
+    at publishExclusive (file://<AUDIT_WORKTREE>/src/chat-io.js:475:27)
+    at async createChatFileExclusive (file://<AUDIT_WORKTREE>/src/chat-io.js:486:5)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/chats.js:853:25
+    at async usingRetiredPathReuses (file://<AUDIT_WORKTREE>/src/chat-io.js:379:24)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/chats.js:848:13 {
+  code: 'EIO'
+}
+✔ a partially published import is recycled and its original upload remains available (509.118081ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/complete-publish.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/complete-target.jsonl
+Successfully renamed chat file.
+✔ rename publishes a complete target in one exclusive link, without exposing a partially copied file (418.91454ms)
+✔ deleting a character directory waits for a chat save and prevents late get/save/import recreation (872.498697ms)
+Error: artificial directory move failure
+    at fs.promises.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:331:64)
+    at recycleChatPath (file://<AUDIT_WORKTREE>/src/chat-io.js:410:23)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/characters.js:1517:32 {
+  code: 'EIO'
+}
+✔ failed character-directory recycling leaves the avatar and chats active (290.560519ms)
+Char CharacterBefore has Spec v2 data missing for unknown field: description
+Char CharacterBefore has Spec v2 data missing for unknown field: personality
+Char CharacterBefore has Spec v2 data missing for unknown field: scenario
+Char CharacterBefore has Spec v2 data missing for unknown field: mes_example
+Char CharacterBefore has Spec v2 data missing for unknown field: tags
+✔ character rename retires the old directory while the new avatar and chat remain usable (431.936142ms)
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: description
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: personality
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: scenario
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: mes_example
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: tags
+✔ two character renames toward one new name do not overwrite the first published avatar or history (571.907417ms)
+Failed to read image: <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/uploads/retired-create-22f58910-ec65-45cb-929e-1a457a65e330.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11566:35)
+      at schemeFetch (node:internal/deps/undici/undici:13119:34)
+      at mainFetch (node:internal/deps/undici/undici:12967:30)
+      at fetching (node:internal/deps/undici/undici:12936:7)
+      at fetch (node:internal/deps/undici/undici:12800:20)
+      at fetch (node:internal/deps/undici/undici:17407:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file://<DEPENDENCY_CHECKOUT>/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file://<DEPENDENCY_CHECKOUT>/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file://<DEPENDENCY_CHECKOUT>/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ a deleted character name can be created again, while an ordinary save stays retired until then (742.945459ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/cycle-a.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/cycle-b.jsonl
+Successfully renamed chat file.
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/cycle-b.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/cycle-a.jsonl
+Successfully renamed chat file.
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/reuse-other.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/reuse-source.jsonl
+Successfully renamed chat file.
+✔ chat rename can return to an absent retired name, and delete then rename reuses it (1266.893909ms)
+Char RenameCycleA has Spec v2 data missing for unknown field: description
+Char RenameCycleA has Spec v2 data missing for unknown field: personality
+Char RenameCycleA has Spec v2 data missing for unknown field: scenario
+Char RenameCycleA has Spec v2 data missing for unknown field: mes_example
+Char RenameCycleA has Spec v2 data missing for unknown field: tags
+Char RenameCycleB has Spec v2 data missing for unknown field: description
+Char RenameCycleB has Spec v2 data missing for unknown field: personality
+Char RenameCycleB has Spec v2 data missing for unknown field: scenario
+Char RenameCycleB has Spec v2 data missing for unknown field: mes_example
+Char RenameCycleB has Spec v2 data missing for unknown field: tags
+✔ character rename can return to an absent previous name (1316.599671ms)
+✔ malformed import request bodies settle without disrupting subsequent HTTP requests (216.479572ms)
+✔ optional import display names can be omitted while valid uploaded JSONL remains compatible (177.800374ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/relocated-source.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/relocated-target.jsonl
+Successfully renamed chat file.
+✔ relative retirement identities survive copying an entirely artificial data root (2531.812836ms)
+✔ internal staging junctions are rejected instead of writing through a directory alias (154.053176ms)
+✔ internal recovery junctions are rejected while the original file remains intact (29.502287ms)
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: description
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: personality
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: scenario
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: mes_example
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: tags
+Error: artificial character directory rename failure
+    at fs.promises.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:464:64)
+    at file://<AUDIT_WORKTREE>/src/endpoints/characters.js:1125:42
+    at async usingRetiredPathReuses (file://<AUDIT_WORKTREE>/src/chat-io.js:379:24)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/characters.js:1107:13 {
+  code: 'EIO'
+}
+✔ failed character-directory rename restores the original avatar and writable chat without a candidate (535.178001ms)
+Error: artificial avatar move failure
+    at fs.promises.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:479:61)
+    at recycleChatPath (file://<AUDIT_WORKTREE>/src/chat-io.js:410:23)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/characters.js:1519:17 {
+  code: 'EIO'
+}
+✔ failed avatar deletion restores an already-recycled chat directory and its marker (313.362438ms)
+✔ explicit character creation does not overwrite an existing avatar (105.021014ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/internal-marker-source.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/Synthetic/internal-marker-target.jsonl
+Successfully renamed chat file.
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/.chat-lifecycle/dd1394d43be1ed0c42675ec4492cc9ba7e35c7bbacd10cc12fc44c95b560de9f.json
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/.chat-lifecycle/moved-marker.json
+✔ chat routes cannot rename internal retirement markers to revive a retired path (393.465823ms)
+Old chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/RetirementBefore/previous-name.jsonl
+New chat name <AUDIT_WORKTREE>/.fixtures/lifecycle-010a6c80-7039-4d7e-accf-6602497ae935/chats/RetirementBefore/still-active.jsonl
+Successfully renamed chat file.
+Char RetirementBefore has Spec v2 data missing for unknown field: description
+Char RetirementBefore has Spec v2 data missing for unknown field: personality
+Char RetirementBefore has Spec v2 data missing for unknown field: scenario
+Char RetirementBefore has Spec v2 data missing for unknown field: mes_example
+Char RetirementBefore has Spec v2 data missing for unknown field: tags
+✔ character rename inherits retired chat names while retaining writable active histories (1086.975861ms)
+✔ group metadata rejects invalid IDs and readers ignore legacy traversal and aliases (197.131456ms)
+Group deletion did not complete. Retained files can be recovered. Error: injected group move failure
+    at fs.promises.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:561:37)
+    at recycleChatPath (file://<AUDIT_WORKTREE>/src/chat-io.js:410:23)
+    at async recycleRetiredChat (file://<AUDIT_WORKTREE>/src/chat-io.js:523:18)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/groups.js:247:50 {
+  code: 'EIO'
+}
+✔ failed group deletion at second-history never leaves active metadata pointing at retired chats (433.017085ms)
+Group deletion did not complete. Retained files can be recovered. Error: injected group move failure
+    at fs.promises.rename (file://<AUDIT_WORKTREE>/tests/chat-lifecycle.test.mjs:561:37)
+    at recycleChatPath (file://<AUDIT_WORKTREE>/src/chat-io.js:410:23)
+    at async recycleRetiredChat (file://<AUDIT_WORKTREE>/src/chat-io.js:523:18)
+    at async file://<AUDIT_WORKTREE>/src/endpoints/groups.js:240:13 {
+  code: 'EIO'
+}
+✔ failed group deletion at metadata never leaves active metadata pointing at retired chats (401.488655ms)
+✔ recent character history opens exactly once without loading its default (3.227794ms)
+✔ legacy selection retains its void return, default load and reset behavior (0.936194ms)
+✔ legacy same-character selection retains switchMenu=true (0.9751ms)
+✔ legacy same-character selection retains switchMenu=false (0.973169ms)
+✔ targeting the default loads once without changing or persisting the filename (0.957237ms)
+✔ targeting the already open same-character file retains switchMenu=true (1.748172ms)
+✔ targeting the already open same-character file retains switchMenu=false (0.888005ms)
+✔ same-character history runs normal loading, form selection and newChat persistence (1.021843ms)
+✔ shallow card replacement is refreshed before comparing target with history (1.227859ms)
+✔ shallow card replacement is refreshed before comparing target with refreshed-default (0.972986ms)
+✔ explicit invalid chatFile undefined refuses without changing selection (0.834646ms)
+✔ explicit invalid chatFile null refuses without changing selection (0.765396ms)
+✔ explicit invalid chatFile 0 refuses without changing selection (0.791512ms)
+✔ explicit invalid chatFile {} refuses without changing selection (0.901845ms)
+✔ explicit invalid chatFile "" refuses without changing selection (0.842967ms)
+✔ explicit invalid chatFile "   " refuses without changing selection (0.707581ms)
+✔ invalid character ID and missing avatar never load or save active settings (0.830762ms)
+✔ targeted selection respects guard {"isChatSaving":true} including current character (0.8663ms)
+✔ targeted selection respects guard {"selected_group":"busy-group","is_group_generating":true} including current character (1.187776ms)
+✔ targeted selection respects guard {"is_send_press":true} including current character (0.823075ms)
+✔ targeted group-to-character navigation resets prior state and loads only the target (0.826461ms)
+✔ stale clearChat prep refuses after navigation to {"this_chid":2} (4.874801ms)
+✔ stale unshallowCharacter prep refuses after navigation to {"this_chid":2} (0.954044ms)
+✔ stale clearChat prep refuses after navigation to {"selected_group":"new-group"} (0.868764ms)
+✔ stale unshallowCharacter prep refuses after navigation to {"selected_group":"new-group"} (0.791191ms)
+✔ overlapping recent clicks are ignored and a later click can open normally (8.358212ms)
+✔ recent busy state releases on failure and preserves error toast before retry (1.001243ms)
+✔ recent busy state releases after refused selection (0.796858ms)
+✔ history transition refuses stale identity during openCharacterChat waitUntilCondition (0.839676ms)
+✔ history transition refuses stale identity during openCharacterChat clearChat (0.817662ms)
+✔ history transition refuses stale identity during openCharacterChat getChat (0.787121ms)
+✔ card identity changing at the same index during refresh refuses the target (0.751385ms)
+✔ ordinary openCharacterChat keeps its legacy void return and persistence (0.780791ms)
+✔ cross-character history does not overwrite unopened default prompt storage with empty prompts (1.836268ms)
+✔ targeted same-character history retains normal prompt-saving clear (1.099186ms)
+✔ legacy history retains normal prompt-saving clear (0.981365ms)
+✔ failed cross-character refresh can retry the default without accepting an unloaded blank chat (1.067412ms)
+✔ failed refresh preserves navigation selected during preparation {"this_chid":2,"name2":"Other","chat_metadata":{"loaded":"other-default"}} (1.002417ms)
+✔ failed refresh preserves navigation selected during preparation {"selected_group":"other-group","name2":"Group","chat_metadata":{"loaded":"group-history"}} (0.761303ms)
+✔ failed same-character preparation retains the chat that was already loaded (0.876637ms)
+✔ older preparation rejection preserves newer same-character newer-history load (3.292493ms)
+✔ older preparation resolution preserves newer same-character newer-history load (0.943148ms)
+✔ older preparation rejection preserves newer same-character default load (1.041921ms)
+✔ older preparation resolution preserves newer same-character default load (0.911798ms)
+✔ initial awaited clear refuses a newer homepage metadata state (0.762488ms)
+✔ targeted waitUntilCondition refuses a newer same-character metadata state before filename assignment (0.869884ms)
+✔ targeted clearChat refuses a newer same-character metadata state before filename assignment (0.667764ms)
+✔ same-character refresh refuses a newer metadata state before opening requested history (0.783409ms)
+✔ targeted history load refuses newer same-character filename before persistence or settings (0.851375ms)
+✔ targeted default load refuses newer same-character filename before persistence or settings (0.691586ms)
+✔ a live owner blocks another process and leaves the lock unchanged (143.665444ms)
+✔ the same process cannot take a second root while it still owns one (151.662019ms)
+✔ a dead pid on this host is reclaimed (277.285143ms)
+✔ a dead pid on another host is not reclaimed (87.689316ms)
+✔ an unreadable owner file is left in place (54.960449ms)
+✔ a missing data root is created and a child exit removes the lock (304.893896ms)
+✔ process.exit and an uncaught exception remove the lock (374.159484ms)
+✔ a symlink owner file is not followed or rewritten (59.410821ms)
+✖ two processes cannot both reclaim one stale owner (248.232448ms)
+✔ a stale reclaim marker is taken over once and a fresh one is not (1272.785697ms)
+✔ acquiring a data root never spawns a compiler (189.899315ms)
+✔ EPERM from process.kill means the same-host owner is alive (56.182737ms)
+✔ an unexpected environment error warns and continues (14.33807ms)
+✔ a new owner record stores a token and the host identity (44.291719ms)
+✔ a live pid with a different boot or start identity is reclaimed (152.228171ms)
+✔ a matching boot and start identity is refused even when the token differs (34.839476ms)
+✔ a live pid without identity fields is kept (57.234288ms)
+✔ EPERM with a matching identity refuses and a mismatch is reclaimed (218.624877ms)
+✔ two processes cannot both reclaim one reused pid (564.034271ms)
+✔ owner cleanup uses bounded sibling names and failed release can be retried (126.54305ms)
+✔ an expired marker cannot revoke a paused live reclaimer (2426.712044ms)
+✔ release retains bookkeeping after reading the renamed owner fails (81.932587ms)
+﹣ stable normal mode performs no VN visibility geometry read (1.257148ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ stable VN mode performs no VN visibility geometry read (0.11633ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ stable VN retains sprites and drag geometry with no layout boxes (synthetic :visible=false) (0.112ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ leaving VN resets once despite no layout boxes (synthetic :visible=false) (0.048498ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ stable VN retains sprites and drag geometry with CSS-hidden ancestor (0.048322ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ leaving VN resets once despite CSS-hidden ancestor (0.056375ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ initial normal mode preserves dragged holder while enforcing wrapper display every time (0.060385ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ external VN display changes do not invent a normal-mode transition (0.040828ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ desktop/mobile and group/single mode changes reset exactly once each (0.085703ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ home returns before applying mode and same-mode reopen keeps drag positions (0.101129ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ home followed by different mode resets once on reopen (0.052889ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ explicit lastMessage invalidation refreshes stable VN without resetting geometry (0.077124ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ newChat refresh remains independent from stable-mode invalidation (0.028083ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ actual CHAT_CHANGED handler still clears sprites and invalidates the message independently (0.021677ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ applied state advances before first async sprite validation (0.048439ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ offline connectivity visibility predicate and reconnect refresh remain intact (0.038321ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ no sprites/defaults still skips expression rendering (0.027148ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ normal geometry terminal behavior independently matches immutable base (normal) (0.035295ms) # Historical Git oracle unavailable; use a full-history checkout
+﹣ normal geometry terminal behavior independently matches immutable base (VN) (0.037673ms) # Historical Git oracle unavailable; use a full-history checkout
+✖ a real frontend build failure exits the full application with status 1 before listening (45069.003117ms)
+ℹ tests 157
+ℹ suites 0
+ℹ pass 109
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 46
+ℹ todo 0
+ℹ duration_ms 108126.899259
+
+✖ failing tests:
+
+test at tests/data-root-owner.test.mjs:206:1
+✖ two processes cannot both reclaim one stale owner (248.232448ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  true !== false
+
+      at assertSingleReclaimWinner (file://<AUDIT_WORKTREE>/tests/data-root-owner.test.mjs:189:16)
+      at async TestContext.<anonymous> (file://<AUDIT_WORKTREE>/tests/data-root-owner.test.mjs:211:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/startup-failure-exit.test.mjs:24:1
+✖ a real frontend build failure exits the full application with status 1 before listening (45069.003117ms)
+  AssertionError [ERR_ASSERTION]: Failure must come from the real frontend compiler
+      at TestContext.<anonymous> (file://<AUDIT_WORKTREE>/tests/startup-failure-exit.test.mjs:101:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'Node version: v24.14.1. Running in undefined environment. Server directory: <AUDIT_WORKTREE>\nUsing config path: <AUDIT_WORKTREE>/.fixtures/startup-failure-exit-17ddf39d-3fbe-4ca2-a7e6-2a6e3fa169ac/config.yaml\n\n(node:543) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:\n--import \'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("file%3A//<AUDIT_WORKTREE>/.fixtures/startup-failure-exit-17ddf39d-3fbe-4ca2-a7e6-2a6e3fa169ac/loader.mjs", pathToFileURL("./"));\'\n(Use `node --trace-warnings ...` to show where the warning was created)\n',
+    expected: /Webpack frontend compilation failed/,
+    operator: 'match',
+    diff: 'simple'
+  }

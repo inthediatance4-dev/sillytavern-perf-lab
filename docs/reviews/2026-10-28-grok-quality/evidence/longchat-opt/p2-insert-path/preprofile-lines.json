@@ -1,0 +1,3520 @@
+{
+  "revision": "c7b38d8",
+  "method": "positionTicks are raw self sample counts at 1-based source lines. estimatedSelfMs distributes each node timeDelta self budget over its ticks, not exact line timing. Native DOM work is reported by full sampled parent call path; call-frame lines are function starts, not invented call sites. Missing nodes/ticks mean unobserved, not zero cost.",
+  "profiles": [
+    {
+      "profile": "preprofile/2000-0-1-open.cpuprofile.gz",
+      "totalSampledMs": 5589.909,
+      "functions": [
+        {
+          "function": "updateMessageElement",
+          "observed": true,
+          "selfMs": 13.203,
+          "lines": [
+            {
+              "line": 2708,
+              "ticks": 13,
+              "estimatedSelfMs": 2.019488095238095,
+              "source": "const momentDate = timestampToMoment(mes.send_date);"
+            },
+            {
+              "line": 2769,
+              "ticks": 9,
+              "estimatedSelfMs": 1.398107142857143,
+              "source": "updateSwipeCounter(messageId, { message: mes, messageElement });"
+            },
+            {
+              "line": 2730,
+              "ticks": 7,
+              "estimatedSelfMs": 1.0874166666666665,
+              "source": "messageElement.find('.timestamp').text(timestamp).attr('title', `${mes.extra?.api ? mes.extra.api + ' - ' : ''}${mes.extra?.model ?? ''}`);"
+            },
+            {
+              "line": 2713,
+              "ticks": 7,
+              "estimatedSelfMs": 1.0874166666666667,
+              "source": "const { timerValue, timerTitle } = formatGenerationTimer(mes.gen_started, mes.gen_finished, mes.extra?.token_count, mes.extra?.reasoning_duration, mes.extra?.time_to_first_token);"
+            },
+            {
+              "line": 2763,
+              "ticks": 7,
+              "estimatedSelfMs": 1.0874166666666665,
+              "source": "appendMediaToMessage(mes, messageElement, adjustMediaScroll);"
+            },
+            {
+              "line": 2710,
+              "ticks": 6,
+              "estimatedSelfMs": 0.9320714285714287,
+              "source": "const messageHTML = getMessageTextHTML(mes, { messageId });"
+            },
+            {
+              "line": 2765,
+              "ticks": 6,
+              "estimatedSelfMs": 0.9320714285714286,
+              "source": "addCopyToCodeBlocks(messageElement);"
+            },
+            {
+              "line": 2748,
+              "ticks": 5,
+              "estimatedSelfMs": 0.7767261904761904,
+              "source": "if (mes?.extra?.isSmallSys === true) {"
+            },
+            {
+              "line": 2742,
+              "ticks": 4,
+              "estimatedSelfMs": 0.6213809523809524,
+              "source": "updateReasoningUI(messageElement);"
+            },
+            {
+              "line": 2711,
+              "ticks": 3,
+              "estimatedSelfMs": 0.4660357142857143,
+              "source": "const bookmarkLink = mes?.extra?.bookmark_link;"
+            },
+            {
+              "line": 2686,
+              "ticks": 2,
+              "estimatedSelfMs": 0.30934523809523806,
+              "source": "export function updateMessageElement(mes, { messageId = chat.length - 1, messageElement = messageTemplate.clone(), adjustMediaScroll = SCROLL_BEHAVIOR.NONE } = {}) {"
+            },
+            {
+              "line": 2756,
+              "ticks": 2,
+              "estimatedSelfMs": 0.3106904761904762,
+              "source": "updateMessageItemizedPromptButton(mes, { messageId, messageElement });"
+            },
+            {
+              "line": 2709,
+              "ticks": 2,
+              "estimatedSelfMs": 0.3106904761904762,
+              "source": "const timestamp = momentDate.isValid() ? momentDate.format('LL LT') : '';"
+            },
+            {
+              "line": 2728,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "messageElement.find('.avatar img').attr('src', avatarImg);"
+            },
+            {
+              "line": 2733,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "mes.title && messageElement.attr('title', mes.title);"
+            },
+            {
+              "line": 2695,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "} else if (characters[this_chid] && characters[this_chid].avatar !== 'none') {"
+            },
+            {
+              "line": 2739,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "messageElement.find('.mes_bias').html(bias);"
+            },
+            {
+              "line": 2731,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "messageElement.find('.mesIDDisplay').text(`#${messageId}`);"
+            },
+            {
+              "line": 2758,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "messageElement.find('.avatar img').on('error', function () {"
+            },
+            {
+              "line": 2704,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "} else if (mes.is_user && mes.force_avatar) {"
+            },
+            {
+              "line": 2734,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "timerValue && messageElement.find('.mes_timer').attr('title', timerTitle).text(timerValue);"
+            },
+            {
+              "line": 2753,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "messageElement.addClass('toolCall');"
+            },
+            {
+              "line": 2715,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "messageElement.attr({"
+            },
+            {
+              "line": 2725,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "'type': mes.extra?.type ?? '',"
+            },
+            {
+              "line": 2744,
+              "ticks": 1,
+              "estimatedSelfMs": 0.1553452380952381,
+              "source": "if (power_user.timestamp_model_icon && mes.extra?.api) {"
+            }
+          ]
+        },
+        {
+          "function": "addOneMessage",
+          "observed": false,
+          "selfMs": 0.0,
+          "lines": []
+        },
+        {
+          "function": "printMessages",
+          "observed": true,
+          "selfMs": 0.0,
+          "lines": []
+        },
+        {
+          "function": "doScroll",
+          "observed": true,
+          "selfMs": 456.39,
+          "lines": [
+            {
+              "line": 2847,
+              "ticks": 2834,
+              "estimatedSelfMs": 456.39,
+              "source": "let position = chatElement[0].scrollHeight;"
+            }
+          ]
+        },
+        {
+          "function": "redisplayChat",
+          "observed": true,
+          "selfMs": 1.077,
+          "lines": [
+            {
+              "line": 1583,
+              "ticks": 4,
+              "estimatedSelfMs": 0.6154285714285714,
+              "source": "const newMessageElements = messages.map((message, offset) => {"
+            },
+            {
+              "line": 1603,
+              "ticks": 1,
+              "estimatedSelfMs": 0.15385714285714286,
+              "source": "console.info(`Rendered ${targetChat.length - startIndex} messages in ${((performance.now() - t1) / 1000).toFixed(3)} seconds.`);"
+            },
+            {
+              "line": 1596,
+              "ticks": 1,
+              "estimatedSelfMs": 0.15385714285714286,
+              "source": "applyCharacterTagsToMessageDivs({ mesIds: lodash.range(startIndex, targetChat.length, 1) });"
+            },
+            {
+              "line": 1600,
+              "ticks": 1,
+              "estimatedSelfMs": 0.15385714285714286,
+              "source": "applyStylePins();"
+            }
+          ]
+        },
+        {
+          "function": "refreshSwipeButtons",
+          "observed": true,
+          "selfMs": 0.0,
+          "lines": []
+        }
+      ],
+      "native": [
+        {
+          "function": "querySelectorAll",
+          "selfMs": 763.496,
+          "callPaths": [
+            {
+              "selfMs": 436.761,
+              "stack": [
+                {
+                  "function": "(anonymous)",
+                  "file": "keyboard.js",
+                  "line": 210
+                },
+                {
+                  "function": "getAllInteractables",
+                  "file": "keyboard.js",
+                  "line": 208
+                },
+                {
+                  "function": "initializeInteractables",
+                  "file": "keyboard.js",
+                  "line": 197
+                },
+                {
+                  "function": "handleNodeChange",
+                  "file": "keyboard.js",
+                  "line": 88
+                },
+                {
+                  "function": "processNodeChanges",
+                  "file": "keyboard.js",
+                  "line": 67
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 169.093,
+              "stack": [
+                {
+                  "function": "applyA11yRules",
+                  "file": "a11y.js",
+                  "line": 91
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "a11y.js",
+                  "line": 111
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 43.446,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "tags.js",
+                  "line": 2640
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "applyCharacterTagsToMessageDivs",
+                  "file": "tags.js",
+                  "line": 2610
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 22.206,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "updateMessageElement",
+                  "file": "script.js",
+                  "line": 2686
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 1583
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 13.956,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "addCopyToCodeBlocks",
+                  "file": "script.js",
+                  "line": 2547
+                },
+                {
+                  "function": "updateMessageElement",
+                  "file": "script.js",
+                  "line": 2686
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 1583
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 11.239,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 12154
+                },
+                {
+                  "function": "dispatch",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "v.handle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 7856
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 8.321,
+              "stack": [
+                {
+                  "function": "RA_CountCharTokens",
+                  "file": "RossAscends-mods.js",
+                  "line": 207
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "utils.js",
+                  "line": 578
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 7.977,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "setWorldInfoButtonClass",
+                  "file": "world-info.js",
+                  "line": 5676
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 6.922,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "loadSettings",
+                  "file": "authors-note.js",
+                  "line": 271
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "authors-note.js",
+                  "line": 441
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 6.664,
+              "stack": [
+                {
+                  "function": "(anonymous)",
+                  "file": "i18n.js",
+                  "line": 47
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "i18n.js",
+                  "line": 46
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "i18n.js",
+                  "line": 45
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 6.567,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 11380
+                },
+                {
+                  "function": "dispatch",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "v.handle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 7856
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 5.139,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "scrollOnMediaLoad",
+                  "file": "script.js",
+                  "line": 1611
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 1561
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 5.069,
+              "stack": [
+                {
+                  "function": "ve",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "Pe",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "append",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 4.464,
+              "stack": [
+                {
+                  "function": "getFirstDisplayedMessageId",
+                  "file": "script.js",
+                  "line": 9731
+                },
+                {
+                  "function": "applyStylePins",
+                  "file": "power-user.js",
+                  "line": 1497
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.872,
+              "stack": [
+                {
+                  "function": "handleNodeChange",
+                  "file": "MacroAutoComplete.js",
+                  "line": 211
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "MacroAutoComplete.js",
+                  "line": 236
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.655,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "appendTagToList",
+                  "file": "tags.js",
+                  "line": 1293
+                },
+                {
+                  "function": "printTagList",
+                  "file": "tags.js",
+                  "line": 1192
+                },
+                {
+                  "function": "printTagFilters",
+                  "file": "tags.js",
+                  "line": 1502
+                },
+                {
+                  "function": "printCharacters",
+                  "file": "script.js",
+                  "line": 1065
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.16,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "highlightLockedBackground",
+                  "file": "backgrounds.js",
+                  "line": 303
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "backgrounds.js",
+                  "line": 263
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.156,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "highlightSelectedBackground",
+                  "file": "backgrounds.js",
+                  "line": 1640
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "backgrounds.js",
+                  "line": 263
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.692,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.658,
+              "stack": [
+                {
+                  "function": "initializeInteractables",
+                  "file": "keyboard.js",
+                  "line": 197
+                },
+                {
+                  "function": "handleNodeChange",
+                  "file": "keyboard.js",
+                  "line": 88
+                },
+                {
+                  "function": "processNodeChanges",
+                  "file": "keyboard.js",
+                  "line": 67
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.234,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "appendTagToList",
+                  "file": "tags.js",
+                  "line": 1293
+                },
+                {
+                  "function": "printTagList",
+                  "file": "tags.js",
+                  "line": 1192
+                },
+                {
+                  "function": "printTagFilters",
+                  "file": "tags.js",
+                  "line": 1502
+                },
+                {
+                  "function": "applyTagsOnGroupSelect",
+                  "file": "tags.js",
+                  "line": 1678
+                },
+                {
+                  "function": "printCharacters",
+                  "file": "script.js",
+                  "line": 1065
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.467,
+              "stack": [
+                {
+                  "function": "initializeScrollResetBehaviors",
+                  "file": "keyboard.js",
+                  "line": 234
+                },
+                {
+                  "function": "handleNodeChange",
+                  "file": "keyboard.js",
+                  "line": 88
+                },
+                {
+                  "function": "processNodeChanges",
+                  "file": "keyboard.js",
+                  "line": 67
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.31,
+              "stack": [
+                {
+                  "function": "getAllInteractables",
+                  "file": "keyboard.js",
+                  "line": 208
+                },
+                {
+                  "function": "initializeInteractables",
+                  "file": "keyboard.js",
+                  "line": 197
+                },
+                {
+                  "function": "handleNodeChange",
+                  "file": "keyboard.js",
+                  "line": 88
+                },
+                {
+                  "function": "processNodeChanges",
+                  "file": "keyboard.js",
+                  "line": 67
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.158,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "clearChat",
+                  "file": "script.js",
+                  "line": 1632
+                },
+                {
+                  "function": "selectCharacterById",
+                  "file": "script.js",
+                  "line": 877
+                },
+                {
+                  "function": "openChat",
+                  "file": "fbd158d3-2cec-42e4-8035-f09f9647e8bd",
+                  "line": 45
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.156,
+              "stack": [
+                {
+                  "function": "closeMessageEditor",
+                  "file": "script.js",
+                  "line": 9764
+                },
+                {
+                  "function": "clearChat",
+                  "file": "script.js",
+                  "line": 1632
+                },
+                {
+                  "function": "selectCharacterById",
+                  "file": "script.js",
+                  "line": 877
+                },
+                {
+                  "function": "openChat",
+                  "file": "fbd158d3-2cec-42e4-8035-f09f9647e8bd",
+                  "line": 45
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "favsToHotswap",
+                  "file": "RossAscends-mods.js",
+                  "line": 305
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "utils.js",
+                  "line": 578
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "function": "getPropertyValue",
+          "selfMs": 294.124,
+          "callPaths": [
+            {
+              "selfMs": 287.041,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 9518
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "refreshSwipeButtons",
+                  "file": "script.js",
+                  "line": 9499
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.142,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.666,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "selectRightMenuWithAnimation",
+                  "file": "script.js",
+                  "line": 8873
+                },
+                {
+                  "function": "select_rm_create",
+                  "file": "script.js",
+                  "line": 9090
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.23,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "modifyCharaHtml",
+                  "file": "cfg-scale.js",
+                  "line": 165
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "cfg-scale.js",
+                  "line": 159
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "cfg-scale.js",
+                  "line": 378
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.801,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "renderChatBackgrounds",
+                  "file": "backgrounds.js",
+                  "line": 688
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "backgrounds.js",
+                  "line": 263
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.769,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.475,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "$",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "extensions.js",
+                  "line": 230
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "grep",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "D",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "filter",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "showHideExtensionsMenu",
+                  "file": "extensions.js",
+                  "line": 228
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "profile": "preprofile/2000-100-1-open.cpuprofile.gz",
+      "totalSampledMs": 1009.202,
+      "functions": [
+        {
+          "function": "updateMessageElement",
+          "observed": true,
+          "selfMs": 0.464,
+          "lines": [
+            {
+              "line": 2748,
+              "ticks": 1,
+              "estimatedSelfMs": 0.15466666666666667,
+              "source": "if (mes?.extra?.isSmallSys === true) {"
+            },
+            {
+              "line": 2764,
+              "ticks": 1,
+              "estimatedSelfMs": 0.15466666666666667,
+              "source": "messageElement.find('.mes_text').html(messageHTML);"
+            },
+            {
+              "line": 2763,
+              "ticks": 1,
+              "estimatedSelfMs": 0.15466666666666667,
+              "source": "appendMediaToMessage(mes, messageElement, adjustMediaScroll);"
+            }
+          ]
+        },
+        {
+          "function": "addOneMessage",
+          "observed": false,
+          "selfMs": 0.0,
+          "lines": []
+        },
+        {
+          "function": "printMessages",
+          "observed": true,
+          "selfMs": 0.154,
+          "lines": [
+            {
+              "line": 1558,
+              "ticks": 1,
+              "estimatedSelfMs": 0.154,
+              "source": "await redisplayChat({ startIndex, fade: false });"
+            }
+          ]
+        },
+        {
+          "function": "doScroll",
+          "observed": true,
+          "selfMs": 0.0,
+          "lines": []
+        },
+        {
+          "function": "redisplayChat",
+          "observed": true,
+          "selfMs": 0.308,
+          "lines": [
+            {
+              "line": 1591,
+              "ticks": 1,
+              "estimatedSelfMs": 0.154,
+              "source": "newMessageElements.at(-1).classList.add('last_mes');"
+            },
+            {
+              "line": 1583,
+              "ticks": 1,
+              "estimatedSelfMs": 0.154,
+              "source": "const newMessageElements = messages.map((message, offset) => {"
+            }
+          ]
+        },
+        {
+          "function": "refreshSwipeButtons",
+          "observed": true,
+          "selfMs": 0.0,
+          "lines": []
+        }
+      ],
+      "native": [
+        {
+          "function": "querySelectorAll",
+          "selfMs": 19.49,
+          "callPaths": [
+            {
+              "selfMs": 3.295,
+              "stack": [
+                {
+                  "function": "applyA11yRules",
+                  "file": "a11y.js",
+                  "line": 91
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "a11y.js",
+                  "line": 111
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.923,
+              "stack": [
+                {
+                  "function": "getAllInteractables",
+                  "file": "keyboard.js",
+                  "line": 208
+                },
+                {
+                  "function": "initializeInteractables",
+                  "file": "keyboard.js",
+                  "line": 197
+                },
+                {
+                  "function": "handleNodeChange",
+                  "file": "keyboard.js",
+                  "line": 88
+                },
+                {
+                  "function": "processNodeChanges",
+                  "file": "keyboard.js",
+                  "line": 67
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.322,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "appendTagToList",
+                  "file": "tags.js",
+                  "line": 1293
+                },
+                {
+                  "function": "printTagList",
+                  "file": "tags.js",
+                  "line": 1192
+                },
+                {
+                  "function": "printTagFilters",
+                  "file": "tags.js",
+                  "line": 1502
+                },
+                {
+                  "function": "printCharacters",
+                  "file": "script.js",
+                  "line": 1065
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.389,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "updateMessageElement",
+                  "file": "script.js",
+                  "line": 2686
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 1583
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.319,
+              "stack": [
+                {
+                  "function": "RA_CountCharTokens",
+                  "file": "RossAscends-mods.js",
+                  "line": 207
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "utils.js",
+                  "line": 578
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.238,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "appendTagToList",
+                  "file": "tags.js",
+                  "line": 1293
+                },
+                {
+                  "function": "printTagList",
+                  "file": "tags.js",
+                  "line": 1192
+                },
+                {
+                  "function": "printTagFilters",
+                  "file": "tags.js",
+                  "line": 1502
+                },
+                {
+                  "function": "applyTagsOnGroupSelect",
+                  "file": "tags.js",
+                  "line": 1678
+                },
+                {
+                  "function": "printCharacters",
+                  "file": "script.js",
+                  "line": 1065
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.927,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "loadSettings",
+                  "file": "authors-note.js",
+                  "line": 271
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "authors-note.js",
+                  "line": 441
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.816,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 11380
+                },
+                {
+                  "function": "dispatch",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "v.handle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 7856
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.771,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "addCopyToCodeBlocks",
+                  "file": "script.js",
+                  "line": 2547
+                },
+                {
+                  "function": "updateMessageElement",
+                  "file": "script.js",
+                  "line": 2686
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 1583
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.614,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "setWorldInfoButtonClass",
+                  "file": "world-info.js",
+                  "line": 5676
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.613,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "scrollOnMediaLoad",
+                  "file": "script.js",
+                  "line": 1611
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 1561
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.469,
+              "stack": [
+                {
+                  "function": "initializeInteractables",
+                  "file": "keyboard.js",
+                  "line": 197
+                },
+                {
+                  "function": "handleNodeChange",
+                  "file": "keyboard.js",
+                  "line": 88
+                },
+                {
+                  "function": "processNodeChanges",
+                  "file": "keyboard.js",
+                  "line": 67
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.311,
+              "stack": [
+                {
+                  "function": "(anonymous)",
+                  "file": "i18n.js",
+                  "line": 47
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "i18n.js",
+                  "line": 46
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "i18n.js",
+                  "line": 45
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.31,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 12154
+                },
+                {
+                  "function": "dispatch",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "v.handle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 7856
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.309,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "highlightLockedBackground",
+                  "file": "backgrounds.js",
+                  "line": 303
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "backgrounds.js",
+                  "line": 263
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.165,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "updatePersonaUIStates",
+                  "file": "personas.js",
+                  "line": 1451
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.156,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "sortEntitiesList",
+                  "file": "power-user.js",
+                  "line": 2350
+                },
+                {
+                  "function": "getEntitiesList",
+                  "file": "script.js",
+                  "line": 1228
+                },
+                {
+                  "function": "favsToHotswap",
+                  "file": "RossAscends-mods.js",
+                  "line": 305
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "utils.js",
+                  "line": 578
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.156,
+              "stack": [
+                {
+                  "function": "getFirstDisplayedMessageId",
+                  "file": "script.js",
+                  "line": 9731
+                },
+                {
+                  "function": "applyStylePins",
+                  "file": "power-user.js",
+                  "line": 1497
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.155,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "printTagFilters",
+                  "file": "tags.js",
+                  "line": 1502
+                },
+                {
+                  "function": "printCharacters",
+                  "file": "script.js",
+                  "line": 1065
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.155,
+              "stack": [
+                {
+                  "function": "closeMessageEditor",
+                  "file": "script.js",
+                  "line": 9764
+                },
+                {
+                  "function": "clearChat",
+                  "file": "script.js",
+                  "line": 1632
+                },
+                {
+                  "function": "selectCharacterById",
+                  "file": "script.js",
+                  "line": 877
+                },
+                {
+                  "function": "openChat",
+                  "file": "ddd86275-1f64-432a-a2cc-d6bf0457a8aa",
+                  "line": 45
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "localizePagination",
+                  "file": "utils.js",
+                  "line": 30
+                },
+                {
+                  "function": "callback",
+                  "file": "script.js",
+                  "line": 1106
+                },
+                {
+                  "function": "doCallback",
+                  "file": "pagination.js",
+                  "line": 522
+                },
+                {
+                  "function": "render",
+                  "file": "pagination.js",
+                  "line": 482
+                },
+                {
+                  "function": "go",
+                  "file": "pagination.js",
+                  "line": 400
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "pagination.js",
+                  "line": 731
+                },
+                {
+                  "function": "dispatch",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "v.handle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "trigger",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "observer",
+                  "file": "pagination.js",
+                  "line": 726
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "pagination.js",
+                  "line": 65
+                },
+                {
+                  "function": "parseDataSource",
+                  "file": "pagination.js",
+                  "line": 678
+                },
+                {
+                  "function": "initialize",
+                  "file": "pagination.js",
+                  "line": 40
+                },
+                {
+                  "function": "$.fn.<computed>",
+                  "file": "pagination.js",
+                  "line": 28
+                },
+                {
+                  "function": "printCharacters",
+                  "file": "script.js",
+                  "line": 1065
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "clearChat",
+                  "file": "script.js",
+                  "line": 1632
+                },
+                {
+                  "function": "selectCharacterById",
+                  "file": "script.js",
+                  "line": 877
+                },
+                {
+                  "function": "openChat",
+                  "file": "ddd86275-1f64-432a-a2cc-d6bf0457a8aa",
+                  "line": 45
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "ve",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "Pe",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "append",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "applyStylePins",
+                  "file": "power-user.js",
+                  "line": 1497
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "handleNodeChange",
+                  "file": "MacroAutoComplete.js",
+                  "line": 211
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "MacroAutoComplete.js",
+                  "line": 236
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.153,
+              "stack": [
+                {
+                  "function": "se",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "find",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.init",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "highlightSelectedBackground",
+                  "file": "backgrounds.js",
+                  "line": 1640
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "backgrounds.js",
+                  "line": 263
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "function": "getPropertyValue",
+          "selfMs": 19.215,
+          "callPaths": [
+            {
+              "selfMs": 13.427,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "script.js",
+                  "line": 9518
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "each",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "refreshSwipeButtons",
+                  "file": "script.js",
+                  "line": 9499
+                },
+                {
+                  "function": "redisplayChat",
+                  "file": "script.js",
+                  "line": 1571
+                },
+                {
+                  "function": "printMessages",
+                  "file": "script.js",
+                  "line": 1549
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 2.313,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 1.391,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "selectRightMenuWithAnimation",
+                  "file": "script.js",
+                  "line": 8873
+                },
+                {
+                  "function": "select_rm_create",
+                  "file": "script.js",
+                  "line": 9090
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.8,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "renderChatBackgrounds",
+                  "file": "backgrounds.js",
+                  "line": 688
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "backgrounds.js",
+                  "line": 263
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.779,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "toggle",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.toggle",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "select_selected_character",
+                  "file": "script.js",
+                  "line": 9003
+                },
+                {
+                  "function": "getChatResult",
+                  "file": "script.js",
+                  "line": 7871
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.351,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "$",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "extensions.js",
+                  "line": 230
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "grep",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "D",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "filter",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "showHideExtensionsMenu",
+                  "file": "extensions.js",
+                  "line": 228
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            },
+            {
+              "selfMs": 0.154,
+              "stack": [
+                {
+                  "function": "Be",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "css",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "ae",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "le",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "show",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "S.fn.<computed>",
+                  "file": "jquery-3.5.1.min.js",
+                  "line": 2
+                },
+                {
+                  "function": "V.fn.extend.show",
+                  "file": "jquery-ui.min.js",
+                  "line": 6
+                },
+                {
+                  "function": "modifyCharaHtml",
+                  "file": "cfg-scale.js",
+                  "line": 165
+                },
+                {
+                  "function": "onChatChanged",
+                  "file": "cfg-scale.js",
+                  "line": 159
+                },
+                {
+                  "function": "(anonymous)",
+                  "file": "cfg-scale.js",
+                  "line": 378
+                },
+                {
+                  "function": "EventEmitter.emit",
+                  "file": "eventemitter.js",
+                  "line": 130
+                },
+                {
+                  "function": "(root)",
+                  "file": "(native)",
+                  "line": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

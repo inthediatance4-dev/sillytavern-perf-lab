@@ -1,0 +1,56 @@
+{
+  "browser-final": {
+    "reportedHeadAtStart": "dfaa7be63b39b4c39917eb035bd279b6cbe2a308",
+    "verifiedCommit": "ffba8ed6a2d9fb8d9111cdfff0f4eb3c6e23e0a0",
+    "productFilesMatched": 24,
+    "runnerMatched": true,
+    "executedHelper": "tests/browser_affinity_cases.py",
+    "executedHelperMatched": true,
+    "unexecutedHelperSnapshotsDiffering": [
+      "tests/browser_fate_cases.py"
+    ],
+    "pass": true,
+    "checks": 14,
+    "generationRequests": 82
+  },
+  "browser-third-party": {
+    "reportedHeadAtStart": "dfaa7be63b39b4c39917eb035bd279b6cbe2a308",
+    "verifiedCommit": "ffba8ed6a2d9fb8d9111cdfff0f4eb3c6e23e0a0",
+    "productFilesMatched": 24,
+    "runnerMatched": true,
+    "executedHelper": "tests/browser_affinity_cases.py",
+    "executedHelperMatched": true,
+    "unexecutedHelperSnapshotsDiffering": [
+      "tests/browser_fate_cases.py"
+    ],
+    "pass": true,
+    "checks": 13,
+    "generationRequests": 74
+  },
+  "director-full": {
+    "reportedHeadAtStart": "dfaa7be63b39b4c39917eb035bd279b6cbe2a308",
+    "verifiedCommit": "ffba8ed6a2d9fb8d9111cdfff0f4eb3c6e23e0a0",
+    "productFilesMatched": 24,
+    "runnerMatched": true,
+    "executedHelper": null,
+    "executedHelperMatched": true,
+    "unexecutedHelperSnapshotsDiffering": [
+      "tests/browser_fate_cases.py"
+    ],
+    "pass": true,
+    "checks": 53,
+    "generationRequests": 63
+  },
+  "fate-third-party-final": {
+    "reportedHeadAtStart": "dfaa7be63b39b4c39917eb035bd279b6cbe2a308",
+    "verifiedCommit": "ffba8ed6a2d9fb8d9111cdfff0f4eb3c6e23e0a0",
+    "productFilesMatched": 24,
+    "runnerMatched": true,
+    "executedHelper": "tests/browser_fate_cases.py",
+    "executedHelperMatched": true,
+    "unexecutedHelperSnapshotsDiffering": [],
+    "pass": true,
+    "checks": 57,
+    "generationRequests": 35
+  }
+}

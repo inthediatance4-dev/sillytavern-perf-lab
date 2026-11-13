@@ -1,0 +1,4 @@
+
+> sillytavern@1.19.0 lint
+> eslint "src/**/*.js" "public/**/*.js" ./*.js "scripts/*.mjs" "tests/*.mjs"
+

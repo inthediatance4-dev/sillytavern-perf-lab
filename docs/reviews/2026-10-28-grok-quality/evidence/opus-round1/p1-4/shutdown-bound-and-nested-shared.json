@@ -1,0 +1,19 @@
+[
+  {
+    "scenario": "shutdown-bound",
+    "reproduced": true,
+    "configuredDrainMs": 20,
+    "drainElapsedMs": 22,
+    "elapsedMs": 173,
+    "outcome": "still-blocked",
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "nested-shared",
+    "unexpectedOutput": "",
+    "stderr": "file:///workspace/sillytavern-perf-lab/src/chat-io.js:181\n                return Promise.reject(new LockOrderError(request.key));\n                                      ^\n\nLockOrderError: Nested path lock requires a new key or upgrade: /tmp/rv4/temp/nested-shared-3xvTZ5/b.jsonl\n    at withPathLocks (file:///workspace/sillytavern-perf-lab/src/chat-io.js:181:39)\n    at file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:67:20\n\nNode.js v22.20.0\n",
+    "exit": 1,
+    "signal": null
+  }
+]

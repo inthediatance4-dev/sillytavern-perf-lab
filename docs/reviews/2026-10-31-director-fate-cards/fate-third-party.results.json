@@ -1,0 +1,809 @@
+{
+  "base": "ffd5f4e",
+  "head": "973e8ebbd7f744585798ec866cb642db013de5ef",
+  "runnerHead": "973e8ebbd7f744585798ec866cb642db013de5ef",
+  "mode": "fate-only",
+  "thirdPartyEnabled": true,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "00ae85805f8d3d98fac47bd0352c723faf5f796e94239704224ac4bf4906ae9a",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "8437587be85dcbe09fccaee8552f844e125bc5a9f2be7a92449ed7da5c9b6f1a",
+      "focusCount": 2
+    },
+    "fateDrawSealedAndExistingInstructionPreserved": true,
+    "fateMobileDraftAndReload": true,
+    "fateAdoptAndExactSwipeRegenerateWithoutNormalRetrigger": true,
+    "fateMalformedDrawAndFailedApplyKeepSameCardForRetry": true,
+    "fateOnlyDirectRegenerateAndNativeFailureUnlock": true,
+    "fateStopRetainsCardAndDiscardDisarmsOrdinarySend": true,
+    "fateRealGroupBatchReplayAndManualDeletionDoesNotRetrigger": true,
+    "fateStaleDrawDoesNotReplaceOrSaveIntoAnotherChat": true
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [],
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [
+      "/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+      "/scripts/extensions/third-party/st-memory-enhancement/index.js"
+    ],
+    "tavernHelperAvailable": true
+  },
+  "fateInstructionState": {
+    "integrity": "director-4fdf0d545d",
+    "sheets": [
+      {
+        "uid": "sheet_dlhqfT18",
+        "name": "时空表格",
+        "domain": "chat",
+        "type": "dynamic",
+        "enable": true,
+        "required": true,
+        "tochat": true,
+        "triggerSend": false,
+        "triggerSendDeep": 1,
+        "hashSheet": [
+          [
+            "cell_undefined_dekeAlca4CKOLlMO",
+            "cell_undefined_GRcL1TTfIc1WlEYq",
+            "cell_undefined_gukQXQSidNWq3VBu",
+            "cell_undefined_oyK6isDdBB6gPyRV",
+            "cell_undefined_afW3wYTJtldiCAcu"
+          ]
+        ],
+        "cellHistory": [
+          {
+            "uid": "cell_undefined_dekeAlca4CKOLlMO",
+            "coordUid": "coo_9nNo5HLHwvnMXNN",
+            "data": {
+              "note": "记录时空信息的表格，应保持在一行",
+              "initNode": "本轮需要记录当前时间、地点、人物信息，使用insertRow函数",
+              "deleteNode": "此表大于一行时应删除多余行",
+              "updateNode": "当描写的场景，时间，人物变更时"
+            },
+            "type": "sheet_origin"
+          },
+          {
+            "uid": "cell_undefined_GRcL1TTfIc1WlEYq",
+            "coordUid": "coo_l4dpOnIbNw5Ovbv",
+            "data": {
+              "value": "日期"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_gukQXQSidNWq3VBu",
+            "coordUid": "coo_g4TRNj2znqFGvT1",
+            "data": {
+              "value": "时间"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_oyK6isDdBB6gPyRV",
+            "coordUid": "coo_Q0DlNjaN8fK4Za8",
+            "data": {
+              "value": "地点（当前描写）"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_afW3wYTJtldiCAcu",
+            "coordUid": "coo_T6H7DTOHM4K4K50",
+            "data": {
+              "value": "此地角色"
+            },
+            "type": "column_header"
+          }
+        ],
+        "config": {
+          "toChat": true,
+          "useCustomStyle": false,
+          "triggerSendToChat": false,
+          "alternateTable": false,
+          "insertTable": false,
+          "alternateLevel": 0,
+          "skipTop": false,
+          "selectedCustomStyleKey": "",
+          "customStyles": {
+            "自定义样式": {
+              "mode": "regex",
+              "basedOn": "html",
+              "regex": "/(^[\\s\\S]*$)/g",
+              "replace": "$1",
+              "replaceDivide": ""
+            }
+          }
+        },
+        "template": "template_T4H4wM3f"
+      },
+      {
+        "uid": "sheet_5MIm9wTU",
+        "name": "角色特征表格",
+        "domain": "chat",
+        "type": "dynamic",
+        "enable": true,
+        "required": true,
+        "tochat": true,
+        "triggerSend": false,
+        "triggerSendDeep": 1,
+        "hashSheet": [
+          [
+            "cell_undefined_5X9ZehbUIfW3C2BQ",
+            "cell_undefined_RhNB3QuBfX4JA3OC",
+            "cell_undefined_TmVEDKPWPlnWyTae",
+            "cell_undefined_HMPx2mmaXU6wToZe",
+            "cell_undefined_W2wxH3c64JPcM2pc",
+            "cell_undefined_Cv1UL142EBa5h56q",
+            "cell_undefined_fOcUZSmTozjZcYUk",
+            "cell_undefined_VgsCs2lr8cdV5vZp",
+            "cell_undefined_FvNi17O49Az2L3JJ"
+          ]
+        ],
+        "cellHistory": [
+          {
+            "uid": "cell_undefined_5X9ZehbUIfW3C2BQ",
+            "coordUid": "coo_Wvzyma8OQ3DzUoe",
+            "data": {
+              "note": "角色天生或不易改变的特征csv表格，思考本轮有否有其中的角色，他应作出什么反应",
+              "initNode": "本轮必须从上文寻找已知的所有角色使用insertRow插入，角色名不能为空",
+              "deleteNode": "",
+              "updateNode": "当角色的身体出现持久性变化时，例如伤痕/当角色有新的爱好，职业，喜欢的事物时/当角色更换住所时/当角色提到重要信息时",
+              "insertNode": "当本轮出现表中没有的新角色时，应插入"
+            },
+            "type": "sheet_origin"
+          },
+          {
+            "uid": "cell_undefined_RhNB3QuBfX4JA3OC",
+            "coordUid": "coo_WmgseuW0S621qeh",
+            "data": {
+              "value": "角色名"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_TmVEDKPWPlnWyTae",
+            "coordUid": "coo_1i7ZFmM0UR7H02L",
+            "data": {
+              "value": "身体特征"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_HMPx2mmaXU6wToZe",
+            "coordUid": "coo_L1kjUjHYG7PZALR",
+            "data": {
+              "value": "性格"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_W2wxH3c64JPcM2pc",
+            "coordUid": "coo_3ns0QAjm9XHf8xO",
+            "data": {
+              "value": "职业"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_Cv1UL142EBa5h56q",
+            "coordUid": "coo_sduuikko8ZyUfbs",
+            "data": {
+              "value": "爱好"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_fOcUZSmTozjZcYUk",
+            "coordUid": "coo_QXtFHeHK26ewhPV",
+            "data": {
+              "value": "喜欢的事物（作品、虚拟人物、物品等）"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_VgsCs2lr8cdV5vZp",
+            "coordUid": "coo_FqoHNy2bGLBLdfs",
+            "data": {
+              "value": "住所"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_FvNi17O49Az2L3JJ",
+            "coordUid": "coo_HxXhh7r5pWLwsdr",
+            "data": {
+              "value": "其他重要信息"
+            },
+            "type": "column_header"
+          }
+        ],
+        "config": {
+          "toChat": true,
+          "useCustomStyle": false,
+          "triggerSendToChat": false,
+          "alternateTable": false,
+          "insertTable": false,
+          "alternateLevel": 0,
+          "skipTop": false,
+          "selectedCustomStyleKey": "",
+          "customStyles": {
+            "自定义样式": {
+              "mode": "regex",
+              "basedOn": "html",
+              "regex": "/(^[\\s\\S]*$)/g",
+              "replace": "$1",
+              "replaceDivide": ""
+            }
+          }
+        },
+        "template": "template_QeYiVFd2"
+      },
+      {
+        "uid": "sheet_YdVGIfYU",
+        "name": "角色与<user>社交表格",
+        "domain": "chat",
+        "type": "dynamic",
+        "enable": true,
+        "required": true,
+        "tochat": true,
+        "triggerSend": false,
+        "triggerSendDeep": 1,
+        "hashSheet": [
+          [
+            "cell_undefined_NjXVDbMT4uGJzlN5",
+            "cell_undefined_U7CCKX6lUa3QmbqJ",
+            "cell_undefined_RYvy9c95mww8ZUEk",
+            "cell_undefined_m8phS9xVUlLLui0R",
+            "cell_undefined_jy1cXn3ZejaYmOhU"
+          ]
+        ],
+        "cellHistory": [
+          {
+            "uid": "cell_undefined_NjXVDbMT4uGJzlN5",
+            "coordUid": "coo_2Zy8NJfKjlzOvOY",
+            "data": {
+              "note": "思考如果有角色和<user>互动，应什么态度",
+              "initNode": "本轮必须从上文寻找已知的所有角色使用insertRow插入，角色名不能为空",
+              "deleteNode": "",
+              "updateNode": "当角色和<user>的交互不再符合原有的记录时/当角色和<user>的关系改变时",
+              "insertNode": "当本轮出现表中没有的新角色时，应插入"
+            },
+            "type": "sheet_origin"
+          },
+          {
+            "uid": "cell_undefined_U7CCKX6lUa3QmbqJ",
+            "coordUid": "coo_txvIpYChvkKzPXj",
+            "data": {
+              "value": "角色名"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_RYvy9c95mww8ZUEk",
+            "coordUid": "coo_Shx5QNSvVuAmvF1",
+            "data": {
+              "value": "对<user>关系"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_m8phS9xVUlLLui0R",
+            "coordUid": "coo_RnmCjCJ504MdPsf",
+            "data": {
+              "value": "对<user>态度"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_jy1cXn3ZejaYmOhU",
+            "coordUid": "coo_YWNXmnpH18TXXoM",
+            "data": {
+              "value": "对<user>好感"
+            },
+            "type": "column_header"
+          }
+        ],
+        "config": {
+          "toChat": true,
+          "useCustomStyle": false,
+          "triggerSendToChat": false,
+          "alternateTable": false,
+          "insertTable": false,
+          "alternateLevel": 0,
+          "skipTop": false,
+          "selectedCustomStyleKey": "",
+          "customStyles": {
+            "自定义样式": {
+              "mode": "regex",
+              "basedOn": "html",
+              "regex": "/(^[\\s\\S]*$)/g",
+              "replace": "$1",
+              "replaceDivide": ""
+            }
+          }
+        },
+        "template": "template_9Lda77Uv"
+      },
+      {
+        "uid": "sheet_aEi7UlIz",
+        "name": "任务、命令或者约定表格",
+        "domain": "chat",
+        "type": "dynamic",
+        "enable": true,
+        "required": false,
+        "tochat": true,
+        "triggerSend": false,
+        "triggerSendDeep": 1,
+        "hashSheet": [
+          [
+            "cell_undefined_rnWaCHktV51rfuQ2",
+            "cell_undefined_sZZwCSaIPYvJuLOx",
+            "cell_undefined_8FpnovCmKKIK4eHO",
+            "cell_undefined_BjjP7HGm0RQjo1VI",
+            "cell_undefined_ZablWGjCpzJd8n36"
+          ]
+        ],
+        "cellHistory": [
+          {
+            "uid": "cell_undefined_rnWaCHktV51rfuQ2",
+            "coordUid": "coo_3etCIgQE3Edl0Ze",
+            "data": {
+              "note": "思考本轮是否应该执行任务/赴约",
+              "deleteNode": "当大家赴约时/任务或命令完成时/任务，命令或约定被取消时",
+              "updateNode": "",
+              "insertNode": "当特定时间约定一起去做某事时/某角色收到做某事的命令或任务时"
+            },
+            "type": "sheet_origin"
+          },
+          {
+            "uid": "cell_undefined_sZZwCSaIPYvJuLOx",
+            "coordUid": "coo_WY9wQj6cT0aiXmt",
+            "data": {
+              "value": "角色"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_8FpnovCmKKIK4eHO",
+            "coordUid": "coo_YCFIdmguMVaDSYP",
+            "data": {
+              "value": "任务"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_BjjP7HGm0RQjo1VI",
+            "coordUid": "coo_VKGSb60CpjkdkhO",
+            "data": {
+              "value": "地点"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_ZablWGjCpzJd8n36",
+            "coordUid": "coo_m6ipbyrZrnjilLI",
+            "data": {
+              "value": "持续时间"
+            },
+            "type": "column_header"
+          }
+        ],
+        "config": {
+          "toChat": true,
+          "useCustomStyle": false,
+          "triggerSendToChat": false,
+          "alternateTable": false,
+          "insertTable": false,
+          "alternateLevel": 0,
+          "skipTop": false,
+          "selectedCustomStyleKey": "",
+          "customStyles": {
+            "自定义样式": {
+              "mode": "regex",
+              "basedOn": "html",
+              "regex": "/(^[\\s\\S]*$)/g",
+              "replace": "$1",
+              "replaceDivide": ""
+            }
+          }
+        },
+        "template": "template_e0iBEzCX"
+      },
+      {
+        "uid": "sheet_NIZr4UnQ",
+        "name": "重要事件历史表格",
+        "domain": "chat",
+        "type": "dynamic",
+        "enable": true,
+        "required": true,
+        "tochat": true,
+        "triggerSend": false,
+        "triggerSendDeep": 1,
+        "hashSheet": [
+          [
+            "cell_undefined_cxE3M6bDeE2iY45d",
+            "cell_undefined_VxbPSwteFiEtPQH3",
+            "cell_undefined_U8PgMH3A18uuBwzZ",
+            "cell_undefined_Q5khPjYPK2Jxoi9K",
+            "cell_undefined_3fpNLbIe03fpckla",
+            "cell_undefined_ib7LwMT8n2sokKgW"
+          ]
+        ],
+        "cellHistory": [
+          {
+            "uid": "cell_undefined_cxE3M6bDeE2iY45d",
+            "coordUid": "coo_uwaoKqOIHq92d2A",
+            "data": {
+              "note": "记录<user>或角色经历的重要事件",
+              "initNode": "本轮必须从上文寻找可以插入的事件并使用insertRow插入",
+              "deleteNode": "",
+              "updateNode": "",
+              "insertNode": "当某个角色经历让自己印象深刻的事件时，比如表白、分手等"
+            },
+            "type": "sheet_origin"
+          },
+          {
+            "uid": "cell_undefined_VxbPSwteFiEtPQH3",
+            "coordUid": "coo_OiirodVdx1EtY4X",
+            "data": {
+              "value": "角色"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_U8PgMH3A18uuBwzZ",
+            "coordUid": "coo_63qljEjmutIYb2E",
+            "data": {
+              "value": "事件简述"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_Q5khPjYPK2Jxoi9K",
+            "coordUid": "coo_lCeRfIvV00QdEvf",
+            "data": {
+              "value": "日期"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_3fpNLbIe03fpckla",
+            "coordUid": "coo_8H6uddOMjLUjFuW",
+            "data": {
+              "value": "地点"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_ib7LwMT8n2sokKgW",
+            "coordUid": "coo_a08kCJgS0a34RzX",
+            "data": {
+              "value": "情绪"
+            },
+            "type": "column_header"
+          }
+        ],
+        "config": {
+          "toChat": true,
+          "useCustomStyle": false,
+          "triggerSendToChat": false,
+          "alternateTable": false,
+          "insertTable": false,
+          "alternateLevel": 0,
+          "skipTop": false,
+          "selectedCustomStyleKey": "",
+          "customStyles": {
+            "自定义样式": {
+              "mode": "regex",
+              "basedOn": "html",
+              "regex": "/(^[\\s\\S]*$)/g",
+              "replace": "$1",
+              "replaceDivide": ""
+            }
+          }
+        },
+        "template": "template_dHWloFl2"
+      },
+      {
+        "uid": "sheet_5gR9pylh",
+        "name": "重要物品表格",
+        "domain": "chat",
+        "type": "dynamic",
+        "enable": true,
+        "required": false,
+        "tochat": true,
+        "triggerSend": false,
+        "triggerSendDeep": 1,
+        "hashSheet": [
+          [
+            "cell_undefined_IxEvHvLSyO9ttxKp",
+            "cell_undefined_Fe23HaJ0jrJ6l3DF",
+            "cell_undefined_XQ1FMspgJeq0RcU2",
+            "cell_undefined_rnwbHXu2O1cSIBW3",
+            "cell_undefined_9LLOZODYW7vzhX7e"
+          ]
+        ],
+        "cellHistory": [
+          {
+            "uid": "cell_undefined_IxEvHvLSyO9ttxKp",
+            "coordUid": "coo_TXPylel3HySx8Yq",
+            "data": {
+              "note": "对某人很贵重或有特殊纪念意义的物品",
+              "deleteNode": "",
+              "updateNode": "",
+              "insertNode": "当某人获得了贵重或有特殊意义的物品时/当某个已有物品有了特殊意义时"
+            },
+            "type": "sheet_origin"
+          },
+          {
+            "uid": "cell_undefined_Fe23HaJ0jrJ6l3DF",
+            "coordUid": "coo_2co9cgsh8EvpZNB",
+            "data": {
+              "value": "拥有人"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_XQ1FMspgJeq0RcU2",
+            "coordUid": "coo_CIs1RekSxffhV25",
+            "data": {
+              "value": "物品描述"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_rnwbHXu2O1cSIBW3",
+            "coordUid": "coo_q8V3CCtwDhzbPVo",
+            "data": {
+              "value": "物品名"
+            },
+            "type": "column_header"
+          },
+          {
+            "uid": "cell_undefined_9LLOZODYW7vzhX7e",
+            "coordUid": "coo_TxYMDkFrQ9f6ApH",
+            "data": {
+              "value": "重要原因"
+            },
+            "type": "column_header"
+          }
+        ],
+        "config": {
+          "toChat": true,
+          "useCustomStyle": false,
+          "triggerSendToChat": false,
+          "alternateTable": false,
+          "insertTable": false,
+          "alternateLevel": 0,
+          "skipTop": false,
+          "selectedCustomStyleKey": "",
+          "customStyles": {
+            "自定义样式": {
+              "mode": "regex",
+              "basedOn": "html",
+              "regex": "/(^[\\s\\S]*$)/g",
+              "replace": "$1",
+              "replaceDivide": ""
+            }
+          }
+        },
+        "template": "template_SPvTU889"
+      }
+    ],
+    "selected_sheets": [
+      "sheet_dlhqfT18",
+      "sheet_5MIm9wTU",
+      "sheet_YdVGIfYU",
+      "sheet_aEi7UlIz",
+      "sheet_NIZr4UnQ",
+      "sheet_5gR9pylh"
+    ],
+    "note_prompt": "",
+    "note_interval": 1,
+    "note_position": 1,
+    "note_depth": 4,
+    "note_role": 0,
+    "script_injects": {},
+    "tainted": true,
+    "timedWorldInfo": {
+      "sticky": {},
+      "cooldown": {}
+    },
+    "lastInContextMessageId": 0,
+    "director": {
+      "fate": {
+        "version": 1,
+        "held": null,
+        "bound": {
+          "id": "094cad43-93e7-42d7-9a7a-30c2ec8d08b2",
+          "title": "悄然转向",
+          "strength": "medium",
+          "event": "FATE_PRIVATE_01: A stranger brings a sealed map bearing {{char}} and {{random::a,b}}.",
+          "slotIndex": 2,
+          "prevFingerprint": "acc13269",
+          "generationId": null,
+          "batchEndIndex": 2,
+          "groupRetry": false
+        }
+      },
+      "boundInstruct": {
+        "id": "director-78fb6ff8-ba38-4950-b93c-0b9404050f26",
+        "text": "[导演指令：ORDINARY_DIRECTOR_FATE_COEXIST]",
+        "slotIndex": 2,
+        "prevFingerprint": "acc13269",
+        "boundAt": 1793461042591
+      }
+    }
+  },
+  "fateProviderFailures": {
+    "apply": {
+      "providerStatus": 500,
+      "proxyStatus": 200
+    },
+    "nativeSwipe": {
+      "providerStatus": 500,
+      "proxyStatus": 200
+    }
+  },
+  "pass": true,
+  "pageErrors": [],
+  "generationRequests": 23,
+  "chromium": "156.0.8078.76",
+  "sourceSha256": {
+    "public/script.js": "a38b482ce3c2bc7bd43ca57009ea6d32b9460ccef4d4daa17795834efc634821",
+    "public/scripts/events.js": "1b322db4a3fc9b4b7fa5af8b3d4de8eaba0ccfc551d76892849f81258fa413d5",
+    "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+    "public/scripts/extensions/director/fate-ui.js": "c5c3125915409f399ad4f18713f2d38dd3419be1a6cc390b2e3a2d4e60606d4f",
+    "public/scripts/extensions/director/fate.js": "ac163bb996450617d525ba06f53d90bce900ce18aaefd22c8bd3db8b2244adc5",
+    "public/scripts/extensions/director/index.js": "ac9207b766b59719f1169714a623d7f406fac5efc481918b3cb2cdd58e517c4a",
+    "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+    "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+    "public/scripts/extensions/director/manifest.json": "b4118443a33dfdb8fe751b8b27d75e1c18cb0c4d20cc3e91dd53350538355200",
+    "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+    "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+    "public/scripts/extensions/director/style.css": "0e88b5590da06c5ddf8e508e62ca8a23a1848846ce052c79f3ddaa7be2607afb",
+    "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+    "public/scripts/group-chats.js": "3ed4a448f78dbd67060c06e84c95100ee64a7a506236c81a69d44f9d18ab3640",
+    "tests/browser_fate_cases.py": "60693fc69bccee8bb80ac008dab1f1aabf741d30a012d23030f892e26c5b7533"
+  },
+  "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+  "node": "v24.22.1"
+}

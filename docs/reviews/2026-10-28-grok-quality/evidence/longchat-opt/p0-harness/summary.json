@@ -1,0 +1,678 @@
+{
+  "ab": {
+    "revisions": {
+      "base": "37a48181fc55f7d2c45bae05f1a68c26a4c76d5d",
+      "head": "WORKTREE"
+    },
+    "order": [
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 0,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 0,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 1,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 1,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 2,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 2,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 3,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 3,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 4,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 4,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 5,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 5,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 6,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 2000,
+        "truncation": 100,
+        "iteration": 6,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 0,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 0,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 1,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 1,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 2,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 2,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 3,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 3,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 4,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 4,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 5,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 5,
+        "side": "head",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 6,
+        "side": "base",
+        "exitCode": 0
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "iteration": 6,
+        "side": "head",
+        "exitCode": 0
+      }
+    ],
+    "settings": [
+      {
+        "size": 2000,
+        "truncation": 100,
+        "metrics": {
+          "open": {
+            "base": {
+              "median": 825.6999999992549,
+              "p95": 866.8000000007451,
+              "median_ci95": [
+                807.9000000003725,
+                849.7000000011176
+              ],
+              "p95_ci95": [
+                848.6999999992549,
+                866.8000000007451
+              ],
+              "samples": [
+                807.9000000003725,
+                825.6999999992549,
+                848.6999999992549,
+                805.6999999992549,
+                810.1999999992549,
+                866.8000000007451,
+                849.7000000011176
+              ]
+            },
+            "head": {
+              "median": 811.9000000003725,
+              "p95": 900.3000000007451,
+              "median_ci95": [
+                807.8000000007451,
+                871.2999999988824
+              ],
+              "p95_ci95": [
+                832.1999999992549,
+                900.3000000007451
+              ],
+              "samples": [
+                832.1999999992549,
+                805.1000000014901,
+                807.8000000007451,
+                871.2999999988824,
+                810.5,
+                900.3000000007451,
+                811.9000000003725
+              ]
+            },
+            "difference": {
+              "current_minus_baseline": -13.799999998882413,
+              "ci95": [
+                -40.899999998509884,
+                63.399999998509884
+              ]
+            },
+            "bootstrapSeed": "opus-round1.5",
+            "resamples": 2000
+          }
+        },
+        "equivalence": []
+      },
+      {
+        "size": 3000,
+        "truncation": 100,
+        "metrics": {
+          "open": {
+            "base": {
+              "median": 843.2999999988824,
+              "p95": 854.5999999996275,
+              "median_ci95": [
+                826.8000000007451,
+                852.4000000003725
+              ],
+              "p95_ci95": [
+                850.6999999992549,
+                854.5999999996275
+              ],
+              "samples": [
+                828.2000000011176,
+                826.8000000007451,
+                854.5999999996275,
+                852.4000000003725,
+                843.2999999988824,
+                850.6999999992549,
+                820.8000000007451
+              ]
+            },
+            "head": {
+              "median": 825.7999999988824,
+              "p95": 865,
+              "median_ci95": [
+                822.1000000014901,
+                834.6000000014901
+              ],
+              "p95_ci95": [
+                834.1000000014901,
+                865
+              ],
+              "samples": [
+                865,
+                825.7999999988824,
+                834.6000000014901,
+                834.1000000014901,
+                825.2000000011176,
+                808.3000000007451,
+                822.1000000014901
+              ]
+            },
+            "difference": {
+              "current_minus_baseline": -17.5,
+              "ci95": [
+                -28.599999997764826,
+                6.400000000372529
+              ]
+            },
+            "bootstrapSeed": "opus-round1.5",
+            "resamples": 2000
+          }
+        },
+        "equivalence": []
+      }
+    ]
+  },
+  "startup": {
+    "n": 50,
+    "statuses": {
+      "ok": 50,
+      "timeout": 0,
+      "error": 0
+    },
+    "medianMs": 1546.826340500047,
+    "p95Ms": 1707.3919039994507
+  },
+  "equivalence": {
+    "equivalence-final": {
+      "status": "equal",
+      "differences": [],
+      "tabs": {
+        "base": {
+          "older": {
+            "n": 565,
+            "chatFocuses": 550,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "appended": {
+            "n": 565,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "class-added": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "ancestor-disabled": {
+            "n": 566,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "ancestor-enabled": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "popup-open": {
+            "n": 4,
+            "chatFocuses": 0,
+            "sendReached": false,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": true,
+            "perturbationReached": false
+          },
+          "popup-closed": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          }
+        },
+        "head": {
+          "older": {
+            "n": 565,
+            "chatFocuses": 550,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "appended": {
+            "n": 565,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "class-added": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "ancestor-disabled": {
+            "n": 566,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "ancestor-enabled": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "popup-open": {
+            "n": 4,
+            "chatFocuses": 0,
+            "sendReached": false,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": true,
+            "perturbationReached": false
+          },
+          "popup-closed": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          }
+        }
+      }
+    },
+    "equivalence-negative": {
+      "status": "different",
+      "differences": [
+        "dom/older",
+        "dom/open",
+        "tabs/ancestor-disabled",
+        "tabs/ancestor-enabled",
+        "tabs/appended",
+        "tabs/class-added",
+        "tabs/older",
+        "tabs/popup-closed"
+      ],
+      "tabs": {
+        "base": {
+          "older": {
+            "n": 565,
+            "chatFocuses": 550,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "appended": {
+            "n": 565,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "class-added": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "ancestor-disabled": {
+            "n": 566,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "ancestor-enabled": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          },
+          "popup-open": {
+            "n": 4,
+            "chatFocuses": 0,
+            "sendReached": false,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": true,
+            "perturbationReached": false
+          },
+          "popup-closed": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": false
+          }
+        },
+        "head": {
+          "older": {
+            "n": 566,
+            "chatFocuses": 550,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": true
+          },
+          "appended": {
+            "n": 566,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": true
+          },
+          "class-added": {
+            "n": 568,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": true
+          },
+          "ancestor-disabled": {
+            "n": 567,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": false,
+            "popupReached": false,
+            "perturbationReached": true
+          },
+          "ancestor-enabled": {
+            "n": 568,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": true
+          },
+          "popup-open": {
+            "n": 4,
+            "chatFocuses": 0,
+            "sendReached": false,
+            "lateReached": false,
+            "childReached": false,
+            "popupReached": true,
+            "perturbationReached": false
+          },
+          "popup-closed": {
+            "n": 568,
+            "chatFocuses": 551,
+            "sendReached": true,
+            "lateReached": true,
+            "childReached": true,
+            "popupReached": false,
+            "perturbationReached": true
+          }
+        }
+      }
+    }
+  },
+  "legacy": {
+    "2000": {
+      "n": 7,
+      "median": 815.4000000003725,
+      "p95": 858.8000000007451,
+      "samples": [
+        858.8000000007451,
+        807.4000000003725,
+        833.1999999992549,
+        815.4000000003725,
+        804.5999999996275,
+        803.8000000007451,
+        818.9000000003725
+      ]
+    },
+    "3000": {
+      "n": 7,
+      "median": 828.7000000011176,
+      "p95": 849,
+      "samples": [
+        820.1999999992549,
+        811.4000000003725,
+        818.0999999996275,
+        832.7000000011176,
+        847.6000000014901,
+        849,
+        828.7000000011176
+      ]
+    }
+  },
+  "shutdown": {
+    "startups": {
+      "servers": 1,
+      "graceful": 1,
+      "forbiddenRequests": 0
+    },
+    "ab-complete-directories": {
+      "servers": 28,
+      "graceful": 28,
+      "forbiddenRequests": 0
+    },
+    "legacy-shape": {
+      "servers": 1,
+      "graceful": 1,
+      "forbiddenRequests": 0
+    },
+    "equivalence-final": {
+      "servers": 2,
+      "graceful": 2,
+      "forbiddenRequests": 0
+    },
+    "equivalence-negative": {
+      "servers": 2,
+      "graceful": 2,
+      "forbiddenRequests": 0
+    }
+  }
+}

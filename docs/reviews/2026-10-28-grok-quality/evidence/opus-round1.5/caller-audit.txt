@@ -1,0 +1,14 @@
+Pre-change rg -n 'waitForChatIO\(|\.stop\(' src tests scripts:
+Unsigned waitForChatIO callers:
+  tests/path-lock-fairness.test.mjs:93,106,156
+  tests/chat-backup-isolation.test.mjs:388
+  tests/request-drain.test.mjs:26
+Legacy createRequestDrain().stop callers:
+  tests/request-drain.test.mjs:25,45,65 (no argument),112 (5000),158 (30)
+Production: src/endpoints/chats.js:117,119 forward signal;
+  src/server-main.js:340 passes signal to requestDrain.stop.
+No production or scripts callers use either legacy form.
+Indirect unsigned flushChatBackups callers updated in tests/chat-backup-isolation,
+  tests/enabled-backups, tests/backup-recycle-budget.test.mjs.
+Remaining unsigned/numeric calls are intentional TypeError regression assertions.
+createPersistenceTracker.stop() is a separate internal API, bounded by request drain.

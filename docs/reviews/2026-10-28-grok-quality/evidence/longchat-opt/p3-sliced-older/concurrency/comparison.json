@@ -1,0 +1,43 @@
+{
+  "setting": "2000/500",
+  "trigger": "first scheduler.yield during off-DOM preparation; live message count unchanged",
+  "sendVsReference": {
+    "chatEqual": true,
+    "idsEqual": true,
+    "domSnapshotEqual": true,
+    "eventsEqual": true,
+    "eventNames": [
+      "CHAT_CHANGED",
+      "CHAT_LOADED",
+      "MORE_MESSAGES_LOADED",
+      "USER_MESSAGE_RENDERED"
+    ]
+  },
+  "runs": {
+    "send": {
+      "partialCount": 500,
+      "completionCount": 1,
+      "domCount": 1001,
+      "firstId": 1000,
+      "lastId": 2000,
+      "savedMatchesChat": true
+    },
+    "double": {
+      "partialCount": 500,
+      "completionCount": 1,
+      "domCount": 1000,
+      "firstId": 1000,
+      "lastId": 1999,
+      "oneBatch": true
+    },
+    "reference": {
+      "partialCount": null,
+      "completionCount": 1,
+      "domCount": 1001,
+      "firstId": 1000,
+      "lastId": 2000,
+      "savedMatchesChat": true,
+      "triggeredAfterCompletion": true
+    }
+  }
+}

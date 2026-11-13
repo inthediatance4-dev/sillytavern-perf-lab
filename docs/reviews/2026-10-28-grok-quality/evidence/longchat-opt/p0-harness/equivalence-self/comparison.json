@@ -1,0 +1,79 @@
+{
+  "revisions": {
+    "base": "WORKTREE",
+    "head": "WORKTREE"
+  },
+  "order": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    }
+  ],
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 871,
+            "p95": 871,
+            "median_ci95": [
+              871,
+              871
+            ],
+            "p95_ci95": [
+              871,
+              871
+            ],
+            "samples": [
+              871
+            ]
+          },
+          "head": {
+            "median": 836.6999999992549,
+            "p95": 836.6999999992549,
+            "median_ci95": [
+              836.6999999992549,
+              836.6999999992549
+            ],
+            "p95_ci95": [
+              836.6999999992549,
+              836.6999999992549
+            ],
+            "samples": [
+              836.6999999992549
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -34.30000000074506,
+            "ci95": [
+              -34.30000000074506,
+              -34.30000000074506
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": [
+        {
+          "iteration": 0,
+          "status": "equal",
+          "equal": true,
+          "differences": {}
+        }
+      ]
+    }
+  ]
+}

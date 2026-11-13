@@ -1,0 +1,79 @@
+{
+  "revisions": {
+    "base": "c7b38d8eb18b0cbdae8b15fd2d52e3e7f3e56e34",
+    "head": "WORKTREE"
+  },
+  "order": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    }
+  ],
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 801.6000000014901,
+            "p95": 801.6000000014901,
+            "median_ci95": [
+              801.6000000014901,
+              801.6000000014901
+            ],
+            "p95_ci95": [
+              801.6000000014901,
+              801.6000000014901
+            ],
+            "samples": [
+              801.6000000014901
+            ]
+          },
+          "head": {
+            "median": 789.6000000014901,
+            "p95": 789.6000000014901,
+            "median_ci95": [
+              789.6000000014901,
+              789.6000000014901
+            ],
+            "p95_ci95": [
+              789.6000000014901,
+              789.6000000014901
+            ],
+            "samples": [
+              789.6000000014901
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -12,
+            "ci95": [
+              -12,
+              -12
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": [
+        {
+          "iteration": 0,
+          "status": "equal",
+          "equal": true,
+          "differences": {}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 5,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 33.4,
+    "framesOver16_7Pct": 10.436893203883495,
+    "framesOver33Pct": 5.339805825242718,
+    "loafCount": 5,
+    "loafTotalMs": 446.69999999925494,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 32.19999999925494,
+    "loafScriptotherMs": 226.19999999925494,
+    "formatP50Ms": 1.5,
+    "formatP95Ms": 3.799999998882413,
+    "domP50Ms": 0.2000000011175871,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 21.298228992510484,
+    "firstTokenMs": 160.428955078125,
+    "finishMs": 151.107666015625,
+    "typingP50Ms": 27,
+    "typingP95Ms": 45.699951171875,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 873,
+    "keys": 73,
+    "hooks": 962
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793289194797.6711,
+    "receivedNs": "14836430201775",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793289194806.4392,
+    "lastChunkEpochMs": 1793289209408.5923,
+    "doneEpochMs": 1793289209408.6062,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

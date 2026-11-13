@@ -1,0 +1,246 @@
+{
+  "revisions": {
+    "base": "WORKTREE",
+    "head": "WORKTREE temporary diagnostic copy"
+  },
+  "order": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    }
+  ],
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 822.7999999988824,
+            "p95": 822.7999999988824,
+            "median_ci95": [
+              822.7999999988824,
+              822.7999999988824
+            ],
+            "p95_ci95": [
+              822.7999999988824,
+              822.7999999988824
+            ],
+            "samples": [
+              822.7999999988824
+            ]
+          },
+          "head": {
+            "median": 823.0999999996275,
+            "p95": 823.0999999996275,
+            "median_ci95": [
+              823.0999999996275,
+              823.0999999996275
+            ],
+            "p95_ci95": [
+              823.0999999996275,
+              823.0999999996275
+            ],
+            "samples": [
+              823.0999999996275
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": 0.30000000074505806,
+            "ci95": [
+              0.30000000074505806,
+              0.30000000074505806
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": [
+        {
+          "iteration": 0,
+          "status": "different",
+          "equal": false,
+          "differences": {
+            "dom/older": [
+              "--- base",
+              "+++ head",
+              "@@ -26706,4 +26706,5 @@",
+              "                     <div class=\"swipes-counter\">1​/​1</div>",
+              "                 </div>",
+              "             </div>",
+              "-</div>",
+              "+<button id=\"p0-perturbation\">P0 deliberate perturbation</button>",
+              "+</div>"
+            ],
+            "dom/open": [
+              "--- base",
+              "+++ head",
+              "@@ -13360,4 +13360,5 @@",
+              "                     <div class=\"swipes-counter\">1​/​1</div>",
+              "                 </div>",
+              "             </div>",
+              "-</div>",
+              "+<button id=\"p0-perturbation\">P0 deliberate perturbation</button>",
+              "+</div>"
+            ],
+            "tabs/ancestor-disabled": [
+              "--- base",
+              "+++ head",
+              "@@ -9860,6 +9860,19 @@",
+              "       \"fa-solid\",",
+              "       \"interactable\"",
+              "     ]",
+              "+  },",
+              "+  {",
+              "+    \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>button:nth-of-type(1)\",",
+              "+    \"tag\": \"button\",",
+              "+    \"id\": \"p0-perturbation\",",
+              "+    \"message\": null,",
+              "+    \"role\": null,",
+              "+    \"name\": null,",
+              "+    \"title\": null,",
+              "+    \"type\": null,",
+              "+    \"href\": null,",
+              "+    \"text\": \"P0 deliberate perturbation\",",
+              "+    \"classes\": []",
+              "   },",
+              "   {",
+              "     \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>div:nth-of-type(202)>div:nth-of-type(4)>div:nth-of-type(1)>div:nth-of-type(2)>div:nth-of-type(1)\","
+            ],
+            "tabs/ancestor-enabled": [
+              "--- base",
+              "+++ head",
+              "@@ -9860,6 +9860,19 @@",
+              "       \"fa-solid\",",
+              "       \"interactable\"",
+              "     ]",
+              "+  },",
+              "+  {",
+              "+    \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>button:nth-of-type(1)\",",
+              "+    \"tag\": \"button\",",
+              "+    \"id\": \"p0-perturbation\",",
+              "+    \"message\": null,",
+              "+    \"role\": null,",
+              "+    \"name\": null,",
+              "+    \"title\": null,",
+              "+    \"type\": null,",
+              "+    \"href\": null,",
+              "+    \"text\": \"P0 deliberate perturbation\",",
+              "+    \"classes\": []",
+              "   },",
+              "   {",
+              "     \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>div:nth-of-type(202)>div:nth-of-type(4)>div:nth-of-type(1)>div:nth-of-type(2)>div:nth-of-type(1)\","
+            ],
+            "tabs/appended": [
+              "--- base",
+              "+++ head",
+              "@@ -9860,6 +9860,19 @@",
+              "       \"fa-solid\",",
+              "       \"interactable\"",
+              "     ]",
+              "+  },",
+              "+  {",
+              "+    \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>button:nth-of-type(1)\",",
+              "+    \"tag\": \"button\",",
+              "+    \"id\": \"p0-perturbation\",",
+              "+    \"message\": null,",
+              "+    \"role\": null,",
+              "+    \"name\": null,",
+              "+    \"title\": null,",
+              "+    \"type\": null,",
+              "+    \"href\": null,",
+              "+    \"text\": \"P0 deliberate perturbation\",",
+              "+    \"classes\": []",
+              "   },",
+              "   {",
+              "     \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>div:nth-of-type(202)>div:nth-of-type(4)>div:nth-of-type(1)>div:nth-of-type(2)>div:nth-of-type(1)\","
+            ],
+            "tabs/class-added": [
+              "--- base",
+              "+++ head",
+              "@@ -9860,6 +9860,19 @@",
+              "       \"fa-solid\",",
+              "       \"interactable\"",
+              "     ]",
+              "+  },",
+              "+  {",
+              "+    \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>button:nth-of-type(1)\",",
+              "+    \"tag\": \"button\",",
+              "+    \"id\": \"p0-perturbation\",",
+              "+    \"message\": null,",
+              "+    \"role\": null,",
+              "+    \"name\": null,",
+              "+    \"title\": null,",
+              "+    \"type\": null,",
+              "+    \"href\": null,",
+              "+    \"text\": \"P0 deliberate perturbation\",",
+              "+    \"classes\": []",
+              "   },",
+              "   {",
+              "     \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>div:nth-of-type(202)>div:nth-of-type(4)>div:nth-of-type(1)>div:nth-of-type(2)>div:nth-of-type(1)\","
+            ],
+            "tabs/older": [
+              "--- base",
+              "+++ head",
+              "@@ -9878,6 +9878,19 @@",
+              "       \"interactable\",",
+              "       \"swipe_right\"",
+              "     ]",
+              "+  },",
+              "+  {",
+              "+    \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>button:nth-of-type(1)\",",
+              "+    \"tag\": \"button\",",
+              "+    \"id\": \"p0-perturbation\",",
+              "+    \"message\": null,",
+              "+    \"role\": null,",
+              "+    \"name\": null,",
+              "+    \"title\": null,",
+              "+    \"type\": null,",
+              "+    \"href\": null,",
+              "+    \"text\": \"P0 deliberate perturbation\",",
+              "+    \"classes\": []",
+              "   },",
+              "   {",
+              "     \"path\": \"div:nth-of-type(7)>div:nth-of-type(3)>div:nth-of-type(2)>div:nth-of-type(1)>div:nth-of-type(1)>div:nth-of-type(1)\","
+            ],
+            "tabs/popup-closed": [
+              "--- base",
+              "+++ head",
+              "@@ -9860,6 +9860,19 @@",
+              "       \"fa-solid\",",
+              "       \"interactable\"",
+              "     ]",
+              "+  },",
+              "+  {",
+              "+    \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>button:nth-of-type(1)\",",
+              "+    \"tag\": \"button\",",
+              "+    \"id\": \"p0-perturbation\",",
+              "+    \"message\": null,",
+              "+    \"role\": null,",
+              "+    \"name\": null,",
+              "+    \"title\": null,",
+              "+    \"type\": null,",
+              "+    \"href\": null,",
+              "+    \"text\": \"P0 deliberate perturbation\",",
+              "+    \"classes\": []",
+              "   },",
+              "   {",
+              "     \"path\": \"div:nth-of-type(7)>div:nth-of-type(2)>div:nth-of-type(202)>div:nth-of-type(4)>div:nth-of-type(1)>div:nth-of-type(2)>div:nth-of-type(1)\","
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

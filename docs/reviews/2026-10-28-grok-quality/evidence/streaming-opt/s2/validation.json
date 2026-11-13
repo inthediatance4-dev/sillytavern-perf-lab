@@ -1,0 +1,118 @@
+{
+  "sourceSha256": {
+    "package.json": "b7be5630deb8adbba50e8d91fd5cdf021212cf6754386538a0b0534947b0dacc",
+    "public/script.js": "3c5a8d2aec746b027f7216d00a18217ddbb3abf3bab08c0d516265294e4e9116",
+    "public/scripts/RossAscends-mods.js": "013c9f27e5dd9cbbd12e843e3be616f71a6a6455d3bff6921dcc377bb4dd0cda",
+    "public/style.css": "35772085c02e3e8a745c193202fb040d58fc9b9584282e1aa5a33c91bfc1a87a",
+    "tests/browser-streaming-scroll.py": "321fb606e6c6252812f2e686838dd6cc8d8d16ec38291ac709b32cd1a2f3ff4b",
+    "tests/streaming-scroll.test.mjs": "a29264bef7fc1176ae0b03cadc53eb0802a69b17cb3fb849a740ea327f9dff35"
+  },
+  "lint": {
+    "exitCode": 0
+  },
+  "testPerf": {
+    "exitCode": 0,
+    "total": 822,
+    "passed": 814,
+    "skipped": 8,
+    "failed": 0,
+    "newScrollTests": 20
+  },
+  "browser": {
+    "scrollCases": 15,
+    "equivalenceCases": 8,
+    "directorChecks": 30,
+    "allPassed": true
+  },
+  "shutdowns": {
+    "ab": {
+      "base": {
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "lockGone": true
+      },
+      "head": {
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "lockGone": true
+      }
+    },
+    "vs-s1": {
+      "base": {
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "lockGone": true
+      },
+      "head": {
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "lockGone": true
+      }
+    },
+    "vs-s1-replacement": {
+      "base": {
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "lockGone": true
+      },
+      "head": {
+        "exit": {
+          "code": 0,
+          "signal": null
+        },
+        "lockGone": true
+      }
+    }
+  },
+  "primaryHeadScrollStolen": {
+    "main": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "short": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "s3ConditionHolds": false,
+  "primaryFirstTokenException": {
+    "current_minus_baseline": 50.64892578125,
+    "ci95": [
+      3.970947265625,
+      60.3756103515625
+    ]
+  },
+  "s1NoSignificantRegressionDetected": true,
+  "evidenceLeakScan": {
+    "passed": true,
+    "filesWithLeaks": [],
+    "checkedCompressedContents": true
+  },
+  "streamingScriptMatchesAllInvocations": true
+}

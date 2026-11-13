@@ -1,0 +1,96 @@
+{
+  "side": "head",
+  "label": "01-head",
+  "discarded": false,
+  "cache": {
+    "scenario": "S2",
+    "osCacheDropped": false,
+    "webpackRoot": "<tmp>/head/data/_webpack"
+  },
+  "t0": {
+    "epochMs": 1793246940951,
+    "hrtimeNs": "42968975479782"
+  },
+  "status": "ok",
+  "httpMs": 1295.113524,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "lockGone": true,
+  "trace": {
+    "stagesMs": {
+      "identity_probe": 0.401782,
+      "lock_acquire": 4.421018,
+      "server_main_import": 324.223039,
+      "init_user_storage": 4.545846,
+      "restore_legacy_holds": 4.379529,
+      "lifecycle_scan": 5.776016,
+      "lifecycle": 10.471385,
+      "user_migrations": 0.816463,
+      "pre_setup_migrations": 7.719634,
+      "plugins": 0.081947,
+      "webpack": 704.206384,
+      "listen": 3.894786
+    },
+    "nodeTiming": {
+      "name": "node",
+      "entryType": "node",
+      "startTime": 0,
+      "duration": 106.415559,
+      "nodeStart": 0.47559500485658646,
+      "v8Start": 3.220411002635956,
+      "bootstrapComplete": 15.997308000922203,
+      "environment": 11.817704007029533,
+      "loopStart": -1,
+      "loopExit": -1,
+      "idleTime": 0
+    },
+    "ready": {
+      "rss": 406003712,
+      "eventLoopBlockTotalMs": 815.4743519999998,
+      "eventLoopMethod": "sum of 10ms timer lateness (estimate, includes scheduling and trace overhead)"
+    },
+    "webpack": {
+      "modules": 1233,
+      "builtModules": 0,
+      "cachedModules": 1233,
+      "durationMs": 491
+    },
+    "lifecycleScans": [
+      {
+        "fileCount": 1,
+        "findings": 0
+      },
+      {
+        "fileCount": 29,
+        "findings": 0
+      },
+      {
+        "fileCount": 0,
+        "findings": 0
+      }
+    ],
+    "childSpawns": [
+      {
+        "cmd": "git"
+      },
+      {
+        "cmd": "git"
+      },
+      {
+        "cmd": "git"
+      },
+      {
+        "cmd": "git"
+      },
+      {
+        "cmd": "git"
+      },
+      {
+        "cmd": "git"
+      }
+    ],
+    "events": 51
+  }
+}

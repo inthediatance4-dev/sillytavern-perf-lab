@@ -1,0 +1,385 @@
+{
+  "head": "WORKTREE",
+  "pass": true,
+  "cases": [
+    {
+      "kind": "finish",
+      "delayFrames": 0,
+      "tokens": 41,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "framePosts": 1,
+      "taskPosts": 0,
+      "frameDeliveries": 1,
+      "taskDeliveries": 0,
+      "cancelledFramesDelivered": 1,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "finish",
+      "delayFrames": 1,
+      "tokens": 41,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "finish",
+      "delayFrames": 2,
+      "tokens": 41,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "stop",
+      "delayFrames": 0,
+      "tokens": 41,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "framePosts": 1,
+      "taskPosts": 0,
+      "frameDeliveries": 1,
+      "taskDeliveries": 0,
+      "cancelledFramesDelivered": 1,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "stop",
+      "delayFrames": 1,
+      "tokens": 41,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "stop",
+      "delayFrames": 2,
+      "tokens": 41,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming fixture. The traveller follows the river.\n\n```javascript\nconst river = \"complete\";\n```",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "stopPartial",
+      "delayFrames": 0,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "framePosts": 1,
+      "taskPosts": 0,
+      "frameDeliveries": 1,
+      "taskDeliveries": 0,
+      "cancelledFramesDelivered": 1,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "stopPartial",
+      "delayFrames": 1,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "stopPartial",
+      "delayFrames": 2,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "error",
+      "delayFrames": 1,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "expectedText": "Plain 中文 streaming fixture. The traveller follows the river.\n\nPlain 中文 streaming",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "chat",
+      "delayFrames": 0,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "framePosts": 1,
+      "taskPosts": 0,
+      "frameDeliveries": 1,
+      "taskDeliveries": 0,
+      "cancelledFramesDelivered": 1,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": false,
+      "finalText": "New chat sentinel 15",
+      "expectedText": "New chat sentinel 15",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "chat",
+      "delayFrames": 1,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": false,
+      "finalText": "New chat sentinel 2",
+      "expectedText": "New chat sentinel 2",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "swipe",
+      "delayFrames": 0,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "framePosts": 1,
+      "taskPosts": 0,
+      "frameDeliveries": 1,
+      "taskDeliveries": 0,
+      "cancelledFramesDelivered": 1,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Alternate swipe sentinel.",
+      "expectedText": "Alternate swipe sentinel.",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    },
+    {
+      "kind": "swipe",
+      "delayFrames": 1,
+      "tokens": 8,
+      "pendingBefore": {
+        "frames": 1,
+        "tasks": 0
+      },
+      "beforeAction": {
+        "frames": 0,
+        "tasks": 1
+      },
+      "framePosts": 1,
+      "taskPosts": 1,
+      "frameDeliveries": 1,
+      "taskDeliveries": 1,
+      "cancelledFramesDelivered": 0,
+      "directEqualAtAction": true,
+      "directEqualAfterDrain": true,
+      "lateWrites": 0,
+      "oldNodeConnected": true,
+      "finalText": "Alternate swipe sentinel.",
+      "expectedText": "Alternate swipe sentinel.",
+      "hadDeferredDifference": true,
+      "chatChangedEvent": "chat_id_changed",
+      "pass": true
+    }
+  ],
+  "definition": "Real stream token listener gates its final (or eighth) content chunk. The test queues that tick through the real processor, advances zero/one/two frames, performs the terminal action, then adversarially delivers retained frame/MessageChannel callbacks. HTML is compared immediately after the action and after delivery; all late .mes_text writes fail."
+}

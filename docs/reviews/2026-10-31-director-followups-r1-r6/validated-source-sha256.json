@@ -1,0 +1,13 @@
+{
+  "README.md": "cbcb3b83c6b4042b2f731a93c814094b5d3cd5417a6ae20ed82c23e86722bd3d",
+  "README.zh-CN.md": "5614b6e61dc966024220cc18be0fcc5744f96bee5fa53f263b21176ca9bf1890",
+  "public/script.js": "fe361db92bbb64f254ac31b93c06e46995dffd8da9c231ead03d0746bd71526e",
+  "public/scripts/extensions/director/index.js": "c8a9e52152fdd625df66ad6d343e3361f94ae0541a3555891412ee864dc65d8e",
+  "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+  "public/scripts/streaming-perf.js": "5f45c7ebf8138edf46ee39917dfc48a15ff08c805d96626be818abcf9d8bc116",
+  "public/scripts/utils.js": "2a2cfe240d5a84ce2e09ba053db6c0c71473b6406173f614f3521d89f50ada61",
+  "tests/browser-director-lab.py": "26f088246b7357ca2533f7ccff3c766d8627138c5667847d31fdf37783630fb4",
+  "tests/browser-streaming-adaptive.py": "b99dc2d3eb4bfc04a1fdcc0cdeb75642eb68c03f54e572f8d5750ef82e66f43d",
+  "tests/director-rebind.test.mjs": "7d0bed1ff50e66bf2e4327af4a775c03e7d4fa667ea17e25726775746bd20e1d",
+  "tests/streaming-dom.test.mjs": "b1807c0a523918b9fce342287b5ac075a2203ba8d61aa7542b4702544971e30e"
+}

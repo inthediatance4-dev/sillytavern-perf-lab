@@ -1,0 +1,146 @@
+Path-key audit — round 1.5 follow-up / round 2
+
+Scope: src/ locks, retirement markers, reuse authorization, import epochs,
+backup pendingPaths and pendingChatIOPaths. No windowsPathKey realpath cache.
+
+Findings:
+- normalizeLockRequests calls pathKey for every gate/held-mode key.
+- markerPath hashes path.relative(pathKey(root), pathKey(file)); its filename
+  contains no absolute-root spelling. The marker lives at root/.chat-lifecycle/.
+- relative_path records the path relative to the supplied lifecycle root, not
+  the root itself. assertChatWritable checks file and (when below root) parent
+  candidates using markerPath. Both short/long root directions are tested.
+- Reuse authorization binds canonical marker keys with pathKey, checks validity,
+  and requires a canonical exclusive held key.
+- Import epochs use pathLockKey for both creation/check and invalidation.
+- pendingChatIOPaths flattens already-normalized reservation request keys.
+- Backup pendingPaths returns scheduler state.key, passed in by backupIdentity.
+  Fixed backupIdentity's raw resolve/toLowerCase to call pathLockKey.
+- windowsPathKey resolves the longest existing prefix on every call, with a
+  call-local missing-suffix array. No realpath result cache exists.
+- Remaining toLowerCase calls concern text, flags, extensions, asset names,
+  usernames, MIME types or the single windowsPathKey normalization entry point;
+  none construct lifecycle/lock/backup path identities.
+
+Commands and output (post-change):
+
+$ rg -n pathKey|pathLockKey|markerPath|relative_path|authorization|pendingIO|pendingChatIOPaths src/chat-io.js src/character-lifecycle.js
+src/character-lifecycle.js:3:import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, pathLockKey } from './chat-io.js';
+src/character-lifecycle.js:27:    const key = pathLockKey(path.join(directory, avatar));
+src/character-lifecycle.js:33:    const key = pathLockKey(path.join(directory, avatar));
+src/chat-io.js:23:const pendingIO = new Map();
+src/chat-io.js:45:function pathKey(filePath) {
+src/chat-io.js:63:        const key = pathKey(filePath);
+src/chat-io.js:204:    pendingIO.set(done, requests.map(request => request.key));
+src/chat-io.js:206:        pendingIO.delete(done);
+src/chat-io.js:247:export function pathLockKey(filePath) {
+src/chat-io.js:248:    return pathKey(filePath);
+src/chat-io.js:251:function markerPath(filePath, lifecycleRoot) {
+src/chat-io.js:252:    const relative = path.relative(pathKey(lifecycleRoot), pathKey(filePath));
+src/chat-io.js:268:            if (pathKey(await fs.promises.realpath(current)) !== pathKey(current)) throw new ChatLifecycleError('path_alias');
+src/chat-io.js:277:    const parts = path.relative(pathKey(lifecycleRoot), pathKey(filePath)).split(path.sep);
+src/chat-io.js:288:    if (pathKey(path.dirname(filePath)) !== pathKey(lifecycleRoot)) candidates.push(path.dirname(filePath));
+src/chat-io.js:290:        try { await fs.promises.lstat(markerPath(candidate, lifecycleRoot)); }
+src/chat-io.js:292:        const authorization = reuseAuthorization.getStore();
+src/chat-io.js:293:        if (authorization?.valid && authorization.markers.has(pathKey(markerPath(candidate, lifecycleRoot)))) continue;
+src/chat-io.js:309:    const marker = markerPath(filePath, lifecycleRoot);
+src/chat-io.js:338:            if (!record || typeof record.relative_path !== 'string' || !record.relative_path || path.isAbsolute(record.relative_path)) throw new ChatLifecycleError('invalid_retirement');
+src/chat-io.js:339:            if (record.relative_path.split(/[\\/]/).includes('..')) throw new ChatLifecycleError('outside_chat_root');
+src/chat-io.js:340:            const visible = path.resolve(lifecycleRoot, record.relative_path);
+src/chat-io.js:347:            const marker = markerPath(visible, lifecycleRoot);
+src/chat-io.js:385:        if (heldModes.getStore()?.get(pathKey(entry.filePath)) !== 'exclusive') throw new ChatLifecycleError('publication_lock_required');
+src/chat-io.js:388:    const authorization = { valid: true, markers: new Set(held.filter(Boolean).map(hold => pathKey(hold.marker))) };
+src/chat-io.js:389:    return reuseAuthorization.run(authorization, async () => {
+src/chat-io.js:394:        } finally { authorization.valid = false; }
+src/chat-io.js:422:    const marker = markerPath(filePath, lifecycleRoot);
+src/chat-io.js:424:    await writeFileAtomic(marker, JSON.stringify({ version: 1, token, reason, retired_at: new Date().toISOString(), relative_path: path.relative(lifecycleRoot, filePath) }), 'utf8');
+src/chat-io.js:445:            const candidate = typeof record.relative_path === 'string'
+src/chat-io.js:446:                ? path.resolve(lifecycleRoot, record.relative_path)
+src/chat-io.js:448:            if (!candidate || path.basename(markerPath(candidate, lifecycleRoot)) !== name) {
+src/chat-io.js:450:                if (record.relative_path === undefined && typeof record.name === 'string') continue;
+src/chat-io.js:453:            if (pathKey(path.dirname(candidate)) !== pathKey(sourceDirectory)) continue;
+src/chat-io.js:539:    if (!heldModes.getStore()?.has(pathKey(destination))) return withPathLocks(chatLockPaths([source, destination]), () => renameChatFile(source, destination, lifecycleRoot));
+src/chat-io.js:567:export function pendingChatIOPaths() {
+src/chat-io.js:568:    return [...new Set([...pendingIO.values()].flat())];
+src/chat-io.js:573:    while (pendingIO.size) await waitForShutdown(Promise.all([...pendingIO.keys()]), signal);
+src/chat-io.js:627:        if (pathKey(current) === pathKey(recycleRoot)) return;
+
+$ rg -n backupIdentity|state.key|pendingPaths|key:|schedule\( src/chat-backup-scheduler.js src/endpoints/chats.js
+src/endpoints/chats.js:91:function backupIdentity(handle, filePath) {
+src/endpoints/chats.js:112:export const pendingChatBackupPaths = backupScheduler.pendingPaths;
+src/endpoints/chats.js:528:            const key = backupIdentity(handle, filePath);
+src/endpoints/chats.js:530:            backupScheduler.schedule(key, backupDirectory, cardName, jsonlData, identity);
+src/chat-backup-scheduler.js:28:        if (registry.get(state.key) === state) registry.delete(state.key);
+src/chat-backup-scheduler.js:66:    function schedule(key, ...args) {
+src/chat-backup-scheduler.js:99:    return { schedule, flush, pendingPaths: () => [...retained.values(), ...overflow.values()].filter(state => state.active || state.pending).map(state => state.key) };
+
+$ rg -n toLowerCase\( src/
+src/windows-path-key.js:10:            return path.win32.join(realpath(current), ...missing).toLowerCase();
+src/server-main.js:409:            const appName = validBrowsers[browserLaunchApp.trim().toLowerCase()];
+src/users.js:883:        if (remoteUser.toLowerCase() === userHandle) {
+src/git/client.js:20:    const normalized = typeof preferredBackend === 'string' ? preferredBackend.trim().toLowerCase() : GIT_BACKENDS.AUTO;
+src/util.js:1111:        const trimmedLower = value.trim().toLowerCase();
+src/util.js:1128:    if (String(str).trim().toLowerCase() === 'true') return true;
+src/util.js:1129:    if (String(str).trim().toLowerCase() === 'false') return false;
+src/endpoints/worldinfo.js:43:            .filter((file) => file.isFile() && path.extname(file.name).toLowerCase() === '.json')
+src/endpoints/google.js:407:        if (mimeType && mimeType.toLowerCase().includes('audio/l16')) {
+src/endpoints/users-admin.js:33:    return lodash.deburr(String(text ?? '').toLowerCase().trim()).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+src/endpoints/thumbnails.js:22:const pngFormat = String(getConfigValue('thumbnails.format', 'jpg')).toLowerCase().trim() === 'png';
+src/endpoints/thumbnails.js:149:        const fileExtension = path.extname(file).toLowerCase();
+src/endpoints/thumbnails.js:273:        const fileExtension = path.extname(file).toLowerCase();
+src/endpoints/stats.js:91:        const hour24 = meridiem.toLowerCase() === 'pm' ? (parseInt(hour, 10) % 12) + 12 : parseInt(hour, 10) % 12;
+src/endpoints/content-manager.js:575:    const firstPart = cleanUrl[0].toLowerCase();
+src/endpoints/chats.js:51:    const sanitized = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+src/endpoints/chats.js:73:            name = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 80) || 'chat';
+src/endpoints/chats.js:1046:        const fragments = query ? query.trim().toLowerCase().split(/\s+/).filter(x => x) : [];
+src/endpoints/chats.js:1053:            return fragments.every(fragment => textArray.some(text => String(text ?? '').toLowerCase().includes(fragment)));
+src/endpoints/stable-diffusion.js:25:        .filter(file => file[0] !== '.' && file.toLowerCase().endsWith('.json'))
+src/endpoints/stable-diffusion.js:539:        if (path.extname(oldName).toLowerCase() !== '.json' || path.extname(newName).toLowerCase() !== '.json') {
+src/endpoints/stable-diffusion.js:625:        const format = path.extname(imgInfo.filename).slice(1).toLowerCase() || 'png';
+src/endpoints/stable-diffusion.js:728:        const format = path.extname(item.filename).slice(1).toLowerCase() || 'png';
+src/endpoints/stable-diffusion.js:1619:                        !x.title.toLowerCase().includes('inpainting') &&
+src/endpoints/stable-diffusion.js:1620:                        !x.title.toLowerCase().includes('control') &&
+src/endpoints/stable-diffusion.js:1621:                        !x.title.toLowerCase().includes('upscale') &&
+src/endpoints/stable-diffusion.js:1622:                        !x.title.toLowerCase().includes('lora')
+src/endpoints/stable-diffusion.js:1944:            const format = path.extname(url.pathname).substring(1).toLowerCase() || 'png';
+src/endpoints/sprites.js:135:                    const fileName = path.parse(pathToSprite).name.toLowerCase();
+src/endpoints/settings.js:255:        .filter(file => path.extname(file).toLowerCase() === '.json')
+src/endpoints/characters.js:1438:                    if (typeof avatar !== 'string' || forbiddenRegExp.test(avatar) || path.extname(avatar).toLowerCase() !== '.png') {
+src/endpoints/characters.js:1446:                targetAvatars = files.filter(file => path.extname(file).toLowerCase() === '.png');
+src/endpoints/assets.js:29:    const inputExtension = path.extname(inputFilename).toLowerCase();
+src/charx.js:122:        const lower = trimmed.toLowerCase();
+src/charx.js:140:        return ext.trim().toLowerCase().replace(/^\./, '');
+src/charx.js:152:        const lower = name.toLowerCase();
+src/charx.js:189:            const type = typeof asset.type === 'string' ? asset.type.toLowerCase() : '';
+src/charx.js:208:        const mainIcon = iconAssets.find(asset => asset.name?.toLowerCase() === 'main');
+src/charx.js:222:            return fallback.toLowerCase();
+src/charx.js:228:            .toLowerCase()
+src/charx.js:233:            return fallback.toLowerCase();
+src/charx.js:237:        return (sanitized || fallback).toLowerCase();
+src/charx.js:246:            const ext = (asset.ext || '').toLowerCase();
+src/character-card-parser.js:22:        if (data.keyword.toLowerCase() === 'chara' || data.keyword.toLowerCase() === 'ccv3') {
+src/character-card-parser.js:64:    const ccv3Index = textChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === 'ccv3');
+src/character-card-parser.js:70:    const charaIndex = textChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === 'chara');
+src/chat-search.js:9:    const matcher = texts => fragments.every(fragment => texts.some(text => String(text ?? '').toLowerCase().includes(fragment)));
+src/chat-search.js:12:        const normalized = String(text ?? '').toLowerCase();
+
+$ cat src/windows-path-key.js
+import path from 'node:path';
+import fs from 'node:fs';
+
+/** Expand DOS short names in the existing prefix, including for unpublished files. */
+export function windowsPathKey(filePath, realpath = fs.realpathSync.native) {
+    let current = path.win32.resolve(filePath);
+    const missing = [];
+    while (true) {
+        try {
+            return path.win32.join(realpath(current), ...missing).toLowerCase();
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+            const parent = path.win32.dirname(current);
+            if (parent === current) throw error;
+            missing.unshift(path.win32.basename(current));
+            current = parent;
+        }
+    }
+}

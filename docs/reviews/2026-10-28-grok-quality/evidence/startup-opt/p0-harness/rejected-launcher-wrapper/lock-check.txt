@@ -1,0 +1,1 @@
+warmup-head: status=failed exit=null lockGone=true

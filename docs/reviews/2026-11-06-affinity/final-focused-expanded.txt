@@ -1,0 +1,125 @@
+✔ all prompt fields restore affinity facts literally, including CFG and chat-message payloads (34.052497ms)
+✔ an unknown group avatar cannot increment issued or trigger an evaluation (4.116615ms)
+✔ a player marker cannot forge an accepted character receipt (2.392657ms)
+✔ unsupported or corrupt ledger future preserves metadata and original message markers (2.282039ms)
+✔ unsupported or corrupt ledger invalid preserves metadata and original message markers (0.883469ms)
+✔ unsupported or corrupt ledger corrupt preserves metadata and original message markers (0.842542ms)
+✔ opening 2000 old messages does not scan or stamp the entire transcript, and repeated prepare reuses the projection (7.642243ms)
+✔ only the tenth accepted reply starts a default evaluation and repeated completion is idempotent (6.859572ms)
+✔ the optional five reply interval uses the same accepted generation boundary (3.115602ms)
+✔ MESSAGE_RECEIVED and UI unlock cannot count a reply before saveReply has finalized its selected swipe (3.455322ms)
+✔ a completion cannot accept text that differs from the selected physical swipe (1.035541ms)
+✔ stopped, quiet, impersonated, and dry generations never advance accepted reply cadence (3.399853ms)
+✔ continue and appendFinal refresh their logical slot without adding a reply (4.115295ms)
+✔ regenerate carries the replaced logical slot receipt across its physical deletion (3.924085ms)
+✔ group regeneration replaces its original logical receipts without counting the batch twice (4.088523ms)
+✔ Director system insertions and uncorrelated ordinary NPC text never count as generated replies (4.357484ms)
+✔ one evaluator request stays in flight while later complete batches remain queued (11.482057ms)
+✔ group replies accumulate across actual avatars and evaluate after the entire wrapper finishes (4.792328ms)
+✔ a group fact belongs to the source avatar even when character display names are equal (1.728314ms)
+✔ a new main generation cancels only the current sidecar and ignores its late result (4.329401ms)
+✔ scope changes discard a late evaluator answer without writing into either chat (3.284543ms)
+✔ switching to a chat with a complete pending batch resumes it after stale work finishes (3.619976ms)
+✔ editing a source while evaluation waits invalidates its answer before commit (4.093157ms)
+✔ persistent receipts survive structuredClone reload and do not re-evaluate the old batch (6.480572ms)
+✔ a persisted completed fact is injected after reload before any further evaluation (1.50235ms)
+✔ MESSAGE_UPDATED removes facts whose live source no longer matches (3.765702ms)
+✔ MESSAGE_EDITED removes facts whose live source no longer matches (1.951582ms)
+✔ MESSAGE_SWIPED removes facts whose live source no longer matches (2.363938ms)
+✔ MESSAGE_SWIPE_DELETED removes facts whose live source no longer matches (3.158105ms)
+✔ MESSAGE_DELETED removes facts whose live source no longer matches (3.303989ms)
+✔ prepare installs literal hidden memory before assembly and restores macros only in generated data (1.509371ms)
+✔ major attitude evidence receives one isolated verification (confirm) with no minor fallback (5.457801ms)
+✔ major attitude evidence receives one isolated verification (defer) with no minor fallback (2.202288ms)
+✔ major attitude evidence receives one isolated verification (reject) with no minor fallback (4.431218ms)
+✔ ineligible major evidence (secret player action) never reaches the verifier (1.84526ms)
+✔ ineligible major evidence (implicit attitude) never reaches the verifier (2.145735ms)
+✔ ineligible major evidence (neutral fact) never reaches the verifier (1.228717ms)
+✔ a future promise stays an unresolved zero point anchor even if proposed with major impact (2.412255ms)
+✔ save rejection does not reject host completion and a later receipt retries persistence (2.079295ms)
+✔ a deferred metadata save receives a scope guard that closes after a chat switch (2.720324ms)
+✔ evaluation uses an isolated JSON quiet request and disabling affinity clears injection immediately (4.001694ms)
+✔ a disabled Director extension also gates affinity generation and injection (1.581841ms)
+✔ evaluator rejection and malformed JSON are contained and the next complete batch still evaluates (4.790068ms)
+✔ roster unavailability freezes history without evaluation or injection and live evidence restores it (4.128291ms)
+✔ major verification follows only the candidate that survives evidence dedupe (neutral-first) (2.198434ms)
+✔ major verification follows only the candidate that survives evidence dedupe (positive-first) (2.103856ms)
+✔ major verification rejects unknown owner before another provider request (2.234156ms)
+✔ major verification rejects unknown source before another provider request (1.888745ms)
+✔ a stored zero outcome receives its later major verification once with its old result outside the new batch (confirm) (7.167109ms)
+✔ a stored zero outcome receives its later major verification once with its old result outside the new batch (defer) (5.231277ms)
+✔ only canonical character avatars from the project can own relationships (0.206546ms)
+✔ a temporarily unavailable single-chat character project retains frozen history and still revokes edits (5.742951ms)
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATION_STOPPED
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: CHAT_COMPLETION_PROMPT_READY
+Event emitted: CHAT_COMPLETION_SETTINGS_READY
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+Event emitted: GENERATE_AFTER_COMBINE_PROMPTS
+✔ isolated helper forwards only its own prompt, JSON mode, and caller signal (1.213463ms)
+✔ isolated helper rejects response-length mutation and malformed prompts before provider I/O (0.727688ms)
+✔ real quiet-to-raw chain uses current provider without touching main state or director lifecycle (3.505863ms)
+✔ isolated JSON mode parses actual response shapes from all current providers (6.669147ms)
+✔ production raw still isolates its literal evaluation from other extension prompt mutations (3.419872ms)
+✔ text-completion JSON extraction preserves invalid text only when requested (4.370118ms)
+✔ isolated evidence reaches every provider with literal macros and bracket text intact (6.084662ms)
+✔ literal text-completion prompts retain instruct formatting without evaluating template macros (1.532848ms)
+✔ literal raw system and prefill text bypass expansion while default raw behavior still expands (1.237346ms)
+✔ an in-flight isolated error cannot release a newer foreground request (1.599606ms)
+✔ caller cancellation aborts only the local provider signal and removes its stop listener (1.506868ms)
+✔ native stop notification only cancels the raw request local controller (1.361617ms)
+✔ raw requests without an override preserve an existing foreground response-length override on every provider (6.294059ms)
+✔ legacy raw response-length overrides still restore after successful generation (4.79263ms)
+✔ abort signal linkage detaches after completion and propagates pre-aborted signals (0.181539ms)
+✔ new state is chat-local, bounded metadata starts empty, and invalid scopes fail (1.545318ms)
+✔ parser accepts only complete JSON and complete json fences, without assistant prefixes (2.459808ms)
+✔ parser rejects prototype keys at every depth and exact own-field schema violations (2.389ms)
+✔ application is immutable and exact quote/fingerprint/swipe binding survives JSON reload (5.929154ms)
+✔ source owner, allowed actors and group relationship ownership are enforced (1.134819ms)
+✔ facts and ambiguous, future, implicit or unknown attitudes never score (0.858991ms)
+✔ major changes require one-time host-key verification and never downgrade to minor points (15.477975ms)
+✔ evidence identity ignores paraphrasing, valence, impact and batch repetition (0.624715ms)
+✔ host promises award no points; completed result binds original promise and later literal evidence (3.16725ms)
+✔ a new promise or future/unknown/observed result cannot be mistaken for fulfillment (2.550377ms)
+✔ one message may contain a promise and a later separate result, but reverse/overlapping quotes fail (0.618161ms)
+✔ completed user promises may support the target owner while another character cannot narrate the result (0.515383ms)
+✔ a player outcome scores only after the target character has a later literal acknowledgement (3.686687ms)
+✔ reconcile retains unavailable owners without scoring them, and restores them only through a live owner (0.972986ms)
+✔ scores clamp at both bounds and causally replay in message order, independent of evaluation order (37.928975ms)
+✔ storage caps active/archive evidence and pins unresolved promises without silently discarding them (85.888978ms)
+✔ capacity forgets resolved dependencies together; deleting an archived result really reopens the original promise (33.217719ms)
+✔ all retained anchors share a hard cap, replacing only the oldest completed dependency family (9.269431ms)
+✔ the same physical outcome has one owner, regardless of acknowledgement order within a batch (0.337559ms)
+✔ metadata character budgets reject new oversized open anchors and preserve every accepted unresolved promise (71.080516ms)
+✔ malformed metadata fields are skipped without resetting valid state or reading inherited ledgers (0.426338ms)
+✔ an unresolved player promise stays injectable when its owner has not spoken in the live chat (0.169598ms)
+✔ memory stays owner-local, prioritizes open promises, hides score mechanics, and requires corroboration for a weak tendency (1.037193ms)
+✔ positive gains diminish at high scores without diminishing negative consequences (10.796645ms)
+✔ offline dependency graphs are frozen, validated and restored only with live owner evidence (1.204478ms)
+✔ offline retention never trusts changed slots, unrelated owner speech or invented metadata as live evidence (0.563203ms)
+✔ a scored outcome cannot be amplified, cleared or duplicated by later descriptions (0.932498ms)
+✔ neutral and positive descriptions of one attitude score once in either order (0.39774ms)
+✔ verification keys bind every semantic field and canonicalize JSON property order (0.245134ms)
+✔ positive minor crosses from 49 to 51 before subsequent gains diminish (6.287077ms)
+✔ malformed records fail closed and a character-named owner still records player promises with a user actor (0.575015ms)
+ℹ tests 98
+ℹ suites 0
+ℹ pass 98
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 394.009874

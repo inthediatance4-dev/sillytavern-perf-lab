@@ -1,0 +1,7 @@
+{
+  "status": "interrupted-intermediate-implementation",
+  "exitCode": 130,
+  "cause": "The 300k-variable stress case exposed quadratic work in the initial extension-source loop: each Lodash chain .assign cloned the growing deferred action list. The diagnostic was explicitly interrupted with SIGINT, without running a lab server.",
+  "fix": "Evaluate the existing chain once; apply _.assign to the underlying object for each message, then wrap once. This preserves precedence and keeps accumulation linear.",
+  "log": ""
+}

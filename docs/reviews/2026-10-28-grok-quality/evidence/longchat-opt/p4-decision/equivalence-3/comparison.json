@@ -1,0 +1,107 @@
+{
+  "revisions": {
+    "base": "c612e0283173a399c11dd8f3d860dcc958f3add2",
+    "head": "WORKTREE"
+  },
+  "order": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    }
+  ],
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 1108.6000000014901,
+            "p95": 1108.6000000014901,
+            "median_ci95": [
+              1108.6000000014901,
+              1108.6000000014901
+            ],
+            "p95_ci95": [
+              1108.6000000014901,
+              1108.6000000014901
+            ],
+            "samples": [
+              1108.6000000014901
+            ]
+          },
+          "head": {
+            "median": 903,
+            "p95": 903,
+            "median_ci95": [
+              903,
+              903
+            ],
+            "p95_ci95": [
+              903,
+              903
+            ],
+            "samples": [
+              903
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -205.60000000149012,
+            "ci95": [
+              -205.60000000149012,
+              -205.60000000149012
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": [
+        {
+          "iteration": 0,
+          "status": "different",
+          "equal": false,
+          "differences": {
+            "tabOrder/older": [
+              "--- base",
+              "+++ head",
+              "@@ -19609,5 +19609,22 @@",
+              "       \"fa-solid\",",
+              "       \"interactable\"",
+              "     ]",
+              "+  },",
+              "+  {",
+              "+    \"path\": \"div:nth-of-type(11)>div:nth-of-type(1)\",",
+              "+    \"tag\": \"div\",",
+              "+    \"id\": \"\",",
+              "+    \"message\": null,",
+              "+    \"role\": \"status\",",
+              "+    \"name\": null,",
+              "+    \"title\": \"Tap to close\",",
+              "+    \"type\": null,",
+              "+    \"href\": null,",
+              "+    \"text\": null,",
+              "+    \"classes\": [",
+              "+      \"interactable\",",
+              "+      \"toast\",",
+              "+      \"toast-success\"",
+              "+    ]",
+              "   }",
+              " ]"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

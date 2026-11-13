@@ -1,0 +1,24 @@
+# Character editor single-pass initialization
+
+Base cfeca4bf431403a5e0204a8e2f8150ac8dc83759; branch codex/sillytavern-character-editor-flow. User delegates autonomous isolated decisions. No production access/deployment/restart/data reads. Never permanently delete; retain original .bak, failed experiments and fixtures. Evidence F:/SillyTavern-Research/2026-10-09-character-editor-flow.
+
+## Evidence and chosen boundary
+
+Native character opening runs select_selected_character -> select_rm_create, populating the entire unrelated create_save draft and switching chrome, formatting creator notes and refreshing world/favorite helpers before immediately doing it again for the selected character. Existing trace shows expensive jQuery show/getPropertyValue alongside layout, but that historical profile has overhead and is not a fresh speed claim. Confirm performance with matched browser evidence.
+
+Chosen approach: allow the private select_rm_create preparation to skip draft/form reset for a selected character, retain the shared menu/control work, and then populate actual character once. Alternative lazy editor-on-drawer-open would change extension event timing and editing flows; caching message HTML is unsafe around macros/settings and rendering side effects. Do not change message rendering, formatting, prompt ownership, scheduling or events in the chat load pipeline.
+
+## Required behavior
+
+- Existing public select_selected_character(chid,{switchMenu=true}) signature/void return and terminal CHARACTER_EDITOR_OPENED + saveSettingsDebounced order remain. Private select_rm_create retains default full draft restoration and ordinary create chrome/values. Add a documented internal resetForm option (or equivalent small internal split), default true, selected-character path false.
+- Preserve shared behavior previously inherited: menu transition with switchMenu, existing draft-avatar restoration when selected_button==create and create_save.avatar (do not expand this scope into avatar lifecycle), delete_button_div hidden, character_import_button reset display, avatar_div flex. Review the actual function for any other residual not overwritten by selection; preserve it. Selected path must not format the create draft, set its world/favorite/embedded-world helper states, write draft field values or hide controls merely to show them immediately again. Current character must be fully populated including world, creator notes/sanitization, API media controls, favorite, name/JSON/chat/date, depth defaults, lorebook controls and source-button state. Group peeking retains current group navbar and media/scenario hiding. switchMenu:false preserves its prior state behavior. Avoid new exported APIs.
+- Original create_save object, FileList and selected character data remain unmodified by this UI optimization. Remove duplicate selected character_version_textarea assignment if covered by the single-pass behavior tests. Preserve helper outcomes, final display values and events rather than transient draft mutations during selection.
+- Meaningful actual-source tests model DOM state and write/format/helper work across starting create/edit states, default creation/draft return, groups/switchMenu false, optional fields/defaults, sources/favorite/media, draft-avatar legacy path. Before fix, demonstrate real redundant draft work as RED; compare final selected state against base functions independently of optimized expected constants. Do not weaken existing ownership tests.
+
+## Acceptance
+
+Safe test:perf only, no destructive upstream Jest/npm test, no dependency installation. Baseline397 then full Node20/24 suites with new tests. Fresh independent spec then quality review and final source/artifact review. Root owns browser/benchmarks/delivery, implementer only targeted tests and source commit.
+
+Fresh Chrome temporary contexts, headless disableGPU, own synthetic localhost8779 only, external requests blocked, no model generation or personal profile. Native editor/create/draft/peeking contracts; compare actual field/control snapshots and event order/payload. Three interleaved before/after native open/close pairs for regular and heavy synthetic histories. Compare full message HTML/IDs/bottom and model integrity/body/order. Report total latency and longest blocking separately; reject a claimed responsiveness gain if one sample only, regressions or noise. If no reliable timing gain, report structural work reduction with timing limits; don't manufacture a speedup.
+
+Ten protected source roots11715 tracked files, five original .bak captured before edits. New source-only whitelist, staged diff check/data exclusion/secret heuristic. ZIP/patch/fullbundle must be actually restored and all tracked raw blobs checked. Stop own lab only after PID/root/control/port check, prove graceful exit and port/PID absence. Preserve old directories and evidence; no merge/deploy/cleanup.

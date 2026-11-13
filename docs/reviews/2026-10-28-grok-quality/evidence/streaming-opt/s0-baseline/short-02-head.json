@@ -1,0 +1,69 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 2,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 66.8,
+    "framesOver16_7Pct": 12.977099236641221,
+    "framesOver33Pct": 6.106870229007633,
+    "loafCount": 2,
+    "loafTotalMs": 388.20000000298023,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 61.599999994039536,
+    "loafScriptotherMs": 245.80000000447035,
+    "formatP50Ms": 1,
+    "formatP95Ms": 1.7999999970197678,
+    "domP50Ms": 0.20000000298023224,
+    "domP95Ms": 0.30000000447034836,
+    "reasoningP95Ms": 0.20000000298023224,
+    "scrollCallP95Ms": 0.10000000149011612,
+    "updatesPerSecond": 19.706037178947994,
+    "firstTokenMs": 183.0439453125,
+    "finishMs": 355.877685546875,
+    "typingP50Ms": 19.599853515625,
+    "typingP95Ms": 39.800048828125,
+    "scrollStolen": 10
+  },
+  "samples": {
+    "frames": 171,
+    "keys": 12,
+    "hooks": 199
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793271079549.5562,
+    "receivedNs": "53237687996446",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793271079563.0208,
+    "lastChunkEpochMs": 1793271081998.8225,
+    "doneEpochMs": 1793271081998.8447,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

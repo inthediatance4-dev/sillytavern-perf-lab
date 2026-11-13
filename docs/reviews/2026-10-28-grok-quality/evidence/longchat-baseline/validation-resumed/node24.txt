@@ -1,0 +1,13 @@
+✔ temporary measurement config isolates data and preserves retention defaults (41.051218ms)
+✔ measurement config refuses workspace and invalid ports before writing (2.232754ms)
+✔ Windows console break forwards to graceful SIGINT handlers (Linux simulation) (0.229634ms)
+﹣ native Windows CTRL_BREAK reaches graceful SIGINT handler (0.095873ms) # Requires a native Windows console process group; forwarding is simulated above on other systems
+✔ deterministic data, percentiles and CPU ancestor attribution (79.10841ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 203.473019

@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 4,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 66.7,
+    "framesOver16_7Pct": 5.223880597014925,
+    "framesOver33Pct": 2.2388059701492535,
+    "loafCount": 2,
+    "loafTotalMs": 222.00000000186265,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 133.80000000074506,
+    "formatP50Ms": 1.1000000014901161,
+    "formatP95Ms": 1.599999999627471,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.09999999962747097,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 22.867191335803103,
+    "firstTokenMs": 114.84765625,
+    "finishMs": 213.166015625,
+    "typingP50Ms": 18.400146484375,
+    "typingP95Ms": 27.60009765625,
+    "scrollStolen": 0
+  },
+  "dom": {
+    "incremental": 54,
+    "full": 109,
+    "fade": 0,
+    "frames": 55
+  },
+  "samples": {
+    "frames": 169,
+    "keys": 13,
+    "hooks": 194
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282819895.2524,
+    "receivedNs": "8538827204842",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793282819907.9414,
+    "lastChunkEpochMs": 1793282822313.134,
+    "doneEpochMs": 1793282822313.1548,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

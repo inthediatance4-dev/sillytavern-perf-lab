@@ -1,0 +1,16 @@
+{
+  "scenario": "linux-btime-clock-correction",
+  "reproduced": true,
+  "originalOwnerStillAlive": true,
+  "originalPid": 891,
+  "sameBootId": "5619aaa9-ec90-48b4-bd3e-a8e8ee992f41",
+  "btimeInjectedDeltaSeconds": 60,
+  "actualClockChanged": false,
+  "childStatus": 0,
+  "contender": {
+    "acquired": true,
+    "unverified": false,
+    "token": "<SYNTHETIC_LOCK_TOKEN>"
+  },
+  "stderr": ""
+}

@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 7,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 9.848484848484848,
+    "framesOver33Pct": 4.545454545454546,
+    "loafCount": 2,
+    "loafTotalMs": 221.30000000074506,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 159.59999999962747,
+    "formatP50Ms": 1.099999999627471,
+    "formatP95Ms": 4.199999999254942,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.09999999962747097,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 20.54750884029479,
+    "firstTokenMs": 157.200439453125,
+    "finishMs": 299.5537109375,
+    "typingP50Ms": 19.89990234375,
+    "typingP95Ms": 31.300048828125,
+    "scrollStolen": 1
+  },
+  "dom": {
+    "incremental": 50,
+    "full": 109,
+    "fade": 0,
+    "frames": 51
+  },
+  "samples": {
+    "frames": 178,
+    "keys": 13,
+    "hooks": 182
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282874412.1995,
+    "receivedNs": "8593344154699",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793282874424.9612,
+    "lastChunkEpochMs": 1793282876858.3462,
+    "doneEpochMs": 1793282876858.3665,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

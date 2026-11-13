@@ -1,0 +1,14 @@
+{
+  "browser": "Chrome 156.0.8078.76",
+  "timeoutMs": 300,
+  "synchronousFalse": {
+    "outcome": "timeout",
+    "elapsedSeconds": 0.307
+  },
+  "asyncFalse": {
+    "outcome": "returned",
+    "returnedValue": false,
+    "elapsedSeconds": 0.009
+  },
+  "correction": "Await module imports before synchronous wait_for_function polling; preserve completion and idle predicates."
+}

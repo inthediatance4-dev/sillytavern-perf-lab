@@ -1,0 +1,69 @@
+{
+  "side": "head",
+  "scenario": "reasoning",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": true,
+    "mode": "send"
+  },
+  "iteration": 0,
+  "discarded": true,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.4,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 18.138424821002385,
+    "framesOver33Pct": 13.842482100238662,
+    "loafCount": 7,
+    "loafTotalMs": 452.20000000298023,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 194.19999999552965,
+    "formatP50Ms": 1.2999999970197678,
+    "formatP95Ms": 5.100000001490116,
+    "domP50Ms": 0.20000000298023224,
+    "domP95Ms": 0.3999999985098839,
+    "reasoningP95Ms": 0.8999999985098839,
+    "scrollCallP95Ms": 0.10000000149011612,
+    "updatesPerSecond": 19.794081751965827,
+    "firstTokenMs": 1612.4208984375,
+    "finishMs": 389.817138671875,
+    "typingP50Ms": 26.199951171875,
+    "typingP95Ms": 48.39990234375,
+    "scrollStolen": 1
+  },
+  "samples": {
+    "frames": 1439,
+    "keys": 82,
+    "hooks": 999
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793273480582.279,
+    "receivedNs": "55638720713631",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 2005,
+    "chunks": 1620,
+    "firstChunkEpochMs": 1793273480608.574,
+    "lastChunkEpochMs": 1793273496926.5828,
+    "doneEpochMs": 1793273496926.6145,
+    "requestBodySha256": "e2fe49bf512155b518e15bb3f4608129d84525d92d4bf0bfa9a3994b3e563090"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

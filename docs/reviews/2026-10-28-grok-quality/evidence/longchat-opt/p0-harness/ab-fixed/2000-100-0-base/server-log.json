@@ -1,0 +1,3 @@
+{
+  "log": "Node version: v24.22.1. Running in undefined environment. Server directory: <tmp>\nUsing config path: <tmp>/config.yaml\nCookie secret is missing from data root. Generating a new one...\nUsing data root: <tmp>/data\nPreferring IPv4 for DNS resolution\nnode:fs:1410\n  const result = binding.mkdir(\n                         ^\n\nError: EACCES: permission denied, mkdir 'public/sounds'\n    at Object.mkdirSync (node:fs:1410:26)\n    at ensurePublicDirectoriesExist (file://<tmp> {\n  errno: -13,\n  code: 'EACCES',\n  syscall: 'mkdir',\n  path: 'public/sounds'\n}\n\nNode.js v24.22.1\n"
+}

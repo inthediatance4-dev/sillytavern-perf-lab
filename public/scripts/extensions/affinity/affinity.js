@@ -438,7 +438,8 @@ relationshipChanged 只有原文能证明相较此前确实改变了信任、亲
 thread 用不超过80字的简短中性主题标识同一件事，必须复用已有记忆中的同主题 thread，不把连续争执、重申或升级拆成新主题；独立的新起因才用新主题。同一角色同主题同方向、相邻证据间隔不超过四条聊天消息的变化只计最强一次，不因换了说法重复累计。fact 保留事实，不参与计分。
 每条 fact 最多160字；quote 是给定消息内逐字连续引文，最多180字。slot 使用宿主id。offset 可省略，省略则引文在完整消息中必须唯一；重复引文仅在确知完整原文从0起的UTF-16位置时填offset，摘录位置不能猜。无新证据返回 {"events":[]}。尊重边界，不推动恋爱、亲密或服从。
 ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(1, Math.min(6, Math.floor(options.maxOutputTokens() / 320)))}条最重要的新证据，文字简洁，优先输出完整JSON。` : ''}
-输出格式遵循请求的 relationship_evidence schema，不输出分析过程。
+输出格式遵循请求的 relationship_evidence schema，不输出分析过程。无结构化输出支持时也使用以下格式：
+输出示例：{"events":[{"owner":"角色id","kind":"fact","fact":"事实","actor":"character","recipient":"user","status":"observed","valence":"none","impact":"minor","confidence":"high","attitudeExplicit":false,"relationshipChanged":false,"thread":"主题","outcomeKnown":null,"knownToCharacter":"yes","source":{"slot":"消息id","quote":"逐字原话"}}]}
 角色：${JSON.stringify(owners)}
 已有记忆（避免重复；只有新结果可回指承诺）：${JSON.stringify(prior)}
 消息：${JSON.stringify(messages)}`;

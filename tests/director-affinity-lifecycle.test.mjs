@@ -2080,3 +2080,11 @@ test('cancelling an evaluation produces no failure notice and a late rejection c
     await lab.controller.settle();
     assert.deepEqual(notices, []);
 });
+
+test('the evaluator carries a complete JSON example for providers without native schema support', async () => {
+    const lab = fixture({ interval: 5 });
+    await settleMany(lab, 5);
+    const example = JSON.parse(lab.calls[0][0].quietPrompt.split('输出示例：')[1].split('\n')[0]);
+    for (const key of AFFINITY_SCHEMA.value.properties.events.items.required) assert.ok(Object.hasOwn(example.events[0], key), key);
+    assert.equal(example.events[0].relationshipChanged, false);
+});

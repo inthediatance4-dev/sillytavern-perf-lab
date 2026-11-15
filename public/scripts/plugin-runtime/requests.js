@@ -31,9 +31,12 @@ function copyScalars(target, source, keys) {
     }
 }
 
-function outputLimit(options) {
+function outputLimit(options, context) {
     const value = Number(options.maxOutputTokens ?? options.responseLength ?? 1024);
-    return Number.isFinite(value) ? Math.max(1, Math.min(2048, Math.floor(value))) : 1024;
+    const contextLimit = Number(context.maxContext);
+    const cap = options.outputProfile === 'fate'
+        ? Math.min(8192, Number.isFinite(contextLimit) && contextLimit > 0 ? Math.max(1, Math.floor(contextLimit / 2)) : 8192) : 2048;
+    return Number.isFinite(value) ? Math.max(1, Math.min(cap, Math.floor(value))) : 1024;
 }
 
 function legacyKobold(context, prompt, limit, isHorde) {
@@ -55,7 +58,7 @@ export function buildIsolatedRequest(getContext, options = {}) {
     const context = getContext();
     const prompt = options.quietPrompt ?? options.prompt;
     if (typeof prompt !== 'string') throw new Error('Invalid isolated evaluation prompt.');
-    const limit = outputLimit(options);
+    const limit = outputLimit(options, context);
     if (context.mainApi === 'openai') {
         const settings = context.chatCompletionSettings ?? {};
         const source = settings.chat_completion_source;

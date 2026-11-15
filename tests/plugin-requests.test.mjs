@@ -208,3 +208,14 @@ test('one shared saver serializes its saves and an HTTP failure reaches the call
     const first = save(); const firstRejected = assert.rejects(first, error => error.message === 'Chat save failed.'); const second = save();
     await tick(); assert.equal(calls, 1); hold.resolve(); await firstRejected; assert.equal(await second, true); assert.equal(calls, 2);
 });
+
+
+test('Fate output profile reserves capped reasoning space while the affinity limit stays unchanged', () => {
+    const c = context(); c.maxContext = 32768;
+    const request = buildIsolatedRequest(() => c, { quietPrompt: 'Synthetic event', outputProfile: 'fate', responseLength: 8192 });
+    assert.equal(request.payload.max_tokens, 8192);
+    assert.equal(buildIsolatedRequest(() => c, { quietPrompt: 'Synthetic event', outputProfile: 'fate', responseLength: 999999 }).payload.max_tokens, 8192);
+    assert.equal(buildIsolatedRequest(() => c, { quietPrompt: 'Evidence', responseLength: 8192 }).payload.max_tokens, 2048);
+    c.maxContext = 2048;
+    assert.equal(buildIsolatedRequest(() => c, { quietPrompt: 'Synthetic event', outputProfile: 'fate', responseLength: 8192 }).payload.max_tokens, 1024);
+});

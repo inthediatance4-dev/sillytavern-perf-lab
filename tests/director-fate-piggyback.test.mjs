@@ -610,3 +610,95 @@ test('a pending reasoning prefix does not block ordinary story frames', async ()
         assert.match(new TextDecoder().decode(chunk.value), /Visible story/);
     } finally { clearTimeout(timer); source.close(); await reader.cancel(); }
 });
+
+
+test('Fate draw reserves reasoning headroom without changing normal generation settings', async () => {
+    const h = lab();
+    h.context.chatCompletionSettings = { openai_max_tokens: 16384, openai_max_context: 32768 };
+    h.context.generateQuietPrompt = async options => {
+        h.quietCalls.push(options);
+        return options.responseLength >= 8192 ? JSON.stringify({ event: 'A delayed letter arrives.' }) : '';
+    };
+    assert.equal(await h.controller.draw(), true);
+    assert.equal(h.quietCalls.length, 1);
+    assert.equal(h.context.chatCompletionSettings.openai_max_tokens, 16384);
+});
+
+test('empty saved offer is repaired once without rerolling faces, replacing held card or spending a swap', async () => {
+    const h = lab(); await h.controller.draw(); await h.controller.deal();
+    const before = h.metadata.director.fate, offer = before.offer;
+    h.setResponse(blockFor(offer.cards));
+    assert.equal(await h.controller.prepareOffer(), true);
+    const after = h.metadata.director.fate;
+    assert.equal(after.held, before.held); assert.equal(after.rerolls, before.rerolls);
+    assert.equal(after.offer.id, offer.id);
+    assert.deepEqual(after.offer.cards.map(c => c.title), offer.cards.map(c => c.title));
+    assert.equal(h.controller.view().offer.pregenerated, true);
+    const calls = h.quietCalls.length;
+    assert.equal(await h.controller.prepareOffer(), true);
+    assert.equal(h.quietCalls.length, calls);
+});
+
+test('failed offer repair keeps existing state intact and does not retry silently', async () => {
+    const h = lab(); await h.controller.deal(); const before = h.metadata.director.fate;
+    h.setResponse('');
+    await assert.rejects(h.controller.prepareOffer());
+    assert.equal(h.metadata.director.fate, before);
+    assert.equal(h.quietCalls.length, 1);
+    assert.equal(h.controller.view().busy, false);
+});
+
+test('normal reply repairs the existing empty offer even with a held card', async () => {
+    const h = lab(); await h.controller.draw(); await h.controller.deal();
+    const before = h.metadata.director.fate, offer = before.offer;
+    await h.round('Story.\n' + blockFor(offer.cards));
+    assert.equal(h.metadata.director.fate.offer.id, offer.id);
+    assert.equal(h.metadata.director.fate.held, before.held);
+    assert.equal(h.controller.view().offer.pregenerated, true);
+});
+
+
+for (const change of ['chat', 'stop', 'normal', 'offer']) test(`late isolated repair cannot overwrite state after ${change}`, async () => {
+    const h = lab(); await h.controller.deal(); const before = h.metadata.director.fate;
+    let resolve; h.context.generateQuietPrompt = () => new Promise(done => { resolve = done; });
+    const work = h.controller.prepareOffer();
+    if (change === 'chat') { h.switchChat(); await h.emit('CHAT_CHANGED'); }
+    else if (change === 'stop') await h.emit('GENERATION_STOPPED');
+    else if (change === 'normal') await h.emit('GENERATION_STARTED', 'normal', {}, false);
+    else h.metadata.director.fate = { ...before, offer: { ...before.offer, id: 'newer' } };
+    const expected = h.metadata.director.fate;
+    resolve(blockFor(before.offer.cards));
+    assert.equal(await work, false);
+    assert.equal(h.metadata.director.fate, expected);
+});
+
+test('offer repair rolls back a failed save and retries without dealing new faces', async () => {
+    const h = lab(); await h.controller.deal(); const before = h.metadata.director.fate;
+    h.setResponse(blockFor(before.offer.cards)); h.setSaveResult(false);
+    await assert.rejects(h.controller.prepareOffer());
+    assert.equal(h.metadata.director.fate, before);
+    h.setSaveResult(true); assert.equal(await h.controller.prepareOffer(), true);
+    assert.equal(h.metadata.director.fate.offer.id, before.offer.id);
+});
+
+test('late piggyback repair does not overwrite a newer offer', async () => {
+    const h = lab(); await h.controller.deal(); const offer = h.metadata.director.fate.offer;
+    const request = await h.request();
+    h.metadata.director.fate.offer = { ...offer, id: 'newer' };
+    await h.receive('Story.\n' + blockFor(offer.cards)); await h.complete(request.data);
+    assert.equal(h.metadata.director.fate.offer.id, 'newer');
+    assert.equal(h.controller.view().offer.pregenerated, false);
+});
+
+test('panel scope follows the chat and an expected offer cannot prepare another deal', async () => {
+    const h = lab();
+    const ownsChat = h.controller.captureScope();
+    await h.controller.deal();
+    assert.equal(ownsChat(), true);
+    const previous = h.metadata.director.fate.offer.id;
+    await h.controller.deal();
+    assert.equal(await h.controller.prepareOffer('medium', previous), false);
+    assert.equal(h.quietCalls.length, 0);
+    h.switchChat();
+    assert.equal(ownsChat(), false);
+});

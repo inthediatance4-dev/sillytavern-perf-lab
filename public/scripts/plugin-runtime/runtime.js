@@ -45,6 +45,11 @@ export function createRuntimeFromHost(url, kind, host, target = globalThis) {
         registry.set(nativeEvents, shared);
     }
     shared.responseFilters ??= createResponseFilters(nativeContext, target);
+    // An older independently installed plugin may own shared.quiet. Fate's
+    // explicit output profile must use this package's current budget adapter.
+    const fateIsolated = kind === 'director' ? createIsolatedGenerator(enrich, { core, fetch: (...args) => target.fetch(...args) }) : null;
+    const quiet = options => fateIsolated && options?.isolated && options.outputProfile === 'fate'
+        ? fateIsolated(options) : shared.quiet(options);
     const getContext = () => {
         const current = enrich();
         const settings = current.extensionSettings ?? extensions.extension_settings;
@@ -53,7 +58,7 @@ export function createRuntimeFromHost(url, kind, host, target = globalThis) {
         if (disabled.includes(id)) normalized.push(kind);
         return { ...current, extensionSettings: { ...settings, disabledExtensions: normalized },
             eventSource: shared.bridge.eventSource, eventTypes: shared.bridge.eventTypes,
-            generateQuietPrompt: shared.quiet, generateRaw: shared.isolated,
+            generateQuietPrompt: kind === 'director' ? quiet : shared.quiet, generateRaw: shared.isolated,
             saveChat: shared.saver, saveMetadata: shared.saver,
             saveMetadataDebounced: () => { shared.saver().catch(() => console.warn('Plugin metadata save failed.')); },
             generate: shared.bridge.runGenerate };

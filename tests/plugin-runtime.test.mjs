@@ -46,7 +46,7 @@ test('two independently bundled runtimes coordinate through one host registry an
     const a = createRuntimeFromHost('https://fixture.invalid/scripts/extensions/third-party/a/index.js', 'affinity', f.host, f.target);
     const d = createRuntimeFromHost('https://fixture.invalid/scripts/extensions/third-party/d/index.js', 'director', f.host, f.target);
     assert.equal(a.getContext().saveChat, d.getContext().saveChat);
-    assert.equal(a.getContext().generateQuietPrompt, d.getContext().generateQuietPrompt);
+    assert.equal(a.getContext().generateRaw, d.getContext().generateRaw);
     assert.equal(a.getContext().eventSource, f.context.eventSource);
     f.context.chatMetadata = { changed: true };
     assert.equal(a.getContext().chatMetadata, f.context.chatMetadata);
@@ -70,4 +70,22 @@ test('new Director augments an older shared runtime without another bridge', () 
     const next = createRuntimeFromHost('https://fixture.invalid/scripts/extensions/director/index.js', 'director', f.host, f.target);
     assert.equal(typeof next.registerResponseFilter, 'function');
     assert.equal(next.getContext().saveChat, old.getContext().saveChat);
+});
+
+
+test('Fate uses its current output adapter when an older Affinity quiet wrapper owns the registry', async () => {
+    const f = fixture(); const payloads = [];
+    f.host.core.getMaxContextTokens = () => 32768;
+    f.host.core.ChatCompletionService = { sendRequest: async payload => { payloads.push(payload); return { content: '{"event":"A letter arrives."}' }; } };
+    const a = createRuntimeFromHost('https://fixture.invalid/scripts/extensions/affinity/index.js', 'affinity', f.host, f.target);
+    const shared = f.target[Symbol.for('sillytavern.independent-director-affinity.runtime.v1')].get(f.context.eventSource);
+    const oldQuiet = shared.quiet;
+    shared.quiet = options => oldQuiet({ ...options, responseLength: Math.min(2048, options.responseLength) });
+    const d = createRuntimeFromHost('https://fixture.invalid/scripts/extensions/director/index.js', 'director', f.host, f.target);
+    const options = { isolated: true, quietPrompt: 'Synthetic scene', outputProfile: 'fate', responseLength: 8192 };
+    await d.getContext().generateQuietPrompt(options);
+    assert.equal(payloads[0].max_tokens, 8192);
+    await a.getContext().generateQuietPrompt({ ...options, outputProfile: undefined });
+    assert.equal(payloads[1].max_tokens, 2048);
+    assert.equal(d.getContext().saveChat, a.getContext().saveChat);
 });

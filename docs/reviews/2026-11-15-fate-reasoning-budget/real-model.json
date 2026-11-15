@@ -1,0 +1,49 @@
+{
+  "syntheticSceneOnly": true,
+  "chatRead": false,
+  "probes": [
+    {
+      "maxTokens": 1024,
+      "httpStatus": 200,
+      "elapsedMs": 8177,
+      "finishReason": "length",
+      "contentLength": 0,
+      "validEvent": false,
+      "completionTokens": 1024,
+      "reasoningTokens": 1021
+    },
+    {
+      "maxTokens": 8192,
+      "httpStatus": 200,
+      "elapsedMs": 14034,
+      "finishReason": "stop",
+      "contentLength": 84,
+      "validEvent": true,
+      "completionTokens": 1952,
+      "reasoningTokens": 1886
+    }
+  ],
+  "finalPackageBatch": {
+    "httpStatus": 200,
+    "maxTokens": 8192,
+    "finishReason": "stop",
+    "completionTokens": 1707,
+    "reasoningTokens": 1329,
+    "elapsedMs": 12553,
+    "prepared": true,
+    "eventsReady": true,
+    "previewLengths": [
+      81,
+      81,
+      81
+    ],
+    "sameOfferId": true,
+    "providerCalls": 1,
+    "reloadedPickSucceeded": true,
+    "reloadedPickCalls": 0,
+    "selectedPreviewPresent": true,
+    "realModel": true,
+    "syntheticOnly": true,
+    "chatReadOrModified": false
+  }
+}

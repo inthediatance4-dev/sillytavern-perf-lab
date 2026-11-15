@@ -166,7 +166,7 @@ test('draw persists a private event and exposes a bounded preview with its card 
     assert.equal(fixture.metadata.director.fate.held.event, privateEvent);
     assert.deepEqual(fixture.metadata.director.boundInstruct, { text: 'existing binding' });
     assert.equal(fixture.context.chat.length, 1);
-    assert.equal(fixture.quietCalls[0].responseLength, 1024);
+    assert.equal(fixture.quietCalls[0].responseLength, 8192);
     assert.match(fixture.quietCalls[0].quietPrompt, /JSON/);
     assert.match(fixture.quietCalls[0].quietPrompt, /禁止续写剧情、禁止写对话/);
     assert.match(fixture.quietCalls[0].quietPrompt, /Return only JSON, nothing else/);

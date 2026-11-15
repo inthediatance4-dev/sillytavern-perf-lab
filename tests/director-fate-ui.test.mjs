@@ -709,7 +709,7 @@ test('the draw button shows one free swap, then locks with a hint until the offe
     fixture.setView({ held: null, bound: null, reveal: null, offer });
     assert.equal(draw.textContent, '换一组 (1)');
     assert.equal(draw.disabled, false);
-    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；选择后会调用模型。');
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；请补写概述，或选中一张生成。');
     draw.click();
     await settle();
     assert.deepEqual(deals, ['deal']);
@@ -718,7 +718,7 @@ test('the draw button shows one free swap, then locks with a hint until the offe
     fixture.controller.deal = async () => { throw new Error('本次已换过一组'); };
     draw.click();
     await settle();
-    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；选择后会调用模型。');
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；请补写概述，或选中一张生成。');
     assert.equal(draw.disabled, false);
 
     fixture.setView({ rerolls: 0 });
@@ -726,7 +726,7 @@ test('the draw button shows one free swap, then locks with a hint until the offe
     assert.equal(draw.disabled, true);
     assert.equal(draw.getAttribute('title'), '本次已换过一组');
     assert.equal(draw.getAttribute('aria-label'), '换一组 (0)，本次已换过一组');
-    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；选择后会调用模型。本次已换过一组。');
+    assert.equal(fixture.query('#director_fate_status').textContent, '三张牌面已备好，事件尚未生成；请补写概述，或选中一张生成。本次已换过一组。');
     draw.click();
     await settle();
     assert.deepEqual(deals, ['deal']);
@@ -756,8 +756,8 @@ test('the cost hint tells whether picking spends a model call', async t => {
     const strength = fixture.query('#director_fate_strength');
     const cards = [{ title: '一', rarity: 'common' }, { title: '二', rarity: 'rare' }, { title: '三', rarity: 'legendary' }];
     // No offer: the classic deal-then-write explanation.
-    assert.ok(cost.textContent.includes('不连模型'));
-    assert.ok(cost.textContent.includes('生成一次'));
+    assert.ok(cost.textContent.includes('一次补写三张'));
+    assert.ok(cost.textContent.includes('当前模型'));
     // A pregenerated offer picked at its bound strength is free.
     fixture.setView({ offer: { id: 'offer', cards, strength: 'medium', pregenerated: true } });
     strength.value = 'medium';
@@ -772,7 +772,7 @@ test('the cost hint tells whether picking spends a model call', async t => {
     fixture.setView({ offer: { id: 'offer2', cards, strength: null, pregenerated: false } });
     strength.value = 'medium';
     strength.fire('change');
-    assert.ok(cost.textContent.includes('生成一次'));
+    assert.ok(cost.textContent.includes('当前模型'));
     assert.equal(cost.textContent.includes('不再调用模型'), false);
     await fixture.close();
 });
@@ -836,4 +836,81 @@ test('ready choices show real event previews while ungenerated choices say they 
     const cards = h.query('.director_fate_offer').children;
     assert.match(cards[0].textContent, /A letter arrives/);
     assert.match(cards[1].textContent, /尚未生成/);
+});
+
+
+test('successful selection immediately shows the new held preview', async t => {
+    const h = lab(t); h.open(); t.after(() => h.close());
+    h.setView({ held: null, bound: null, reveal: null, offer: { id: 'pick-preview', cards: [{ title: 'Test', rarity: 'rare' }] } });
+    h.controller.pick = async () => { h.setView({ offer: null, held: entry('new', { preview: 'A letter arrives.' }) }); return true; };
+    h.query('.director_fate_choice').click(); await settle();
+    assert.match(h.query('.director_fate_face').textContent, /A letter arrives/);
+    assert.equal(h.query('#director_fate_apply').hidden, false);
+});
+
+test('repairing the same offer updates previews without another deal', async t => {
+    const h = lab(t); h.open(); t.after(() => h.close());
+    const card = { title: 'Test', rarity: 'rare' };
+    h.setView({ offer: { id: 'same', cards: [card] } });
+    assert.match(h.query('.director_fate_choice_preview').textContent, /尚未生成/);
+    h.setView({ offer: { id: 'same', cards: [{ ...card, preview: 'A visitor arrives.' }], pregenerated: true } });
+    assert.equal(h.query('.director_fate_choice_preview').textContent, 'A visitor arrives.');
+});
+
+test('automatic preparation belongs to the offer that opened the panel', async t => {
+    const h = lab(t); t.after(() => h.close());
+    const cards = [{ title: 'Test', rarity: 'rare' }];
+    h.setView({ offer: { id: 'A', cards } });
+    const calls = [];
+    h.controller.prepareOffer = async () => { calls.push(h.controller.view().offer.id); return true; };
+    h.open();
+    h.setView({ offer: { id: 'B', cards } });
+    await settle();
+    assert.equal(calls.includes('B'), false);
+});
+
+test('closing while a deal saves cancels its pending preparation', async t => {
+    const h = lab(t); h.open();
+    let finish;
+    h.controller.deal = () => new Promise(resolve => { finish = resolve; });
+    const calls = [];
+    h.controller.prepareOffer = async strength => { calls.push(strength); return true; };
+    h.query('#director_fate_strength').value = 'strong';
+    h.query('#director_fate_draw').click();
+    await settle();
+    await h.close();
+    h.setView({ offer: { id: 'new', cards: [{ title: 'Test', rarity: 'rare' }] } });
+    finish(true);
+    await settle();
+    assert.deepEqual(calls, []);
+});
+
+test('a deal keeps its chosen strength and ignores a changed chat before preparing', async t => {
+    const h = lab(t); h.open(); t.after(() => h.close());
+    let chat = 'A', finish;
+    h.controller.captureScope = () => { const captured = chat; return () => captured === chat; };
+    h.controller.deal = () => new Promise(resolve => { finish = resolve; });
+    const calls = [];
+    h.controller.prepareOffer = async strength => { calls.push(strength); return true; };
+    h.query('#director_fate_strength').value = 'strong';
+    h.query('#director_fate_draw').click(); await settle();
+    h.setView({ offer: { id: 'new', cards: [{ title: 'Test', rarity: 'rare' }] } });
+    h.query('#director_fate_strength').value = 'medium';
+    finish(true); await settle();
+    assert.deepEqual(calls, ['strong']);
+    h.query('#director_fate_draw').click(); await settle();
+    chat = 'B'; finish(true); await settle();
+    assert.deepEqual(calls, ['strong']);
+});
+
+test('a late preparation error does not overwrite a reopened panel', async t => {
+    const h = lab(t);
+    h.setView({ offer: { id: 'old', cards: [{ title: 'Test', rarity: 'rare' }] } });
+    let fail;
+    h.controller.prepareOffer = () => new Promise((_resolve, reject) => { fail = reject; });
+    h.open(); await settle(); await h.close();
+    h.setView({ offer: null }); h.open(); t.after(() => h.close());
+    const status = h.query('#director_fate_status').textContent;
+    fail(new Error('old operation')); await settle();
+    assert.equal(h.query('#director_fate_status').textContent, status);
 });

@@ -61,15 +61,17 @@ def check_fate_reveal(page, origin, fate_text, result, out):
         open_panel()
         page.locator('#director_fate_draw').click()
         page.locator('.director_fate_choice').first.click()
-        page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director?.fate?.held')
+        page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director?.fate?.held && !document.querySelector("#director_fate_strength").disabled')
         held = page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held')
-        assert card.get_attribute('role') is None and card.get_attribute('tabindex') == '-1'
+        assert card.get_attribute('role') == 'button' and card.get_attribute('tabindex') == '0'
+        assert '事件概述' in page.locator('.director_fate_face').text_content()
+        assert fate_text not in page.locator('.director_fate_face').text_content()
         surface_activate()
         assert page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held') == held
         assert page.locator('.director_fate_face').text_content() == ''
         assert page.locator('.director_fate_face').get_attribute('aria-hidden') == 'true'
-        assert page.locator('#director_fate_flip').is_hidden()
-        result['checks']['heldCardSurfaceCannotReveal_' + mode] = True
+        assert page.locator('#director_fate_flip').is_visible()
+        result['checks']['heldCardShowsBoundedPreviewBeforeAdoption_' + mode] = True
         page.evaluate("""()=>{const c=SillyTavern.getContext();
             window.__helperScopedStopFired=false;
             c.eventSource.once(c.eventTypes.CHAT_COMPLETION_PROMPT_READY,async()=>{
@@ -142,7 +144,10 @@ def check_fate_pick_mobile(page, fate_text, result, out):
     page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director?.fate?.held')
     previous = page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held.id')
     page.locator('#director_fate_draw').tap()
-    page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director.fate.offer')
+    page.wait_for_function('SillyTavern.getContext().chatMetadata.director.fate.offer?.cards.every(c=>!!c.event) && !document.querySelector("#director_fate_strength").disabled')
+    # Prepared events are free at their original strength. A changed strength
+    # deliberately exercises the slow native quiet rewrite and retained card.
+    page.locator('#director_fate_strength').select_option('strong')
     page.screenshot(path=str(out.parent / (out.stem + '-before-pick.png')))
     page.evaluate("""()=>{const original=window.fetch;
         window.__fatePickGate={entered:false};
@@ -283,6 +288,7 @@ def check_piggyback(page, fake_url, fixture, fixture_state, result):
         await_reload = page.evaluate('SillyTavern.getContext().reloadCurrentChat()')
         assert page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.offer') == offer, await_reload
         open_panel()
+        page.wait_for_function('document.querySelector("#director_fate_panel").getAttribute("aria-busy")==="false"')
         page.locator('#director_fate_strength').select_option('medium')
         if channel != 'reasoning':
             assert page.locator('.director_fate_choice_preview').all_text_contents() == expected
@@ -292,12 +298,14 @@ def check_piggyback(page, fake_url, fixture, fixture_state, result):
         page.wait_for_function('!!SillyTavern.getContext().chatMetadata.director.fate.held', timeout=30000)
         page.wait_for_function('!document.querySelector("#director_fate_apply").disabled')
         pick_calls = len(count_requests()) - pick_before
-        assert pick_calls == (1 if channel == 'reasoning' else 0), pick_calls
+        assert pick_calls == 0, pick_calls
         selected = page.evaluate('SillyTavern.getContext().chatMetadata.director.fate.held.event')
         if channel != 'reasoning':
             assert selected == expected[1]
-        assert page.locator('.director_fate_face').text_content() == ''
+        assert selected in page.locator('.director_fate_face').text_content()
         card = page.locator('.director_fate_card')
+        card.tap() if stream else card.click()
+        assert page.locator('.director_fate_face').text_content() == ''
         card.tap() if stream else card.click()
         assert selected in page.locator('.director_fate_face').text_content()
         assert page.locator('#director_fate_jump').is_hidden()
@@ -330,6 +338,60 @@ def check_piggyback(page, fake_url, fixture, fixture_state, result):
     fixture_state['piggyback'] = None
 
 
+def check_fate_repair(page, fake_url, fixture_state, result, out):
+    def count_requests():
+        return len(json.load(urllib.request.urlopen(fake_url.replace('/v1', '') + '/__requests')))
+
+    def open_panel():
+        if not page.locator('#directorPopover').is_visible():
+            page.locator('#directorButton').click()
+        page.locator('#director_fate_open').click()
+        page.locator('#director_fate_panel').wait_for(state='visible')
+
+    page.set_viewport_size({'width': 390, 'height': 844})
+    fixture_state['reasoningBudget'] = True
+    page.evaluate("""async()=>{
+        const c=SillyTavern.getContext();
+        c.chat.splice(0,c.chat.length,{name:'Synthetic Tester',is_user:true,mes:'Two travelers wait in a village inn.',extra:{}});
+        const {rollOffer}=await import('/scripts/extensions/third-party/st-director-fate-cards/fate-decks.js');
+        const cards=rollOffer(()=>0,{recent:[],pity:0});
+        c.chatMetadata.director={fate:{version:1,held:{id:'legacy-held',...cards[0],strength:'medium',event:'A previously stored synthetic event.'},
+            offer:{id:'legacy-empty',cards},rerolls:0,pity:4,recent:['echo'],log:[]}};
+        Object.assign((await import('/scripts/openai.js')).oai_settings,{openai_max_context:32768,openai_max_tokens:16384,stream_openai:false});
+        await c.saveChat();
+    }""")
+    before = count_requests()
+    open_panel()
+    page.wait_for_function('SillyTavern.getContext().chatMetadata.director.fate.offer.cards.every(c=>c.event)', timeout=45000)
+    page.wait_for_function('document.querySelector("#director_fate_panel").getAttribute("aria-busy")==="false"')
+    assert count_requests() == before + 1
+    state = page.evaluate('JSON.parse(JSON.stringify(SillyTavern.getContext().chatMetadata.director.fate))')
+    assert state['offer']['id'] == 'legacy-empty' and state['held']['id'] == 'legacy-held'
+    assert state['rerolls'] == 0 and state['pity'] == 4
+    assert page.locator('.director_fate_choice_preview').all_text_contents() == ['PRIVATE_INSTALLED_EVENT_'+str(i) for i in range(3)]
+    result['checks']['legacyOfferRepairedOnceWithReasoningBudget'] = True
+    page.keyboard.press('Escape')
+    page.locator('#director_fate_panel').wait_for(state='hidden')
+    page.evaluate('SillyTavern.getContext().reloadCurrentChat()')
+    open_panel()
+    page.wait_for_function('document.querySelector("#director_fate_panel").getAttribute("aria-busy")==="false"')
+    assert count_requests() == before + 1
+    page.locator('.director_fate_choice').nth(1).tap()
+    page.wait_for_function('!SillyTavern.getContext().chatMetadata.director.fate.offer')
+    page.wait_for_function('document.querySelector(".director_fate_face").textContent.includes("PRIVATE_INSTALLED_EVENT_1")')
+    page.wait_for_function('Number(getComputedStyle(document.querySelector(".director_fate_face")).opacity)>0.99')
+    page.locator('.director_fate_face').scroll_into_view_if_needed()
+    assert page.locator('#director_fate_apply').is_visible()
+    assert count_requests() == before + 1
+    page.screenshot(path=str(out.with_name(out.stem+'-preview.png')))
+    result['checks']['reloadThenTouchPickShowsVisiblePreviewWithoutRequest'] = True
+    assert page.evaluate('(async()=>(await import("/scripts/openai.js")).oai_settings.openai_max_tokens)()') == 16384
+    result['checks']['normalReplyBudgetUnchanged'] = True
+    page.keyboard.press('Escape')
+    page.locator('#director_fate_panel').wait_for(state='hidden')
+    fixture_state['reasoningBudget'] = False
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--host-root', type=Path, required=True)
@@ -338,6 +400,7 @@ def main():
     parser.add_argument('--fate-reveal-only', action='store_true')
     parser.add_argument('--fate-pick-only', action='store_true')
     parser.add_argument('--piggyback-only', action='store_true')
+    parser.add_argument('--fate-repair-only', action='store_true')
     args = parser.parse_args()
     host = args.host_root.resolve()
     out = args.output.resolve()
@@ -393,7 +456,7 @@ def main():
         with sync_playwright() as p:
             browser = launch_chromium(p)
             page = browser.new_page(viewport={'width': 1440, 'height': 1000},
-                                    is_mobile=args.fate_pick_only or args.piggyback_only, has_touch=args.fate_pick_only or args.fate_reveal_only or args.piggyback_only)
+                                    is_mobile=args.fate_pick_only or args.piggyback_only or args.fate_repair_only, has_touch=args.fate_pick_only or args.fate_reveal_only or args.piggyback_only or args.fate_repair_only)
             if args.fate_pick_only:
                 page.on('response', lambda response: result.setdefault('httpErrors', []).append(
                     {'status': response.status, 'url': response.url}) if response.status >= 400 else None)
@@ -401,7 +464,9 @@ def main():
                     if fixture_state.get('expectingFailure') and 'Internal Server Error' in str(error) else result['errors'].append(str(error)))
             page.on('console', lambda message: result.setdefault('consoleErrors', []).append(message.text) if message.type == 'error' else None)
             memory_text = 'ST_AFF_PRIVATE {{char}} remembers the river promise.'
-            fate_text = 'ST_FATE_PRIVATE {{char}}: A courier leaves a sealed invitation.'
+            fate_text = ('ST_FATE_PRIVATE {{char}}: A courier leaves a sealed invitation. '
+                         'Its final line points toward a silent watchtower beyond the eastern road, '
+                         'but leaves the recipient free to decide whether to investigate.')
             fixture_state = {'failNext': False, 'expectingFailure': False, 'group': False, 'piggyback': None}
 
             def provider_route(route):
@@ -417,6 +482,14 @@ def main():
                                'attitudeExplicit': False, 'outcomeKnown': None, 'knownToCharacter': 'yes',
                                'source': {'slot': ref['slot'], 'quote': ref['text'][:120]}} for ref in selected]
                     reply = json.dumps({'events': events})
+                elif (payload.get('json_schema') or {}).get('name') == 'director_fate_offer':
+                    faces = re.findall(r'category="([^"]+)", title="([^"]+)"', text)
+                    assert len(faces) == 3, faces
+                    reply = json.dumps({'events': [{'category': category, 'title': title,
+                        'event': 'PRIVATE_INSTALLED_EVENT_'+str(i) if args.piggyback_only or args.fate_repair_only else fate_text}
+                        for i, (category, title) in enumerate(faces)]})
+                    if fixture_state.get('reasoningBudget') and payload.get('max_tokens', 0) < 8192:
+                        reply = ''
                 elif 'Invent one unexpected event for the current story.' in text:
                     reply = json.dumps({'event': fate_text})
                 elif fixture_state['piggyback']:
@@ -471,6 +544,12 @@ def main():
             if args.fate_reveal_only:
                 stage = 'native adoption and rendered reveal with helper-scoped stop'
                 check_fate_reveal(page, origin, fate_text, result, out)
+                assert not result['errors'], result['errors']
+                result['passed'] = True
+                return
+            if args.fate_repair_only:
+                stage = 'installed empty offer reasoning-budget repair'
+                check_fate_repair(page, fake_url, fixture_state, result, out)
                 assert not result['errors'], result['errors']
                 result['passed'] = True
                 return

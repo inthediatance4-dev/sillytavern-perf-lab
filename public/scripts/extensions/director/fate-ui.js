@@ -16,6 +16,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
     let logPresentation = 0;
     const flipped = new Set();
     const previewed = new Set();
+    const attemptedOffers = new Set();
     const labels = { light: '轻微波澜', medium: '明显转折', strong: '重大变故' };
     const rarities = { common: '寻常', rare: '稀有', legendary: '传说' };
 
@@ -185,6 +186,9 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         }
         box.hidden = false;
         if (box.dataset.offerId === offer.id && box.childElementCount === offer.cards.length) {
+            [...box.querySelectorAll('.director_fate_choice_preview')].forEach((node, index) => {
+                node.textContent = offer.cards[index].preview ?? '事件尚未生成，可补写概述';
+            });
             // Keep the in-flight pick animation. A finished draw clears it without rebuilding.
             if (!view.busy && !choosing) {
                 endPickMotion();
@@ -217,7 +221,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             rarity.textContent = rarityLabel(card.rarity);
             const preview = document.createElement('span');
             preview.className = 'director_fate_choice_preview';
-            preview.textContent = card.preview ?? '事件尚未生成，选中后写作';
+            preview.textContent = card.preview ?? '事件尚未生成，可补写概述';
             choice.append(seal, title, rarity, preview);
             choice.addEventListener('click', () => choose(index));
             box.append(choice);
@@ -256,11 +260,37 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const strength = panel.querySelector('#director_fate_strength').value;
         action(async () => {
             try {
-                if (await controller.pick(index, strength)) sound.play('seal');
+                if (await controller.pick(index, strength)) {
+                    const held = controller.view().held;
+                    if (held?.preview) previewed.add(held.id);
+                    sound.play('seal');
+                    refresh();
+                    panel?.querySelector('.director_fate_card')?.scrollIntoView?.({ block: 'nearest' });
+                } else if (controller.view().offer?.id === view.offer.id) {
+                    throw new Error('Pick incomplete');
+                }
             } finally {
                 choosing = false;
             }
-        }, '未抽到有效事件，请重试。');
+        }, '未生成完整事件，原牌已保留。请重试选牌或补写概述。');
+    }
+
+    function capturePanel() {
+        return { panel, strength: panel?.querySelector('#director_fate_strength')?.value ?? 'medium',
+            ownsChat: controller.captureScope?.() ?? (() => true) };
+    }
+
+    function currentPanel(owner) {
+        return Boolean(owner.panel && owner.panel === panel && owner.ownsChat());
+    }
+
+    async function prepareCurrentOffer(owner = capturePanel(), offerId = controller.view().offer?.id) {
+        if (typeof controller.prepareOffer !== 'function') return;
+        const view = controller.view();
+        if (!currentPanel(owner) || view.busy || !view.offer || view.offer.id !== offerId || view.offer.pregenerated) return;
+        attemptedOffers.add(view.offer.id);
+        const ok = await controller.prepareOffer(owner.strength, offerId);
+        if (!ok && controller.view().offer?.id === view.offer.id) throw new Error('Preparation incomplete');
     }
 
     function syncDraw(view) {
@@ -305,11 +335,11 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         if (view.held && !offer) {
             cost.textContent = '牌已写好；点击牌面或「查看概述」可先看事件概要。点击「让意外发生」才会采用，正文完成后可翻牌看完整事件。';
         } else if (offer?.pregenerated && strength === offer.strength) {
-            cost.textContent = '这批牌已随上一条回复写好，按当前强度选牌不再调用模型；点「让意外发生」就立刻续写剧情。';
+            cost.textContent = '这批事件已写好，按当前强度选牌不再调用模型；点「让意外发生」才会续写剧情。';
         } else if (offer?.pregenerated) {
             cost.textContent = `这批牌已按「${labels[offer.strength] ?? labels.medium}」预先写好；改用其他强度选牌，会再调用一次模型重写牌面。点「让意外发生」就立刻续写剧情。`;
         } else {
-            cost.textContent = '发牌在这台设备上完成，不连模型。选定一张后，会再用当前的模型连接生成一次，把牌面写出来；点「让意外发生」就立刻续写剧情。';
+            cost.textContent = '没有提前备好的事件时，将用当前模型一次补写三张概述。补写失败可重试；选定后点击「让意外发生」才会续写剧情。';
         }
     }
 
@@ -354,11 +384,12 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         syncOffer(view);
         syncCost(view);
         panel.querySelector('#director_fate_status').textContent = error || (view.busy
-            ? applying ? '命运在转动…' : '正在为当前剧情抽牌…'
-            : showOffer ? (view.offer.pregenerated ? '事件已随上一条回复写好，按原强度选牌无需等待模型。' : '三张牌面已备好，事件尚未生成；选择后会调用模型。') + (rerollSpent ? '本次已换过一组。' : '')
+            ? applying ? '命运在转动…' : view.phase === 'preparing' ? '正在补写三张事件概述，请等待模型完成思考…' : '正在为当前剧情抽牌…'
+            : showOffer ? (view.offer.pregenerated ? '事件已写好，按原强度选牌无需等待模型。' : '三张牌面已备好，事件尚未生成；请补写概述，或选中一张生成。') + (rerollSpent ? '本次已换过一组。' : '')
                 : state === 'sealed' ? '牌已写好，点击牌面查看概述。'
                     : state === 'revealed' ? shown ? '命运已揭晓。' : settings.reveal === 'off' ? '命运已降临，翻牌已关闭。' : '命运已降临，点击翻牌。'
                         : state === 'stale' ? '这张牌的消息已变化，无法翻牌。' : '抽取一张牌，让故事迎来转折。');
+        panel.querySelector('#director_fate_prepare').hidden = !showOffer || view.offer.pregenerated;
         panel.querySelector('#director_fate_apply').hidden = !view.held;
         panel.querySelector('#director_fate_discard').hidden = !view.held;
         const flip = panel.querySelector('#director_fate_flip');
@@ -375,11 +406,15 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
     }
 
     function action(operation, failure) {
+        const owner = capturePanel();
         error = '';
-        Promise.resolve().then(operation).catch(() => {
-            error = failure;
-            if (!panel) warn(failure);
-        }).finally(refresh);
+        // Start inside the user event so the controller captures its chat before
+        // another queued task can replace it. Late results belong to this panel.
+        void (async () => {
+            try { await operation(); }
+            catch { if (currentPanel(owner)) error = failure; }
+            finally { if (currentPanel(owner)) refresh(); }
+        })();
     }
 
     function button(id, text, click) {
@@ -487,11 +522,12 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         const draw = button('director_fate_draw', '发牌', () => {
             const currentView = controller.view();
             if (currentView.offer && rerollsLeft(currentView) < 1) return;
+            const owner = capturePanel();
             // play() has to run inside the click, before the deal save yields.
             sound.play('draw');
             action(async () => {
                 try {
-                    await controller.deal();
+                    if (await controller.deal()) await prepareCurrentOffer(owner);
                 } catch (reason) {
                     // The view refresh shows the spent hint. Do not replace it with the generic failure.
                     if (reason?.message === '本次已换过一组') return;
@@ -514,6 +550,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
                 if (failure) warn(failure);
             }, '剧情未完成，牌仍保留，可重试。');
         });
+        const prepare = button('director_fate_prepare', '补写概述', () => action(prepareCurrentOffer, '补写未完成，原牌已保留。点击「补写概述」可重试。'));
         const discard = button('director_fate_discard', '弃牌', () => action(() => controller.discard(), '未能弃牌，请重试。'));
         const flip = button('director_fate_flip', '翻牌', flipCurrentCard);
         const jump = button('director_fate_jump', '跳到该消息', () => {
@@ -521,10 +558,10 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
             if (!reveal) return;
             action(() => jumpToEntry(reveal), '未能跳转到该消息。');
         });
-        controls.append(draw, apply, discard, flip, jump);
+        controls.append(draw, prepare, apply, discard, flip, jump);
         const cost = document.createElement('small');
         cost.id = 'director_fate_cost';
-        current.append(card, offer, labelFor(strength, '下一张的强度'), strength, status, controls, cost);
+        current.append(status, card, offer, labelFor(strength, '下一张的强度'), strength, controls, cost);
         const log = document.createElement('div');
         log.id = 'director_fate_log';
         log.setAttribute('role', 'tabpanel');
@@ -586,6 +623,10 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         try {
             const shown = popup.show();
             focusOpened();
+            const view = controller.view();
+            if (activeTab === 'current' && view.offer && !view.offer.pregenerated && !view.busy && !attemptedOffers.has(view.offer.id)) {
+                action(prepareCurrentOffer, '补写未完成，原牌已保留。点击「补写概述」可重试。');
+            }
             await shown;
         }
         finally {

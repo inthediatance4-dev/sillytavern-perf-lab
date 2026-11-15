@@ -309,7 +309,9 @@ export function createAffinityController(getContext, options = {}) {
         const refs = [];
         const tailStart = Math.max(0, context.chat.length - TAIL);
         context.chat.forEach((message, index) => {
-            if (index < tailStart && !markerFor(message, value)) return;
+            const precedesReceipt = message?.is_user && isCharacter(context.chat[index + 1])
+                && markerFor(context.chat[index + 1], value)?.receipt > 0;
+            if (index < tailStart && !markerFor(message, value) && !precedesReceipt) return;
             if (!message || message.is_system || typeof message.mes !== 'string' || !message.mes.trim()) return;
             if (!message.is_user && !isCharacter(message)) return;
             let marker = markerFor(message, value);
@@ -524,7 +526,11 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
             // issuing one request for every edit or alternate swipe selection.
             refs.filter(ref => ref.receipt > 0 && ref.receipt <= value.cursor && ref.evaluated !== ref.fingerprint)
                 .sort((a, b) => a.receipt - b.receipt).slice(0, 20).forEach(ref => selected.add(ref.slot));
-            batch.forEach(ref => { const previous = refs.find(item => item.index === ref.index - 1); if (previous) selected.add(previous.slot); });
+            const byIndex = new Map(refs.map(ref => [ref.index, ref]));
+            for (const ref of refs.filter(ref => selected.has(ref.slot))) {
+                const previous = byIndex.get(ref.index - 1);
+                if (previous) selected.add(previous.slot);
+            }
             const retained = [...value.events, ...value.archives];
             const dependencySlots = new Set(retained.filter(event => ['promise', 'outcome'].includes(event.kind))
                 .flatMap(event => [event.source.slot, event.result?.slot, event.acknowledgement?.slot]).filter(Boolean));

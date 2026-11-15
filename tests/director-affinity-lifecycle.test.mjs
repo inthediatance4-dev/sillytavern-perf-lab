@@ -1921,3 +1921,66 @@ test('round3: GENERATION_STOPPED clears a leaked groupReplay so later messages g
     await lab.controller.settle();
     assert.notEqual(lab.marker(fresh).id, originalMarkerId, 'a stopped regen cannot leak its replay map into later generations');
 });
+
+test('failed-batch revisit preserves citable user facts and character ownership outside the recent tail', async () => {
+    let messages;
+    const lab = fixture({ interval: 5, reply: ({ args, calls, context }) => {
+        if (calls.length === 1) throw new Error('HTTP 400');
+        messages = JSON.parse(args[0].quietPrompt.split('\n消息：')[1]);
+        const users = messages.filter(message => ['我喜欢喝茶。', '我习惯用纸记笔记。'].includes(message.text));
+        const character = messages.find(message => message.text === '我记住了。');
+        const events = users.map(message => ({
+            ...factFor(context.chat[message.index]), actor: 'user', recipient: 'character',
+            fact: message.text, outcomeKnown: null,
+        }));
+        events.push({ ...events[0], source: { slot: character.slot, quote: character.text } });
+        events.push({ ...events[0], actor: 'character', kind: 'attitude', valence: 'positive', attitudeExplicit: true });
+        return JSON.stringify({ events });
+    } });
+    lab.context.chat[0].mes = '我喜欢喝茶。';
+    await lab.generate({ text: '我记住了。' });
+    lab.context.chat.push({ is_user: true, name: '玩家', mes: '我习惯用纸记笔记。', extra: {} });
+    await lab.generate({ text: '我记住你的习惯了。' });
+    await settleMany(lab, 3);
+    assert.equal(lab.state().cursor, 5);
+    assert.equal(lab.state().events.length, 0);
+    // Loaded pending receipts can predate any user slot; projection must bind
+    // their immediate user context even when it is outside the recent tail.
+    for (const message of lab.context.chat.filter(message => message.is_user)) delete message.extra.__affinity;
+    for (let index = 0; index < 30; index++) lab.context.chat.push({ is_system: true, mes: '历史系统消息' });
+    await settleMany(lab, 5);
+    assert.equal(lab.calls.length, 2);
+    assert.equal(new Set(messages.map(message => message.slot)).size, messages.length);
+    assert.deepEqual(lab.state().events.map(event => event.fact), ['我喜欢喝茶。', '我习惯用纸记笔记。']);
+    assert.ok(lab.state().events.every(event => event.actor === 'user' && event.delta === 0));
+    assert.equal(affinityScores(lab.state())['a.png'], 0);
+    for (const event of lab.state().events) {
+        assert.equal(lab.context.chat[event.source.index].is_user, true);
+        assert.equal(event.source.quote, event.fact);
+    }
+});
+
+test('revisit keeps the earliest twenty replies with their user slots and no duplicate slots', async () => {
+    let recover = false;
+    let messages;
+    const lab = fixture({ interval: 5, reply: ({ args }) => {
+        if (!recover) throw new Error('HTTP 400');
+        messages = JSON.parse(args[0].quietPrompt.split('\n消息：')[1]);
+        return '{"events":[]}';
+    } });
+    for (let receipt = 1; receipt <= 25; receipt++) {
+        lab.context.chat.push({ is_user: true, name: '玩家', mes: `用户原话 ${receipt}`, extra: {} });
+        await lab.generate({ text: `角色回复 ${receipt}` });
+        await lab.controller.settle();
+    }
+    recover = true;
+    for (let receipt = 26; receipt <= 30; receipt++) {
+        lab.context.chat.push({ is_user: true, name: '玩家', mes: `用户原话 ${receipt}`, extra: {} });
+        await lab.generate({ text: `角色回复 ${receipt}` });
+    }
+    await lab.controller.settle();
+    const receipts = [...Array.from({ length: 20 }, (_, index) => index + 1), 26, 27, 28, 29, 30];
+    assert.deepEqual(messages.filter(message => message.owner === 'a.png').map(message => Number(message.text.split(' ').at(-1))), receipts);
+    assert.deepEqual(messages.filter(message => message.owner === 'player').map(message => Number(message.text.split(' ').at(-1))), receipts);
+    assert.equal(new Set(messages.map(message => message.slot)).size, 50);
+});

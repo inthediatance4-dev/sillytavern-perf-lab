@@ -15,7 +15,7 @@ const object = value => value !== null && typeof value === 'object' && !Array.is
 const short = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max;
 const natural = value => Number.isSafeInteger(value) && value >= 0;
 const ownerId = value => short(value, 240) && value === value.trim() && !forbidden.has(value) && !['player', 'none'].includes(value);
-const proposalKeys = new Set(['owner', 'kind', 'fact', 'actor', 'recipient', 'status', 'valence', 'impact', 'confidence', 'attitudeExplicit', 'outcomeKnown', 'knownToCharacter', 'source', 'anchorId', 'result', 'acknowledgement']);
+const proposalKeys = new Set(['owner', 'kind', 'fact', 'actor', 'recipient', 'status', 'valence', 'impact', 'confidence', 'attitudeExplicit', 'outcomeKnown', 'knownToCharacter', 'source', 'anchorId', 'result', 'acknowledgement', 'thread', 'relationshipChanged']);
 const recordKeys = new Set([...proposalKeys, 'id', 'key', 'verified', 'delta', 'offline']);
 
 function safeTree(value, depth = 0) {
@@ -40,6 +40,8 @@ function proposalShape(value) {
         && ['high', 'low'].includes(value.confidence) && typeof value.attitudeExplicit === 'boolean'
         && [true, false, null].includes(value.outcomeKnown) && ['yes', 'no', 'unknown'].includes(value.knownToCharacter)
         && quoteShape(value.source)
+        && (!own(value, 'thread') || short(value.thread, 80))
+        && (!own(value, 'relationshipChanged') || typeof value.relationshipChanged === 'boolean')
         && (!own(value, 'anchorId') || short(value.anchorId, 240))
         && (!own(value, 'result') || quoteShape(value.result))
         && (!own(value, 'acknowledgement') || quoteShape(value.acknowledgement));
@@ -197,7 +199,7 @@ function enrichEvidence(previous, event) {
 
 export function affinityScoreEligible(event) {
     if (!object(event) || event.confidence !== 'high'
-        || event.knownToCharacter !== 'yes' || event.valence === 'none'
+        || event.knownToCharacter !== 'yes' || event.valence === 'none' || event.relationshipChanged === false
         || event.actor === 'other' || event.recipient === 'other') return false;
     if (event.kind === 'attitude') {
         return event.status === 'observed' && event.attitudeExplicit === true
@@ -370,10 +372,31 @@ function scoringEvidence(events) {
     return candidates.filter((_, index) => root(index) === index);
 }
 
+/** One continuing change per owner/topic/direction; facts never join or reset it. */
+function threadEvidence(events) {
+    const quote = event => event.kind === 'outcome' ? event.acknowledgement : event.source;
+    const chains = [];
+    const latest = new Map();
+    for (const event of [...events].sort((a, b) => quote(a).index - quote(b).index || order(a, b))) {
+        const previous = latest.get(event.owner);
+        const continues = event.thread && previous?.last.thread === event.thread
+            && previous.last.valence === event.valence && quote(event).index - quote(previous.last).index <= 4;
+        const chain = continues ? previous : { strongest: event };
+        if (!continues) chains.push(chain);
+        // Majors reserve the chain even before verification, so a minor retelling
+        // cannot bypass verification. A verified major wins over an unverified one.
+        const rank = item => Number(item.impact === 'major') * 2 + Number(item.verified === true);
+        if (rank(event) > rank(chain.strongest)) chain.strongest = event;
+        chain.last = event;
+        latest.set(event.owner, chain);
+    }
+    return chains.map(chain => chain.strongest);
+}
+
 function scoreProjection(events) {
     const scores = new Map();
     const deltas = new Map();
-    const accepted = new Set(scoringEvidence(events));
+    const accepted = new Set(threadEvidence(scoringEvidence(events)));
     for (const event of [...events].sort(order)) {
         const current = scores.get(event.owner) ?? 0;
         const next = Math.max(-100, Math.min(100, current + (accepted.has(event) ? deltaFor(event, current) : 0)));

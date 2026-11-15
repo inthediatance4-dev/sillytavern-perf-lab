@@ -1251,3 +1251,89 @@ test('different owners may each acknowledge one shared physical player action wi
     assert.deepEqual(affinityScores(absentOwner), { 'a.png': 2, 'b.png': 0 });
     assert.deepEqual(reconcileAffinity(absentOwner, refs, owners), state);
 });
+
+for (const valence of ['positive', 'negative']) {
+    test(`a consecutive ${valence} rupture or trust chain scores once across batches and reloads`, () => {
+        const refs = [ref(12, '这件事改变了我对你的看法。'), ref(14, '我还在说同一件事。'), ref(16, '这正是刚才那场争执的后果。')];
+        const items = refs.map(source => attitude(source, { valence, thread: '收据争执', relationshipChanged: true }));
+        let state = apply(fresh(), [items[0]], refs);
+        state = apply(state, items.slice(1), refs);
+        const expected = valence === 'positive' ? 2 : -3;
+        assert.equal(affinityScores(state)['a.png'], expected);
+        assert.deepEqual(all(state).map(event => event.delta), [expected, 0, 0]);
+        assert.equal(all(state).length, 3, 'all grounded observations remain in the ledger');
+        assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners), state);
+        assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /可略显信任|可略留戒心/);
+        for (const removed of refs) {
+            const remaining = refs.filter(source => source !== removed);
+            const revoked = reconcileAffinity(state, remaining, owners);
+            assert.equal(all(revoked).length, 2);
+            assert.equal(affinityScores(revoked)['a.png'], expected, 'a retained source assumes scoring after retraction');
+        }
+        assert.deepEqual(affinityScores(reconcileAffinity(state, [], owners)), {});
+    });
+}
+
+test('thread merging leaves zero-point facts intact and separates topics, owners, direction and distant changes', () => {
+    const refs = [ref(0, '更信任你。'), ref(2, '我记得你喝茶。'), ref(4, '仍在谈这次救助。'),
+        ref(6, '另一件坦诚的事也改变了我的看法。'), ref(8, '我现在很失望。'), ref(14, '后来再次建立了信任。'),
+        ref(15, '乙也开始信任你。', { owner: 'b.png' })];
+    const items = refs.map((source, index) => attitude(source, {
+        thread: index === 3 ? '坦诚' : '救助', relationshipChanged: true,
+        ...(index === 1 ? { kind: 'fact', valence: 'positive' } : {}),
+        ...(index === 4 ? { valence: 'negative' } : {}),
+        ...(index === 6 ? { owner: 'b.png' } : {}),
+    }));
+    const state = apply(fresh(), items, refs);
+    assert.deepEqual(all(state).map(event => event.delta), [2, 0, 0, 2, -3, 2, 2]);
+    assert.deepEqual(affinityScores(state), { 'a.png': 3, 'b.png': 2 });
+    assert.equal(all(state).filter(event => event.kind === 'fact').length, 1);
+    // Removing the intervening opposite change still leaves a gap of ten messages.
+    assert.equal(affinityScores(reconcileAffinity(state, refs.filter(source => source.index !== 8), owners))['a.png'], 6);
+});
+
+for (const valence of ['positive', 'negative']) {
+    test(`a ${valence} thread uses its strongest major and never bypasses verification`, () => {
+        const refs = [ref(0, '关系开始改变。'), ref(2, '同一件事造成了重大转折。'), ref(4, '重申同一个转折。')];
+        const items = refs.map((source, index) => attitude(source, {
+            thread: '同一次关系转折', relationshipChanged: true, valence, impact: index === 1 ? 'major' : 'minor',
+        }));
+        const unverified = apply(fresh(), items, refs);
+        assert.equal(affinityScores(unverified)['a.png'], 0);
+        assert.deepEqual(all(unverified).map(event => event.delta), [0, 0, 0]);
+        const verified = apply(fresh(), items, refs, { verified: new Set([candidateKey(items[1], refs)]) });
+        const expected = valence === 'positive' ? 5 : -8;
+        assert.equal(affinityScores(verified)['a.png'], expected);
+        assert.deepEqual(all(verified).map(event => event.delta), [0, expected, 0]);
+        const retracted = reconcileAffinity(verified, [refs[0], refs[2]], owners);
+        assert.equal(affinityScores(retracted)['a.png'], valence === 'positive' ? 2 : -3);
+        assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(verified)), refs, owners), verified);
+    });
+}
+
+test('merged positive changes still halve at 50 and stop earning at 80', () => {
+    const refs = Array.from({ length: 57 }, (_, index) => ref(index, `独立信任变化 ${index}`));
+    let state = fresh();
+    for (let start = 0; start < 55; start += 20) state = apply(state, refs.slice(start, Math.min(55, start + 20)).map(source => attitude(source)), refs);
+    assert.equal(affinityScores(state)['a.png'], 80);
+    const chain = refs.slice(55).map(source => attitude(source, { thread: '上限之后的同一变化', relationshipChanged: true }));
+    state = apply(state, chain, refs);
+    assert.equal(affinityScores(state)['a.png'], 80);
+    assert.deepEqual(all(state).slice(-2).map(event => event.delta), [0, 0]);
+    let at50 = apply(fresh(), refs.slice(0, 24).map(source => attitude(source)), refs);
+    at50 = apply(at50, [attitude(refs[24])], refs);
+    at50 = apply(at50, refs.slice(25, 28).map(source => attitude(source, { thread: '五十之后的同一变化', relationshipChanged: true })), refs);
+    assert.equal(affinityScores(at50)['a.png'], 51);
+    assert.deepEqual(all(at50).slice(-3).map(event => event.delta), [1, 0, 0]);
+});
+
+test('conditional cooperation, procedural agreement and politeness remain zero-point observations', () => {
+    for (const text of ['不排斥合作，只要边界清晰。', '按流程交接即可。', '谢谢配合，祝你顺利。']) {
+        const source = ref(0, text);
+        const state = apply(fresh(), [attitude(source, { fact: text, thread: '合作安排', relationshipChanged: false })], [source]);
+        assert.equal(state.events.length, 1);
+        assert.equal(state.events[0].delta, 0, 'an unchanged stance cannot score even with a contradictory positive valence');
+        assert.equal(affinityScores(state)['a.png'], 0);
+        assert.ok(buildAffinityMemory(state, [source], 'a.png').includes(text));
+    }
+});

@@ -157,6 +157,7 @@ function factFor(message, { owner = 'a.png', fact = '角色记得玩家明确说
     return {
         owner, kind: 'fact', fact, actor: 'character', recipient: 'user', status: 'observed',
         valence: 'none', impact: 'minor', confidence: 'high', attitudeExplicit: false, outcomeKnown: true, knownToCharacter: 'yes',
+        thread: message.extra.__affinity.id, relationshipChanged: true,
         source: { slot: message.extra.__affinity.id, quote: message.mes },
     };
 }
@@ -1983,4 +1984,64 @@ test('revisit keeps the earliest twenty replies with their user slots and no dup
     assert.deepEqual(messages.filter(message => message.owner === 'a.png').map(message => Number(message.text.split(' ').at(-1))), receipts);
     assert.deepEqual(messages.filter(message => message.owner === 'player').map(message => Number(message.text.split(' ').at(-1))), receipts);
     assert.equal(new Set(messages.map(message => message.slot)).size, 50);
+});
+
+test('new extraction requires an affirmative relationship change and a thread, while retaining neutral observations', async () => {
+    for (const fields of [{ relationshipChanged: false }, { relationshipChanged: undefined }, { thread: undefined }]) {
+        const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({ events: [{
+            ...factFor(context.chat.at(-1)), kind: 'attitude', valence: 'positive', attitudeExplicit: true,
+            fact: '有条件地同意合作。', ...fields,
+        }] }) });
+        await settleMany(lab, 5, { text: '不排斥合作，只要边界清晰。' });
+        assert.equal(lab.state().events.length, 1);
+        assert.equal(lab.state().events[0].delta, 0);
+        assert.equal(affinityScores(lab.state())['a.png'], 0);
+        assert.equal(lab.calls.length, 1);
+        assert.match(lab.calls[0][0].quietPrompt, /不排斥合作，只要边界清晰.*不证明关系改善/);
+    }
+});
+
+test('a continuing rupture scores once and source edits recompute the surviving chain without a model call', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        const messages = JSON.parse(args[0].quietPrompt.split('\n消息：')[1]);
+        return JSON.stringify({ events: messages.filter(message => message.text.startsWith('争执')).map(message => ({
+            ...factFor(context.chat[message.index]), kind: 'attitude', valence: 'negative', attitudeExplicit: true, thread: '收据争执',
+        })) });
+    } });
+    for (let index = 0; index < 3; index++) await lab.generate({ text: `争执继续 ${index}` });
+    await settleMany(lab, 2);
+    assert.equal(affinityScores(lab.state())['a.png'], -3);
+    assert.deepEqual(lab.state().events.map(event => event.delta), [-3, 0, 0]);
+    for (let index = 1; index <= 3; index++) {
+        lab.context.chat[index].mes = '已编辑为无关内容。';
+        lab.finalize(lab.context.chat[index]);
+        await lab.emit('MESSAGE_EDITED', index);
+        await lab.controller.settle();
+        assert.equal(lab.state().events.length, 3 - index);
+        assert.equal(affinityScores(lab.state())['a.png'] ?? 0, index === 3 ? 0 : -3);
+    }
+    assert.equal(lab.calls.length, 1);
+});
+
+test('a major escalation within one thread is verified once and replaces its minor contributions', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        if (args[0].jsonSchema.name === 'relationship_verification') {
+            const data = JSON.parse(args[0].quietPrompt.split('\n')[1]);
+            return JSON.stringify({ confirmed: data.candidates.map(candidate => candidate.key) });
+        }
+        return JSON.stringify({ events: context.chat.slice(-3).map((message, index) => ({
+            ...factFor(message), kind: 'attitude', valence: 'negative', attitudeExplicit: true,
+            thread: '同一次信任破裂', impact: index === 2 ? 'major' : 'minor',
+        })) });
+    } });
+    await settleMany(lab, 5);
+    assert.equal(lab.calls.length, 2);
+    assert.equal(affinityScores(lab.state())['a.png'], -8);
+    assert.deepEqual(lab.state().events.map(event => event.delta), [0, 0, -8]);
+    lab.context.chat.at(-1).mes = '撤回原先的重大变化证据。';
+    lab.finalize(lab.context.chat.at(-1));
+    await lab.emit('MESSAGE_UPDATED', lab.context.chat.length - 1);
+    await lab.controller.settle();
+    assert.equal(affinityScores(lab.state())['a.png'], -3);
+    assert.equal(lab.calls.length, 2);
 });

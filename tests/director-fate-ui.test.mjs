@@ -914,3 +914,39 @@ test('a late preparation error does not overwrite a reopened panel', async t => 
     fail(new Error('old operation')); await settle();
     assert.equal(h.query('#director_fate_status').textContent, status);
 });
+
+test('deal failures retain concise local reasons and sanitize upstream errors in the status notice', async t => {
+    const h = lab(t); h.open(); t.after(() => h.close());
+    for (const [failure, expected] of [
+        [new Error('正在生成，请稍后重试。'), /正在生成，请稍后重试/],
+        [Object.assign(new Error('Invalid response_format PRIVATE_CARD https://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid'), { status: 400 }), /HTTP 400.*结构化输出/],
+        [new Error('PRIVATE_CARD reasoning and private response'), /未能发牌，请重试/],
+    ]) {
+        h.controller.deal = async () => { throw failure; };
+        h.query('#director_fate_draw').click();
+        await settle();
+        const status = h.query('#director_fate_status');
+        assert.match(status.textContent, expected);
+        assert.doesNotMatch(status.textContent, /PRIVATE|https?:|reasoning/);
+        assert.equal(status.getAttribute('aria-live'), 'polite');
+    }
+});
+
+test('real card preparation carries a safe provider reason through the controller into the panel', async t => {
+    let h;
+    const context = {
+        chatMetadata: {}, chatId: 'error-chat', characterId: 0, chat: [], extensionPrompts: {},
+        eventTypes: {}, eventSource: { on() {} },
+        generateQuietPrompt: async () => { throw Object.assign(new Error('Invalid json_schema PRIVATE_CARD_BODY'), { status: 400 }); },
+    };
+    const controller = createFateController(() => context, {
+        uuid: () => 'safe-error-offer', save: async () => true, onChange: () => h?.panel.refresh(),
+    });
+    h = lab(t, { entries: [], realController: controller });
+    h.open(); t.after(() => h.close());
+    h.query('#director_fate_draw').click();
+    await settle();
+    assert.match(h.query('#director_fate_status').textContent, /原牌已保留.*HTTP 400.*结构化输出/);
+    assert.doesNotMatch(h.query('#director_fate_status').textContent, /PRIVATE/);
+    assert.ok(controller.view().offer, 'the failed preparation retains the offer');
+});

@@ -127,7 +127,7 @@ export class TextCompletionService {
 
             const json = await response.json();
             if (!response.ok || json.error) {
-                throw new Error(String(json.error?.message || 'Response not OK'));
+                throw Object.assign(new Error(String(json.error?.message || 'Response not OK')), { status: response.status });
             }
 
             if (!extractData) {
@@ -471,7 +471,7 @@ export class ChatCompletionService {
         if (!data.stream) {
             const json = await response.json();
             if (!response.ok || json.error) {
-                throw new Error(String(json.error?.message || 'Response not OK'));
+                throw Object.assign(new Error(String(json.error?.message || 'Response not OK')), { status: response.status });
             }
 
             if (!extractData) {

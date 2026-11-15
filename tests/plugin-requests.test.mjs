@@ -101,11 +101,11 @@ test('generator sends the immutable local snapshot and normalizes structured con
     c.chatCompletionSettings.custom_model = before.custom_model; assert.deepEqual(c.chatCompletionSettings, before);
 });
 
-test('generator obeys local abort and emits a static error without provider response content', async () => {
+test('generator obeys local abort and emits a safe error without provider response content', async () => {
     const c = context(); let calls = 0;
     c.ChatCompletionService = { async sendRequest() { calls++; throw new Error('PRIVATE_PROVIDER_RESPONSE'); } };
     const generate = createIsolatedGenerator(() => c);
-    await assert.rejects(generate({ quietPrompt: 'literal' }), error => error.message === 'Isolated evaluation request failed.');
+    await assert.rejects(generate({ quietPrompt: 'literal' }), error => error.message === '服务未返回可用的错误原因');
     const controller = new AbortController(); controller.abort('PRIVATE_ABORT_REASON');
     await assert.rejects(generate({ quietPrompt: 'literal', signal: controller.signal }), error => error.name === 'AbortError' && !error.message.includes('PRIVATE'));
     assert.equal(calls, 1);

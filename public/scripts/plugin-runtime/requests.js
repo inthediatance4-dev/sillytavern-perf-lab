@@ -1,3 +1,5 @@
+import { ProviderRequestError } from './request-errors.js';
+
 // Deliberately bypass native prompt builders: they expand macros, include chat
 // state, emit generation hooks, and (on official 1.19) alter global length state.
 const CHAT_MODELS = Object.freeze({
@@ -140,10 +142,10 @@ async function postJson(fetcher, url, payload, headers, signal) {
     checkAbort(signal);
     const response = await fetcher(url, { method: 'POST', headers, cache: 'no-cache', body: JSON.stringify(payload), signal });
     checkAbort(signal);
-    if (!response.ok) throw new Error('Isolated evaluation request failed.');
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     checkAbort(signal);
-    if (data?.error) throw new Error('Isolated evaluation request failed.');
+    if (!response.ok || data?.error) throw new ProviderRequestError(data, response.status);
+    if (!data) throw new Error('Isolated evaluation request failed.');
     return data;
 }
 
@@ -200,8 +202,7 @@ export function createIsolatedGenerator(getContext, dependencies = {}) {
             throw new Error('Isolated evaluation request failed.');
         } catch (error) {
             if (signal.aborted || error?.name === 'AbortError') throw abortError();
-            // Provider errors can contain prompts, headers, response bodies, or credentials.
-            throw new Error('Isolated evaluation request failed.');
+            throw new ProviderRequestError(error);
         }
     };
 }

@@ -23,12 +23,14 @@ function harness(initialSettings) {
     let modelCalls = 0;
     let sequence = 0;
     const logs = [];
+    const notices = [];
     const handlers = new Map();
     const widgets = new Map();
     const sandbox = vm.createContext({
         structuredClone, AbortController, URL, setTimeout, clearTimeout,
         console: Object.fromEntries(['debug', 'warn', 'error', 'log'].map(name => [name, (...args) => logs.push([name, ...args])])),
         document: { getElementById: () => domPresent ? {} : null },
+        toastr: { info: (...args) => notices.push(args) },
         $(selector) {
             if (!widgets.has(selector)) widgets.set(selector, { properties: {}, handlers: {} });
             const widget = widgets.get(selector);
@@ -122,7 +124,7 @@ function harness(initialSettings) {
         await turn();
     }
     return {
-        settings, context, widgets, handlers, activate, generate,
+        settings, context, widgets, handlers, activate, generate, notices,
         evaluate: source => vm.runInContext(source, sandbox),
         get saves() { return saves; }, get modelCalls() { return modelCalls; },
         get registered() { return typeof sandbox.affinity_memory_interceptor === 'function'; },
@@ -238,4 +240,17 @@ test('an explicitly saved ten-reply cadence survives both current and legacy set
         await lab.generate();
         assert.equal(lab.modelCalls, 1);
     }
+});
+
+test('the production entry displays a safe, non-intrusive failure notice', async () => {
+    const lab = harness({ disabledExtensions: [] });
+    lab.context.generateQuietPrompt = async () => { throw Object.assign(new Error('Invalid response_format PRIVATE_EVIDENCE'), { status: 400 }); };
+    await lab.activate();
+    for (let index = 0; index < 5; index++) await lab.generate();
+    assert.equal(lab.notices.length, 1);
+    const [message, title, options] = lab.notices[0];
+    assert.match(message, /后台关系整理未完成.*HTTP 400.*结构化输出/);
+    assert.doesNotMatch(message, /PRIVATE|分数|好感值|reasoning/);
+    assert.equal(title, '相处记忆');
+    assert.equal(options.escapeHtml, true);
 });

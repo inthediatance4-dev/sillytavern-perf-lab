@@ -2045,3 +2045,38 @@ test('a major escalation within one thread is verified once and replaces its min
     assert.equal(affinityScores(lab.state())['a.png'], -3);
     assert.equal(lab.calls.length, 2);
 });
+
+test('background failure notices are private and limited to one per minute across batches', async () => {
+    const notices = [];
+    let now = 0;
+    const lab = fixture({ interval: 5, controllerOptions: { now: () => now, onError: message => notices.push(message) },
+        reply: () => { throw Object.assign(new Error('Invalid response_format PRIVATE_QUOTE https://PRIVATE_USER:PRIVATE_PASSWORD@private.invalid'), { status: 400 }); } });
+    await settleMany(lab, 5);
+    assert.equal(notices.length, 1);
+    await settleMany(lab, 5);
+    now = 59999;
+    await settleMany(lab, 5);
+    assert.equal(notices.length, 1);
+    now = 60000;
+    await settleMany(lab, 5);
+    assert.equal(notices.length, 2);
+    assert.equal(lab.state().cursor, 20);
+    assert.equal(lab.controller.getDiagnostics().counts.extraction_failed, 4);
+    for (const message of notices) {
+        assert.match(message, /后台关系整理未完成.*HTTP 400.*结构化输出/);
+        assert.doesNotMatch(message, /PRIVATE|https?:|private\.invalid|分数|好感值|events|reasoning/);
+        assert.ok(message.length < 100);
+    }
+});
+
+test('cancelling an evaluation produces no failure notice and a late rejection cannot notify the next chat', async () => {
+    const notices = [];
+    const gate = deferred();
+    const lab = fixture({ interval: 5, reply: () => gate.promise, controllerOptions: { onError: message => notices.push(message) } });
+    await generateMany(lab, 5);
+    await until(() => lab.calls.length === 1, 'evaluation starts');
+    await lab.switchChat();
+    gate.reject(Object.assign(new Error('HTTP 400 PRIVATE_RESPONSE'), { status: 400 }));
+    await lab.controller.settle();
+    assert.deepEqual(notices, []);
+});

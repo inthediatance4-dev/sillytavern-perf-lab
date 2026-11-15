@@ -1,4 +1,5 @@
 import { messageFingerprint } from './instruct.js';
+import { ProviderRequestError } from '../../plugin-runtime/request-errors.js';
 import { ALL_TITLES, CATEGORIES, CATEGORY_IDS, RARITIES, findCategoryByTitle, rollOffer } from './fate-decks.js';
 import { buildPiggybackInstruction, filterPiggybackResponse, parsePiggybackEvents, piggybackBlockStart, stripPiggyback, PIGGYBACK_MARKER, PIGGYBACK_STRENGTH } from './fate-piggyback.js';
 
@@ -441,9 +442,9 @@ export function createFateController(getContext, options = {}) {
             if (!events) throw new Error('Incomplete events');
             return await commit(snapshot, { ...value, offer: { ...offer, strength,
                 cards: cards.map((card, index) => ({ ...card, event: events[index] })) } });
-        } catch {
+        } catch (reason) {
             if (!current(snapshot) || operation.cancelled) return false;
-            throw new Error('事件没有完整生成或保存，原牌已保留。请重试。');
+            throw new ProviderRequestError(reason, undefined, '事件没有完整生成或保存，原牌已保留。请重试。');
         } finally {
             clearTimeout(timeout);
             finishDrawing(operation, snapshot);

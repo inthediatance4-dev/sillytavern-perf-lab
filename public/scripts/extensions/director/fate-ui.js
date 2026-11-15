@@ -1,4 +1,5 @@
 import { createFateEmblem } from './fate-marks.js';
+import { publicFailureMessage } from '../../plugin-runtime/request-errors.js';
 
 // A view that predates the allowance, or a mock that omits it, still has the one free swap.
 function rerollsLeft(view) {
@@ -412,7 +413,7 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         // another queued task can replace it. Late results belong to this panel.
         void (async () => {
             try { await operation(); }
-            catch { if (currentPanel(owner)) error = failure; }
+            catch (reason) { if (currentPanel(owner)) error = publicFailureMessage(reason, failure); }
             finally { if (currentPanel(owner)) refresh(); }
         })();
     }

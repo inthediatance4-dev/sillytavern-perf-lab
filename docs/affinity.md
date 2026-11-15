@@ -9,7 +9,8 @@
 - `MESSAGE_RECEIVED(messageId, type)` 只登记候选；`GENERATION_COMPLETED` 才验证同一 chat、metadata、消息对象、最终文本和当前已保存的 swipe。`GENERATION_ENDED` 是 UI 解锁信号，流式时可早于消息保存，不能用来计数。下一次生成开始时，前次已经完成文本与 swipe、但仍等待保存的请求保留自己的完成归属；停止当前请求不会撤销另一条已完成请求。
 - 继续生成更新原逻辑消息，不新增计数；重生成保留被替换逻辑消息的凭据。群聊每个成功回复累计一次，以规范 avatar 区分同名角色，等 `GROUP_WRAPPER_FINISHED` 后才启动整理，不按角色分别发评估请求。
 - 旁路使用 `generateQuietPrompt({ isolated: true, jsonSchema, quietPrompt, signal, maxOutputTokens })`，沿用当前主提供方；没有单独模型配置。单次输出额度为模型上下文的四分之一，上限 2048 token、下限 128；只作用于该请求，正文回复设置与 `TempResponseLength` 不变。隔离路径使用 raw API 的本地 controller，并跳过正文提示及 CC/TC 参数修改事件，避免消耗别的请求的长度恢复钩子。新主生成、关闭功能或切聊天只取消旁路自己的 signal，正文不等待它。
-- 所有评估和保存工作均脱离正文事件 promise。失败不向正文抛出；控制器不把原文、响应或密钥写入错误日志。页面内仅累计解析、提取、核验、保存和预算失败的固定类别计数，刷新页面即清空，不写聊天元数据。内置版本可在浏览器控制台运行 `const d = await import('/scripts/extensions/affinity/index.js'); d.getAffinityDiagnostics()` 查询 `{ total, counts }`；独立安装时将导入路径换成 `/scripts/extensions/third-party/<实际插件目录>/index.js`。该接口不返回关系分数、引文、聊天身份或模型响应，取消不算失败。
+- 所有评估和保存工作均脱离正文事件 promise。失败不向正文抛出；控制器不把原文、响应或密钥写入错误日志。后台提取或核验失败时显示简短提示，每分钟最多一次，取消或过时请求不提示。提示仅含可确认的 HTTP 状态和预定义中文原因（例如结构化输出被拒绝、额度不足），不回显上游自由文本、网址、密钥、关系事件或推理过程。若服务端已将上游失败压成 HTTP 200 的错误信封，只显示仍可辨认的原因，不猜测原始状态码。
+- 页面内仅累计解析、提取、核验、保存和预算失败的固定类别计数，刷新页面即清空，不写聊天元数据。内置版本可在浏览器控制台运行 `const d = await import('/scripts/extensions/affinity/index.js'); d.getAffinityDiagnostics()` 查询 `{ total, counts }`；独立安装时将导入路径换成 `/scripts/extensions/third-party/<实际插件目录>/index.js`。该接口不返回关系分数、引文、聊天身份或模型响应，取消不算失败。
 
 ## 存储合同
 

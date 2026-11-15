@@ -2,6 +2,7 @@ import {
     AFFINITY_KEY, createAffinityState, parseAffinityResponse, candidateKey, affinityScoreEligible,
     applyAffinityEvaluation, reconcileAffinity, buildAffinityMemory,
 } from './affinity-state.js';
+import { safeRequestReason } from '../../plugin-runtime/request-errors.js';
 
 function fnv1a(text) {
     let hash = 0x811c9dc5;
@@ -123,6 +124,15 @@ export function createAffinityController(getContext, options = {}) {
         'verification_failed', 'persistence_failed', 'budget_failed', 'owner_ambiguous',
         'apply_shape', 'apply_structure', 'apply_binding', 'apply_owner', 'apply_outcome'].map(category => [category, 0]));
     let diagnosticTotal = 0;
+    let lastFailureNotice = -Infinity;
+    function notifyFailure(error, fallback = '服务未返回可用的错误原因') {
+        if (error?.name === 'AbortError') return;
+        const now = (options.now ?? Date.now)();
+        if (now - lastFailureNotice < 60000) return;
+        lastFailureNotice = now;
+        const reason = safeRequestReason(error) || fallback;
+        try { options.onError?.(`后台关系整理未完成：${reason}。后续对话会再次尝试。`); } catch { /* Notices cannot interrupt the chat. */ }
+    }
     const getDiagnostics = () => ({ total: diagnosticTotal, counts: { ...diagnosticCounts } });
     function diagnose(category, count = 1) {
         if (!Object.hasOwn(diagnosticCounts, category) || !Number.isSafeInteger(count) || count < 1) return;
@@ -449,8 +459,8 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         try {
             raw = await context.generateQuietPrompt({ isolated: true, signal: record.controller.signal, ...outputOptions(),
                 quietPrompt: fitted.prompt, jsonSchema: AFFINITY_SCHEMA });
-        } catch {
-            if (jobCurrent(record)) diagnose('extraction_failed');
+        } catch (error) {
+            if (jobCurrent(record)) { diagnose('extraction_failed'); notifyFailure(error); }
             return null;
         }
         if (!jobCurrent(record)) return null;
@@ -461,7 +471,7 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
                 // positively establish a change and name its thread before scoring.
                 .map(proposal => ({ ...proposal, relationshipChanged: proposal.relationshipChanged === true && !!proposal.thread }))
                 .filter(proposal => candidateKey(proposal, record.refs));
-        } catch { diagnose('parse_envelope'); return null; }
+        } catch { diagnose('parse_envelope'); notifyFailure(null, '服务返回的内容无法解析'); return null; }
         // Validate before asking the verifier: no invented sources or owners may
         // earn a second request. Verification never downgrades a rejected major.
         const provisional = applyAffinityEvaluation(value, proposals, projection(), owners,
@@ -507,8 +517,8 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
                             && Array.isArray(parsed.confirmed) && parsed.confirmed.length <= batch.candidates.length
                             && parsed.confirmed.every(key => typeof key === 'string' && batch.candidates.some(candidate => candidate.key === key))) {
                             parsed.confirmed.forEach(key => verified.add(key));
-                        } else diagnose('verification_failed');
-                    } catch { if (jobCurrent(record)) diagnose('verification_failed'); }
+                        } else { diagnose('verification_failed'); notifyFailure(null, '服务返回的内容无法解析'); }
+                    } catch (error) { if (jobCurrent(record)) { diagnose('verification_failed'); notifyFailure(error); } }
                 }
             } catch { if (jobCurrent(record)) diagnose('budget_failed'); }
         }
@@ -548,7 +558,9 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
                 controller: new AbortController(), invalid: false };
             job = record;
             let result = null;
-            try { result = await evaluate(record, value, affinityOwners(getContext())); } catch { if (jobCurrent(record)) diagnose('extraction_failed'); }
+            try { result = await evaluate(record, value, affinityOwners(getContext())); } catch (error) {
+                if (jobCurrent(record)) { diagnose('extraction_failed'); notifyFailure(error); }
+            }
             job = null;
             if (!current(record.snapshot) || !enabled()) return;
             const latest = state();

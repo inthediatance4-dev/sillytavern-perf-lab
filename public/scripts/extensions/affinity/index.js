@@ -65,6 +65,7 @@ export async function init() {
         isGenerating, uuid: uuidv4,
         requestIdentity: affinityIdentity,
         onDiagnostic: snapshot => { affinityDiagnostics = { total: snapshot.total, counts: { ...snapshot.counts } }; },
+        onError: message => globalThis.toastr?.info(message, '相处记忆', { timeOut: 6000, escapeHtml: true }),
         maxOutputTokens: affinityOutputLimit,
         fitPrompt: (render, refs, state, owners, signal) => fitAffinityPrompt(
             (shown, memory) => render(shown, memory, owners), { refs, state },

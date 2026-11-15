@@ -230,7 +230,7 @@ test('opening 2000 old messages does not scan or stamp the entire transcript, an
     lab.prepare('normal');
     assert.ok(reads - before < 20, 'unchanged prepare calls must reuse their projection');
 });
-test('only the tenth accepted reply starts a default evaluation and repeated completion is idempotent', async () => {
+test('an explicit ten-reply interval waits for ten accepted replies and repeated completion is idempotent', async () => {
     const lab = fixture();
     await settleMany(lab, 9);
     assert.equal(lab.calls.length, 0);
@@ -250,8 +250,9 @@ test('only the tenth accepted reply starts a default evaluation and repeated com
     assert.equal(lab.calls.length, 1);
     assert.ok(lab.saves.length > 0, 'accepted receipt and evaluation cursor must persist');
 });
-test('the optional five reply interval uses the same accepted generation boundary', async () => {
-    const lab = fixture({ interval: 5 });
+test('the controller defaults to five replies when no interval is saved', async () => {
+    const lab = fixture();
+    delete lab.context.extensionSettings.affinity.interval;
     await settleMany(lab, 4);
     assert.equal(lab.calls.length, 0);
     await lab.generate();

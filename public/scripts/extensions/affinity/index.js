@@ -44,7 +44,7 @@ export async function init() {
         seeded = true;
     }
     if (![5, 10].includes(settings.interval)) {
-        settings.interval = 10;
+        settings.interval = 5;
         seeded = true;
     }
     const context = getContext();

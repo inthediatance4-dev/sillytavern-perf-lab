@@ -161,7 +161,7 @@ export function createAffinityController(getContext, options = {}) {
         const now = enabled();
         if (now !== previouslyEnabled) { activationRevision++; previouslyEnabled = now; }
     };
-    const interval = () => settings().interval === 5 ? 5 : 10;
+    const interval = () => settings().interval === 10 ? 10 : 5;
     const chatId = context => {
         try { return context.getCurrentChatId?.() ?? context.chatId; } catch { return context.chatId; }
     };

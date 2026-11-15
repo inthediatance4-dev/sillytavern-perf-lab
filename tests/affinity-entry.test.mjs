@@ -177,13 +177,13 @@ test('invalid and explicitly present new fields use defaults instead of legacy v
     const lab = harness({ disabledExtensions: [], affinity: { enabled: 'false', interval: '5' }, director: { affinity: { enabled: false, interval: 5 } } });
     await lab.activate();
     assert.equal(lab.settings.affinity.enabled, true);
-    assert.equal(lab.settings.affinity.interval, 10);
+    assert.equal(lab.settings.affinity.interval, 5);
     const undefinedField = harness({ disabledExtensions: [], affinity: {}, director: { affinity: { enabled: false, interval: 5 } } });
     undefinedField.settings.affinity.enabled = undefined;
     undefinedField.settings.affinity.interval = undefined;
     await undefinedField.activate();
     assert.equal(undefinedField.settings.affinity.enabled, true);
-    assert.equal(undefinedField.settings.affinity.interval, 10);
+    assert.equal(undefinedField.settings.affinity.interval, 5);
 });
 
 test('malformed settings containers and legacy field types are normalized safely', async () => {
@@ -192,7 +192,7 @@ test('malformed settings containers and legacy field types are normalized safely
         await lab.activate();
         assert.equal(lab.registered, true);
         assert.equal(lab.settings.affinity.enabled, true);
-        assert.equal(lab.settings.affinity.interval, 10);
+        assert.equal(lab.settings.affinity.interval, 5);
         assert.equal(Array.isArray(lab.settings.affinity), false);
     }
     for (const expression of ['[]', 'new Date()', 'new (class Settings { constructor() { this.enabled = false; this.interval = 5; } })()', 'Object.create({ enabled: false, interval: 5 })']) {
@@ -200,7 +200,7 @@ test('malformed settings containers and legacy field types are normalized safely
         lab.settings.director.affinity = lab.evaluate(expression);
         await lab.activate();
         assert.equal(lab.settings.affinity.enabled, true);
-        assert.equal(lab.settings.affinity.interval, 10);
+        assert.equal(lab.settings.affinity.interval, 5);
     }
 });
 
@@ -211,4 +211,31 @@ test('disabled extension activation leaves preferences and hook state untouched'
     assert.equal(lab.registered, false);
     assert.equal(lab.saves, 0);
     assert.equal(JSON.stringify(lab.settings), before);
+});
+
+test('fresh settings and the selector use the five-reply default', async () => {
+    const lab = harness({ disabledExtensions: [] });
+    await lab.activate();
+    assert.equal(lab.settings.affinity.interval, 5);
+    assert.equal(lab.widgets.get('#affinity_interval').value, '5');
+    for (let index = 0; index < 4; index++) await lab.generate();
+    assert.equal(lab.modelCalls, 0);
+    await lab.generate();
+    assert.equal(lab.modelCalls, 1);
+});
+
+test('an explicitly saved ten-reply cadence survives both current and legacy settings', async () => {
+    for (const settings of [
+        { affinity: { interval: 10 }, director: { affinity: { interval: 5 } } },
+        { director: { affinity: { interval: 10 } } },
+    ]) {
+        const lab = harness({ disabledExtensions: [], ...settings });
+        await lab.activate();
+        assert.equal(lab.settings.affinity.interval, 10);
+        assert.equal(lab.widgets.get('#affinity_interval').value, '10');
+        for (let index = 0; index < 9; index++) await lab.generate();
+        assert.equal(lab.modelCalls, 0);
+        await lab.generate();
+        assert.equal(lab.modelCalls, 1);
+    }
 });

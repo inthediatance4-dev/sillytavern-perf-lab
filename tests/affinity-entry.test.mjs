@@ -125,6 +125,7 @@ function harness(initialSettings) {
     }
     return {
         settings, context, widgets, handlers, activate, generate, notices,
+        getDiagnostics: () => modules.get(entryPath).namespace.getAffinityDiagnostics(),
         evaluate: source => vm.runInContext(source, sandbox),
         get saves() { return saves; }, get modelCalls() { return modelCalls; },
         get registered() { return typeof sandbox.affinity_memory_interceptor === 'function'; },
@@ -253,4 +254,28 @@ test('the production entry displays a safe, non-intrusive failure notice', async
     assert.doesNotMatch(message, /PRIVATE|分数|好感值|reasoning/);
     assert.equal(title, '相处记忆');
     assert.equal(options.escapeHtml, true);
+});
+
+test('diagnostics contain only error counters and preserve distinct raw stored fields', async () => {
+    const lab = harness({ disabledExtensions: [] });
+    lab.context.generateQuietPrompt = async () => {
+        const message = lab.context.chat.at(-1);
+        return JSON.stringify({ events: [{
+            owner: 'fixture.png', kind: 'fact', fact: '角色记得一次交谈。', actor: 'character', recipient: 'user',
+            status: 'observed', valence: 'none', impact: 'minor', confidence: 'high', attitudeExplicit: false,
+            outcomeKnown: null, knownToCharacter: 'yes', source: { slot: message.extra.__affinity.id, quote: message.mes },
+        }] });
+    };
+    await lab.activate();
+    for (let index = 0; index < 5; index++) await lab.generate();
+    const stored = lab.context.chatMetadata.affinity.__affinity;
+    assert.equal(stored.issued, 5);
+    assert.equal(stored.nextId, 2);
+    assert.equal(stored.cursor, 5);
+    assert.equal(stored.events[0].knownToCharacter, 'yes');
+    const before = JSON.stringify(stored);
+    const diagnostics = lab.getDiagnostics();
+    assert.deepEqual(Object.keys(diagnostics).sort(), ['counts', 'total']);
+    assert.equal(diagnostics.total, 0);
+    assert.equal(JSON.stringify(stored), before, 'reading diagnostics cannot convert or recompute stored fields');
 });

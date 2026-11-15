@@ -16,6 +16,8 @@
 
 `chat_metadata.affinity.__affinity` 的版本为 1，保存宿主 scope UUID、单调 ID、已接受消息计数 `issued`、已尝试批次游标 `cursor`、当前证据和短期归档。旧的 `chat_metadata.director.__affinity` 会迁移到独立命名空间；其他 director 元数据不被覆盖。新设置缺失字段继承旧 `extension_settings.director.affinity` 中有效的开关和频率，显式的新设置优先。未知版本不自动重置。
 
+这些是不同的原始存储字段：`issued` 是已接受回复的累计凭据数；`nextId` 是下一条证据的编号，不能拿它当回复数量；`cursor` 是已尝试批次的凭据游标。证据的 `knownToCharacter` 原值是字符串 `yes`、`no` 或 `unknown`，并非布尔值。内置诊断接口仅返回上述页面内错误计数，不读取或换算这些存储字段，设置界面也不展示它们。当前代码中未发现会将 `nextId` 显示为 `issued`、或把知情字符串转成布尔值的诊断显示路径；浏览器与磁盘的具体差异仍需对应时刻的保存状态才能定位。
+
 每个可引用的非系统消息及其各 swipe 的 `extra.__affinity` 保存很小的 `{ version, scope, id, receipt, evaluated? }`。`id` 是宿主生成的逻辑消息 UUID；`receipt` 只在关联的生成成功后分配。历史消息、用户消息与手工插入消息初始没有有效回复计数。消息正文、所选 swipe 和 fingerprint 与凭据一起校验；模型不能自行指定 ledger ID 或分值。
 
 页面内最多保留 128 条尚未确认落盘的成功凭据，用于衔接完成事件、异步保存与同聊天的原生重载。恢复前逐项核对聊天、scope、规范角色、索引、原文、swipe 与逻辑标记；原文改变或身份冲突即撤销缓存，切回旧分支也不会恢复它。已由原生保存写入的新 `evaluated` 不会被旧缓存覆盖，关闭后重载再启用也会先恢复有效凭据。保存绑定原聊天及加载代次，加载中的空聊天窗口不能授权写入。

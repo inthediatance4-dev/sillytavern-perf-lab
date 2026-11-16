@@ -15,15 +15,17 @@ export function safeRequestReason(error, transportStatus) {
     const detail = error?.error && typeof error.error === 'object' ? error.error : error;
     const message = typeof detail === 'string' ? detail : typeof detail?.message === 'string' ? detail.message
         : typeof error?.error === 'string' ? error.error : '';
-    const text = `${typeof detail?.code === 'string' ? detail.code : ''} ${message}`.slice(0, 8192);
-    const status = [detail?.status, detail?.statusCode, error?.status, error?.response?.status, transportStatus,
+    const text = `${typeof detail?.code === 'string' ? detail.code : ''} ${typeof detail?.type === 'string' ? detail.type : ''} ${message}`.slice(0, 8192);
+    const status = [transportStatus, detail?.status, detail?.statusCode, error?.status, error?.response?.status,
         /\b(?:HTTP|status)\s*[:=]?\s*([45]\d{2})\b/i.exec(text)?.[1]].map(httpStatus).find(Boolean);
     let reason = '';
-    if (/context_length_exceeded|maximum context|too many tokens|prompt (?:is )?too long/i.test(text)) reason = '请求超出模型上下文限制';
+    if (/model_not_found|model_not_available|model[^\n]{0,80}(?:does not exist|not found|unavailable)/i.test(text)) reason = '模型不存在或不可用';
+    else if (/context_length_exceeded|maximum context|too many tokens|prompt (?:is )?too long/i.test(text)) reason = '请求超出模型上下文限制';
     else if (/response_format|json_schema|structured outputs?/i.test(text)) reason = '结构化输出参数被服务拒绝';
     else if (/unsupported_parameter|unsupported parameter|unrecognized request argument/i.test(text)) reason = '服务不支持请求中的参数';
     else if (/invalid_api_key|invalid api key|unauthorized|authentication/i.test(text)) reason = '服务授权失败';
-    else if (/insufficient_quota|rate.limit|quota exceeded/i.test(text)) reason = statusReasons[429];
+    else if (/insufficient_quota|rate.limit|quota exceeded/i.test(text) || error?.quota_error === true) reason = statusReasons[429];
+    else if (/requires moderation|content_filter|content_policy_violation/i.test(text)) reason = '内容被服务安全策略拦截';
     else if (/bad request/i.test(text)) reason = '请求参数被服务拒绝（Bad Request）';
     else if (/timed? ?out|timeout/i.test(text) || error?.name === 'TimeoutError') reason = '服务请求超时';
     else if (/failed to fetch|network error|ECONNREFUSED|ENOTFOUND/i.test(text)) reason = '无法连接服务';

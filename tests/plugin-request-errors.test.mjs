@@ -40,6 +40,21 @@ test('HTTP status and known connection, context and quota reasons remain actiona
     ]) assert.match(safeRequestReason(error), expected);
 });
 
+test('model availability, quota and moderation use fixed reasons with authoritative transport status', () => {
+    for (const error of [
+        { error: { code: 'model_not_found', message: `${privateText} ${credentialUrl}`, status: 404 } },
+        { error: { type: 'model_not_found', message: privateText } },
+        { error: { message: `The model PRIVATE_MODEL does not exist ${credentialUrl}` } },
+    ]) {
+        assert.equal(safeRequestReason(error, 503), 'HTTP 503：模型不存在或不可用');
+        assert.equal(new ProviderRequestError(error, 503).message, 'HTTP 503：模型不存在或不可用');
+    }
+    assert.equal(safeRequestReason({ error: { code: 'model_not_found' } }, 200), '模型不存在或不可用');
+    assert.equal(safeRequestReason({ quota_error: true }, 429), 'HTTP 429：服务额度不足或请求过于频繁');
+    assert.equal(safeRequestReason({ error: { message: `requires moderation ${privateText}`, metadata: { flagged_input: privateText } } }, 403),
+        'HTTP 403：内容被服务安全策略拦截');
+});
+
 const source = readFileSync(new URL('../public/scripts/custom-request.js', import.meta.url), 'utf8');
 // Execute each real non-streaming service method. Imports and transport alone
 // are fixtures, so HTTP 200 error envelopes exercise the actual throw path.

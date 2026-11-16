@@ -373,7 +373,7 @@ test('native OpenAI output override uses a settings copy and leaves the next for
         createGenerationParameters: async (value, _model, _type, messages) => ({
             generate_data: { max_tokens: value.openai_max_tokens, messages }, stream: false, canMultiSwipe: false,
         }),
-        getRequestHeaders: () => ({}), checkQuotaError() {}, checkModerationError() {},
+        getRequestHeaders: () => ({}), checkChatCompletionError() {},
         parseChatCompletionLogprobs: () => null, delay: async () => {}, saveLogprobsForActiveMessage() {},
         fetch: async (_url, request) => {
             seen.push(JSON.parse(request.body));
@@ -399,7 +399,7 @@ test('isolated OpenAI requests cannot consume another request response-length re
         event_types: { CHAT_COMPLETION_SETTINGS_READY: 'settings' },
         getChatCompletionModel: () => 'synthetic-current',
         createGenerationParameters: async value => ({ generate_data: { max_tokens: value.openai_max_tokens }, stream: false }),
-        getRequestHeaders: () => ({}), checkQuotaError() {}, checkModerationError() {},
+        getRequestHeaders: () => ({}), checkChatCompletionError() {},
         parseChatCompletionLogprobs: () => null, delay: async () => {}, saveLogprobsForActiveMessage() {},
         fetch: async (_url, request) => {
             sent.push(JSON.parse(request.body).max_tokens);

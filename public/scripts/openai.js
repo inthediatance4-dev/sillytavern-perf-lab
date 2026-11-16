@@ -4,6 +4,7 @@
 * https://github.com/CncAnon1/TavernAITurbo
 */
 import { Fuse, DOMPurify } from '../lib.js';
+import { ProviderRequestError } from './plugin-runtime/request-errors.js';
 
 import {
     abortStatusCheck,
@@ -1624,18 +1625,19 @@ export async function prepareOpenAIMessages({
 }
 
 /**
- * Extracts a human-readable message from a Chat Completion error response.
- * Providers can return an error object without a message field, or the error as
- * a plain string. statusText is only used for non-2xx responses, since for an
- * HTTP 200 carrying an error payload it is just "OK" (#5647).
- * @param {object} data Parsed response body
+ * Report a provider failure once, then throw only a public-safe error.
+ * Generate.onError does not toast ordinary Errors; streaming may catch them
+ * before Generate, so this transport boundary owns the notification.
+ * @param {object} data Parsed response body, if available
  * @param {Response} response Fetch response
- * @returns {string} Error message to display and throw
+ * @param {object} [options]
+ * @param {boolean} [options.quiet=false] Suppress toast messages
  */
-function getChatCompletionErrorMessage(data, response) {
-    const error = data?.error ?? data?.detail?.error;
-    const message = typeof error === 'string' ? error : (error?.message || error?.code || error?.type);
-    return String(message || (!response.ok && response.statusText) || t`Unknown error`);
+function checkChatCompletionError(data, response, { quiet = false } = {}) {
+    if (response.ok && !(data?.error || data?.message || data?.detail || data?.quota_error)) return;
+    const error = new ProviderRequestError(data?.detail ?? data, response.status);
+    if (!quiet) toastr.error(error.message, '生成失败');
+    throw error;
 }
 
 /**
@@ -1646,72 +1648,13 @@ function getChatCompletionErrorMessage(data, response) {
  * @param {boolean?} [options.quiet=false] Suppress toast messages
  */
 export function tryParseStreamingError(response, decoded, { quiet = false } = {}) {
+    let data;
     try {
-        const data = JSON.parse(decoded);
-
-        if (!data) {
-            return;
-        }
-
-        checkQuotaError(data, { quiet });
-        checkModerationError(data, { quiet });
-
-        // these do not throw correctly (equiv to Error("[object Object]"))
-        // if trying to fix "[object Object]" displayed to users, start here
-
-        if (data.error) {
-            !quiet && toastr.error(getChatCompletionErrorMessage(data, response), 'Chat Completion API');
-            throw new Error(data);
-        }
-
-        if (data.message) {
-            !quiet && toastr.error(data.message, 'Chat Completion API');
-            throw new Error(data);
-        }
-
-        if (data.detail) {
-            !quiet && toastr.error(getChatCompletionErrorMessage(data, response), 'Chat Completion API');
-            throw new Error(data);
-        }
+        data = JSON.parse(decoded);
     } catch {
-        // No JSON. Do nothing.
+        // Non-JSON failures still carry a usable HTTP status.
     }
-}
-
-/**
- * Checks if the response contains a quota error and displays a popup if it does.
- * @param data
- * @param {object} [options]
- * @param {boolean?} [options.quiet=false] Suppress toast messages
- * @returns {void}
- * @throws {object} - response JSON
- */
-function checkQuotaError(data, { quiet = false } = {}) {
-    if (!data) {
-        return;
-    }
-
-    if (data.quota_error) {
-        !quiet && renderTemplateAsync('quotaError').then((html) => Popup.show.text('Quota Error', html));
-
-        // this does not throw correctly (equiv to Error("[object Object]"))
-        // if trying to fix "[object Object]" displayed to users, start here
-        throw new Error(data);
-    }
-}
-
-/**
- * @param {any} data
- * @param {object} [options]
- * @param {boolean?} [options.quiet=false] Suppress toast messages
- */
-function checkModerationError(data, { quiet = false } = {}) {
-    const moderationError = data?.error?.message?.includes('requires moderation');
-    if (moderationError && !quiet) {
-        const moderationReason = `Reasons: ${data?.error?.metadata?.reasons?.join(', ') ?? '(N/A)'}`;
-        const flaggedText = data?.error?.metadata?.flagged_input ?? '(N/A)';
-        toastr.info(flaggedText, moderationReason, { timeOut: 10000 });
-    }
+    checkChatCompletionError(data, response, { quiet });
 }
 
 /**
@@ -3194,14 +3137,7 @@ async function sendOpenAIRequest(type, messages, signal, { jsonSchema = null, ma
     } else {
         const data = await response.json();
 
-        checkQuotaError(data);
-        checkModerationError(data);
-
-        if (data.error) {
-            const message = getChatCompletionErrorMessage(data, response);
-            toastr.error(message, t`API returned an error`);
-            throw new Error(message);
-        }
+        checkChatCompletionError(data, response);
 
         if (type !== 'quiet') {
             const logprobs = parseChatCompletionLogprobs(data);

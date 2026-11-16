@@ -1,0 +1,48 @@
+✔ real group regeneration keeps its scope until asynchronous generation completes (1.7285ms)
+✔ real group regeneration always finishes its scope on a rejected generation (0.703ms)
+✖ an extension can cancel regeneration before the old batch is deleted (1.0158ms)
+✖ queued conditional save checks ownership at the write boundary (1.8864ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 2
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 131.3121
+
+✖ failing tests:
+
+test at tests\director-fate-group-scope.test.mjs:49:1
+✖ an extension can cancel regeneration before the old batch is deleted (1.0158ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  true !== false
+
+      at TestContext.<anonymous> (<repo>/tests/director-fate-group-scope.test.mjs:58:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-fate-group-scope.test.mjs:62:1
+✖ queued conditional save checks ownership at the write boundary (1.8864ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  true !== false
+
+      at TestContext.<anonymous> (<repo>/tests/director-fate-group-scope.test.mjs:77:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

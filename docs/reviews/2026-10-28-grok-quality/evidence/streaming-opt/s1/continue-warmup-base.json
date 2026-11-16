@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 0,
+  "discarded": true,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.4,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 13.71280724450194,
+    "framesOver33Pct": 10.090556274256144,
+    "loafCount": 10,
+    "loafTotalMs": 815.4999999962747,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 64.69999999925494,
+    "loafScriptotherMs": 354.60000000335276,
+    "formatP50Ms": 2.099999999627471,
+    "formatP95Ms": 6.5,
+    "domP50Ms": 0.30000000074505806,
+    "domP95Ms": 0.5,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 20.727217753406393,
+    "firstTokenMs": 110.189697265625,
+    "finishMs": 282.068603515625,
+    "typingP50Ms": 33.2998046875,
+    "typingP95Ms": 51.599853515625,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 805,
+    "keys": 74,
+    "hooks": 942
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283421701.9104,
+    "receivedNs": "9140633865753",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793283421710.526,
+    "lastChunkEpochMs": 1793283436377.2314,
+    "doneEpochMs": 1793283436377.2493,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

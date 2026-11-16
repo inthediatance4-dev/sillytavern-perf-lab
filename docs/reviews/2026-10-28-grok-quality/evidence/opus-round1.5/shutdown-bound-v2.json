@@ -1,0 +1,9 @@
+{
+  "scenario": "shutdown-bound",
+  "reproduced": false,
+  "code": null,
+  "op": null,
+  "cause": null,
+  "name": "TypeError",
+  "message": "Request drain requires an AbortSignal"
+}

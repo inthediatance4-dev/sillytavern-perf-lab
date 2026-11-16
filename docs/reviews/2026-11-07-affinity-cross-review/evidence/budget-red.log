@@ -1,0 +1,57 @@
+✔ sidecar output has an independent upper bound and scales down on small contexts (1.6711ms)
+✔ uses actual model tokens to fit long Chinese evidence without editing sources (267.0331ms)
+✔ a fitting prompt keeps all text and prior memory byte for byte (0.4174ms)
+✔ temporarily trims oversized prior memory without deleting stored open promises (1.2407ms)
+✔ omits optional old labels before new receipts when headers exhaust context (0.9569ms)
+✔ an impossible budget or invalid tokenizer never produces an oversized prompt (2.2156ms)
+✔ cancellation during tokenization stops before any fitted prompt is returned (0.6883ms)
+✔ a budget changed during tokenization is checked again before accepting the result (0.9894ms)
+✔ cancellation releases a stalled tokenizer without waiting for its response (0.5373ms)
+✔ same-turn cancellation and tokenizer rejection are both consumed (5.1392ms)
+✔ Unicode excerpts do not introduce unpaired surrogate characters (0.4498ms)
+✔ major checks split within the token budget without truncating source evidence (0.815ms)
+✔ a major candidate too large to fit alone does not displace smaller valid checks (0.1808ms)
+✖ a shrinking context budget never returns a previously fitted oversized verification batch (12.6075ms)
+✖ verification batches can recheck the current tokenizer and budget immediately before dispatch (0.2921ms)
+✖ cancellation releases a verification dispatch recheck waiting on its tokenizer (0.2326ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 13
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 472.4391
+
+✖ failing tests:
+
+test at tests\director-affinity-budget.test.mjs:153:1
+✖ a shrinking context budget never returns a previously fitted oversized verification batch (12.6075ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(batches.every(batch => batch.prompt.length <= budget))
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-budget.test.mjs:164:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-budget.test.mjs:168:1
+✖ verification batches can recheck the current tokenizer and budget immediately before dispatch (0.2921ms)
+  TypeError [Error]: batches[0].validate is not a function
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-budget.test.mjs:175:35)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-affinity-budget.test.mjs:183:1
+✖ cancellation releases a verification dispatch recheck waiting on its tokenizer (0.2326ms)
+  TypeError [Error]: batches[0].validate is not a function
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-budget.test.mjs:193:32)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)

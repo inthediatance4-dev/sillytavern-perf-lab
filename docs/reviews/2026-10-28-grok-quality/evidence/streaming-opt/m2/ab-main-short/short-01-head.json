@@ -1,0 +1,102 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 1,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 33.4,
+    "framesOver16_7Pct": 5.970149253731343,
+    "framesOver33Pct": 3.731343283582089,
+    "loafCount": 1,
+    "loafTotalMs": 164.10000000149012,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 160.39999999850988,
+    "formatP50Ms": 1.1000000014901161,
+    "formatP95Ms": 1.5,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.10000000149011612,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 21.19992077102927,
+    "firstTokenMs": 86.9306640625,
+    "finishMs": 385.67529296875,
+    "typingP50Ms": 16.60009765625,
+    "typingP95Ms": 31.2001953125,
+    "scrollStolen": 0
+  },
+  "measurementWindow": {
+    "kind": "network",
+    "startEpochMs": 1793293988750.0854,
+    "endEpochMs": 1793293991202.9248,
+    "networkStartEpochMs": 1793293988750.0854,
+    "networkEndEpochMs": 1793293991202.9248
+  },
+  "windowSamples": {
+    "selected": {
+      "frames": 134,
+      "keys": 12,
+      "loaf": 1,
+      "format": 52,
+      "dom": 52,
+      "reasoning": 54,
+      "scroll": 21
+    },
+    "network": {
+      "frames": 134,
+      "keys": 12,
+      "loaf": 1,
+      "format": 52,
+      "dom": 52,
+      "reasoning": 54,
+      "scroll": 21
+    }
+  },
+  "dom": {
+    "incremental": 50,
+    "full": 110,
+    "fade": 0,
+    "frames": 51
+  },
+  "samples": {
+    "frames": 177,
+    "keys": 13,
+    "hooks": 183
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793293988737.5693,
+    "receivedNs": "19590106710748",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793293988750.0854,
+    "lastChunkEpochMs": 1793293991202.9248,
+    "doneEpochMs": 1793293991202.9524,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

@@ -1,0 +1,9 @@
+{
+  "scenario": "retired-name-reuse-crash-before-publication",
+  "reproduced": false,
+  "childStatus": 73,
+  "deliberateCreatePublished": false,
+  "ordinaryStaleSaveAdmitted": false,
+  "orphanedHeldMarkers": 0,
+  "originalBytesRemainRecycled": true
+}

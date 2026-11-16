@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "snapshotFilesVerified": [
+    "equivalence/2000-100-0-base/run-2000-100-0-dom-open.html.gz",
+    "equivalence/2000-100-0-base/run-2000-100-0-dom-older.html.gz",
+    "equivalence/2000-100-0-head/run-2000-100-0-dom-open.html.gz",
+    "equivalence/2000-100-0-head/run-2000-100-0-dom-older.html.gz"
+  ],
+  "unredactedHostHomeOrTempPaths": [],
+  "cpuProfiles": 0
+}

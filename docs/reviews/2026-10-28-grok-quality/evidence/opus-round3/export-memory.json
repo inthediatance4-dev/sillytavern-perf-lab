@@ -1,0 +1,51 @@
+{
+  "node": "v24.22.1",
+  "platform": "linux",
+  "baselineCommit": "48a153eef7411c8c6e9fa5b33bbbea74f7db892e",
+  "currentCommit": "6567d5ba5056d7e0aa7cc711f7f83a613d09d1c2",
+  "workingTreeChangesIncluded": true,
+  "syntheticOnly": true,
+  "inputBytes": 104860395,
+  "rows": 24023,
+  "method": "Separate --expose-gc workers; actual /export route handler in-process; 2ms memoryUsage sampling plus response-boundary samples; Current streams JSON into a counting Writable with backpressure; baseline Express JSON serialization simulated without HTTP transport. Sampled peaks can miss transient allocations; processLifetimeMaxRssBytes includes module loading.",
+  "baselineBufferedWholeOutput": true,
+  "baselineBufferingEvidence": "48a153e src/endpoints/chats.js /export accumulates buffer += on each readline line and responds only on close.",
+  "current": {
+    "initial": {
+      "rss": 92520448,
+      "heapTotal": 34627584,
+      "heapUsed": 15166016,
+      "external": 4073984,
+      "arrayBuffers": 212883
+    },
+    "peakRss": 118472704,
+    "peakHeapUsed": 29973000,
+    "rssIncrease": 25952256,
+    "heapUsedIncrease": 14806984,
+    "processLifetimeMaxRssBytes": 118472704,
+    "samples": 24310,
+    "elapsedMs": 573.047542,
+    "outputBytes": 104091659,
+    "responseBytes": 104139758,
+    "responseSha256": "141d6f3255b7908e8580a5e3c199fb17810effa91d007a02740d2b0537c7dcc1"
+  },
+  "baseline": {
+    "initial": {
+      "rss": 92491776,
+      "heapTotal": 35151872,
+      "heapUsed": 15083392,
+      "external": 4031076,
+      "arrayBuffers": 212883
+    },
+    "peakRss": 509669376,
+    "peakHeapUsed": 307289720,
+    "rssIncrease": 417177600,
+    "heapUsedIncrease": 292206328,
+    "processLifetimeMaxRssBytes": 613801984,
+    "samples": 122,
+    "elapsedMs": 834.721266,
+    "outputBytes": 104091659,
+    "responseBytes": 104139758,
+    "responseSha256": "141d6f3255b7908e8580a5e3c199fb17810effa91d007a02740d2b0537c7dcc1"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "base": "dfab84be2da4bb64ec3924ff8f60f4cc1ae2a18d",
+  "head": "WORKTREE",
+  "sha256": {
+    "public/script.js": "534a751e0084fc5545737ad0aaca38f0a718dc779547e6df14b04f0a5c67e6fd",
+    "tests/browser-longchat-perf.py": "29e88e3c789987b148faa7d4c8ce47395165179494a8c48cfdb19a3e18c823aa",
+    "tests/longchat-browser-probe.mjs": "0412347b198370319275b46cf993c592264bb1be7a3e63204227d774cb884dae",
+    "tests/longchat-older-slices.test.mjs": "a07b2257b8e4b7fd8a0d48c0ca2ddb467abe52f2fc8bbfd6542dd92475024738",
+    "tests/longchat-measurement.test.mjs": "c7a88a417c8cd53f69839380767a8e8069e6a2524c15dd78e3769f2d62b2d175"
+  },
+  "timingSourceSha256": {
+    "public/script.js": "534a751e0084fc5545737ad0aaca38f0a718dc779547e6df14b04f0a5c67e6fd",
+    "tests/browser-longchat-perf.py": "06ef7d9d0bbe415ba424723e6fbd28ae2aa45db422d8b430c3f748e8110d75c6",
+    "tests/longchat-browser-probe.mjs": "44efdb1cbd2486ea4120fd4a2461dea2db9b2bbcde71408660ceb9455125a2e2",
+    "tests/longchat-older-slices.test.mjs": "8a10b5705d553a41ef72dc0fa34d672ff0614627518406d68dd89bd3e1f709ce"
+  },
+  "changesAfterTiming": "Functional Tab recording only: keyup recorder checked against legacy RPC, complete computed order and opt-in physical key limit; additional pure recorder test. Product and latency/anchor measurement functions unchanged."
+}

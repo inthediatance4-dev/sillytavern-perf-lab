@@ -1,0 +1,241 @@
+{
+  "base": "ffd5f4e",
+  "head": "472a965a379d6deb686d13528ec285a1fb3d1dd8",
+  "runnerHead": "472a965a379d6deb686d13528ec285a1fb3d1dd8",
+  "mode": "fate-only",
+  "thirdPartyEnabled": false,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "00ae85805f8d3d98fac47bd0352c723faf5f796e94239704224ac4bf4906ae9a",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "e7f1af7d3438f4394cba0d86809b02933c88c6e44f803159830c7720495596a6",
+      "focusCount": 2
+    },
+    "fateDrawSealedAndExistingInstructionPreserved": true,
+    "fateMobileDraftAndReload": true,
+    "fateAdoptAndExactSwipeRegenerateWithoutNormalRetrigger": true,
+    "fateMalformedDrawAndFailedApplyKeepSameCardForRetry": true,
+    "fateOnlyDirectRegenerateAndNativeFailureUnlock": true,
+    "fateStopRetainsCardAndDiscardDisarmsOrdinarySend": true,
+    "fateRealGroupBatchReplayAndManualDeletionDoesNotRetrigger": true,
+    "fateStaleDrawDoesNotReplaceOrSaveIntoAnotherChat": true
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [
+    "third-party/JS-Slash-Runner",
+    "third-party/st-memory-enhancement"
+  ],
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [],
+    "tavernHelperAvailable": false
+  },
+  "fateInstructionState": {
+    "integrity": "director-e59c5679f1",
+    "note_prompt": "",
+    "note_interval": 1,
+    "note_position": 1,
+    "note_depth": 4,
+    "note_role": 0,
+    "script_injects": {},
+    "tainted": true,
+    "timedWorldInfo": {
+      "sticky": {},
+      "cooldown": {}
+    },
+    "lastInContextMessageId": 0,
+    "director": {
+      "fate": {
+        "version": 1,
+        "held": null,
+        "bound": {
+          "id": "8c513741-0fa4-4660-a506-d043ce0147f1",
+          "title": "意外的回声",
+          "strength": "medium",
+          "event": "FATE_PRIVATE_01: A stranger brings a sealed map bearing {{char}} and {{random::a,b}}.",
+          "slotIndex": 2,
+          "prevFingerprint": "acc13269",
+          "generationId": null,
+          "batchEndIndex": 2,
+          "groupRetry": false
+        }
+      },
+      "boundInstruct": {
+        "id": "director-0e0c3a58-a775-4537-97af-3f4d995cc30d",
+        "text": "[导演指令：ORDINARY_DIRECTOR_FATE_COEXIST]",
+        "slotIndex": 2,
+        "prevFingerprint": "acc13269",
+        "boundAt": 1793460865156
+      }
+    }
+  },
+  "fateProviderFailures": {
+    "apply": {
+      "providerStatus": 500,
+      "proxyStatus": 200
+    },
+    "nativeSwipe": {
+      "providerStatus": 500,
+      "proxyStatus": 200
+    }
+  },
+  "pass": true,
+  "pageErrors": [],
+  "generationRequests": 23,
+  "chromium": "156.0.8078.76",
+  "sourceSha256": {
+    "public/script.js": "a38b482ce3c2bc7bd43ca57009ea6d32b9460ccef4d4daa17795834efc634821",
+    "public/scripts/events.js": "1b322db4a3fc9b4b7fa5af8b3d4de8eaba0ccfc551d76892849f81258fa413d5",
+    "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+    "public/scripts/extensions/director/fate-ui.js": "c5c3125915409f399ad4f18713f2d38dd3419be1a6cc390b2e3a2d4e60606d4f",
+    "public/scripts/extensions/director/fate.js": "ac163bb996450617d525ba06f53d90bce900ce18aaefd22c8bd3db8b2244adc5",
+    "public/scripts/extensions/director/index.js": "ac9207b766b59719f1169714a623d7f406fac5efc481918b3cb2cdd58e517c4a",
+    "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+    "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+    "public/scripts/extensions/director/manifest.json": "b4118443a33dfdb8fe751b8b27d75e1c18cb0c4d20cc3e91dd53350538355200",
+    "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+    "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+    "public/scripts/extensions/director/style.css": "0e88b5590da06c5ddf8e508e62ca8a23a1848846ce052c79f3ddaa7be2607afb",
+    "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+    "public/scripts/group-chats.js": "3ed4a448f78dbd67060c06e84c95100ee64a7a506236c81a69d44f9d18ab3640",
+    "tests/browser_fate_cases.py": "60693fc69bccee8bb80ac008dab1f1aabf741d30a012d23030f892e26c5b7533"
+  },
+  "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+  "node": "v24.22.1"
+}

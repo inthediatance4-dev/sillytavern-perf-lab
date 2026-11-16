@@ -1,0 +1,77 @@
+{
+  "base": "ffd5f4e",
+  "head": "931354ffb5c9fe77bea504a4317d434f59eb98da",
+  "runnerHead": "9d592a6d1f7f44d1a87f12cbee57513245142de2",
+  "mode": "chapter-only",
+  "thirdPartyEnabled": false,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "946bc9f18d7ca72cf8b0f4dacc65c3bafba20e27bb706d1f60efae74eb2b8950",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "20860a5df1340618572ccb439131f6cd47df31ee91814936fae5e7d1d8af6fd9",
+      "focusCount": 2
+    },
+    "chapterSurvivesNewSwipeGenerationAndDiskReload": {
+      "swipesBeforeMark": 1,
+      "newSwipeId": 1,
+      "checkedSwipeIdsAfterReload": [
+        0,
+        1
+      ]
+    }
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [
+    "third-party/JS-Slash-Runner",
+    "third-party/st-memory-enhancement"
+  ],
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [],
+    "tavernHelperAvailable": false
+  },
+  "chapterSwipeAudit": {
+    "before": {
+      "busy": false,
+      "length": 3,
+      "swipeId": 0,
+      "swipes": 1
+    },
+    "after": {
+      "busy": false,
+      "length": 3,
+      "swipeId": 1,
+      "swipes": 2
+    },
+    "requestsBefore": 1,
+    "requestsAfter": 2
+  },
+  "pass": true,
+  "pageErrors": [],
+  "generationRequests": 2,
+  "chromium": "156.0.8078.76",
+  "sourceSha256": {
+    "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+    "public/scripts/extensions/director/index.js": "5b06e22a84ecc1604ca46e46e1c85f555d8e586e33d7180ce53048ad765f99b3",
+    "public/scripts/extensions/director/instruct.js": "87c29abe312bd2fec55662fb232d34241b84ebcb999371be4e5b95a2205ed7eb",
+    "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+    "public/scripts/extensions/director/manifest.json": "3360a76afd7fa911dc3b7bb0ebc05fbcf6aed536acde892dec00d066169c57f9",
+    "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+    "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+    "public/scripts/extensions/director/style.css": "36099ef21fc602033ad0a33c2c33dd69ae9d467bf832c973962258ee1827eabb",
+    "public/scripts/extensions/director/template.js": "b073d64e562b0e4f253f0593db5aa27801a426b84edbede5d7060b4cb6e79ab8"
+  },
+  "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+  "node": "v24.22.1"
+}

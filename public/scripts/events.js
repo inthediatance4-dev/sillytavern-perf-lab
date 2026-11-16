@@ -7,6 +7,9 @@ export const event_types = {
     MESSAGE_SWIPED: 'message_swiped',
     MESSAGE_SENT: 'message_sent',
     MESSAGE_RECEIVED: 'message_received',
+    // Non-streaming saveReply appends extra n>1 candidates after MESSAGE_RECEIVED;
+    // this fires once they (and their reasoning) are attached, before the chat save.
+    MESSAGE_SWIPES_APPENDED: 'message_swipes_appended',
     MESSAGE_EDITED: 'message_edited',
     MESSAGE_DELETED: 'message_deleted',
     MESSAGE_UPDATED: 'message_updated',
@@ -23,6 +26,7 @@ export const event_types = {
     GENERATION_STARTED: 'generation_started',
     GENERATION_STOPPED: 'generation_stopped',
     GENERATION_ENDED: 'generation_ended',
+    GENERATION_COMPLETED: 'generation_completed',
     SD_PROMPT_PROCESSING: 'sd_prompt_processing',
     EXTENSIONS_FIRST_LOAD: 'extensions_first_load',
     EXTENSION_SETTINGS_LOADED: 'extension_settings_loaded',
@@ -57,6 +61,8 @@ export const event_types = {
     GENERATE_AFTER_COMBINE_PROMPTS: 'generate_after_combine_prompts',
     GENERATE_AFTER_DATA: 'generate_after_data',
     GROUP_MEMBER_DRAFTED: 'group_member_drafted',
+    GROUP_REGENERATION_STARTED: 'group_regeneration_started',
+    GROUP_REGENERATION_FINISHED: 'group_regeneration_finished',
     GROUP_WRAPPER_STARTED: 'group_wrapper_started',
     GROUP_WRAPPER_FINISHED: 'group_wrapper_finished',
     WORLD_INFO_ACTIVATED: 'world_info_activated',

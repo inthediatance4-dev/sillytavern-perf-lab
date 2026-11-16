@@ -1,0 +1,345 @@
+✖ cross-review: a finalized stream waiting for save keeps its receipt when normal starts (13.1758ms)
+✖ cross-review: a finalized stream waiting for save keeps its receipt when continue starts (4.9406ms)
+✖ cross-review: a late previous stream callback cannot become the next normal request reply (10.8689ms)
+✔ cross-review: GENERATION_STOPPED still rejects a retained old successful completion (1.3256ms)
+✔ cross-review: CHAT_CHANGED still rejects a retained old successful completion (0.9655ms)
+✖ cross-review: ordinary affinity-like literals survive while unknown complete frames are scrubbed (0.9076ms)
+✖ cross-review: archived placement cannot replace the most recent forty prior facts (115.5866ms)
+✖ cross-review: prior outcomes expose their already consumed acknowledgement verbatim (8.7355ms)
+✖ cross-review: extraction_failed has a private local counter and cannot expose evidence (3.2467ms)
+✖ cross-review: parse_envelope has a private local counter and cannot expose evidence (4.64ms)
+✖ cross-review: parse_schema has a private local counter and cannot expose evidence (1.967ms)
+✖ cross-review: persistence_failed has a private local counter and cannot expose evidence (1.6515ms)
+✖ cross-review: budget_failed has a private local counter and cannot expose evidence (1.4537ms)
+✖ cross-review: verification_failed has a private local counter and cannot expose evidence (2.7971ms)
+✖ cross-review: each major verifier batch validates its current budget before dispatch (3.6121ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 2
+ℹ fail 13
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 354.8872
+
+✖ failing tests:
+
+test at tests\director-affinity-lifecycle.test.mjs:1218:5
+✖ cross-review: a finalized stream waiting for save keeps its receipt when normal starts (13.1758ms)
+  AssertionError [ERR_ASSERTION]: the exact old successful request still owns its reply
+
+  0 !== 4
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1226:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 4,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1218:5
+✖ cross-review: a finalized stream waiting for save keeps its receipt when continue starts (4.9406ms)
+  AssertionError [ERR_ASSERTION]: the exact old successful request still owns its reply
+
+  0 !== 4
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1226:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 4,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1239:1
+✖ cross-review: a late previous stream callback cannot become the next normal request reply (10.8689ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  4 !== 0
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1254:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1276:1
+✖ cross-review: ordinary affinity-like literals survive while unknown complete frames are scrubbed (0.9076ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '  directoraffinity |  | '
+  - 'directoraffinity123xnormal AFFINITY_LITERAL_user_text_END directoraffinity |  | directoraffinity77xincompleteliteral without a closing frame'
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1283:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '  directoraffinity |  | ',
+    expected: 'directoraffinity123xnormal AFFINITY_LITERAL_user_text_END directoraffinity |  | directoraffinity77xincompleteliteral without a closing frame',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1307:1
+✖ cross-review: archived placement cannot replace the most recent forty prior facts (115.5866ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+
+    [
+  -   'history-140',
+  -   'history-141',
+  -   'history-142',
+  -   'history-143',
+  -   'history-144',
+  -   'history-145',
+  -   'history-146',
+  -   'history-147',
+  -   'history-148',
+  -   'history-149',
+  -   'history-150',
+  -   'history-151',
+  -   'history-152',
+  -   'history-153',
+  -   'history-154',
+  -   'history-155',
+  -   'history-156',
+  -   'history-157',
+  -   'history-158',
+  -   'history-159',
+      'history-160',
+      'history-161',
+      'history-162',
+      'history-163',
+      'history-164',
+  ...
+      'history-179',
+  +   'history-0',
+  +   'history-1',
+  +   'history-2',
+  +   'history-3',
+  +   'history-4',
+  +   'history-5',
+  +   'history-6',
+  +   'history-7',
+  +   'history-8',
+  +   'history-9',
+  +   'history-10',
+  +   'history-11',
+  +   'history-12',
+  +   'history-13',
+  +   'history-14',
+  +   'history-15',
+  +   'history-16',
+  +   'history-17',
+  +   'history-18',
+  +   'history-19'
+    ]
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1314:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [
+      'history-160', 'history-161', 'history-162',
+      'history-163', 'history-164', 'history-165',
+      'history-166', 'history-167', 'history-168',
+      'history-169', 'history-170', 'history-171',
+      'history-172', 'history-173', 'history-174',
+      'history-175', 'history-176', 'history-177',
+      'history-178', 'history-179', 'history-0',
+      'history-1',   'history-2',   'history-3',
+      'history-4',   'history-5',   'history-6',
+      'history-7',   'history-8',   'history-9',
+      'history-10',  'history-11',  'history-12',
+      'history-13',  'history-14',  'history-15',
+      'history-16',  'history-17',  'history-18',
+      'history-19'
+    ],
+    expected: [
+      'history-140', 'history-141', 'history-142',
+      'history-143', 'history-144', 'history-145',
+      'history-146', 'history-147', 'history-148',
+      'history-149', 'history-150', 'history-151',
+      'history-152', 'history-153', 'history-154',
+      'history-155', 'history-156', 'history-157',
+      'history-158', 'history-159', 'history-160',
+      'history-161', 'history-162', 'history-163',
+      'history-164', 'history-165', 'history-166',
+      'history-167', 'history-168', 'history-169',
+      'history-170', 'history-171', 'history-172',
+      'history-173', 'history-174', 'history-175',
+      'history-176', 'history-177', 'history-178',
+      'history-179'
+    ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1317:1
+✖ cross-review: prior outcomes expose their already consumed acknowledgement verbatim (8.7355ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+
+  + undefined
+  - {
+  -   quote: 'Independent literal evidence 2.',
+  -   slot: 'history-2'
+  - }
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1333:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { slot: 'history-2', quote: 'Independent literal evidence 2.' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1338:5
+✖ cross-review: extraction_failed has a private local counter and cannot expose evidence (3.2467ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'function'
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1354:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1338:5
+✖ cross-review: parse_envelope has a private local counter and cannot expose evidence (4.64ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'function'
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1354:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1338:5
+✖ cross-review: parse_schema has a private local counter and cannot expose evidence (1.967ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'function'
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1354:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1338:5
+✖ cross-review: persistence_failed has a private local counter and cannot expose evidence (1.6515ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'function'
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1354:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1338:5
+✖ cross-review: budget_failed has a private local counter and cannot expose evidence (1.4537ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'function'
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1354:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1338:5
+✖ cross-review: verification_failed has a private local counter and cannot expose evidence (2.7971ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'function'
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1354:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'function',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:1369:1
+✖ cross-review: each major verifier batch validates its current budget before dispatch (3.6121ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 2
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1379:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

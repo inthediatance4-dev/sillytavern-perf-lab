@@ -1,0 +1,9 @@
+[
+  {
+    "scenario": "owner-fail-open",
+    "unexpectedOutput": "",
+    "stderr": "   at acquireDataRootOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:642:16)\n    at file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:38:25 {\n  code: 'EREAD',\n  cause: Error: synthetic lock ACL denies access while data files remain writable\n      at fs.openSync (file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:34:72)\n      at Proxy.<anonymous> (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:633:36)\n      at createExclusiveFile (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:250:17)\n      at acquireResolved (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:711:29)\n      at acquireOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:662:16)\n      at acquireDataRootOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:642:16)\n      at file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:38:25 {\n    code: 'EACCES',\n    op: 'open'\n  },\n  op: 'open',\n  lockPath: '/tmp/rv1b/temp/owner-fail-open-ag7UkS/.st-lab-owner.lock'\n}\n\nNode.js v22.20.0\n",
+    "exit": 1,
+    "signal": null
+  }
+]

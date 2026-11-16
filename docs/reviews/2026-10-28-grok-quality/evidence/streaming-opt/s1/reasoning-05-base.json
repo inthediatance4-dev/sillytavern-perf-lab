@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "reasoning",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": true,
+    "mode": "send"
+  },
+  "iteration": 5,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 33.4,
+    "framesOver16_7Pct": 9.040793825799339,
+    "framesOver33Pct": 5.622932745314222,
+    "loafCount": 5,
+    "loafTotalMs": 319.40000000037253,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 161.7000000011176,
+    "formatP50Ms": 1.299999998882413,
+    "formatP95Ms": 5.200000001117587,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.900000000372529,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 20.84524309082602,
+    "firstTokenMs": 1484.936767578125,
+    "finishMs": 325.365234375,
+    "typingP50Ms": 24.89990234375,
+    "typingP95Ms": 46.89990234375,
+    "scrollStolen": 1
+  },
+  "dom": null,
+  "samples": {
+    "frames": 947,
+    "keys": 81,
+    "hooks": 1037
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283151279.7632,
+    "receivedNs": "8870211716589",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1620,
+    "firstChunkEpochMs": 1793283151288.4492,
+    "lastChunkEpochMs": 1793283167407.2346,
+    "doneEpochMs": 1793283167407.2485,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

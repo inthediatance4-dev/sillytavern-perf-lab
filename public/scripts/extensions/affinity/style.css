@@ -1,0 +1,24 @@
+.affinity_settings .inline-drawer-content {
+    display: none;
+}
+
+.affinity_settings_body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.affinity_tagline {
+    margin: 0;
+    font-size: 1.05em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.affinity_desc {
+    margin: 0;
+    opacity: 0.85;
+    line-height: 1.6;
+}

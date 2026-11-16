@@ -1,0 +1,20 @@
+{
+  "revision": "37a48181fc55f7d2c45bae05f1a68c26a4c76d5d",
+  "change": "\n// Temporary P0 negative control; never part of the working tree.\neventSource.on(event_types.CHAT_CHANGED, () => { const button = document.createElement(\"button\"); button.id = \"p0-perturbation\"; button.textContent = \"P0 deliberate perturbation\"; document.querySelector(\"#chat\").append(button); });\n",
+  "originalSha256": "801a00a8692fcad8c6886ccf319e3cb0dd3967c312e0044213d3d855f9c2d887",
+  "perturbedSha256": "98a5fbe72b7b6bc75d4ea3d53cdb88175e0e8a7a177abbef65bbbb064228f559",
+  "sourceDirectory": "<tmp>",
+  "restored": true,
+  "exitCode": 1,
+  "detected": [
+    "dom/older",
+    "dom/open",
+    "tabs/ancestor-disabled",
+    "tabs/ancestor-enabled",
+    "tabs/appended",
+    "tabs/class-added",
+    "tabs/older",
+    "tabs/popup-closed"
+  ],
+  "restoredSha256": "801a00a8692fcad8c6886ccf319e3cb0dd3967c312e0044213d3d855f9c2d887"
+}

@@ -1,0 +1,121 @@
+{
+  "step": "review-fix-m4",
+  "startingHead": "8c0c939b38f5f8e480f0d7081890865a5a38954e",
+  "oracleRevision": "b1cf0e956105d2da7a3edeca4e3e5d84b8c147b4",
+  "checks": [
+    {
+      "command": "<tmp>/node-v20.19.2-linux-x64/bin/node --test tests/longchat-spread.test.mjs",
+      "node": "v20.19.2",
+      "exitCode": 0,
+      "wallSeconds": 1.574,
+      "log": "node20.tap",
+      "summary": [
+        "# tests 38",
+        "# pass 38",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 0",
+        "# todo 0",
+        "# duration_ms 1536.106171"
+      ],
+      "counts": {
+        "tests": 38,
+        "pass": 38,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "command": "<tmp>/node-v22.20.0-linux-x64/bin/node --test tests/longchat-spread.test.mjs",
+      "node": "v22.20.0",
+      "exitCode": 0,
+      "wallSeconds": 1.528,
+      "log": "node22.tap",
+      "summary": [
+        "# tests 38",
+        "# pass 38",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 0",
+        "# todo 0",
+        "# duration_ms 1484.583406"
+      ],
+      "counts": {
+        "tests": 38,
+        "pass": 38,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "command": "<tmp>/node-v24.22.1-linux-x64/bin/node --test tests/longchat-spread.test.mjs",
+      "node": "v24.22.1",
+      "exitCode": 0,
+      "wallSeconds": 1.604,
+      "log": "node24.txt",
+      "summary": [
+        "ℹ tests 38",
+        "ℹ suites 0",
+        "ℹ pass 38",
+        "ℹ fail 0",
+        "ℹ cancelled 0",
+        "ℹ skipped 0",
+        "ℹ todo 0",
+        "ℹ duration_ms 1499.435585"
+      ],
+      "reporter": "spec (Node 24 auto-selected; original output retained without rerunning)",
+      "counts": {
+        "tests": 38,
+        "pass": 38,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "command": "<tmp>/node-v22.20.0-linux-x64/bin/node node_modules/eslint/bin/eslint.js tests/longchat-spread.test.mjs",
+      "exitCode": 0,
+      "log": "eslint.txt",
+      "eslintVersion": "v8.57.1"
+    }
+  ],
+  "sourceSha256": {
+    "tests/longchat-spread.test.mjs": "1c7812b4c9d2be5603b72d01e5a5a66aafd5490c3c0b7a015233edbb0798a846",
+    "public/script.js": "7e30a4b3b79bac633072ff1a85b89ae2e237323f2f51316125fc0225ea539c2a",
+    "public/scripts/chats.js": "982b0b9f9dd480e5235a2460f8717c496e5e4174bc9bb8b5c5d54efd5d04b1fe",
+    "public/scripts/extensions/expressions/index.js": "6fe8e0ed2ec0b21c5eefcabb331298b8f24a385fc87e5906701ad302cd168bd5",
+    "public/scripts/group-chats.js": "5bb12d6b533e7a7d32d0d8763b03dacb1306e518710c6e8f759b99ad493e7162",
+    "public/scripts/keyboard.js": "01e9fdeb4272d387772ef0838ff92084f15b41599fcd15d271b118fd25f0a9d8",
+    "public/scripts/openai.js": "85a8dfbcceb4a80f9e5a3f363dbf59b7bb6f0679cbbfd2c2f74021ce41938fc4",
+    "public/scripts/power-user.js": "e27c1b47942b3e61d254d2c0b4653b2569b018251867f0a5716485ff839c28cb",
+    "public/scripts/swipe-picker.js": "f61617b352192902f76c51117d1efe90525afd67558038eba039aa984e11dd22"
+  },
+  "newEdgeTests": 32,
+  "retainedSites": 16,
+  "existingTests": 6,
+  "noRerunToGreen": true,
+  "finalChecks": {
+    "branchAndHeadUnchanged": true,
+    "diffCheckExitCode": 0,
+    "wholeFileHashDrift": [
+      "public/script.js"
+    ],
+    "explanation": "Concurrent M2 changes to earlier P3 preparation/navigation functions; initial final-audit whole-file hash assertion failed. No test failed or was rerun. All four script.js scopes exercised by these tests remain byte-identical to starting HEAD; all other recorded source hashes still match.",
+    "currentScriptSha256": "0f5a7a2c289e9b6bd0a32118c9944db5b3f415fedcbe7d7442666ca24cf1a1d0",
+    "unchangedTestedScriptScopesSha256": {
+      "getChat": "1d8493a79ad1db3caf72406ba2097db7923210836e08444f72bd18971bb987a5",
+      "getFirstDisplayedMessageId": "657920c2c9c0f914376ab4db1f7b946e5219128d0a8df71771838dba817cd93c",
+      "saveReply": "e0acccb47abec084b5b0c978bda36470fd1a51d13316814ccabfdbb4efb3f598",
+      "StreamingProcessor": "db5d99cadc934d7ee2618622c3f395b4085b2427c3605605d52b551c6d4147be"
+    },
+    "filesAuthoredByThisStep": [
+      "tests/longchat-spread.test.mjs",
+      "docs/reviews/2026-10-28-grok-quality/evidence/longchat-opt/review-fix-m4"
+    ]
+  }
+}

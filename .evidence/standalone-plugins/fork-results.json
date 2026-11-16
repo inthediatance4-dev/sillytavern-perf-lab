@@ -1,0 +1,74 @@
+{
+  "hostCommit": "71f8a935d8c8a964179e552f6fbdd7710fb3c961",
+  "checks": {
+    "installedEntriesTemplatesAndLegacyOptOut": true,
+    "drawerInitiallyCollapsed": true,
+    "affinityAloneFiveNativeCompletionsAndExtraction": true,
+    "isolatedEvaluatorUsesOneLiteralMessageAndOwnBudget": true,
+    "extractedObservationActuallyEntersNextPromptLiterallyOnce": true,
+    "nativeStreamCountsOnceContinueRegenerateSwipeKeepLogicalCount": true,
+    "failedNativeGenerationDoesNotCount": true,
+    "directorLoadsWithoutAffinity": true,
+    "firstNarrativeLiteralAfterNativeGenerationAndReload": true,
+    "nativeQuietDoesNotStealFateAndOnlySavedReplyConsumesCard": true,
+    "bothPluginsGroupRepliesAndEachNativeSpeakerOwnMemory": true,
+    "nativeGroupCardInjectsOnceAndPersistsWhileSpeakerChanges": true,
+    "nativeGroupRegeneratePreservesLogicalReceipts": true,
+    "full400CodepointCardPaysForRealHistoryWithin2048Budget": true
+  },
+  "realModel": false,
+  "errors": [],
+  "packages": [
+    {
+      "id": "director",
+      "folderName": "st-director-fate-cards",
+      "displayName": "命运之牌",
+      "version": "1.2.0",
+      "fileName": "st-director-fate-cards-1.2.0.zip",
+      "sha256": "a2a16f701e369746e929e20c00655778e6703986de0919cca2e336b7923063c9",
+      "sourceHash": "5d83a16b46e0f9e7fe89272f91f6edbb068804ab056fd44838fe18df2a8d3d75",
+      "bytes": 93409,
+      "entries": 22
+    },
+    {
+      "id": "affinity",
+      "folderName": "st-affinity-memory",
+      "displayName": "好感度记忆",
+      "version": "1.1.0",
+      "fileName": "st-affinity-memory-1.1.0.zip",
+      "sha256": "b7bd2cc57f14d0dcf7ef4af0038cb6f90b36db41b77225ddb3e9bd7b9c961ab8",
+      "sourceHash": "6f72af865459411de46c0ce242c5bc5cd7422ca289de0e734cc5671298868b0e",
+      "bytes": 59398,
+      "entries": 15
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "expectedProviderFailures": [
+    "Internal Server Error"
+  ],
+  "fateConcurrency": {
+    "requests": 2,
+    "eventOccurrences": [
+      0,
+      1
+    ]
+  },
+  "smallContextBudget": {
+    "context": 2048,
+    "reply": 256,
+    "eventCodepoints": 400,
+    "baselineTokens": 1756,
+    "adoptedTokens": 1708,
+    "historyWithoutCard": 29,
+    "historyWithCard": 22
+  },
+  "providerRequests": 33,
+  "passed": true,
+  "runnerSha256": "6adadb3eadd2b627076efec38eece6c17eac45ee547b3a0260ec2ae39e779f26"
+}

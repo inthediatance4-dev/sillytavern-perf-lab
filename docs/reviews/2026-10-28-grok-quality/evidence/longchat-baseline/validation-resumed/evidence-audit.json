@@ -1,0 +1,12 @@
+{
+  "inputRecordsHashVerified": 65,
+  "rawCpuProfilesVerified": 6,
+  "primarySuccessfulRunsPerSetting": 7,
+  "comparisonAttemptsPerSetting": 5,
+  "pageErrorRunsInMatrix": 5,
+  "diagnosticPageErrorRuns": 1,
+  "evidenceServersGraceful": 4,
+  "generationOrExternalRequests": 0,
+  "hostnameAndSyntheticRootRedactionVerified": true,
+  "fullSuiteRun": false
+}

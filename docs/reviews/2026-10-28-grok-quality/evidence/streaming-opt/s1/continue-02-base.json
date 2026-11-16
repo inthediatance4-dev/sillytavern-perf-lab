@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 2,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.3,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 13.205128205128206,
+    "framesOver33Pct": 9.487179487179487,
+    "loafCount": 8,
+    "loafTotalMs": 727.7999999988824,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 44.20000000111759,
+    "loafScriptotherMs": 355.8000000026077,
+    "formatP50Ms": 1.900000000372529,
+    "formatP95Ms": 6.300000000745058,
+    "domP50Ms": 0.2999999988824129,
+    "domP95Ms": 0.7000000011175871,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 20.363080503854825,
+    "firstTokenMs": 164.434814453125,
+    "finishMs": 284.810791015625,
+    "typingP50Ms": 37,
+    "typingP95Ms": 52.2998046875,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 821,
+    "keys": 74,
+    "hooks": 922
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283524648.5652,
+    "receivedNs": "9243580521958",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793283524656.3525,
+    "lastChunkEpochMs": 1793283539339.789,
+    "doneEpochMs": 1793283539339.8057,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

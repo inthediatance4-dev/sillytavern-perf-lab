@@ -1,0 +1,37 @@
+{
+  "platform": "Linux",
+  "nodeVersions": [
+    "20.19.2",
+    "24.22.1",
+    "24.22.1"
+  ],
+  "mainFiles": [
+    "tests/longchat-older-slices.test.mjs",
+    "tests/longchat-insert-path.test.mjs",
+    "tests/longchat-measurement.test.mjs"
+  ],
+  "relatedFiles": [
+    "tests/media-load-scroll.test.mjs",
+    "tests/itemized-prompts-ownership.test.mjs",
+    "tests/chat-load-ownership.test.mjs",
+    "tests/chat-transitions.test.mjs",
+    "tests/frontend-lifecycle.test.mjs"
+  ],
+  "perNode": {
+    "main": {
+      "tests": 18,
+      "pass": 17,
+      "skip": 1
+    },
+    "related": {
+      "tests": 166,
+      "pass": 166,
+      "skip": 0
+    }
+  },
+  "skipReason": "Native Windows CTRL_BREAK requires a Windows console; Linux simulation passes.",
+  "eslint": "9 changed JS/MJS files passed",
+  "diffCheck": "passed",
+  "windowsCI": "not run",
+  "realChatManualCheck": "not run"
+}

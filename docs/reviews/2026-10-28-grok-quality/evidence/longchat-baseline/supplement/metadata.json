@@ -1,0 +1,25 @@
+{
+  "seed": 20261028,
+  "node": "v24.22.1",
+  "platform": "posix",
+  "revision": "0bf27455cbab93d09821190a5deff8e4112324e1",
+  "startupWait": "DOMContentLoaded + onboarding + sticky APP_READY event",
+  "olderBatchLimit": 3,
+  "cpuCount": 8,
+  "extensionsEnabled": false,
+  "optionalSkipped": [
+    "10000 scaling run: bounded core matrix prioritized",
+    "48a153e comparison: optional separate historical experiment"
+  ],
+  "runTimeoutSeconds": 120,
+  "comboTimeoutSeconds": 1200,
+  "browser": "156.0.8078.4",
+  "onboarding": [
+    "Welcome to SillyTavern!\nLanguage:\nEnglish\nعربي (Arabic)\n简体中文 (Chinese) (Simplified)\n繁體中文 (Chinese) (Taiwan)\nNederlands (Dutch)\nDeutsch (German)\nFrançais (French)\níslenska (Icelandic)\nItaliano (Italian)\n日本語 (Japanese)\n한국어 (Korean)\nPortuguês (Portuguese brazil)\nРусский (Russian)\nEspañol (Spanish)\nУкраїнська (Ukrainian)\nTiếng Việt (Vietnamese)\nไทย (Thai)\nSillyTavern is aimed at advanced users.\nRead the Official Documentation.\nType /help in chat for commands and macros.\nJoin the Discord server for info and announcements.\nLooking for AI characters?\nImport\n from supported sources or view \nSample characters\nYour Persona\nBefore you get started, you must select a persona name.\nThis can be changed at any time via the  icon.\nPersona Name:\nSave"
+  ],
+  "freshDefaultTruncation": 100,
+  "forbiddenRequests": [],
+  "serverExitCode": 0,
+  "shutdownIncomplete": false,
+  "ownerLockRemoved": true
+}

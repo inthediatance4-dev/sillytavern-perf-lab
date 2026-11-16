@@ -1,0 +1,568 @@
+{
+  "unit": {
+    "tests": 371,
+    "passed": 371,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "lint": true,
+  "pythonCompile": true,
+  "diffCheck": true,
+  "browser": [
+    {
+      "host": "fork",
+      "mode": "fate-repair",
+      "hostCommit": "80fc484aea4ffa548e66941e3240142fda69fc4e",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "legacyOfferRepairedOnceWithReasoningBudget": true,
+        "reloadThenTouchPickShowsVisiblePreviewWithoutRequest": true,
+        "normalReplyBudgetUnchanged": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "56ed0b1e3b31dc35cbcc09271221dc7fbc6897276b38bf5606d9125f7eb28046",
+      "resource404Count": 1
+    },
+    {
+      "host": "fork",
+      "mode": "piggyback",
+      "hostCommit": "80fc484aea4ffa548e66941e3240142fda69fc4e",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "installedPiggyback_story_nonstream": true,
+        "installedPiggyback_candidate_nonstream": true,
+        "installedPiggyback_reasoning_nonstream": true,
+        "installedPiggyback_story_stream": true,
+        "installedPiggyback_story_nonstream_cleanup": true,
+        "installedPiggyback_story_stream_cleanup": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "56ed0b1e3b31dc35cbcc09271221dc7fbc6897276b38bf5606d9125f7eb28046",
+      "resource404Count": 1,
+      "piggyback": {
+        "installedPiggyback_story_nonstream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": true
+        },
+        "installedPiggyback_candidate_nonstream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": true
+        },
+        "installedPiggyback_reasoning_nonstream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": true
+        },
+        "installedPiggyback_story_stream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": true
+        },
+        "installedPiggyback_story_nonstream_cleanup": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": true
+        },
+        "installedPiggyback_story_stream_cleanup": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": true
+        }
+      }
+    },
+    {
+      "host": "fork",
+      "mode": "fate-pick",
+      "hostCommit": "80fc484aea4ffa548e66941e3240142fda69fc4e",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "nativePopupRespondsToTouchSwipe": true,
+        "pendingPickCanCloseReopenAndScrollToProgress": true,
+        "touchPickRetainsOldCardAndControlsReachable": true,
+        "delayedModelThenAdoptAndFlip": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "56ed0b1e3b31dc35cbcc09271221dc7fbc6897276b38bf5606d9125f7eb28046",
+      "resource404Count": 1,
+      "pickMobile": {
+        "oldCardHidden": false,
+        "oldApplyHidden": false,
+        "overflowY": "auto",
+        "scrollHeight": 1142,
+        "clientHeight": 600,
+        "pendingStatus": "正在为当前剧情抽牌…",
+        "hasTouch": true,
+        "touchScrollTop": 225
+      }
+    },
+    {
+      "host": "fork",
+      "mode": "fate-reveal",
+      "hostCommit": "80fc484aea4ffa548e66941e3240142fda69fc4e",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "heldCardShowsBoundedPreviewBeforeAdoption_nonstream_desktop": true,
+        "completedReveal_surface_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_surface_nonstream_desktop": true,
+        "adoptRevealDespiteHelperStop_nonstream_desktop": true,
+        "completedReveal_Enter_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_Enter_nonstream_desktop": true,
+        "completedReveal_Space_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_Space_nonstream_desktop": true,
+        "completedReveal_button_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_button_nonstream_desktop": true,
+        "heldCardShowsBoundedPreviewBeforeAdoption_stream_mobile": true,
+        "completedReveal_surface_stream_mobile": true,
+        "repeatedActivationRevealsOnce_surface_stream_mobile": true,
+        "adoptRevealDespiteHelperStop_stream_mobile": true,
+        "completedReveal_Enter_stream_mobile": true,
+        "repeatedActivationRevealsOnce_Enter_stream_mobile": true,
+        "completedReveal_Space_stream_mobile": true,
+        "repeatedActivationRevealsOnce_Space_stream_mobile": true,
+        "completedReveal_button_stream_mobile": true,
+        "repeatedActivationRevealsOnce_button_stream_mobile": true,
+        "completedRevealSurvivesNativeReload": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "2e0041cbb619a7893fd766e57ea75d0a63488ff49d1c2836b83e8f08cf3f310d",
+      "resource404Count": 1
+    },
+    {
+      "host": "official",
+      "mode": "fate-repair",
+      "hostCommit": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "legacyOfferRepairedOnceWithReasoningBudget": true,
+        "reloadThenTouchPickShowsVisiblePreviewWithoutRequest": true,
+        "normalReplyBudgetUnchanged": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "56ed0b1e3b31dc35cbcc09271221dc7fbc6897276b38bf5606d9125f7eb28046",
+      "resource404Count": 0
+    },
+    {
+      "host": "official",
+      "mode": "piggyback",
+      "hostCommit": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "installedPiggyback_story_nonstream": true,
+        "installedPiggyback_candidate_nonstream": true,
+        "installedPiggyback_reasoning_nonstream": true,
+        "installedPiggyback_story_stream": true,
+        "installedPiggyback_story_nonstream_cleanup": true,
+        "installedPiggyback_story_stream_cleanup": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "56ed0b1e3b31dc35cbcc09271221dc7fbc6897276b38bf5606d9125f7eb28046",
+      "resource404Count": 0,
+      "piggyback": {
+        "installedPiggyback_story_nonstream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": false
+        },
+        "installedPiggyback_candidate_nonstream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": false
+        },
+        "installedPiggyback_reasoning_nonstream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": false
+        },
+        "installedPiggyback_story_stream": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": false
+        },
+        "installedPiggyback_story_nonstream_cleanup": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": false
+        },
+        "installedPiggyback_story_stream_cleanup": {
+          "providerCalls": 1,
+          "pickCalls": 0,
+          "adoptCalls": 1,
+          "diskMessageClean": true,
+          "intermediateDomClean": true,
+          "eventsSurviveReload": true,
+          "previewBeforeAdopt": true,
+          "nextRoundReadyAfterAdopt": true,
+          "nextRoundPickCalls": 0,
+          "nativeReturnChecked": false
+        }
+      }
+    },
+    {
+      "host": "official",
+      "mode": "fate-pick",
+      "hostCommit": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "nativePopupRespondsToTouchSwipe": true,
+        "pendingPickCanCloseReopenAndScrollToProgress": true,
+        "touchPickRetainsOldCardAndControlsReachable": true,
+        "delayedModelThenAdoptAndFlip": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "56ed0b1e3b31dc35cbcc09271221dc7fbc6897276b38bf5606d9125f7eb28046",
+      "resource404Count": 0,
+      "pickMobile": {
+        "oldCardHidden": false,
+        "oldApplyHidden": false,
+        "overflowY": "auto",
+        "scrollHeight": 1142,
+        "clientHeight": 600,
+        "pendingStatus": "正在为当前剧情抽牌…",
+        "hasTouch": true,
+        "touchScrollTop": 225
+      }
+    },
+    {
+      "host": "official",
+      "mode": "fate-reveal",
+      "hostCommit": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "checks": {
+        "installedEntriesTemplatesAndLegacyOptOut": true,
+        "drawerInitiallyCollapsed": true,
+        "heldCardShowsBoundedPreviewBeforeAdoption_nonstream_desktop": true,
+        "completedReveal_surface_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_surface_nonstream_desktop": true,
+        "adoptRevealDespiteHelperStop_nonstream_desktop": true,
+        "completedReveal_Enter_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_Enter_nonstream_desktop": true,
+        "completedReveal_Space_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_Space_nonstream_desktop": true,
+        "completedReveal_button_nonstream_desktop": true,
+        "repeatedActivationRevealsOnce_button_nonstream_desktop": true,
+        "heldCardShowsBoundedPreviewBeforeAdoption_stream_mobile": true,
+        "completedReveal_surface_stream_mobile": true,
+        "repeatedActivationRevealsOnce_surface_stream_mobile": true,
+        "adoptRevealDespiteHelperStop_stream_mobile": true,
+        "completedReveal_Enter_stream_mobile": true,
+        "repeatedActivationRevealsOnce_Enter_stream_mobile": true,
+        "completedReveal_Space_stream_mobile": true,
+        "repeatedActivationRevealsOnce_Space_stream_mobile": true,
+        "completedReveal_button_stream_mobile": true,
+        "repeatedActivationRevealsOnce_button_stream_mobile": true,
+        "completedRevealSurvivesNativeReload": true
+      },
+      "realModel": false,
+      "errors": [],
+      "packages": [
+        {
+          "id": "director",
+          "folderName": "st-director-fate-cards",
+          "displayName": "命运之牌",
+          "version": "1.3.4",
+          "fileName": "st-director-fate-cards-1.3.4.zip",
+          "sha256": "6765078b69c4291974187cd2a8a26c55f798269b7bea6d67c804af0a09226cdd",
+          "sourceHash": "3eab1bc4079aad0e159e1219ef0d77a698d8437f7619749008fd0aa20281e44d",
+          "bytes": 106382,
+          "entries": 24
+        },
+        {
+          "id": "affinity",
+          "folderName": "st-affinity-memory",
+          "displayName": "好感度记忆",
+          "version": "1.1.4",
+          "fileName": "st-affinity-memory-1.1.4.zip",
+          "sha256": "874bc73d68a10f74c4d4c80759dc7cb9ed714ed02f9a1f54f390850540c18435",
+          "sourceHash": "f3636e39f4d0cc200f0ac14b60ec746a9e7d27062564030386c6c08c6df02895",
+          "bytes": 62435,
+          "entries": 16
+        }
+      ],
+      "passed": true,
+      "runnerSha256": "2e0041cbb619a7893fd766e57ea75d0a63488ff49d1c2836b83e8f08cf3f310d",
+      "resource404Count": 0
+    }
+  ],
+  "failedBrowserAttempts": [
+    {
+      "host": "fork",
+      "mode": "fate-reveal",
+      "passed": false,
+      "reason": "Harness asserted interactivity while native save was still pending; repaired wait for control unlock before rerun."
+    },
+    {
+      "host": "official",
+      "mode": "fate-reveal",
+      "passed": false,
+      "reason": "Harness asserted interactivity while native save was still pending; repaired wait for control unlock before rerun."
+    }
+  ]
+}

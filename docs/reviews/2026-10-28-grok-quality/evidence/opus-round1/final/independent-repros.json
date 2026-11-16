@@ -1,0 +1,74 @@
+[
+  {
+    "scenario": "owner-fail-open",
+    "unexpectedOutput": "",
+    "stderr": "ootOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:642:16)\n    at file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:38:25 {\n  code: 'EREAD',\n  cause: Error: synthetic lock ACL denies access while data files remain writable\n      at fs.openSync (file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:34:72)\n      at Proxy.<anonymous> (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:633:36)\n      at createExclusiveFile (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:250:17)\n      at acquireResolved (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:711:29)\n      at acquireOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:662:16)\n      at acquireDataRootOwnership (file:///workspace/sillytavern-perf-lab/src/data-root-owner.js:642:16)\n      at file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:38:25 {\n    code: 'EACCES',\n    op: 'open'\n  },\n  op: 'open',\n  lockPath: '/tmp/rvf-independent-repros/temp/owner-fail-open-W1KJuc/.st-lab-owner.lock'\n}\n\nNode.js v22.20.0\n",
+    "exit": 1,
+    "signal": null
+  },
+  {
+    "scenario": "shutdown-bound",
+    "reproduced": true,
+    "configuredDrainMs": 20,
+    "drainElapsedMs": 21,
+    "elapsedMs": 174,
+    "outcome": "still-blocked",
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "nested-shared",
+    "unexpectedOutput": "",
+    "stderr": "file:///workspace/sillytavern-perf-lab/src/chat-io.js:181\n                return Promise.reject(new LockOrderError(request.key));\n                                      ^\n\nLockOrderError: Nested path lock requires a new key or upgrade: /tmp/rvf-independent-repros/temp/nested-shared-OjQ0V9/b.jsonl\n    at withPathLocks (file:///workspace/sillytavern-perf-lab/src/chat-io.js:181:39)\n    at file:///workspace/sillytavern-perf-lab/docs/reviews/2026-10-28-grok-quality/independent-repros.mjs:67:20\n\nNode.js v22.20.0\n",
+    "exit": 1,
+    "signal": null
+  },
+  {
+    "scenario": "export-malformed",
+    "reproduced": false,
+    "response": {
+      "status": 400,
+      "data": {
+        "message": "Invalid chat JSONL row.",
+        "line": 2
+      }
+    },
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "character-reimport",
+    "reproduced": false,
+    "import": {
+      "status": 200,
+      "data": {
+        "file_name": "ReviewCard"
+      }
+    },
+    "edit": {
+      "status": 200
+    },
+    "chatWritable": true,
+    "visibleAvatar": true,
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "import-delete-race",
+    "reproduced": false,
+    "deletion": {
+      "status": 200
+    },
+    "avatarAfterDelete": false,
+    "importing": {
+      "status": 409,
+      "data": {
+        "error": "chat_lifecycle",
+        "reason": "character_deleted"
+      }
+    },
+    "avatarResurrected": false,
+    "exit": 0,
+    "signal": null
+  }
+]

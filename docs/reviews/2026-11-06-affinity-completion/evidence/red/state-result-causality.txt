@@ -1,0 +1,102 @@
+✖ apply: a narrow result alias uses the original physical result boundary for later acknowledgement (7.5964ms)
+✖ reload: a narrow result alias uses the original physical result boundary for later acknowledgement (2.832ms)
+✖ apply: a wide result alias uses the original physical result boundary for later acknowledgement (1.3202ms)
+✖ reload: a wide result alias uses the original physical result boundary for later acknowledgement (0.988ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 198.0197
+
+✖ failing tests:
+
+test at tests\director-affinity-state.test.mjs:376:9
+✖ apply: a narrow result alias uses the original physical result boundary for later acknowledgement (7.5964ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '我看到你还书了。'
+  - '我看到你还书了。“你说到做到，我更信任你”，但这只是我在练习的台词。'
+             ^
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-state.test.mjs:403:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '我看到你还书了。',
+    expected: '我看到你还书了。“你说到做到，我更信任你”，但这只是我在练习的台词。',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:376:9
+✖ reload: a narrow result alias uses the original physical result boundary for later acknowledgement (2.832ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '我看到你还书了。'
+  - '我看到你还书了。“你说到做到，我更信任你”，但这只是我在练习的台词。'
+             ^
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-state.test.mjs:403:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '我看到你还书了。',
+    expected: '我看到你还书了。“你说到做到，我更信任你”，但这只是我在练习的台词。',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:376:9
+✖ apply: a wide result alias uses the original physical result boundary for later acknowledgement (1.3202ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 2
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-state.test.mjs:404:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-state.test.mjs:376:9
+✖ reload: a wide result alias uses the original physical result boundary for later acknowledgement (0.988ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  0 !== 2
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-state.test.mjs:404:20)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

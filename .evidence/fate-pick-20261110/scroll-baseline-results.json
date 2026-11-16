@@ -1,0 +1,49 @@
+{
+  "hostCommit": "5d5b2ac20faca64c71d8d0044cdeb54e9535fa07",
+  "checks": {
+    "installedEntriesTemplatesAndLegacyOptOut": true,
+    "drawerInitiallyCollapsed": true
+  },
+  "realModel": false,
+  "errors": [],
+  "packages": [
+    {
+      "id": "director",
+      "folderName": "st-director-fate-cards",
+      "displayName": "命运之牌",
+      "version": "1.3.1",
+      "fileName": "st-director-fate-cards-1.3.1.zip",
+      "sha256": "02fc4b797957796c24cbec43fcc61369713072a0d3fd842b6c4aed8a59a7978d",
+      "sourceHash": "b07fe531ba9d2637ad46913149353e9e57c7b1872205b4cabf4a5c8eb3e3924f",
+      "bytes": 100713,
+      "entries": 23
+    },
+    {
+      "id": "affinity",
+      "folderName": "st-affinity-memory",
+      "displayName": "好感度记忆",
+      "version": "1.1.2",
+      "fileName": "st-affinity-memory-1.1.2.zip",
+      "sha256": "b9ef7fd1f3c939a25f949032399ce5b11c60cbf0d1281946807b130ce070f519",
+      "sourceHash": "d3909d8784d6d5a74150aa647ade62b5be169ba2032cb1376f93e3c899512f10",
+      "bytes": 60777,
+      "entries": 15
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pickMobile": {
+    "oldCardHidden": false,
+    "oldApplyHidden": false,
+    "overflowY": "hidden",
+    "scrollHeight": 905,
+    "clientHeight": 600,
+    "pendingStatus": "正在为当前剧情抽牌…",
+    "hasTouch": true
+  },
+  "passed": false,
+  "stage": "touch replacement pick with retained card and delayed model",
+  "error": "{'oldCardHidden': False, 'oldApplyHidden': False, 'overflowY': 'hidden', 'scrollHeight': 905, 'clientHeight': 600, 'pendingStatus': '正在为当前剧情抽牌…', 'hasTouch': True}",
+  "runnerSha256": "a08f47ef4af1d99cac2660d83218e37b3c02b6dd94ffa33bada4d9a3e468b7a1"
+}

@@ -1,0 +1,41 @@
+✔ only the tenth accepted reply starts a default evaluation and repeated completion is idempotent (13.105556ms)
+✔ the optional five reply interval uses the same accepted generation boundary (5.096341ms)
+✔ MESSAGE_RECEIVED and UI unlock cannot count a reply before saveReply has finalized its selected swipe (8.586175ms)
+✔ a completion cannot accept text that differs from the selected physical swipe (2.424881ms)
+✔ stopped, quiet, impersonated, and dry generations never advance accepted reply cadence (7.859266ms)
+✔ continue and appendFinal refresh their logical slot without adding a reply (9.608938ms)
+✔ regenerate carries the replaced logical slot receipt across its physical deletion (6.557977ms)
+✔ group regeneration replaces its original logical receipts without counting the batch twice (7.435918ms)
+✔ Director system insertions and uncorrelated ordinary NPC text never count as generated replies (3.867616ms)
+✔ one evaluator request stays in flight while later complete batches remain queued (18.497748ms)
+✔ group replies accumulate across actual avatars and evaluate after the entire wrapper finishes (6.90667ms)
+✔ a group fact belongs to the source avatar even when character display names are equal (4.080807ms)
+✔ a new main generation cancels only the current sidecar and ignores its late result (5.803396ms)
+✔ scope changes discard a late evaluator answer without writing into either chat (1.989365ms)
+✔ switching to a chat with a complete pending batch resumes it after stale work finishes (6.83531ms)
+✔ editing a source while evaluation waits invalidates its answer before commit (3.692382ms)
+✔ persistent receipts survive structuredClone reload and do not re-evaluate the old batch (9.130413ms)
+✔ a persisted completed fact is injected after reload before any further evaluation (2.19519ms)
+✔ MESSAGE_UPDATED removes facts whose live source no longer matches (3.433181ms)
+✔ MESSAGE_EDITED removes facts whose live source no longer matches (7.428899ms)
+✔ MESSAGE_SWIPED removes facts whose live source no longer matches (6.690376ms)
+✔ MESSAGE_SWIPE_DELETED removes facts whose live source no longer matches (3.969838ms)
+✔ MESSAGE_DELETED removes facts whose live source no longer matches (4.010496ms)
+✔ prepare installs literal hidden memory before assembly and restores macros only in generated data (5.582098ms)
+✔ major attitude evidence receives one isolated verification (confirm) with no minor fallback (4.096304ms)
+✔ major attitude evidence receives one isolated verification (defer) with no minor fallback (3.080466ms)
+✔ major attitude evidence receives one isolated verification (reject) with no minor fallback (2.617869ms)
+✔ a future promise stays an unresolved zero point anchor even if proposed with major impact (3.695159ms)
+✔ save rejection does not reject host completion and a later receipt retries persistence (2.989611ms)
+✔ a deferred metadata save receives a scope guard that closes after a chat switch (2.634831ms)
+✔ evaluation uses an isolated JSON quiet request and disabling affinity clears injection immediately (2.343158ms)
+✔ a disabled Director extension also gates affinity generation and injection (2.161066ms)
+✔ evaluator rejection and malformed JSON are contained and the next complete batch still evaluates (12.574448ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 206.125562

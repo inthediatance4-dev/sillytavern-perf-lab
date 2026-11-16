@@ -1,0 +1,28 @@
+✔ Windows keys expand short ancestors consistently before and after publication (1.6381ms)
+✔ Windows key canonicalization preserves access and I/O failures (0.6841ms)
+✔ native temp aliases share locks, retirement markers and publication authorization (321.2947ms)
+✔ short and long lifecycle roots find root-relative markers in both directions (simulation) (14.1885ms)
+✖ DOS short-name lifecycle roots preserve retirement in both directions (native Windows) (73.3432ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 581.8719
+
+✖ failing tests:
+
+test at tests\windows-path-key.test.mjs:124:1
+✖ DOS short-name lifecycle roots preserve retirement in both directions (native Windows) (73.3432ms)
+  Error: ENOENT: no such file or directory, realpath '<drive>/"<temp>\retired long name NelVVO\"'
+      at async Module.realpath (node:internal/fs/promises:1896:10)
+      at async TestContext.<anonymous> (file:///<repo>/tests/windows-path-key.test.mjs:144:23)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -4058,
+    code: 'ENOENT',
+    syscall: 'realpath',
+    path: '<drive>/"<drive>/Users\\86189\\AppData\\Local\\Temp\\retired long name NelVVO\\"'
+  }

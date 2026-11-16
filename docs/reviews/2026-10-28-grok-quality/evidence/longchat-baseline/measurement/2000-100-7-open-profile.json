@@ -1,0 +1,527 @@
+{
+  "sampledMs": 1475.252,
+  "self": [
+    {
+      "function": "(idle)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 598.785,
+      "percent": 40.58865875118285
+    },
+    {
+      "function": "(program)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 448.964,
+      "percent": 30.433037880985758
+    },
+    {
+      "function": "z",
+      "file": "http://<host>/lib/jquery.transit.min.js",
+      "line": 1,
+      "ms": 43.335,
+      "percent": 2.93746424339706
+    },
+    {
+      "function": "(garbage collector)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 15.388,
+      "percent": 1.04307603040023
+    },
+    {
+      "function": "getPropertyValue",
+      "file": "(native)",
+      "line": 0,
+      "ms": 13.221,
+      "percent": 0.8961858719730595
+    },
+    {
+      "function": "setAttribute",
+      "file": "(native)",
+      "line": 0,
+      "ms": 11.742,
+      "percent": 0.7959318136833572
+    },
+    {
+      "function": "Ae",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 11.181,
+      "percent": 0.7579044122631252
+    },
+    {
+      "function": "cloneNode",
+      "file": "(native)",
+      "line": 0,
+      "ms": 10.089,
+      "percent": 0.6838831603007486
+    },
+    {
+      "function": "querySelectorAll",
+      "file": "(native)",
+      "line": 0,
+      "ms": 9.683,
+      "percent": 0.6563624384173009
+    },
+    {
+      "function": "parseFromString",
+      "file": "(native)",
+      "line": 0,
+      "ms": 9.092,
+      "percent": 0.6163014861189817
+    },
+    {
+      "function": "hasDisabledOrNotFocusableAncestor",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 138,
+      "ms": 8.768,
+      "percent": 0.5943391366356392
+    },
+    {
+      "function": "vt",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 8.434,
+      "percent": 0.5716989368596009
+    },
+    {
+      "function": "fetch",
+      "file": "(native)",
+      "line": 0,
+      "ms": 7.952,
+      "percent": 0.5390265527516654
+    },
+    {
+      "function": "contains",
+      "file": "(native)",
+      "line": 0,
+      "ms": 7.89,
+      "percent": 0.5348238809369518
+    },
+    {
+      "function": "Rt",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 6.928,
+      "percent": 0.46961468277962004
+    },
+    {
+      "function": "exec",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 6.111,
+      "percent": 0.4142343138663767
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 5.866,
+      "percent": 0.3976269816953307
+    },
+    {
+      "function": "addArrayAutoWrapper",
+      "file": "http://<host>/script.js",
+      "line": 2157,
+      "ms": 5.789,
+      "percent": 0.3924075344415734
+    },
+    {
+      "function": "next",
+      "file": "(native)",
+      "line": 25,
+      "ms": 5.578,
+      "percent": 0.3781048932656929
+    },
+    {
+      "function": "n.sanitize",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 5.463,
+      "percent": 0.3703096148996917
+    },
+    {
+      "function": "updateMessageElement",
+      "file": "http://<host>/script.js",
+      "line": 2686,
+      "ms": 5.337,
+      "percent": 0.36176870121172516
+    },
+    {
+      "function": "EventEmitter.emit",
+      "file": "http://<host>/lib/eventemitter.js",
+      "line": 130,
+      "ms": 5.304,
+      "percent": 0.3595317952458292
+    },
+    {
+      "function": "makeHtml",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 4.834,
+      "percent": 0.3276728314891286
+    },
+    {
+      "function": "i.helper.regexIndexOf",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 4.671,
+      "percent": 0.3166238717181878
+    },
+    {
+      "function": "r",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 4.407,
+      "percent": 0.29872862399101985
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/chats.js",
+      "line": 1937,
+      "ms": 4.347,
+      "percent": 0.2946615222348453
+    },
+    {
+      "function": "At",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 4.239,
+      "percent": 0.28734073907373114
+    },
+    {
+      "function": "find",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 4.137,
+      "percent": 0.2804266660882344
+    },
+    {
+      "function": "translate",
+      "file": "http://<host>/scripts/i18n.js",
+      "line": 101,
+      "ms": 4.085,
+      "percent": 0.27690184456621647
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 4.049,
+      "percent": 0.27446158351251176
+    }
+  ],
+  "total": [
+    {
+      "function": "(root)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 1475.252,
+      "percent": 100.0
+    },
+    {
+      "function": "(idle)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 598.785,
+      "percent": 40.58865875118285
+    },
+    {
+      "function": "(program)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 448.964,
+      "percent": 30.433037880985758
+    },
+    {
+      "function": "getChatResult",
+      "file": "http://<host>/script.js",
+      "line": 7870,
+      "ms": 271.706,
+      "percent": 18.41759916271932
+    },
+    {
+      "function": "printMessages",
+      "file": "http://<host>/script.js",
+      "line": 1549,
+      "ms": 218.9,
+      "percent": 14.838142907110107
+    },
+    {
+      "function": "redisplayChat",
+      "file": "http://<host>/script.js",
+      "line": 1571,
+      "ms": 218.589,
+      "percent": 14.817061763007269
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/script.js",
+      "line": 1583,
+      "ms": 194.053,
+      "percent": 13.15388828484896
+    },
+    {
+      "function": "updateMessageElement",
+      "file": "http://<host>/script.js",
+      "line": 2686,
+      "ms": 193.031,
+      "percent": 13.084611984935455
+    },
+    {
+      "function": "getMessageTextHTML",
+      "file": "http://<host>/script.js",
+      "line": 2591,
+      "ms": 97.024,
+      "percent": 6.576774679851307
+    },
+    {
+      "function": "messageFormatting",
+      "file": "http://<host>/script.js",
+      "line": 1870,
+      "ms": 96.867,
+      "percent": 6.566132430255983
+    },
+    {
+      "function": "select_selected_character",
+      "file": "http://<host>/script.js",
+      "line": 9002,
+      "ms": 52.023,
+      "percent": 3.5263805776911337
+    },
+    {
+      "function": "n.sanitize",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 47.634,
+      "percent": 3.228872084226966
+    },
+    {
+      "function": "makeHtml",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 47.503,
+      "percent": 3.2199922453926515
+    },
+    {
+      "function": "select_rm_create",
+      "file": "http://<host>/script.js",
+      "line": 9089,
+      "ms": 45.649,
+      "percent": 3.0943188011268585
+    },
+    {
+      "function": "selectRightMenuWithAnimation",
+      "file": "http://<host>/script.js",
+      "line": 8872,
+      "ms": 45.383,
+      "percent": 3.0762879833411514
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/script.js",
+      "line": 8879,
+      "ms": 44.008,
+      "percent": 2.9830835680954846
+    },
+    {
+      "function": "t.fn.transition.t.fn.transit",
+      "file": "http://<host>/lib/jquery.transit.min.js",
+      "line": 1,
+      "ms": 43.851,
+      "percent": 2.9724413185001612
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 43.695,
+      "percent": 2.9618668539341075
+    },
+    {
+      "function": "each",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 43.695,
+      "percent": 2.9618668539341075
+    },
+    {
+      "function": "each",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 43.695,
+      "percent": 2.9618668539341075
+    },
+    {
+      "function": "queue",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 43.695,
+      "percent": 2.9618668539341075
+    },
+    {
+      "function": "c",
+      "file": "http://<host>/lib/jquery.transit.min.js",
+      "line": 1,
+      "ms": 43.695,
+      "percent": 2.9618668539341075
+    },
+    {
+      "function": "z",
+      "file": "http://<host>/lib/jquery.transit.min.js",
+      "line": 1,
+      "ms": 43.539,
+      "percent": 2.951292389368054
+    },
+    {
+      "function": "dequeue",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 43.539,
+      "percent": 2.951292389368054
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 47,
+      "ms": 37.537,
+      "percent": 2.5444466436920607
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 46,
+      "ms": 37.537,
+      "percent": 2.5444466436920607
+    },
+    {
+      "function": "handleNodeChange",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 64,
+      "ms": 37.377,
+      "percent": 2.5336010390089285
+    },
+    {
+      "function": "initializeInteractables",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 166,
+      "ms": 33.88,
+      "percent": 2.296556791653223
+    },
+    {
+      "function": "printCharacters",
+      "file": "http://<host>/script.js",
+      "line": 1065,
+      "ms": 31.503,
+      "percent": 2.1354317770794413
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/lib.js",
+      "line": 2,
+      "ms": 30.838,
+      "percent": 2.0903547326151735
+    }
+  ],
+  "files": [
+    {
+      "file": "(native)",
+      "percent": 80.44862843771776
+    },
+    {
+      "file": "http://<host>/lib.js",
+      "percent": 8.161588664173985
+    },
+    {
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "percent": 3.6369379604298113
+    },
+    {
+      "file": "http://<host>/lib/jquery.transit.min.js",
+      "percent": 2.948174278021653
+    },
+    {
+      "file": "http://<host>/script.js",
+      "percent": 1.4779169931645577
+    },
+    {
+      "file": "http://<host>/scripts/keyboard.js",
+      "percent": 1.1321455588604523
+    },
+    {
+      "file": "http://<host>/lib/eventemitter.js",
+      "percent": 0.4447375770376858
+    },
+    {
+      "file": "http://<host>/scripts/i18n.js",
+      "percent": 0.4392469896668501
+    },
+    {
+      "file": "http://<host>/scripts/chats.js",
+      "percent": 0.3609552808604903
+    },
+    {
+      "file": "http://<host>/scripts/tags.js",
+      "percent": 0.17163169411056553
+    },
+    {
+      "file": "http://<host>/scripts/a11y.js",
+      "percent": 0.15983709901765936
+    },
+    {
+      "file": "http://<host>/scripts/utils.js",
+      "percent": 0.12309761315354936
+    },
+    {
+      "file": "blob:http://<host>/66f167ba-e0d7-4960-937c-6df3b69c47ff",
+      "percent": 0.11916608145591398
+    },
+    {
+      "file": "http://<host>/scripts/reasoning.js",
+      "percent": 0.09056079910415306
+    },
+    {
+      "file": "http://<host>/lib/jquery-ui.min.js",
+      "percent": 0.08479907161623913
+    },
+    {
+      "file": "http://<host>/scripts/authors-note.js",
+      "percent": 0.054024668327851785
+    },
+    {
+      "file": "http://<host>/scripts/util/showdown-patch.js",
+      "percent": 0.04290792352764138
+    },
+    {
+      "file": "http://<host>/scripts/world-info.js",
+      "percent": 0.042433428322754346
+    },
+    {
+      "file": "http://<host>/scripts/extensions/regex/engine.js",
+      "percent": 0.02162342433699463
+    },
+    {
+      "file": "http://<host>/scripts/st-context.js",
+      "percent": 0.01071003462459295
+    },
+    {
+      "file": "http://<host>/scripts/backgrounds.js",
+      "percent": 0.010642249595323375
+    },
+    {
+      "file": "http://<host>/lib/pagination.js",
+      "percent": 0.010506679536784224
+    },
+    {
+      "file": "http://<host>/scripts/RossAscends-mods.js",
+      "percent": 0.007727493336731622
+    }
+  ],
+  "librariesSelfPercent": {
+    "other/idle/native": 92.80441578794674,
+    "jQuery": 6.669911310067704,
+    "markdown/formatting": 0.11021845759233,
+    "message rendering": 0.4154544443932291
+  }
+}

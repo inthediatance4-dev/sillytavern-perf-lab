@@ -1,0 +1,12 @@
+{
+  "servers": 39,
+  "allExitZero": true,
+  "allCompletedOwnerLocksRemoved": true,
+  "interruptedTest": {
+    "exitCode": 130,
+    "serverReachable": false,
+    "shutdownTelemetry": "unavailable",
+    "ownerFile": "retained, no recovery or cleanup"
+  },
+  "shutdownIncomplete": false
+}

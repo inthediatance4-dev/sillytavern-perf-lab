@@ -1,0 +1,32 @@
+git diff --name-only 29f1e7d..<final HEAD>
+
+docs/reviews/2026-10-31-director-followups-g1-g6/README.md
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/g2-browser-start-failure.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/g2-fetch-failure.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/g2-inconclusive-conditional-probe.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/g2-initial-1.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/g2-initial-2.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/g2-network-diagnostic.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/g2-strict-observation.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/diagnostics/teardown-warnings.txt
+docs/reviews/2026-10-31-director-followups-g1-g6/extension-source-sha256.json
+docs/reviews/2026-10-31-director-followups-g1-g6/extensions.md
+docs/reviews/2026-10-31-director-followups-g1-g6/files-since-29f1e7d.txt
+docs/reviews/2026-10-31-director-followups-g1-g6/g2-1.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g2-2.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g2-3.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g2-audit-finding.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g2-direct-save-race.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g3-baseline.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g3-head.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g4-1.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/g4-2.results.json
+docs/reviews/2026-10-31-director-followups-g1-g6/validated-source-sha256.json
+docs/reviews/2026-10-31-director-followups-r1-r6/README.md
+docs/reviews/2026-10-31-director-followups-r1-r6/adaptive.results.json
+docs/reviews/2026-10-31-director-followups-r1-r6/director.results.json
+docs/reviews/2026-10-31-director-followups-r1-r6/node.tap
+docs/reviews/2026-10-31-director-followups-r1-r6/validated-source-sha256.json
+tests/browser-director-lab.py
+
+All paths are under docs/ or tests/.

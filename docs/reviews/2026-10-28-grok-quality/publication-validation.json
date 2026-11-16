@@ -1,0 +1,136 @@
+{
+  "reviewed_application_commit": "f28a54c6e47cd1915e5838caf8d1ecae3d6ae751",
+  "publication_branch": "codex/review-grok-quality-20261028",
+  "portable_repros_observed": [
+    "owner-fail-open",
+    "shutdown-bound",
+    "nested-shared",
+    "export-malformed",
+    "character-reimport",
+    "import-delete-race",
+    "retired-name-reuse-crash-before-publication",
+    "linux-btime-clock-correction"
+  ],
+  "portable_repros_count": 8,
+  "syntax_and_json_checks": "passed",
+  "relative_markdown_links": "passed",
+  "local_identifiers_and_secret_shape_scan": "passed",
+  "raw_runtime_data_included": false,
+  "files": [
+    {
+      "path": "evidence/application-smoke.json",
+      "bytes": 770,
+      "sha256": "d2268e16bf8d1c448b8a76c6554849f0da3ba0081e81bcff75eb0f339b045e77"
+    },
+    {
+      "path": "evidence/baseline-independent-repros.json",
+      "bytes": 983,
+      "sha256": "72971d28634172b28a2d514be04b95664a1990bb19ef0cd289d0ed2058beec7a"
+    },
+    {
+      "path": "evidence/benchmark.log",
+      "bytes": 1200,
+      "sha256": "e0560053adce4cf244a056728dddd54b76fc07553983461e2baa3ddc2b6c155a"
+    },
+    {
+      "path": "evidence/independent-repros.json",
+      "bytes": 1501,
+      "sha256": "1261769fd687ab39d8d0b0d20610be6a2ccdf802e1f24ce4a6e7ca09dc274a75"
+    },
+    {
+      "path": "evidence/lint.log",
+      "bytes": 104,
+      "sha256": "92872945054583a27721d451437ebd5f683234f0b085987dc768486225f75a0d"
+    },
+    {
+      "path": "evidence/linux-clock-owner.json",
+      "bytes": 393,
+      "sha256": "3d862155cc01c5407b41ed6637914e216639bd484b5c51e03de65d02b22f9b11"
+    },
+    {
+      "path": "evidence/publish-validation/independent-repros.json",
+      "bytes": 1502,
+      "sha256": "5980e74eebcc8b2ee75246481ba1586758863dea0ea4d8fedf290a09d2f697af"
+    },
+    {
+      "path": "evidence/publish-validation/linux-clock-owner.json",
+      "bytes": 393,
+      "sha256": "0e22342265288099739e7a87efd85176611feee6dbc338dfb3a4e77b5fb1f2c0"
+    },
+    {
+      "path": "evidence/publish-validation/retired-reuse-crash.json",
+      "bytes": 249,
+      "sha256": "d6343191b85b65553f8c6fb1617a8b9540c8266a9e5f9b0a13fa9b49906f9e9b"
+    },
+    {
+      "path": "evidence/retired-reuse-crash.json",
+      "bytes": 249,
+      "sha256": "d6343191b85b65553f8c6fb1617a8b9540c8266a9e5f9b0a13fa9b49906f9e9b"
+    },
+    {
+      "path": "evidence/test-baseline-windows.log",
+      "bytes": 74898,
+      "sha256": "90c766f195e07097ea667190eda5ad34840c0e97009d38eeb6ad30e643bf945b"
+    },
+    {
+      "path": "evidence/test-linux-followup.log",
+      "bytes": 32199,
+      "sha256": "e55f7c34a91fea337016861765682d0ff86f64bd49c5fc840950dc5df5da7cc1"
+    },
+    {
+      "path": "evidence/test-perf-linux.log",
+      "bytes": 106407,
+      "sha256": "8846331c4a0d36696325fc480e72dfef37bcde832e25f1e3339245cd056d5361"
+    },
+    {
+      "path": "evidence/test-perf.log",
+      "bytes": 104930,
+      "sha256": "e2a1ff7a4e20dbbbc58bfc6ebbac67e62d2bd0618fcd724925e078f8e60c1208"
+    },
+    {
+      "path": "evidence/test-process-identity.log",
+      "bytes": 625,
+      "sha256": "14570eccccc973ac00f0b39664257ae183ee13e54dc94299fd0d6539b9f49eb9"
+    },
+    {
+      "path": "findings.json",
+      "bytes": 3155,
+      "sha256": "a812256db0f4400b1d953549303e243e7930dfe54ba7c4c41e96eb9eca313cf8"
+    },
+    {
+      "path": "independent-repros.mjs",
+      "bytes": 10436,
+      "sha256": "15bf1b1bc828f671a27f23f47536e1ae55694cc7fab2e21d0a7f17c62d78ec91"
+    },
+    {
+      "path": "linux-clock-owner.mjs",
+      "bytes": 2471,
+      "sha256": "5d4f55a17fa17aac874c098040f814dee22a2313d0ceee7c46a113b0296ee7ae"
+    },
+    {
+      "path": "preserve-deletions.mjs",
+      "bytes": 2611,
+      "sha256": "30648d5636e1369f6563a742c2b8cae4f9fd2c2493214aad08e5d71110a22ec8"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3918,
+      "sha256": "731108699c1aa9895f72fa492ae12aacb491f0761716bb1f1d256130f075949c"
+    },
+    {
+      "path": "REPORT.zh-CN.md",
+      "bytes": 13770,
+      "sha256": "f608cdb1d45b2fc45419c01b60b5438095974839eb0eaf272f6208448f59f271"
+    },
+    {
+      "path": "retired-reuse-crash.mjs",
+      "bytes": 2039,
+      "sha256": "1b5b407218c2395f03efb0e6d2c70c220a433616bf13f84978526b031557ee2a"
+    },
+    {
+      "path": "review-context.mjs",
+      "bytes": 982,
+      "sha256": "ccc1dcc647c17ec3f0d28f87abb5a00a7bb30e3df0a7cb7b72ae7b082693ccda"
+    }
+  ]
+}

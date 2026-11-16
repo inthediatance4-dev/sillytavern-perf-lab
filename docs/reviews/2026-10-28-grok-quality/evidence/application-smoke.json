@@ -1,0 +1,45 @@
+{
+  "passed": true,
+  "syntheticOnly": true,
+  "origin": "http://127.0.0.1:52730",
+  "dataRoot": "<AUDIT_WORKTREE>\\.lab-data",
+  "checks": [
+    {
+      "name": "full-application-startup",
+      "passed": true,
+      "ms": 14661
+    },
+    {
+      "name": "index-html",
+      "passed": true
+    },
+    {
+      "name": "create-character",
+      "passed": true
+    },
+    {
+      "name": "save-chat",
+      "passed": true
+    },
+    {
+      "name": "read-chat-content",
+      "passed": true
+    },
+    {
+      "name": "edit-character",
+      "passed": true
+    },
+    {
+      "name": "export-valid-chat",
+      "passed": true
+    },
+    {
+      "name": "recycle-character-and-chat",
+      "passed": true
+    }
+  ],
+  "shutdown": {
+    "code": 0,
+    "signal": null
+  }
+}

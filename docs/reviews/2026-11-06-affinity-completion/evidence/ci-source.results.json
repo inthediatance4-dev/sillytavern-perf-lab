@@ -1,0 +1,45 @@
+{
+  "conclusion": "success",
+  "databaseId": 42235693957,
+  "headSha": "7b6379fa322bbc5fa3e722c9528bc73d240360ec",
+  "jobs": [
+    {
+      "name": "perf (20, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/42235693957/job/127952573871"
+    },
+    {
+      "name": "perf (24, windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/42235693957/job/127952574089"
+    },
+    {
+      "name": "perf (20, windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/42235693957/job/127952574260"
+    },
+    {
+      "name": "perf (24, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/42235693957/job/127952574303"
+    },
+    {
+      "name": "perf (22, windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/42235693957/job/127952574340"
+    },
+    {
+      "name": "perf (22, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/42235693957/job/127952574654"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/inthediatance4-dev/sillytavern-perf-lab/actions/runs/42235693957"
+}

@@ -1,0 +1,39 @@
+name: bench-save (record only)
+
+on:
+  push:
+    branches: ['opus-round*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    # Only when the head commit asks for it; record-only A/B of the save path.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[bench]')
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: A/B benchmark against 9293a4e
+        shell: bash
+        env:
+          BENCH_BASELINE: 9293a4e
+          BENCH_RUNS: '30'
+        run: node scripts/benchmark-performance.mjs > bench-save-${{ matrix.os }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-save-${{ matrix.os }}
+          path: bench-save-${{ matrix.os }}.json

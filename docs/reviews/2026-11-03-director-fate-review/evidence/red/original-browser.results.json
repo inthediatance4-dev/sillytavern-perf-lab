@@ -1,0 +1,645 @@
+{
+  "base": "ffd5f4e",
+  "head": "7a21eeba553042ca8ad008d34ba1f97f3239e65f",
+  "runnerHead": "e88cf001e0ef3e5e4e32af6d0cb46b3c7738d13e",
+  "mode": "fate-review-only",
+  "thirdPartyEnabled": false,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "2eafa09f35fc1ed2acecc358703f7c6051c9d4e515a5712a6538c8e0cf0d40bf",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "e12ff6ed804d7d499cdece64127a3dc851eee54cc9e3ce439dfac3c0922ccde3",
+      "focusCount": 2
+    }
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [
+    "third-party/JS-Slash-Runner",
+    "third-party/st-memory-enhancement"
+  ],
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [],
+    "tavernHelperAvailable": false
+  },
+  "fateReview": {
+    "FC1": {
+      "settings": {
+        "context": 2048,
+        "reply": 256,
+        "model": "gpt-4o",
+        "tokenizerModel": "gpt-4o",
+        "source": "custom"
+      },
+      "promptBudget": 1792,
+      "eventCodePoints": 400,
+      "configurationAfterReload": {
+        "context": 2048,
+        "reply": 256,
+        "model": "gpt-4o",
+        "tokenizerModel": "gpt-4o",
+        "source": "custom"
+      },
+      "configurationAfterDraw": {
+        "context": 2048,
+        "reply": 256,
+        "model": "gpt-4o",
+        "tokenizerModel": "gpt-4o",
+        "source": "custom"
+      },
+      "withoutCard": {
+        "configuredModel": "gpt-4o",
+        "tokenizerModel": "gpt-4o",
+        "configuredContext": 2048,
+        "configuredReply": 256,
+        "fullMessagesTokens": 1733,
+        "applicationFullMessagesTokens": 1817,
+        "historyMessagesTokens": 1693,
+        "requestMessageCount": 29
+      },
+      "withCard": {
+        "configuredModel": "gpt-4o",
+        "tokenizerModel": "gpt-4o",
+        "configuredContext": 2048,
+        "configuredReply": 256,
+        "fullMessagesTokens": 2101,
+        "applicationFullMessagesTokens": 2188,
+        "historyMessagesTokens": 1693,
+        "requestMessageCount": 30
+      },
+      "historyWithoutCard": 26,
+      "historyWithCard": 26,
+      "removedHistoryIds": [],
+      "removedHistoryTokens": 0,
+      "eventTextTokenIncrement": 350,
+      "baselineUnusedTokens": 59,
+      "literalMacroPreserved": true,
+      "passed": false,
+      "failure": "{'settings': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'promptBudget': 1792, 'eventCodePoints': 400, 'configurationAfterReload': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'configurationAfterDraw': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'withoutCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 1733, 'applicationFullMessagesTokens': 1817, 'historyMessagesTokens': 1693, 'requestMessageCount': 29}, 'withCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 2101, 'applicationFullMessagesTokens': 2188, 'historyMessagesTokens': 1693, 'requestMessageCount': 30}, 'historyWithoutCard': 26, 'historyWithCard': 26, 'removedHistoryIds': [], 'removedHistoryTokens': 0, 'eventTextTokenIncrement': 350, 'baselineUnusedTokens': 59, 'literalMacroPreserved': True, 'passed': False}"
+    },
+    "FC2": {
+      "pauseEvent": "CHAT_COMPLETION_PROMPT_READY",
+      "afterDataAtPause": 0,
+      "quietCompletedBeforeNormalRelease": true,
+      "quietProbeResults": [
+        {
+          "probe": "FC2_QUIET_PROBE_1",
+          "text": "Synthetic Fate review story reply.",
+          "completed": [
+            "quiet"
+          ],
+          "afterData": 1,
+          "normalStillPaused": true
+        },
+        {
+          "probe": "FC2_QUIET_PROBE_2",
+          "text": "Synthetic Fate review story reply.",
+          "completed": [
+            "quiet",
+            "quiet"
+          ],
+          "afterData": 2,
+          "normalStillPaused": true
+        }
+      ],
+      "requests": 3,
+      "eventOccurrences": [
+        0,
+        0,
+        0
+      ],
+      "placeholderOccurrences": [
+        0,
+        0,
+        1
+      ],
+      "completed": [
+        "quiet",
+        "quiet",
+        "normal"
+      ],
+      "heldAfter": true,
+      "boundId": null,
+      "passed": false,
+      "failure": "{'pauseEvent': 'CHAT_COMPLETION_PROMPT_READY', 'afterDataAtPause': 0, 'quietCompletedBeforeNormalRelease': True, 'quietProbeResults': [{'probe': 'FC2_QUIET_PROBE_1', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet'], 'afterData': 1, 'normalStillPaused': True}, {'probe': 'FC2_QUIET_PROBE_2', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet', 'quiet'], 'afterData': 2, 'normalStillPaused': True}], 'requests': 3, 'eventOccurrences': [0, 0, 0], 'placeholderOccurrences': [0, 0, 1], 'completed': ['quiet', 'quiet', 'normal'], 'heldAfter': True, 'boundId': None, 'passed': False}"
+    },
+    "FC3": {
+      "groupFixture": {
+        "groupId": "1793715213381",
+        "chatId": "FateReviewGroup-414e70ebfb",
+        "secondAvatar": "FateReviewTwo-414e70ebfb.png",
+        "members": [
+          "DirectorSynthetic-b947f4f3d2.png",
+          "FateReviewTwo-414e70ebfb.png"
+        ]
+      },
+      "initialActualParticipants": [
+        "Director Synthetic",
+        "Fate Review Two"
+      ],
+      "interleavings": {
+        "chat-switch": {
+          "stage": "regenerate",
+          "mode": "chat-switch",
+          "listenerRan": true,
+          "requestsExpectedDuringAbort": 0,
+          "sourceGroup": "1793715213381",
+          "sourceChat": "FateReviewGroup-414e70ebfb",
+          "sourceLength": 3,
+          "markerMatches": true,
+          "metadataChanged": true,
+          "destinationGroup": null,
+          "destinationChat": "Fate Review Two - 2026-11-03@22h13m33s234ms",
+          "busyInsideListener": true,
+          "busyAfter": true,
+          "groupBusyAfter": false,
+          "destinationLength": 1,
+          "requestsBeforeRegenerate": 10,
+          "requestsAfterRegenerate": 10,
+          "beforeRegenerate": {
+            "busy": false,
+            "groupBusy": false,
+            "isGenerating": false,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": "1793715213381",
+            "chatId": "FateReviewGroup-414e70ebfb",
+            "characterId": null,
+            "characterName": "",
+            "chatLength": 3,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Synthetic Tester",
+                "isUser": true,
+                "isSystem": false,
+                "text": "FC3 group starting scene.",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              },
+              {
+                "name": "Director Synthetic",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:34.804Z",
+                "genFinished": "2026-11-03T14:13:34.989Z"
+              },
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:35.324Z",
+                "genFinished": "2026-11-03T14:13:35.452Z"
+              }
+            ]
+          },
+          "afterRegenerate": {
+            "busy": true,
+            "groupBusy": false,
+            "isGenerating": true,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": null,
+            "chatId": "Fate Review Two - 2026-11-03@22h13m33s234ms",
+            "characterId": "2",
+            "characterName": "Fate Review Two",
+            "chatLength": 1,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "isSystem": false,
+                "text": "Ready",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              }
+            ]
+          },
+          "failure": "AssertionError at case line 508: {'stage': 'regenerate', 'mode': 'chat-switch', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': None, 'destinationChat': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 1, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}}",
+          "failureSnapshot": {
+            "busy": true,
+            "groupBusy": false,
+            "isGenerating": true,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": null,
+            "chatId": "Fate Review Two - 2026-11-03@22h13m33s234ms",
+            "characterId": "2",
+            "characterName": "Fate Review Two",
+            "chatLength": 1,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "isSystem": false,
+                "text": "Ready",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              }
+            ]
+          }
+        },
+        "metadata-replacement": {
+          "stage": "regenerate",
+          "beforeOpenGroup": {
+            "busy": false,
+            "groupBusy": false,
+            "isGenerating": false,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": null,
+            "chatId": "Fate Review Two - 2026-11-03@22h13m33s234ms",
+            "characterId": "2",
+            "characterName": "Fate Review Two",
+            "chatLength": 1,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "isSystem": false,
+                "text": "Ready",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              }
+            ]
+          },
+          "openGroupReturned": true,
+          "afterOpenGroup": {
+            "busy": false,
+            "groupBusy": false,
+            "isGenerating": false,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": "1793715213381",
+            "chatId": "FateReviewGroup-414e70ebfb",
+            "characterId": null,
+            "characterName": "",
+            "chatLength": 3,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Synthetic Tester",
+                "isUser": true,
+                "isSystem": false,
+                "text": "FC3 group starting scene.",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              },
+              {
+                "name": "Director Synthetic",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:34.804Z",
+                "genFinished": "2026-11-03T14:13:34.989Z"
+              },
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:35.324Z",
+                "genFinished": "2026-11-03T14:13:35.452Z"
+              }
+            ]
+          },
+          "mode": "metadata-replacement",
+          "listenerRan": true,
+          "requestsExpectedDuringAbort": 0,
+          "sourceGroup": "1793715213381",
+          "sourceChat": "FateReviewGroup-414e70ebfb",
+          "sourceLength": 3,
+          "markerMatches": true,
+          "metadataChanged": true,
+          "destinationGroup": "1793715213381",
+          "destinationChat": "FateReviewGroup-414e70ebfb",
+          "busyInsideListener": true,
+          "busyAfter": true,
+          "groupBusyAfter": false,
+          "destinationLength": 3,
+          "requestsBeforeRegenerate": 10,
+          "requestsAfterRegenerate": 10,
+          "beforeRegenerate": {
+            "busy": false,
+            "groupBusy": false,
+            "isGenerating": false,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": "1793715213381",
+            "chatId": "FateReviewGroup-414e70ebfb",
+            "characterId": null,
+            "characterName": "",
+            "chatLength": 3,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Synthetic Tester",
+                "isUser": true,
+                "isSystem": false,
+                "text": "FC3 group starting scene.",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              },
+              {
+                "name": "Director Synthetic",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:34.804Z",
+                "genFinished": "2026-11-03T14:13:34.989Z"
+              },
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:35.324Z",
+                "genFinished": "2026-11-03T14:13:35.452Z"
+              }
+            ]
+          },
+          "afterRegenerate": {
+            "busy": true,
+            "groupBusy": false,
+            "isGenerating": true,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": "1793715213381",
+            "chatId": "FateReviewGroup-414e70ebfb",
+            "characterId": null,
+            "characterName": "",
+            "chatLength": 3,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Synthetic Tester",
+                "isUser": true,
+                "isSystem": false,
+                "text": "FC3 group starting scene.",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              },
+              {
+                "name": "Director Synthetic",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:34.804Z",
+                "genFinished": "2026-11-03T14:13:34.989Z"
+              },
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:35.324Z",
+                "genFinished": "2026-11-03T14:13:35.452Z"
+              }
+            ]
+          },
+          "failure": "AssertionError at case line 508: {'stage': 'regenerate', 'beforeOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}, 'openGroupReturned': True, 'afterOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'mode': 'metadata-replacement', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': '1793715213381', 'destinationChat': 'FateReviewGroup-414e70ebfb', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 3, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}}",
+          "failureSnapshot": {
+            "busy": true,
+            "groupBusy": false,
+            "isGenerating": true,
+            "isChatSaving": false,
+            "swipeState": "none",
+            "bodyGenerating": null,
+            "bodySwiping": null,
+            "onlineStatus": "Valid",
+            "groupId": "1793715213381",
+            "chatId": "FateReviewGroup-414e70ebfb",
+            "characterId": null,
+            "characterName": "",
+            "chatLength": 3,
+            "draft": "",
+            "sendButton": {
+              "display": "flex",
+              "visibility": "visible",
+              "visible": true
+            },
+            "stopButton": {
+              "display": "none",
+              "visibility": "visible",
+              "visible": false
+            },
+            "completed": [],
+            "tail": [
+              {
+                "name": "Synthetic Tester",
+                "isUser": true,
+                "isSystem": false,
+                "text": "FC3 group starting scene.",
+                "generationId": null,
+                "genStarted": null,
+                "genFinished": null
+              },
+              {
+                "name": "Director Synthetic",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:34.804Z",
+                "genFinished": "2026-11-03T14:13:34.989Z"
+              },
+              {
+                "name": "Fate Review Two",
+                "isUser": false,
+                "text": "Synthetic Fate review story reply.",
+                "generationId": 1793715214804,
+                "genStarted": "2026-11-03T14:13:35.324Z",
+                "genFinished": "2026-11-03T14:13:35.452Z"
+              }
+            ]
+          }
+        }
+      },
+      "passed": false,
+      "failure": "chat-switch: AssertionError at case line 508: {'stage': 'regenerate', 'mode': 'chat-switch', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': None, 'destinationChat': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 1, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}}\nmetadata-replacement: AssertionError at case line 508: {'stage': 'regenerate', 'beforeOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}, 'openGroupReturned': True, 'afterOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'mode': 'metadata-replacement', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': '1793715213381', 'destinationChat': 'FateReviewGroup-414e70ebfb', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 3, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}}"
+    },
+    "failures": [
+      "FC1: {'settings': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'promptBudget': 1792, 'eventCodePoints': 400, 'configurationAfterReload': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'configurationAfterDraw': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'withoutCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 1733, 'applicationFullMessagesTokens': 1817, 'historyMessagesTokens': 1693, 'requestMessageCount': 29}, 'withCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 2101, 'applicationFullMessagesTokens': 2188, 'historyMessagesTokens': 1693, 'requestMessageCount': 30}, 'historyWithoutCard': 26, 'historyWithCard': 26, 'removedHistoryIds': [], 'removedHistoryTokens': 0, 'eventTextTokenIncrement': 350, 'baselineUnusedTokens': 59, 'literalMacroPreserved': True, 'passed': False, 'failure': \"{'settings': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'promptBudget': 1792, 'eventCodePoints': 400, 'configurationAfterReload': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'configurationAfterDraw': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'withoutCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 1733, 'applicationFullMessagesTokens': 1817, 'historyMessagesTokens': 1693, 'requestMessageCount': 29}, 'withCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 2101, 'applicationFullMessagesTokens': 2188, 'historyMessagesTokens': 1693, 'requestMessageCount': 30}, 'historyWithoutCard': 26, 'historyWithCard': 26, 'removedHistoryIds': [], 'removedHistoryTokens': 0, 'eventTextTokenIncrement': 350, 'baselineUnusedTokens': 59, 'literalMacroPreserved': True, 'passed': False}\"}",
+      "FC2: {'pauseEvent': 'CHAT_COMPLETION_PROMPT_READY', 'afterDataAtPause': 0, 'quietCompletedBeforeNormalRelease': True, 'quietProbeResults': [{'probe': 'FC2_QUIET_PROBE_1', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet'], 'afterData': 1, 'normalStillPaused': True}, {'probe': 'FC2_QUIET_PROBE_2', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet', 'quiet'], 'afterData': 2, 'normalStillPaused': True}], 'requests': 3, 'eventOccurrences': [0, 0, 0], 'placeholderOccurrences': [0, 0, 1], 'completed': ['quiet', 'quiet', 'normal'], 'heldAfter': True, 'boundId': None, 'passed': False, 'failure': \"{'pauseEvent': 'CHAT_COMPLETION_PROMPT_READY', 'afterDataAtPause': 0, 'quietCompletedBeforeNormalRelease': True, 'quietProbeResults': [{'probe': 'FC2_QUIET_PROBE_1', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet'], 'afterData': 1, 'normalStillPaused': True}, {'probe': 'FC2_QUIET_PROBE_2', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet', 'quiet'], 'afterData': 2, 'normalStillPaused': True}], 'requests': 3, 'eventOccurrences': [0, 0, 0], 'placeholderOccurrences': [0, 0, 1], 'completed': ['quiet', 'quiet', 'normal'], 'heldAfter': True, 'boundId': None, 'passed': False}\"}",
+      "FC3: chat-switch: AssertionError at case line 508: {'stage': 'regenerate', 'mode': 'chat-switch', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': None, 'destinationChat': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 1, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}}\nmetadata-replacement: AssertionError at case line 508: {'stage': 'regenerate', 'beforeOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}, 'openGroupReturned': True, 'afterOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'mode': 'metadata-replacement', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': '1793715213381', 'destinationChat': 'FateReviewGroup-414e70ebfb', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 3, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}}"
+    ]
+  },
+  "processStatus": {
+    "server": null,
+    "provider": null
+  },
+  "pass": false,
+  "stage": "Fate Cards browser acceptance",
+  "error": "Fate review regressions failed:\nFC1: {'settings': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'promptBudget': 1792, 'eventCodePoints': 400, 'configurationAfterReload': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'configurationAfterDraw': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'withoutCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 1733, 'applicationFullMessagesTokens': 1817, 'historyMessagesTokens': 1693, 'requestMessageCount': 29}, 'withCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 2101, 'applicationFullMessagesTokens': 2188, 'historyMessagesTokens': 1693, 'requestMessageCount': 30}, 'historyWithoutCard': 26, 'historyWithCard': 26, 'removedHistoryIds': [], 'removedHistoryTokens': 0, 'eventTextTokenIncrement': 350, 'baselineUnusedTokens': 59, 'literalMacroPreserved': True, 'passed': False, 'failure': \"{'settings': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'promptBudget': 1792, 'eventCodePoints': 400, 'configurationAfterReload': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'configurationAfterDraw': {'context': 2048, 'reply': 256, 'model': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'source': 'custom'}, 'withoutCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 1733, 'applicationFullMessagesTokens': 1817, 'historyMessagesTokens': 1693, 'requestMessageCount': 29}, 'withCard': {'configuredModel': 'gpt-4o', 'tokenizerModel': 'gpt-4o', 'configuredContext': 2048, 'configuredReply': 256, 'fullMessagesTokens': 2101, 'applicationFullMessagesTokens': 2188, 'historyMessagesTokens': 1693, 'requestMessageCount': 30}, 'historyWithoutCard': 26, 'historyWithCard': 26, 'removedHistoryIds': [], 'removedHistoryTokens': 0, 'eventTextTokenIncrement': 350, 'baselineUnusedTokens': 59, 'literalMacroPreserved': True, 'passed': False}\"}\nFC2: {'pauseEvent': 'CHAT_COMPLETION_PROMPT_READY', 'afterDataAtPause': 0, 'quietCompletedBeforeNormalRelease': True, 'quietProbeResults': [{'probe': 'FC2_QUIET_PROBE_1', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet'], 'afterData': 1, 'normalStillPaused': True}, {'probe': 'FC2_QUIET_PROBE_2', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet', 'quiet'], 'afterData': 2, 'normalStillPaused': True}], 'requests': 3, 'eventOccurrences': [0, 0, 0], 'placeholderOccurrences': [0, 0, 1], 'completed': ['quiet', 'quiet', 'normal'], 'heldAfter': True, 'boundId': None, 'passed': False, 'failure': \"{'pauseEvent': 'CHAT_COMPLETION_PROMPT_READY', 'afterDataAtPause': 0, 'quietCompletedBeforeNormalRelease': True, 'quietProbeResults': [{'probe': 'FC2_QUIET_PROBE_1', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet'], 'afterData': 1, 'normalStillPaused': True}, {'probe': 'FC2_QUIET_PROBE_2', 'text': 'Synthetic Fate review story reply.', 'completed': ['quiet', 'quiet'], 'afterData': 2, 'normalStillPaused': True}], 'requests': 3, 'eventOccurrences': [0, 0, 0], 'placeholderOccurrences': [0, 0, 1], 'completed': ['quiet', 'quiet', 'normal'], 'heldAfter': True, 'boundId': None, 'passed': False}\"}\nFC3: chat-switch: AssertionError at case line 508: {'stage': 'regenerate', 'mode': 'chat-switch', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': None, 'destinationChat': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 1, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}}\nmetadata-replacement: AssertionError at case line 508: {'stage': 'regenerate', 'beforeOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': None, 'chatId': 'Fate Review Two - 2026-11-03@22h13m33s234ms', 'characterId': '2', 'characterName': 'Fate Review Two', 'chatLength': 1, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Fate Review Two', 'isUser': False, 'isSystem': False, 'text': 'Ready', 'generationId': None, 'genStarted': None, 'genFinished': None}]}, 'openGroupReturned': True, 'afterOpenGroup': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'mode': 'metadata-replacement', 'listenerRan': True, 'requestsExpectedDuringAbort': 0, 'sourceGroup': '1793715213381', 'sourceChat': 'FateReviewGroup-414e70ebfb', 'sourceLength': 3, 'markerMatches': True, 'metadataChanged': True, 'destinationGroup': '1793715213381', 'destinationChat': 'FateReviewGroup-414e70ebfb', 'busyInsideListener': True, 'busyAfter': True, 'groupBusyAfter': False, 'destinationLength': 3, 'requestsBeforeRegenerate': 10, 'requestsAfterRegenerate': 10, 'beforeRegenerate': {'busy': False, 'groupBusy': False, 'isGenerating': False, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}, 'afterRegenerate': {'busy': True, 'groupBusy': False, 'isGenerating': True, 'isChatSaving': False, 'swipeState': 'none', 'bodyGenerating': None, 'bodySwiping': None, 'onlineStatus': 'Valid', 'groupId': '1793715213381', 'chatId': 'FateReviewGroup-414e70ebfb', 'characterId': None, 'characterName': '', 'chatLength': 3, 'draft': '', 'sendButton': {'display': 'flex', 'visibility': 'visible', 'visible': True}, 'stopButton': {'display': 'none', 'visibility': 'visible', 'visible': False}, 'completed': [], 'tail': [{'name': 'Synthetic Tester', 'isUser': True, 'isSystem': False, 'text': 'FC3 group starting scene.', 'generationId': None, 'genStarted': None, 'genFinished': None}, {'name': 'Director Synthetic', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:34.804Z', 'genFinished': '2026-11-03T14:13:34.989Z'}, {'name': 'Fate Review Two', 'isUser': False, 'text': 'Synthetic Fate review story reply.', 'generationId': 1793715214804, 'genStarted': '2026-11-03T14:13:35.324Z', 'genFinished': '2026-11-03T14:13:35.452Z'}]}}",
+  "serverLogTail": "\n        'Keep character agency and existing story facts. Use the story language. Describe a concrete event, not instructions to the assistant.\\n' +\n        'Return only JSON with exactly one property: {\"event\":\"the private event\"}. Use 1 to 1200 characters.'\n    }\n  ],\n  prompt: undefined,\n  model: 'gpt-4o',\n  temperature: 1,\n  max_tokens: 500,\n  max_completion_tokens: undefined,\n  stream: false,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\nChat Completion response: {\n  id: 'synthetic',\n  object: 'chat.completion',\n  model: 'gpt-4o',\n  usage: { prompt_tokens: 1, completion_tokens: 20, total_tokens: 21 },\n  choices: [\n    {\n      index: 0,\n      message: {\n        role: 'assistant',\n        content: '{\"event\": \"FC3_GROUP_PRIVATE: A courier quietly approaches both members of the party.\"}'\n      },\n      finish_reason: 'stop'\n    }\n  ]\n}\nChat Completion request: {\n  messages: [\n    {\n      role: 'system',\n      content: \"Write Director Synthetic's next reply in a fictional chat between Director Synthetic and Synthetic Tester.\"\n    },\n    {\n      role: 'system',\n      content: 'Artificial Director acceptance character.'\n    },\n    {\n      role: 'system',\n      content: '[Start a new group chat. Group members: Director Synthetic, Fate Review Two]'\n    },\n    { role: 'user', content: 'FC3 group starting scene.' },\n    {\n      role: 'system',\n      content: '[Director Fate: introduce this fixed event naturally in this story reply.]\\n' +\n        'FC3_GROUP_PRIVATE: A courier quietly approaches both members of the party.'\n    },\n    {\n      role: 'system',\n      content: '[Write the next reply only as Director Synthetic.]'\n    }\n  ],\n  prompt: undefined,\n  model: 'gpt-4o',\n  temperature: 1,\n  max_tokens: 256,\n  max_completion_tokens: undefined,\n  stream: false,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\nChat Completion response: {\n  id: 'synthetic',\n  object: 'chat.completion',\n  model: 'gpt-4o',\n  usage: { prompt_tokens: 1, completion_tokens: 7, total_tokens: 8 },\n  choices: [\n    {\n      index: 0,\n      message: {\n        role: 'assistant',\n        content: 'Synthetic Fate review story reply.'\n      },\n      finish_reason: 'stop'\n    }\n  ]\n}\nChat Completion request: {\n  messages: [\n    {\n      role: 'system',\n      content: \"Write Fate Review Two's next reply in a fictional chat between Fate Review Two and Synthetic Tester.\"\n    },\n    {\n      role: 'system',\n      content: '[Start a new group chat. Group members: Director Synthetic, Fate Review Two]'\n    },\n    { role: 'user', content: 'FC3 group starting scene.' },\n    {\n      role: 'assistant',\n      content: 'Director Synthetic: Synthetic Fate review story reply.'\n    },\n    {\n      role: 'system',\n      content: '[Write the next reply only as Fate Review Two.]'\n    }\n  ],\n  prompt: undefined,\n  model: 'gpt-4o',\n  temperature: 1,\n  max_tokens: 256,\n  max_completion_tokens: undefined,\n  stream: false,\n  presence_penalty: 0,\n  frequency_penalty: 0,\n  top_p: 1,\n  top_k: undefined,\n  stop: undefined,\n  logit_bias: undefined,\n  seed: undefined,\n  n: undefined,\n  logprobs: undefined,\n  top_logprobs: undefined\n}\nChat Completion response: {\n  id: 'synthetic',\n  object: 'chat.completion',\n  model: 'gpt-4o',\n  usage: { prompt_tokens: 1, completion_tokens: 7, total_tokens: 8 },\n  choices: [\n    {\n      index: 0,\n      message: {\n        role: 'assistant',\n        content: 'Synthetic Fate review story reply.'\n      },\n      finish_reason: 'stop'\n    }\n  ]\n}\nFile not found: <tmp>\\lab\\data\\default-user\\chats\\FateReviewTwo-414e70ebfb\\Fate Review Two - 2026-11-03@22h13m33s234ms.jsonl. The chat does not exist or is empty.\n"
+}

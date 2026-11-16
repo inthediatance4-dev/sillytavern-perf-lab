@@ -12,10 +12,9 @@ import { Tokenizer } from '@agnai/web-tokenizers';
 import { SentencePieceProcessor } from '@agnai/sentencepiece-js';
 import tiktoken from 'tiktoken';
 
-import { convertClaudePrompt } from '../prompt-converters.js';
 import { TEXTGEN_TYPES } from '../constants.js';
 import { setAdditionalHeaders } from '../additional-headers.js';
-import { getConfigValue, isValidUrl } from '../util.js';
+import { getConfigValue, isValidUrl, trimV1 } from '../util.js';
 
 /**
  * @typedef { (req: import('express').Request, res: import('express').Response) => Promise<any> } TokenizationHandler
@@ -160,6 +159,10 @@ class SentencePieceTokenizer {
      */
     #instance;
     /**
+     * @type {Promise<import('@agnai/sentencepiece-js').SentencePieceProcessor|null>|undefined} Shared initialization attempt
+     */
+    #loading;
+    /**
      * @type {string} Path to the tokenizer model
      */
     #model;
@@ -187,16 +190,25 @@ class SentencePieceTokenizer {
             return this.#instance;
         }
 
-        try {
-            const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
-            this.#instance = new SentencePieceProcessor();
-            await this.#instance.load(pathToModel);
-            console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
-            return this.#instance;
-        } catch (error) {
-            console.error('Sentencepiece tokenizer failed to load: ' + this.#model, error);
-            return null;
+        if (!this.#loading) {
+            this.#loading = (async () => {
+                try {
+                    const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
+                    const instance = new SentencePieceProcessor();
+                    await instance.load(pathToModel);
+                    console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
+                    this.#instance = instance;
+                    return instance;
+                } catch (error) {
+                    console.error('Sentencepiece tokenizer failed to load: ' + this.#model, error);
+                    return null;
+                }
+            })().finally(() => {
+                this.#loading = undefined;
+            });
         }
+
+        return this.#loading;
     }
 }
 
@@ -208,6 +220,10 @@ class WebTokenizer {
      * @type {Tokenizer} Web tokenizer instance
      */
     #instance;
+    /**
+     * @type {Promise<Tokenizer|null>|undefined} Shared initialization attempt
+     */
+    #loading;
     /**
      * @type {string} Path to the tokenizer model
      */
@@ -236,16 +252,25 @@ class WebTokenizer {
             return this.#instance;
         }
 
-        try {
-            const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
-            const fileBuffer = await fs.promises.readFile(pathToModel);
-            this.#instance = await Tokenizer.fromJSON(fileBuffer);
-            console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
-            return this.#instance;
-        } catch (error) {
-            console.error('Web tokenizer failed to load: ' + this.#model, error);
-            return null;
+        if (!this.#loading) {
+            this.#loading = (async () => {
+                try {
+                    const pathToModel = await getPathToTokenizer(this.#model, this.#fallbackModel);
+                    const fileBuffer = await fs.promises.readFile(pathToModel);
+                    const instance = await Tokenizer.fromJSON(fileBuffer);
+                    console.info('Instantiated the tokenizer for', path.parse(pathToModel).name);
+                    this.#instance = instance;
+                    return instance;
+                } catch (error) {
+                    console.error('Web tokenizer failed to load: ' + this.#model, error);
+                    return null;
+                }
+            })().finally(() => {
+                this.#loading = undefined;
+            });
         }
+
+        return this.#loading;
     }
 }
 
@@ -443,7 +468,7 @@ export function getTokenizerModel(requestModel) {
         return 'o1';
     }
 
-    if (requestModel.includes('gpt-5') || requestModel.includes('o3') || requestModel.includes('o4-mini')) {
+    if (requestModel.includes('gpt-5') || requestModel.includes('gpt-6-astra') || requestModel.includes('o3') || requestModel.includes('o4-mini')) {
         return 'o1';
     }
 
@@ -545,15 +570,14 @@ export function getTiktokenTokenizer(model) {
  * @returns {number} Number of tokens
  */
 export function countWebTokenizerTokens(tokenizer, messages) {
-    // Should be fine if we use the old conversion method instead of the messages API one i think?
-    const convertedPrompt = convertClaudePrompt(messages, false, '', false, false, '', false);
+    const jsonBody = messages.flatMap(x => Object.values(x)).join('\n\n');
 
     // Fallback to strlen estimation
     if (!tokenizer) {
-        return guesstimate(convertedPrompt);
+        return guesstimate(jsonBody);
     }
 
-    const count = tokenizer.encode(convertedPrompt).length;
+    const count = tokenizer.encode(jsonBody).length;
     return count;
 }
 
@@ -1088,7 +1112,7 @@ router.post('/remote/textgenerationwebui/encode', async function (request, respo
         setAdditionalHeaders(request, args, baseUrl);
 
         // Convert to string + remove trailing slash + /v1 suffix
-        let url = String(baseUrl).replace(/\/$/, '').replace(/\/v1$/, '');
+        let url = trimV1(baseUrl);
 
         switch (request.body.api_type) {
             case TEXTGEN_TYPES.TABBY:
@@ -1111,10 +1135,12 @@ router.post('/remote/textgenerationwebui/encode', async function (request, respo
                 url += '/v1/tokenize';
                 args.body = JSON.stringify({ 'model': model, 'prompt': text });
                 break;
-            default:
+            case TEXTGEN_TYPES.OOBA:
                 url += '/v1/internal/encode';
                 args.body = JSON.stringify({ 'text': text });
                 break;
+            default:
+                return response.sendStatus(400);
         }
 
         const result = await fetch(url, args);

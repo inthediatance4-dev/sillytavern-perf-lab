@@ -1,0 +1,36 @@
+[
+  {
+    "node": "v20.19.2",
+    "command": "node --test tests/longchat-measurement.test.mjs tests/benchmark-statistics.test.mjs",
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: nearest-rank p95, even median and deterministic bootstrap intervals\nok 1 - nearest-rank p95, even median and deterministic bootstrap intervals\n  ---\n  duration_ms: 18.373708\n  ...\n# Subtest: record-only reference uses median AND either absolute or relative p95 limit\nok 2 - record-only reference uses median AND either absolute or relative p95 limit\n  ---\n  duration_ms: 0.211083\n  ...\n# Subtest: temporary measurement config isolates data and preserves retention defaults\nok 3 - temporary measurement config isolates data and preserves retention defaults\n  ---\n  duration_ms: 36.405454\n  ...\n# Subtest: measurement config refuses workspace and invalid ports before writing\nok 4 - measurement config refuses workspace and invalid ports before writing\n  ---\n  duration_ms: 2.138823\n  ...\n# Subtest: Windows console break forwards to graceful SIGINT handlers (Linux simulation)\nok 5 - Windows console break forwards to graceful SIGINT handlers (Linux simulation)\n  ---\n  duration_ms: 0.20029\n  ...\n# Subtest: native Windows CTRL_BREAK reaches graceful SIGINT handler\nok 6 - native Windows CTRL_BREAK reaches graceful SIGINT handler # SKIP Requires a native Windows console process group; forwarding is simulated above on other systems\n  ---\n  duration_ms: 0.073247\n  ...\n# Subtest: deterministic data, percentiles and CPU ancestor attribution\nok 7 - deterministic data, percentiles and CPU ancestor attribution\n  ---\n  duration_ms: 361.644618\n  ...\n# Subtest: snapshot normalization removes only declared volatile fields and preserves behavior\nok 8 - snapshot normalization removes only declared volatile fields and preserves behavior\n  ---\n  duration_ms: 38.927716\n  ...\n# Subtest: paired bootstrap uses the backend seeded method and preserves pairing\nok 9 - paired bootstrap uses the backend seeded method and preserves pairing\n  ---\n  duration_ms: 24.670518\n  ...\n1..9\n# tests 9\n# suites 0\n# pass 8\n# fail 0\n# cancelled 0\n# skipped 1\n# todo 0\n# duration_ms 556.913602\n",
+    "stderr": ""
+  },
+  {
+    "node": "v24.22.1",
+    "command": "node --test tests/longchat-measurement.test.mjs tests/benchmark-statistics.test.mjs",
+    "exitCode": 0,
+    "stdout": "✔ nearest-rank p95, even median and deterministic bootstrap intervals (18.329547ms)\n✔ record-only reference uses median AND either absolute or relative p95 limit (0.182515ms)\n✔ temporary measurement config isolates data and preserves retention defaults (33.870731ms)\n✔ measurement config refuses workspace and invalid ports before writing (1.66399ms)\n✔ Windows console break forwards to graceful SIGINT handlers (Linux simulation) (0.327513ms)\n﹣ native Windows CTRL_BREAK reaches graceful SIGINT handler (0.100551ms) # Requires a native Windows console process group; forwarding is simulated above on other systems\n✔ deterministic data, percentiles and CPU ancestor attribution (348.869337ms)\n✔ snapshot normalization removes only declared volatile fields and preserves behavior (9.402269ms)\n✔ paired bootstrap uses the backend seeded method and preserves pairing (23.717932ms)\nℹ tests 9\nℹ suites 0\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 1\nℹ todo 0\nℹ duration_ms 495.830112\n",
+    "stderr": ""
+  },
+  {
+    "node": "v24.22.1",
+    "command": "node --test tests/longchat-measurement.test.mjs tests/benchmark-statistics.test.mjs",
+    "exitCode": 0,
+    "stdout": "✔ nearest-rank p95, even median and deterministic bootstrap intervals (16.443791ms)\n✔ record-only reference uses median AND either absolute or relative p95 limit (0.284535ms)\n✔ temporary measurement config isolates data and preserves retention defaults (37.109049ms)\n✔ measurement config refuses workspace and invalid ports before writing (2.565106ms)\n✔ Windows console break forwards to graceful SIGINT handlers (Linux simulation) (0.442288ms)\n﹣ native Windows CTRL_BREAK reaches graceful SIGINT handler (0.190591ms) # Requires a native Windows console process group; forwarding is simulated above on other systems\n✔ deterministic data, percentiles and CPU ancestor attribution (348.143862ms)\n✔ snapshot normalization removes only declared volatile fields and preserves behavior (7.653485ms)\n✔ paired bootstrap uses the backend seeded method and preserves pairing (22.700402ms)\nℹ tests 9\nℹ suites 0\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 1\nℹ todo 0\nℹ duration_ms 501.494437\n",
+    "stderr": ""
+  },
+  {
+    "command": "npx eslint tests/longchat-browser-probe.mjs tests/longchat-normalization.mjs tests/longchat-measurement.test.mjs",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "node": "v22.20.0",
+    "command": "node --test tests/longchat-measurement.test.mjs tests/benchmark-statistics.test.mjs",
+    "exitCode": 0,
+    "stdout": "TAP version 13\n# Subtest: nearest-rank p95, even median and deterministic bootstrap intervals\nok 1 - nearest-rank p95, even median and deterministic bootstrap intervals\n  ---\n  duration_ms: 37.154423\n  type: 'test'\n  ...\n# Subtest: record-only reference uses median AND either absolute or relative p95 limit\nok 2 - record-only reference uses median AND either absolute or relative p95 limit\n  ---\n  duration_ms: 0.239587\n  type: 'test'\n  ...\n# Subtest: temporary measurement config isolates data and preserves retention defaults\nok 3 - temporary measurement config isolates data and preserves retention defaults\n  ---\n  duration_ms: 29.555025\n  type: 'test'\n  ...\n# Subtest: measurement config refuses workspace and invalid ports before writing\nok 4 - measurement config refuses workspace and invalid ports before writing\n  ---\n  duration_ms: 1.836612\n  type: 'test'\n  ...\n# Subtest: Windows console break forwards to graceful SIGINT handlers (Linux simulation)\nok 5 - Windows console break forwards to graceful SIGINT handlers (Linux simulation)\n  ---\n  duration_ms: 0.172419\n  type: 'test'\n  ...\n# Subtest: native Windows CTRL_BREAK reaches graceful SIGINT handler\nok 6 - native Windows CTRL_BREAK reaches graceful SIGINT handler # SKIP Requires a native Windows console process group; forwarding is simulated above on other systems\n  ---\n  duration_ms: 0.061407\n  type: 'test'\n  ...\n# Subtest: deterministic data, percentiles and CPU ancestor attribution\nok 7 - deterministic data, percentiles and CPU ancestor attribution\n  ---\n  duration_ms: 356.573671\n  type: 'test'\n  ...\n# Subtest: snapshot normalization removes only declared volatile fields and preserves behavior\nok 8 - snapshot normalization removes only declared volatile fields and preserves behavior\n  ---\n  duration_ms: 22.944611\n  type: 'test'\n  ...\n# Subtest: paired bootstrap uses the backend seeded method and preserves pairing\nok 9 - paired bootstrap uses the backend seeded method and preserves pairing\n  ---\n  duration_ms: 23.444481\n  type: 'test'\n  ...\n1..9\n# tests 9\n# suites 0\n# pass 8\n# fail 0\n# cancelled 0\n# skipped 1\n# todo 0\n# duration_ms 534.643081\n",
+    "stderr": ""
+  }
+]

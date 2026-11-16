@@ -1,0 +1,4 @@
+PASS: 24 paired samples per side; all six 95% intervals include zero; all UI/send checks pass.
+PASS: 30 consecutive HTTP-ready launches; SIGINT exit 0 and owner lock removed each time.
+PASS: tool hashes match delivered source; identical immutable product commit on both sides.
+PASS: evidence redaction scan (including decompressed traces/logs/probes); browser/recycled caches excluded.

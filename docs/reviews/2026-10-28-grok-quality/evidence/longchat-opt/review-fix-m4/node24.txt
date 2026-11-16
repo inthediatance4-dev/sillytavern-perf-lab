@@ -1,0 +1,46 @@
+✔ variadic keyboard wrapper preserves order, custom classes and tabindex state (9.883575ms)
+✔ keyboard initialization and extension registration iterate 300k controls without argument spread (545.076129ms)
+✔ displayed-message minimum handles 300k DOM IDs and retains empty/NaN/signed-zero semantics (179.278813ms)
+✔ neutral chat restoration keeps array identity and message order for 300k messages (304.462867ms)
+✔ reply swipe append preserves aliased input, array identity and render event arguments (4.082859ms)
+✔ message flattening and API chat assembly retain order and fields for 300k messages (271.165919ms)
+✔ StreamingProcessor swipe payload: empty append matches spread (3.250005ms)
+✔ StreamingProcessor swipe metadata: empty append matches spread (2.468177ms)
+✔ saveReply swipe payload: empty append matches spread (2.383565ms)
+✔ saveReply swipe metadata: empty append matches spread (2.439693ms)
+✔ getChat loaded history: empty replacement matches splice spread (2.599553ms)
+✔ getGroupChat loaded history: empty replacement matches splice spread (0.726315ms)
+✔ assistant-note import history: empty replacement matches splice spread (0.653817ms)
+✔ restoreNeutralChat: empty replacement matches splice spread (0.88872ms)
+✔ initializeInteractables: empty controls match variadic call (1.265916ms)
+✔ registerInteractableType: empty controls match variadic call (1.129095ms)
+✔ getFirstDisplayedMessageId: empty minimum matches Math.min spread (15.212235ms)
+✔ visualNovelUpdateLayers: empty maximum matches Math.max spread (2.783696ms)
+✔ MessageCollection.flatten: empty nested collection matches push spread (1.341588ms)
+✔ ChatCompletion.getChat: empty nested collection matches push spread (1.074388ms)
+✔ applyStylePins: empty style NodeList matches append spread (2.11405ms)
+✔ openSwipePicker: empty blocks match replaceChildren spread (0.805686ms)
+✔ StreamingProcessor swipe payload: single-element append matches spread (2.459105ms)
+✔ StreamingProcessor swipe metadata: single-element append matches spread (2.189205ms)
+✔ saveReply swipe payload: single-element append matches spread (2.431097ms)
+✔ saveReply swipe metadata: single-element append matches spread (2.396097ms)
+✔ getChat loaded history: single-element replacement matches splice spread (2.395414ms)
+✔ getGroupChat loaded history: single-element replacement matches splice spread (0.608076ms)
+✔ assistant-note import history: single-element replacement matches splice spread (0.630321ms)
+✔ restoreNeutralChat: single-element replacement matches splice spread (0.672234ms)
+✔ initializeInteractables: single-element controls match variadic call (1.110879ms)
+✔ registerInteractableType: single-element controls match variadic call (1.089604ms)
+✔ getFirstDisplayedMessageId: single-element minimum matches Math.min spread (14.700018ms)
+✔ visualNovelUpdateLayers: single-element maximum matches Math.max spread (2.710184ms)
+✔ MessageCollection.flatten: single-element nested collection matches push spread (1.184403ms)
+✔ ChatCompletion.getChat: single-element nested collection matches push spread (1.116076ms)
+✔ applyStylePins: single-element style NodeList matches append spread (1.627424ms)
+✔ openSwipePicker: single-element blocks match replaceChildren spread (0.608694ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1499.435585

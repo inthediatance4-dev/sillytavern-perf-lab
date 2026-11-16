@@ -127,7 +127,7 @@ export class TextCompletionService {
 
             const json = await response.json();
             if (!response.ok || json.error) {
-                throw new Error(String(json.error?.message || 'Response not OK'));
+                throw Object.assign(new Error(String(json.error?.message || 'Response not OK')), { status: response.status });
             }
 
             if (!extractData) {
@@ -471,7 +471,7 @@ export class ChatCompletionService {
         if (!data.stream) {
             const json = await response.json();
             if (!response.ok || json.error) {
-                throw new Error(String(json.error?.message || 'Response not OK'));
+                throw Object.assign(new Error(String(json.error?.message || 'Response not OK')), { status: response.status });
             }
 
             if (!extractData) {
@@ -592,7 +592,7 @@ export class ChatCompletionService {
         }
 
         // Ensure api-url is properly applied for all sources that accept it
-        ['custom_url', 'vertexai_region', 'zai_endpoint', 'siliconflow_endpoint', 'minimax_endpoint'].forEach(field => {
+        ['custom_url', 'vertexai_region', 'zai_endpoint', 'siliconflow_endpoint', 'minimax_endpoint', 'pollinations_endpoint'].forEach(field => {
             // The order is: connection profile => CC preset => CC settings
             overridePayload[field] = overridePayload[field] || settings[field] || oai_settings[field];
         });

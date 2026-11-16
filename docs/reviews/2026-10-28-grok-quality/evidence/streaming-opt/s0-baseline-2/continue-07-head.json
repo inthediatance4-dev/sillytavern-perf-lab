@@ -1,0 +1,69 @@
+{
+  "side": "head",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 7,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.4,
+    "frameP99Ms": 33.5,
+    "framesOver16_7Pct": 14.34108527131783,
+    "framesOver33Pct": 11.498708010335918,
+    "loafCount": 5,
+    "loafTotalMs": 442.70000000298023,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 6.600000001490116,
+    "loafScriptotherMs": 225.69999999552965,
+    "formatP50Ms": 1.8999999985098839,
+    "formatP95Ms": 6.100000001490116,
+    "domP50Ms": 0.29999999701976776,
+    "domP95Ms": 3.600000001490116,
+    "reasoningP95Ms": 0.20000000298023224,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 19.644237288733958,
+    "firstTokenMs": 116.698486328125,
+    "finishMs": 134.57177734375,
+    "typingP50Ms": 28.400146484375,
+    "typingP95Ms": 47.60009765625,
+    "scrollStolen": 0
+  },
+  "samples": {
+    "frames": 809,
+    "keys": 74,
+    "hooks": 889
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793273809353.2014,
+    "receivedNs": "55967491632760",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793273809361.1401,
+    "lastChunkEpochMs": 1793273824021.9282,
+    "doneEpochMs": 1793273824021.9502,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

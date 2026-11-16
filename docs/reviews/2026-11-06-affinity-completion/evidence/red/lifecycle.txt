@@ -1,0 +1,276 @@
+✖ all prompt fields restore affinity facts literally, including CFG and chat-message payloads (16.1165ms)
+✔ an unknown group avatar cannot increment issued or trigger an evaluation (17.9673ms)
+✔ a player marker cannot forge an accepted character receipt (2.0695ms)
+✔ unsupported or corrupt ledger future preserves metadata and original message markers (13.3099ms)
+✔ unsupported or corrupt ledger invalid preserves metadata and original message markers (0.6995ms)
+✔ unsupported or corrupt ledger corrupt preserves metadata and original message markers (0.8093ms)
+✔ opening 2000 old messages does not scan or stamp the entire transcript, and repeated prepare reuses the projection (14.2922ms)
+✔ only the tenth accepted reply starts a default evaluation and repeated completion is idempotent (14.9254ms)
+✔ the optional five reply interval uses the same accepted generation boundary (16.9045ms)
+✔ MESSAGE_RECEIVED and UI unlock cannot count a reply before saveReply has finalized its selected swipe (30.4847ms)
+✔ a completion cannot accept text that differs from the selected physical swipe (1.4108ms)
+✔ stopped, quiet, impersonated, and dry generations never advance accepted reply cadence (29.5668ms)
+✔ continue and appendFinal refresh their logical slot without adding a reply (15.3548ms)
+✔ regenerate carries the replaced logical slot receipt across its physical deletion (15.1182ms)
+✔ group regeneration replaces its original logical receipts without counting the batch twice (31.4247ms)
+✔ Director system insertions and uncorrelated ordinary NPC text never count as generated replies (15.0343ms)
+✔ one evaluator request stays in flight while later complete batches remain queued (30.9671ms)
+✔ group replies accumulate across actual avatars and evaluate after the entire wrapper finishes (31.2585ms)
+✖ a group fact belongs to the source avatar even when character display names are equal (3.2201ms)
+✔ a new main generation cancels only the current sidecar and ignores its late result (27.6816ms)
+✔ scope changes discard a late evaluator answer without writing into either chat (15.5918ms)
+✔ switching to a chat with a complete pending batch resumes it after stale work finishes (31.3372ms)
+✔ editing a source while evaluation waits invalidates its answer before commit (30.4395ms)
+✔ persistent receipts survive structuredClone reload and do not re-evaluate the old batch (31.1607ms)
+✖ a persisted completed fact is injected after reload before any further evaluation (4.0213ms)
+✔ MESSAGE_UPDATED removes facts whose live source no longer matches (26.7137ms)
+✔ MESSAGE_EDITED removes facts whose live source no longer matches (15.6819ms)
+✔ MESSAGE_SWIPED removes facts whose live source no longer matches (15.1694ms)
+✔ MESSAGE_SWIPE_DELETED removes facts whose live source no longer matches (15.675ms)
+✔ MESSAGE_DELETED removes facts whose live source no longer matches (31.065ms)
+✖ prepare installs literal hidden memory before assembly and restores macros only in generated data (1.9471ms)
+✔ major attitude evidence receives one isolated verification (confirm) with no minor fallback (4.182ms)
+✔ major attitude evidence receives one isolated verification (defer) with no minor fallback (6.6357ms)
+✔ major attitude evidence receives one isolated verification (reject) with no minor fallback (19.2744ms)
+✔ ineligible major evidence (secret player action) never reaches the verifier (16.0862ms)
+✔ ineligible major evidence (implicit attitude) never reaches the verifier (2.261ms)
+✔ ineligible major evidence (neutral fact) never reaches the verifier (12.2385ms)
+✔ a future promise stays an unresolved zero point anchor even if proposed with major impact (1.6864ms)
+✔ save rejection does not reject host completion and a later receipt retries persistence (14.1387ms)
+✔ a deferred metadata save receives a scope guard that closes after a chat switch (29.7997ms)
+✖ evaluation uses an isolated JSON quiet request and disabling affinity clears injection immediately (5.5709ms)
+✔ a disabled Director extension also gates affinity generation and injection (1.5525ms)
+✔ evaluator rejection and malformed JSON are contained and the next complete batch still evaluates (10.8522ms)
+✖ roster unavailability freezes history without evaluation or injection and live evidence restores it (29.6153ms)
+✔ major verification follows only the candidate that survives evidence dedupe (neutral-first) (4.1571ms)
+✔ major verification follows only the candidate that survives evidence dedupe (positive-first) (2.2653ms)
+✔ major verification rejects unknown owner before another provider request (3.152ms)
+✔ major verification rejects unknown source before another provider request (1.3164ms)
+✔ a stored zero outcome receives its later major verification once with its old result outside the new batch (confirm) (11.8493ms)
+✔ a stored zero outcome receives its later major verification once with its old result outside the new batch (defer) (9.1638ms)
+✔ only canonical character avatars from the project can own relationships (0.3531ms)
+✖ concurrent quiet cannot inherit memory or invalidate an accepted normal reply (2.4245ms)
+✖ concurrent impersonate cannot inherit memory or invalidate an accepted normal reply (1.9429ms)
+✖ unknown and legacy memory frames fail closed without leaving their private body (0.7539ms)
+✖ a removed owner cancels pending extraction before a new major verification can start (2.8184ms)
+✖ major verification includes actual tail quote context instead of only the first 2000 characters (5.9984ms)
+✖ a queued worker cannot save an empty reload gap or clear its ledger (30.3377ms)
+✖ a queued worker cannot reconcile a replaced transcript under the old metadata (15.1512ms)
+✔ a temporarily unavailable single-chat character project retains frozen history and still revokes edits (46.0657ms)
+ℹ tests 59
+ℹ suites 0
+ℹ pass 46
+ℹ fail 13
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 998.2182
+
+✖ failing tests:
+
+test at tests\director-affinity-lifecycle.test.mjs:161:1
+✖ all prompt fields restore affinity facts literally, including CFG and chat-message payloads (16.1165ms)
+  TypeError [Error]: Cannot read properties of undefined (reading 'includes')
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:169:21)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at tests\director-affinity-lifecycle.test.mjs:426:1
+✖ a group fact belongs to the source avatar even when character display names are equal (3.2201ms)
+  TypeError [Error]: Cannot read properties of undefined (reading 'includes')
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:446:27)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at tests\director-affinity-lifecycle.test.mjs:534:1
+✖ a persisted completed fact is injected after reload before any further evaluation (4.0213ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'string'
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:545:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'string',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:571:1
+✖ prepare installs literal hidden memory before assembly and restores macros only in generated data (1.9471ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'undefined'
+  - 'string'
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:578:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'undefined',
+    expected: 'string',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:674:1
+✖ evaluation uses an isolated JSON quiet request and disabling affinity clears injection immediately (5.5709ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(lab.preparedMemory)
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:682:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:723:1
+✖ roster unavailability freezes history without evaluation or injection and live evidence restores it (29.6153ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(lab.preparedMemory)
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:745:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:836:5
+✖ concurrent quiet cannot inherit memory or invalidate an accepted normal reply (2.4245ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(memory)
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:844:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:836:5
+✖ concurrent impersonate cannot inherit memory or invalidate an accepted normal reply (1.9429ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(memory)
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:844:16)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:871:1
+✖ unknown and legacy memory frames fail closed without leaving their private body (0.7539ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'directoraffinity999xunknownPRIVATE_UNKNOWN_BODYdirectoraffinity999xunknown / AFFINITY_LITERAL_old_marker_END'
+  - ' / '
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:876:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'directoraffinity999xunknownPRIVATE_UNKNOWN_BODYdirectoraffinity999xunknown / AFFINITY_LITERAL_old_marker_END',
+    expected: ' / ',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:880:1
+✖ a removed owner cancels pending extraction before a new major verification can start (2.8184ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:893:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:900:1
+✖ major verification includes actual tail quote context instead of only the first 2000 characters (5.9984ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  false !== true
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:918:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:922:1
+✖ a queued worker cannot save an empty reload gap or clear its ledger (30.3377ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  1 !== 0
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:931:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-lifecycle.test.mjs:935:1
+✖ a queued worker cannot reconcile a replaced transcript under the old metadata (15.1512ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  1 !== 0
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-lifecycle.test.mjs:944:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: temporary measurement config isolates data and preserves retention defaults
+ok 1 - temporary measurement config isolates data and preserves retention defaults
+  ---
+  duration_ms: 37.601804
+  ...
+# Subtest: measurement config refuses workspace and invalid ports before writing
+ok 2 - measurement config refuses workspace and invalid ports before writing
+  ---
+  duration_ms: 1.453096
+  ...
+# Subtest: Windows console break forwards to graceful SIGINT handlers (Linux simulation)
+ok 3 - Windows console break forwards to graceful SIGINT handlers (Linux simulation)
+  ---
+  duration_ms: 0.236362
+  ...
+# Subtest: native Windows CTRL_BREAK reaches graceful SIGINT handler
+ok 4 - native Windows CTRL_BREAK reaches graceful SIGINT handler # SKIP Requires a native Windows console process group; forwarding is simulated above on other systems
+  ---
+  duration_ms: 0.130987
+  ...
+# Subtest: deterministic data, percentiles and CPU ancestor attribution
+ok 5 - deterministic data, percentiles and CPU ancestor attribution
+  ---
+  duration_ms: 68.466621
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 193.277513

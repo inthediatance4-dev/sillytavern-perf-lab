@@ -1,0 +1,33 @@
+{
+  "platform": "Linux",
+  "node": {
+    "focusedSet": {
+      "files": [
+        "tests/longchat-older-slices.test.mjs",
+        "tests/chat-load-ownership.test.mjs",
+        "tests/longchat-measurement.test.mjs"
+      ],
+      "versions": ["20.19.2", "22", "24.22.1"],
+      "tests": 47,
+      "pass": 46,
+      "skip": 1,
+      "fail": 0,
+      "skipReason": "Native Windows CTRL_BREAK requires a Windows console; the Linux simulation passes."
+    },
+    "relatedLifecycleOnNode22": {
+      "files": [
+        "tests/media-load-scroll.test.mjs",
+        "tests/itemized-prompts-ownership.test.mjs",
+        "tests/chat-transitions.test.mjs",
+        "tests/frontend-lifecycle.test.mjs"
+      ],
+      "tests": 137,
+      "pass": 137,
+      "fail": 0
+    }
+  },
+  "eslint": "Changed JS and MJS files passed, including tests/longchat-older-slices.test.mjs.",
+  "browser": "Headless Chromium 156, Node 24.22.1, viewport 1440x1000, extensions disabled, seed 20261028.",
+  "windowsCI": "not run",
+  "realChatManualCheck": "not run"
+}

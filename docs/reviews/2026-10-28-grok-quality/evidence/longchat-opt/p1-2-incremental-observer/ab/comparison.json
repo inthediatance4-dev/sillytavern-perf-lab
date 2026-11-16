@@ -1,0 +1,432 @@
+{
+  "revisions": {
+    "base": "f6c005331182c3f22c2f108bb120c884b1ccd76f",
+    "head": "WORKTREE"
+  },
+  "order": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 1,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 1,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 2,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 2,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 3,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 3,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 4,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 4,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 5,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 5,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 6,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 100,
+      "iteration": 6,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 0,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 0,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 1,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 1,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 2,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 2,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 3,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 3,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 4,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 4,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 5,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 5,
+      "side": "head",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 6,
+      "side": "base",
+      "exitCode": 0
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "iteration": 6,
+      "side": "head",
+      "exitCode": 0
+    }
+  ],
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 1080.5999999977648,
+            "p95": 1170.3999999985099,
+            "median_ci95": [
+              854,
+              1117
+            ],
+            "p95_ci95": [
+              1093.199999999255,
+              1170.3999999985099
+            ],
+            "samples": [
+              1117,
+              1080.5999999977648,
+              1093.199999999255,
+              830.6999999992549,
+              854,
+              1170.3999999985099,
+              861.8000000007451
+            ]
+          },
+          "head": {
+            "median": 826.9000000022352,
+            "p95": 1111,
+            "median_ci95": [
+              815.3000000007451,
+              1096.0999999977648
+            ],
+            "p95_ci95": [
+              826.9000000022352,
+              1111
+            ],
+            "samples": [
+              801.6000000014901,
+              851.8999999985099,
+              815.3000000007451,
+              1096.0999999977648,
+              819.5,
+              1111,
+              826.9000000022352
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -253.69999999552965,
+            "ci95": [
+              -301.69999999925494,
+              234.29999999701977
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        },
+        "send": {
+          "base": {
+            "median": 753.2266660018649,
+            "p95": 1486.75432500022,
+            "median_ci95": [
+              699.8307870017015,
+              1462.3213359991496
+            ],
+            "p95_ci95": [
+              1283.4956619990407,
+              1486.75432500022
+            ],
+            "samples": [
+              1283.4956619990407,
+              1486.75432500022,
+              753.2266660018649,
+              752.1555439998338,
+              699.8307870017015,
+              1462.3213359991496,
+              690.450748999865
+            ]
+          },
+          "head": {
+            "median": 1127.7646210000967,
+            "p95": 1231.734236000193,
+            "median_ci95": [
+              527.0112649996008,
+              1210.883367999486
+            ],
+            "p95_ci95": [
+              1208.7339659992722,
+              1231.734236000193
+            ],
+            "samples": [
+              1210.883367999486,
+              1208.7339659992722,
+              552.4606899998616,
+              1127.7646210000967,
+              527.0112649996008,
+              511.2619570027164,
+              1231.734236000193
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": 374.5379549982317,
+            "ci95": [
+              -935.3100709995488,
+              511.0525809977844
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": []
+    },
+    {
+      "size": 2000,
+      "truncation": 0,
+      "metrics": {
+        "open": {
+          "base": {
+            "median": 7234.699999999255,
+            "p95": 8104.699999999255,
+            "median_ci95": [
+              5844.699999999255,
+              7968.10000000149
+            ],
+            "p95_ci95": [
+              7951.699999999255,
+              8104.699999999255
+            ],
+            "samples": [
+              7968.10000000149,
+              5844.699999999255,
+              7951.699999999255,
+              8104.699999999255,
+              5668.300000000745,
+              7234.699999999255,
+              6310.10000000149
+            ]
+          },
+          "head": {
+            "median": 5348.5,
+            "p95": 5879,
+            "median_ci95": [
+              5163.800000000745,
+              5371.39999999851
+            ],
+            "p95_ci95": [
+              5358.199999999255,
+              5879
+            ],
+            "samples": [
+              5879,
+              5358.199999999255,
+              5329,
+              5008.5,
+              5371.39999999851,
+              5348.5,
+              5163.800000000745
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -1886.199999999255,
+            "ci95": [
+              -2787.89999999851,
+              -473.30000000074506
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        },
+        "send": {
+          "base": {
+            "median": 4718.960464000702,
+            "p95": 7346.377076999488,
+            "median_ci95": [
+              3650.1858170013293,
+              5701.30927900027
+            ],
+            "p95_ci95": [
+              5580.263873001968,
+              7346.377076999488
+            ],
+            "samples": [
+              5701.30927900027,
+              3467.761227002484,
+              4718.960464000702,
+              7346.377076999488,
+              3747.748361998674,
+              5580.263873001968,
+              3650.1858170013293
+            ]
+          },
+          "head": {
+            "median": 1541.4798070014513,
+            "p95": 1772.404295999877,
+            "median_ci95": [
+              1508.5011160008435,
+              1658.8555390007969
+            ],
+            "p95_ci95": [
+              1647.1478150015173,
+              1772.404295999877
+            ],
+            "samples": [
+              1647.1478150015173,
+              1432.747882001422,
+              1658.8555390007969,
+              1508.5011160008435,
+              1541.4798070014513,
+              1772.404295999877,
+              1518.8495109978248
+            ]
+          },
+          "difference": {
+            "current_minus_baseline": -3177.4806569992506,
+            "ci95": [
+              -4182.459768002445,
+              -2131.3363060035044
+            ]
+          },
+          "bootstrapSeed": "opus-round1.5",
+          "resamples": 2000
+        }
+      },
+      "equivalence": []
+    }
+  ]
+}

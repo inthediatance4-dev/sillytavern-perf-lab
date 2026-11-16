@@ -1,0 +1,37 @@
+[
+  {
+    "scenario": "character-reimport",
+    "reproduced": false,
+    "import": {
+      "status": 200,
+      "data": {
+        "file_name": "ReviewCard"
+      }
+    },
+    "edit": {
+      "status": 200
+    },
+    "chatWritable": true,
+    "visibleAvatar": true,
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "import-delete-race",
+    "reproduced": false,
+    "deletion": {
+      "status": 200
+    },
+    "avatarAfterDelete": false,
+    "importing": {
+      "status": 409,
+      "data": {
+        "error": "chat_lifecycle",
+        "reason": "character_deleted"
+      }
+    },
+    "avatarResurrected": false,
+    "exit": 0,
+    "signal": null
+  }
+]

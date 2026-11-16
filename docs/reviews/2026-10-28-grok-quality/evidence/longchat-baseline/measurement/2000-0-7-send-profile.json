@@ -1,0 +1,540 @@
+{
+  "sampledMs": 4768.393,
+  "self": [
+    {
+      "function": "querySelectorAll",
+      "file": "(native)",
+      "line": 0,
+      "ms": 1664.283,
+      "percent": 34.90238745002771
+    },
+    {
+      "function": "(program)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 1188.23,
+      "percent": 24.91887728213677
+    },
+    {
+      "function": "hasDisabledOrNotFocusableAncestor",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 138,
+      "ms": 488.24,
+      "percent": 10.239088934154546
+    },
+    {
+      "function": "contains",
+      "file": "(native)",
+      "line": 0,
+      "ms": 215.078,
+      "percent": 4.510492318900728
+    },
+    {
+      "function": "getBoundingClientRect",
+      "file": "(native)",
+      "line": 0,
+      "ms": 192.453,
+      "percent": 4.03601381010332
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 179,
+      "ms": 127.079,
+      "percent": 2.6650278196448993
+    },
+    {
+      "function": "matches",
+      "file": "(native)",
+      "line": 0,
+      "ms": 119.482,
+      "percent": 2.505707897817986
+    },
+    {
+      "function": "query",
+      "file": "(native)",
+      "line": 5816,
+      "ms": 111.153,
+      "percent": 2.33103689230313
+    },
+    {
+      "function": "getPropertyValue",
+      "file": "(native)",
+      "line": 0,
+      "ms": 104.64,
+      "percent": 2.1944499960468864
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 122,
+      "ms": 77.725,
+      "percent": 1.6300040705537484
+    },
+    {
+      "function": "(garbage collector)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 68.526,
+      "percent": 1.4370879245901083
+    },
+    {
+      "function": "(idle)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 45.46,
+      "percent": 0.9533610170134886
+    },
+    {
+      "function": "matches",
+      "file": "(native)",
+      "line": 0,
+      "ms": 42.692,
+      "percent": 0.89531211039023
+    },
+    {
+      "function": "fetch",
+      "file": "(native)",
+      "line": 0,
+      "ms": 26.658,
+      "percent": 0.5590562690617153
+    },
+    {
+      "function": "querySelectorAll",
+      "file": "(native)",
+      "line": 0,
+      "ms": 21.58,
+      "percent": 0.45256336883306386
+    },
+    {
+      "function": "makeKeyboardInteractable",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 121,
+      "ms": 19.473,
+      "percent": 0.4083765746657207
+    },
+    {
+      "function": "querySelectorAll",
+      "file": "(native)",
+      "line": 0,
+      "ms": 19.217,
+      "percent": 0.4030078896601014
+    },
+    {
+      "function": "contains",
+      "file": "(native)",
+      "line": 0,
+      "ms": 18.285,
+      "percent": 0.38346252081151866
+    },
+    {
+      "function": "se",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 16.744,
+      "percent": 0.3511455536487869
+    },
+    {
+      "function": "hasAttribute",
+      "file": "(native)",
+      "line": 0,
+      "ms": 14.692,
+      "percent": 0.3081121879006198
+    },
+    {
+      "function": "matches",
+      "file": "(native)",
+      "line": 0,
+      "ms": 14.041,
+      "percent": 0.29445978970273634
+    },
+    {
+      "function": "se",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 13.346,
+      "percent": 0.2798846487695121
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 112,
+      "ms": 11.585,
+      "percent": 0.24295396793007623
+    },
+    {
+      "function": "se",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 11.474,
+      "percent": 0.240626139665921
+    },
+    {
+      "function": "initializeInteractables",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 166,
+      "ms": 10.836,
+      "percent": 0.22724637000347916
+    },
+    {
+      "function": "saveChat",
+      "file": "http://<host>/script.js",
+      "line": 7529,
+      "ms": 10.279,
+      "percent": 0.21556528583109655
+    },
+    {
+      "function": "querySelector",
+      "file": "(native)",
+      "line": 0,
+      "ms": 8.777,
+      "percent": 0.18406620427468962
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/script.js",
+      "line": 7469,
+      "ms": 6.564,
+      "percent": 0.1376564389722072
+    },
+    {
+      "function": "toggle",
+      "file": "(native)",
+      "line": 0,
+      "ms": 5.602,
+      "percent": 0.11748192734952845
+    },
+    {
+      "function": "remove",
+      "file": "(native)",
+      "line": 0,
+      "ms": 5.16,
+      "percent": 0.10821255714451389
+    }
+  ],
+  "total": [
+    {
+      "function": "(root)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 4768.393,
+      "percent": 100.0
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 46,
+      "ms": 2850.713,
+      "percent": 59.78351616571872
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 47,
+      "ms": 2849.943,
+      "percent": 59.76736816785026
+    },
+    {
+      "function": "handleNodeChange",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 64,
+      "ms": 2845.764,
+      "percent": 59.679728579418686
+    },
+    {
+      "function": "initializeInteractables",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 166,
+      "ms": 2694.253,
+      "percent": 56.502326884549994
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 179,
+      "ms": 1791.362,
+      "percent": 37.567415269672615
+    },
+    {
+      "function": "querySelectorAll",
+      "file": "(native)",
+      "line": 0,
+      "ms": 1664.283,
+      "percent": 34.90238745002771
+    },
+    {
+      "function": "(program)",
+      "file": "(native)",
+      "line": 0,
+      "ms": 1188.23,
+      "percent": 24.91887728213677
+    },
+    {
+      "function": "makeKeyboardInteractable",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 121,
+      "ms": 891.901,
+      "percent": 18.704435645300208
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 122,
+      "ms": 872.428,
+      "percent": 18.296059070634488
+    },
+    {
+      "function": "hasDisabledOrNotFocusableAncestor",
+      "file": "http://<host>/scripts/keyboard.js",
+      "line": 138,
+      "ms": 703.318,
+      "percent": 14.749581253055275
+    },
+    {
+      "function": "evaluate",
+      "file": "(native)",
+      "line": 364,
+      "ms": 335.19,
+      "percent": 7.02941221497473
+    },
+    {
+      "function": "(anonymous)",
+      "file": "(native)",
+      "line": 1,
+      "ms": 335.19,
+      "percent": 7.02941221497473
+    },
+    {
+      "function": "(anonymous)",
+      "file": "(native)",
+      "line": 1,
+      "ms": 324.386,
+      "percent": 6.802836930596953
+    },
+    {
+      "function": "contains",
+      "file": "(native)",
+      "line": 0,
+      "ms": 215.078,
+      "percent": 4.510492318900728
+    },
+    {
+      "function": "(anonymous)",
+      "file": "(native)",
+      "line": 1,
+      "ms": 192.914,
+      "percent": 4.045681637398595
+    },
+    {
+      "function": "getBoundingClientRect",
+      "file": "(native)",
+      "line": 0,
+      "ms": 192.453,
+      "percent": 4.03601381010332
+    },
+    {
+      "function": "Generate",
+      "file": "http://<host>/script.js",
+      "line": 4358,
+      "ms": 143.951,
+      "percent": 3.018857715796496
+    },
+    {
+      "function": "unblockGeneration",
+      "file": "http://<host>/script.js",
+      "line": 5761,
+      "ms": 138.841,
+      "percent": 2.911693729942142
+    },
+    {
+      "function": "activateSendButtons",
+      "file": "http://<host>/script.js",
+      "line": 7147,
+      "ms": 138.686,
+      "percent": 2.908443158942646
+    },
+    {
+      "function": "refreshSwipeButtons",
+      "file": "http://<host>/script.js",
+      "line": 9498,
+      "ms": 136.209,
+      "percent": 2.8564969372281186
+    },
+    {
+      "function": "showSwipeButtons",
+      "file": "http://<host>/script.js",
+      "line": 9561,
+      "ms": 136.209,
+      "percent": 2.8564969372281186
+    },
+    {
+      "function": "each",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 134.202,
+      "percent": 2.8144072856410953
+    },
+    {
+      "function": "each",
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "line": 2,
+      "ms": 134.048,
+      "percent": 2.8111776860674027
+    },
+    {
+      "function": "(anonymous)",
+      "file": "http://<host>/script.js",
+      "line": 9517,
+      "ms": 133.892,
+      "percent": 2.807906143642103
+    },
+    {
+      "function": "querySelectorAll",
+      "file": "(native)",
+      "line": 7192,
+      "ms": 131.318,
+      "percent": 2.7539256936246654
+    },
+    {
+      "function": "(anonymous)",
+      "file": "(native)",
+      "line": 5635,
+      "ms": 131.166,
+      "percent": 2.7507380369025793
+    },
+    {
+      "function": "_cached",
+      "file": "(native)",
+      "line": 5597,
+      "ms": 131.166,
+      "percent": 2.7507380369025793
+    },
+    {
+      "function": "query",
+      "file": "(native)",
+      "line": 5631,
+      "ms": 131.166,
+      "percent": 2.7507380369025793
+    },
+    {
+      "function": "query",
+      "file": "(native)",
+      "line": 5844,
+      "ms": 131.166,
+      "percent": 2.7507380369025793
+    }
+  ],
+  "files": [
+    {
+      "file": "(native)",
+      "percent": 81.92483295735062
+    },
+    {
+      "file": "http://<host>/scripts/keyboard.js",
+      "percent": 15.802766256891998
+    },
+    {
+      "file": "http://<host>/lib/jquery-3.5.1.min.js",
+      "percent": 1.37845181804436
+    },
+    {
+      "file": "http://<host>/script.js",
+      "percent": 0.6182166612525436
+    },
+    {
+      "file": "http://<host>/lib.js",
+      "percent": 0.05458862136573055
+    },
+    {
+      "file": "http://<host>/scripts/slash-commands.js",
+      "percent": 0.032547652846566966
+    },
+    {
+      "file": "http://<host>/scripts/slash-commands/SlashCommandClosure.js",
+      "percent": 0.029716510363134916
+    },
+    {
+      "file": "http://<host>/scripts/slash-commands/SlashCommandParser.js",
+      "percent": 0.02919222471805491
+    },
+    {
+      "file": "http://<host>/scripts/autocomplete/AutoComplete.js",
+      "percent": 0.025941653718558853
+    },
+    {
+      "file": "http://<host>/scripts/RossAscends-mods.js",
+      "percent": 0.016189940720070684
+    },
+    {
+      "file": "http://<host>/lib/jquery-ui.min.js",
+      "percent": 0.012436055501297815
+    },
+    {
+      "file": "http://<host>/scripts/utils.js",
+      "percent": 0.009982398682323373
+    },
+    {
+      "file": "http://<host>/scripts/slash-commands/SlashCommandCommandAutoCompleteOption.js",
+      "percent": 0.009877541553307372
+    },
+    {
+      "file": "http://<host>/scripts/slash-commands/SlashCommandAutoCompleteNameResult.js",
+      "percent": 0.009667827295275369
+    },
+    {
+      "file": "http://<host>/lib/eventemitter.js",
+      "percent": 0.009625884443668967
+    },
+    {
+      "file": "http://<host>/scripts/macros/engine/MacroEngine.js",
+      "percent": 0.0054945135604384954
+    },
+    {
+      "file": "http://<host>/scripts/swipe-picker.js",
+      "percent": 0.00459274225090088
+    },
+    {
+      "file": "blob:http://<host>/948f6113-7a51-4d97-adf5-fef142bf1c97",
+      "percent": 0.0037538852187728655
+    },
+    {
+      "file": "http://<host>/scripts/stats.js",
+      "percent": 0.0033554281285120588
+    },
+    {
+      "file": "http://<host>/scripts/slash-commands/SlashCommand.js",
+      "percent": 0.003271542425299257
+    },
+    {
+      "file": "http://<host>/scripts/macros/engine/MacroCstWalker.js",
+      "percent": 0.0032505709994960566
+    },
+    {
+      "file": "http://<host>/scripts/tags.js",
+      "percent": 0.0032505709994960566
+    },
+    {
+      "file": "http://<host>/scripts/i18n.js",
+      "percent": 0.0032505709994960566
+    },
+    {
+      "file": "http://<host>/scripts/autocomplete/MacroAutoCompleteHelper.js",
+      "percent": 0.003229599573692856
+    },
+    {
+      "file": "http://<host>/scripts/request-compression.js",
+      "percent": 0.0015309140836336267
+    },
+    {
+      "file": "http://<host>/scripts/extensions/regex/engine.js",
+      "percent": 0.0009856570127504173
+    }
+  ],
+  "librariesSelfPercent": {
+    "other/idle/native": 98.34195713314737,
+    "jQuery": 1.3908878735456578,
+    "tokenization": 0.0032505709994960566,
+    "save/JSON": 0.2605489941789613,
+    "message rendering": 0.0033554281285120588
+  }
+}

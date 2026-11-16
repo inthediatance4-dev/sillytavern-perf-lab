@@ -1,0 +1,12 @@
+{
+  "chatEqual": true,
+  "domOrderEqual": true,
+  "domSnapshotEqual": true,
+  "eventsEqual": true,
+  "sendSavedMatchesChat": true,
+  "referenceSavedMatchesChat": true,
+  "triggeredDuringPartialSlice": true,
+  "doubleTriggeredDuringPartialSlice": true,
+  "doubleFinalCount": 1000,
+  "doubleCompletionCount": 1
+}

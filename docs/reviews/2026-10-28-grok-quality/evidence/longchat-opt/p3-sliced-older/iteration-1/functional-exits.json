@@ -1,0 +1,18 @@
+[
+  {
+    "scenario": "equivalence",
+    "exitCode": 1
+  },
+  {
+    "scenario": "concurrent-send",
+    "exitCode": 0
+  },
+  {
+    "scenario": "concurrent-reference",
+    "exitCode": 0
+  },
+  {
+    "scenario": "concurrent-double",
+    "exitCode": 0
+  }
+]

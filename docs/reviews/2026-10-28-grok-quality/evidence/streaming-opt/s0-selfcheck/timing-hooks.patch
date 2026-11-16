@@ -1,0 +1,79 @@
+diff --git a/public/script.js b/public/script.js
+index b369067..8e7c41d 100644
+--- a/public/script.js
++++ b/public/script.js
+@@ -1,3 +1,4 @@
++import { streamingPerfEnabled, recordStreamingPerf } from './scripts/streaming-perf.js';
+ import {
+     showdown,
+     moment,
+@@ -3864,6 +3865,8 @@ class StreamingProcessor {
+                 };
+             }
+ 
++            let perfStart;
++            if (streamingPerfEnabled) perfStart = performance.now();
+             const formattedText = messageFormatting(
+                 processedText,
+                 chat[messageId].name,
+@@ -3873,6 +3876,10 @@ class StreamingProcessor {
+                 {},
+                 false,
+             );
++            if (streamingPerfEnabled) {
++                recordStreamingPerf('format', perfStart, messageId);
++                perfStart = performance.now();
++            }
+             if (this.messageTextDom instanceof HTMLElement) {
+                 if (power_user.stream_fade_in) {
+                     applyStreamFadeIn(this.messageTextDom, formattedText);
+@@ -3881,6 +3888,8 @@ class StreamingProcessor {
+                 }
+             }
+ 
++            if (streamingPerfEnabled) recordStreamingPerf('dom', perfStart, messageId);
++
+             const timePassed = formatGenerationTimer(this.timeStarted, currentTime, currentTokenCount, this.reasoningHandler.getDuration(), this.timeToFirstToken);
+             if (this.messageTimerDom instanceof HTMLElement) {
+                 this.messageTimerDom.textContent = timePassed.timerValue;
+@@ -3891,7 +3900,13 @@ class StreamingProcessor {
+         }
+ 
+         if (!scrollLock) {
+-            scrollChatToBottom({ waitForFrame: true });
++            if (streamingPerfEnabled) {
++                const start = performance.now();
++                scrollChatToBottom({ waitForFrame: true });
++                recordStreamingPerf('scroll', start, messageId);
++            } else {
++                scrollChatToBottom({ waitForFrame: true });
++            }
+         }
+     }
+ 
+diff --git a/public/scripts/reasoning.js b/public/scripts/reasoning.js
+index c82e95f..6369b73 100644
+--- a/public/scripts/reasoning.js
++++ b/public/scripts/reasoning.js
+@@ -1,3 +1,4 @@
++import { streamingPerfEnabled, recordStreamingPerf } from './streaming-perf.js';
+ import {
+     moment,
+ } from '../lib.js';
+@@ -560,6 +561,8 @@ export class ReasoningHandler {
+      * @param {number} messageId - The ID of the message to update
+      */
+     updateDom(messageId) {
++        let perfStart;
++        if (streamingPerfEnabled) perfStart = performance.now();
+         this.#checkDomElements(messageId);
+ 
+         // Main CSS class to show this message includes reasoning
+@@ -598,6 +601,7 @@ export class ReasoningHandler {
+ 
+         // Update the reasoning duration in the UI
+         this.#updateReasoningTimeUI();
++        if (streamingPerfEnabled) recordStreamingPerf('reasoning', perfStart, messageId);
+     }
+ 
+     /**

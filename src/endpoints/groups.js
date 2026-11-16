@@ -1,3 +1,5 @@
+import { isLifecycleInternalName } from '../chat-io.js';
+import { trackPersistenceRouter } from '../request-drain.js';
 import fs from 'node:fs';
 import { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
@@ -8,6 +10,7 @@ import { sync as writeFileAtomicSync, default as writeFileAtomic } from 'write-f
 
 import { color, tryParse } from '../util.js';
 import { getFileNameValidationFunction } from '../middleware/validateFileName.js';
+import { withPathLocks, chatLockPaths, assertChatWritable, ChatLifecycleError, writeChatFile, createChatFileExclusive, recycleRetiredChat, retireChatPath, resolveGroupChatPath, isValidGroupChatId } from '../chat-io.js';
 
 export const router = express.Router();
 
@@ -65,13 +68,14 @@ export async function migrateGroupChatsMetadataFormat(userDirectories) {
                     }
                     for (const chatId of groupData.chats) {
                         try {
-                            const chatFileName = sanitize(`${chatId}.jsonl`);
+                            if (!isValidGroupChatId(chatId)) continue;
+                            const chatFileName = `${chatId}.jsonl`;
                             const chatFileDirent = groupChatFiles.find(f => f.isFile() && f.name === chatFileName);
                             if (!chatFileDirent) {
                                 console.warn(color.yellow(`Group chat file ${chatId} not found, skipping migration.`));
                                 continue;
                             }
-                            const chatFilePath = path.join(userDirs.groupChats, chatFileName);
+                            const chatFilePath = await resolveGroupChatPath(userDirs.groupChats, chatId);
                             const chatMetadata = allMetadata[chatId] || {};
                             const chatDataRaw = await fsPromises.readFile(chatFilePath, 'utf8');
                             const chatData = chatDataRaw.split('\n').filter(line => line.trim()).map(line => tryParse(line)).filter(Boolean);
@@ -84,7 +88,7 @@ export async function migrateGroupChatsMetadataFormat(userDirectories) {
                             const chatHeader = { chat_metadata: chatMetadata, user_name: 'unused', character_name: 'unused' };
                             const newChatData = [chatHeader, ...chatData];
                             const newChatDataRaw = newChatData.map(entry => JSON.stringify(entry)).join('\n');
-                            await writeFileAtomic(chatFilePath, newChatDataRaw, 'utf8');
+                            await writeChatFile(chatFilePath, newChatDataRaw);
                             console.log(`Updated group chat data format for ${chatId}`);
                             anyDataMigrated = true;
                         } catch (chatError) {
@@ -117,7 +121,7 @@ router.post('/all', (request, response) => {
         fs.mkdirSync(request.user.directories.groups);
     }
 
-    const files = fs.readdirSync(request.user.directories.groups).filter(x => path.extname(x) === '.json');
+    const files = fs.readdirSync(request.user.directories.groups).filter(x => !isLifecycleInternalName(x) && path.extname(x) === '.json');
     const chats = fs.readdirSync(request.user.directories.groupChats).filter(x => path.extname(x) === '.jsonl');
 
     files.forEach(function (file) {
@@ -153,11 +157,13 @@ router.post('/all', (request, response) => {
     return response.send(groups);
 });
 
-router.post('/create', (request, response) => {
+router.post('/create', async (request, response) => {
     if (!request.body) {
         return response.sendStatus(400);
     }
 
+    if ((request.body.chats !== undefined && (!Array.isArray(request.body.chats) || !request.body.chats.every(isValidGroupChatId)))
+        || (request.body.chat_id !== undefined && !isValidGroupChatId(request.body.chat_id))) return response.sendStatus(400);
     warnOnGroupMetadata(request.body);
     const id = String(Date.now());
     const groupMetadata = {
@@ -183,21 +189,39 @@ router.post('/create', (request, response) => {
         fs.mkdirSync(request.user.directories.groups);
     }
 
-    writeFileAtomicSync(pathToFile, fileData);
-    return response.send(groupMetadata);
+    try {
+        await withPathLocks(chatLockPaths([pathToFile]), async () => {
+            await assertChatWritable(pathToFile, request.user.directories.groups);
+            await createChatFileExclusive(pathToFile, fileData);
+        });
+        return response.send(groupMetadata);
+    } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
+        console.error(error); return response.sendStatus(500);
+    }
 });
 
-router.post('/edit', getFileNameValidationFunction('id'), (request, response) => {
+router.post('/edit', getFileNameValidationFunction('id'), async (request, response) => {
     if (!request.body || !request.body.id) {
         return response.sendStatus(400);
     }
+    if ((request.body.chats !== undefined && (!Array.isArray(request.body.chats) || !request.body.chats.every(isValidGroupChatId)))
+        || (request.body.chat_id !== undefined && !isValidGroupChatId(request.body.chat_id))) return response.sendStatus(400);
     warnOnGroupMetadata(request.body);
     const id = request.body.id;
     const pathToFile = path.join(request.user.directories.groups, sanitize(`${id}.json`));
     const fileData = JSON.stringify(request.body, null, 4);
 
-    writeFileAtomicSync(pathToFile, fileData);
-    return response.send({ ok: true });
+    try {
+        await withPathLocks(chatLockPaths([pathToFile]), async () => {
+            await assertChatWritable(pathToFile, request.user.directories.groups);
+            await writeChatFile(pathToFile, fileData);
+        });
+        return response.send({ ok: true });
+    } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
+        console.error(error); return response.sendStatus(500);
+    }
 });
 
 router.post('/delete', getFileNameValidationFunction('id'), async (request, response) => {
@@ -209,26 +233,33 @@ router.post('/delete', getFileNameValidationFunction('id'), async (request, resp
     const pathToGroup = path.join(request.user.directories.groups, sanitize(`${id}.json`));
 
     try {
-        // Delete group chats
-        const group = JSON.parse(fs.readFileSync(pathToGroup, 'utf8'));
-
-        if (group && Array.isArray(group.chats)) {
-            for (const chat of group.chats) {
-                console.info('Deleting group chat', chat);
-                const pathToFile = path.join(request.user.directories.groupChats, sanitize(`${chat}.jsonl`));
-
-                if (fs.existsSync(pathToFile)) {
-                    fs.unlinkSync(pathToFile);
+        await withPathLocks([...chatLockPaths([pathToGroup]), request.user.directories.groupChats], async () => {
+            await assertChatWritable(pathToGroup, request.user.directories.groups);
+            const group = JSON.parse(await fsPromises.readFile(pathToGroup, 'utf8'));
+            // Hide the group before retiring histories: partial cleanup must not leave an active group.
+            // The metadata and any moved histories remain available in recovery storage.
+            await recycleRetiredChat(pathToGroup, request.user.directories.groups);
+            if (group && Array.isArray(group.chats)) {
+                for (const chat of group.chats) {
+                    if (!isValidGroupChatId(chat)) continue;
+                    const file = path.join(request.user.directories.groupChats, sanitize(`${chat}.jsonl`));
+                    try {
+                        await assertChatWritable(file, request.user.directories.groupChats);
+                        if (fs.existsSync(file)) await recycleRetiredChat(file, request.user.directories.groupChats);
+                        else await retireChatPath(file, request.user.directories.groupChats, 'group_deleted');
+                    } catch (error) {
+                        if (error instanceof ChatLifecycleError && error.reason === 'retired_path') continue;
+                        throw error;
+                    }
                 }
             }
-        }
+        });
+        return response.send({ ok: true });
     } catch (error) {
-        console.error('Could not delete group chats. Clean them up manually.', error);
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
+        console.error('Group deletion did not complete. Retained files can be recovered.', error);
+        return response.sendStatus(500);
     }
-
-    if (fs.existsSync(pathToGroup)) {
-        fs.unlinkSync(pathToGroup);
-    }
-
-    return response.send({ ok: true });
 });
+
+trackPersistenceRouter(router);

@@ -1,0 +1,1144 @@
+v24.22.1
+
+> sillytavern@1.19.0 test:perf
+> node --test tests/benchmark-statistics.test.mjs tests/data-endpoint-smoke.test.mjs tests/process-identity.test.mjs tests/historical-source.test.mjs tests/character-edit-routes.test.mjs tests/character-lifecycle.test.mjs tests/path-lock-fairness.test.mjs tests/data-root-owner.test.mjs tests/lab-launcher-isolation.test.mjs tests/group-history-path.test.mjs tests/request-drain.test.mjs tests/performance-lab.test.mjs tests/enabled-backups.test.mjs tests/backup-recycle-budget.test.mjs tests/retired-path-recreate.test.mjs tests/chat-lifecycle.test.mjs tests/tokenizer-initialization.test.mjs tests/tokenizer-model-compatibility.test.mjs tests/frontend-lifecycle.test.mjs tests/frontend-template-startup.test.mjs tests/startup-lazy-imports.test.mjs tests/startup-webpack.test.mjs tests/startup-failure-exit.test.mjs tests/media-load-scroll.test.mjs tests/autocomplete-lifecycle.test.mjs tests/chat-transitions.test.mjs tests/chat-load-ownership.test.mjs tests/character-editor-flow.test.mjs tests/expression-mode-flow.test.mjs tests/itemized-prompts-ownership.test.mjs tests/recent-chat-info-cache.test.mjs tests/chat-file-safety.test.mjs tests/chat-backup-isolation.test.mjs tests/message-depth.test.mjs tests/vector-batch-cardinality.test.mjs tests/retired-publication-crash.test.mjs
+
+✔ removed normal input ignores resize and direct layout before observer delivery (14.469079ms)
+✔ removed floating input ignores resize and direct layout before observer delivery (2.116532ms)
+✔ removal releases clone, wrappers, observer and native window listener without another resize (8.410391ms)
+✔ ancestor removal releases resources and moving an attached input updates removal coverage (1.989871ms)
+✔ queued render, details and layout callbacks cannot revive a removed input before removal delivery (8.036095ms)
+✔ queued render, details and layout callbacks cannot revive a removed input after removal delivery (1.108386ms)
+✔ async provider finishing after removal cannot schedule or reactivate autocomplete (6.870468ms)
+✔ old async provider cannot reactivate a new attachment after removal cleanup (1.539615ms)
+✔ removal settles and releases a pending own window keyup wait (4.625294ms)
+✔ construction before attachment and reconnect after cleanup remain usable (27.014044ms)
+✔ attached full-width dialog preserves parsing, positioning and keyboard selection (1.322307ms)
+✔ attached floating dialog preserves parsing, positioning and keyboard selection (2.365641ms)
+✔ attached full-width details position in body remains intact (1.099961ms)
+✔ attached full-width details position in dialog remains intact (0.935866ms)
+✔ attached floating details position in body remains intact (9.113338ms)
+✔ attached floating details position in dialog remains intact (2.18238ms)
+✔ recycle byte budget removes only the oldest recycled artifacts (19.632419ms)
+✔ a zero recycle budget purges recycle storage and leaves visible backups (26.682268ms)
+✔ count retention still recycles expired backups and the default budget keeps them (10.266945ms)
+✔ a positive recycle budget prunes oldest expired backups after count retention (14.543974ms)
+✔ an invalid visible retention limit still refuses to move files (0.927117ms)
+✔ configured maxRecycleBytes prunes throttled backups without removing the chat (261.101794ms)
+✔ nearest-rank p95, even median and deterministic bootstrap intervals (79.222224ms)
+✔ record-only reference uses median AND either absolute or relative p95 limit (0.183698ms)
+✔ /edit holds lifecycle locks through image preparation against /delete (55.690521ms)
+✔ /edit holds lifecycle locks through image preparation against /rename (25.50106ms)
+✔ /edit-avatar holds lifecycle locks through image preparation against /delete (11.609565ms)
+✔ /edit-avatar holds lifecycle locks through image preparation against /rename (14.497966ms)
+{
+  avatar_url: 'edit-attribute-delete.png',
+  avatar: 'edit-attribute-delete.png',
+  ch_name: 'edit-attribute-delete',
+  field: 'description',
+  value: 'edited',
+  description: 'edited',
+  data: { description: 'edited' }
+}
+✔ /edit-attribute holds lifecycle locks through image preparation against /delete (12.53408ms)
+{
+  avatar_url: 'edit-attribute-rename.png',
+  avatar: 'edit-attribute-rename.png',
+  ch_name: 'edit-attribute-rename',
+  field: 'description',
+  value: 'edited',
+  description: 'edited',
+  data: { description: 'edited' }
+}
+✔ /edit-attribute holds lifecycle locks through image preparation against /rename (13.450251ms)
+✔ /merge-attributes holds lifecycle locks through image preparation against /delete (23.106323ms)
+✔ /merge-attributes holds lifecycle locks through image preparation against /rename (12.886692ms)
+Error: Invalid .png file header
+    at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+    at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+    at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:18
+An error occurred, character edit invalidated. Error: Character edit did not complete
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1222:98
+Failed to read image: /tmp/character-routes-DyfOYP/uploads/edit-failed.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ /edit reports failed publication and releases the lifecycle lock (18.960159ms)
+Error: Invalid .png file header
+    at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+    at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+    at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1261:14
+An error occurred while editing avatar Error: Character edit did not complete
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1261:89
+Failed to read image: /tmp/character-routes-DyfOYP/uploads/edit-avatar-failed.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ /edit-avatar reports failed publication and releases the lifecycle lock (8.402355ms)
+{
+  avatar_url: 'edit-attribute-failed.png',
+  avatar: 'edit-attribute-failed.png',
+  ch_name: 'Failure',
+  field: 'description',
+  value: 'edited',
+  description: 'edited'
+}
+Error: Invalid .png file header
+    at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+    at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+    at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1320:14
+An error occurred, character edit invalidated. Error: Character edit did not complete
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1320:92
+{
+  avatar_url: 'edit-attribute-failed.png',
+  avatar: 'edit-attribute-failed.png',
+  ch_name: 'Failure',
+  field: 'description',
+  value: 'edited',
+  description: 'edited'
+}
+Failed to read image: /tmp/character-routes-DyfOYP/characters/edit-attribute-failed.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ /edit-attribute reports failed publication and releases the lifecycle lock (5.128031ms)
+Error: Invalid .png file header
+    at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+    at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+    at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1397:14
+Failed to read image: /tmp/character-routes-DyfOYP/characters/merge-attributes-failed.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ /merge-attributes reports failed publication and releases the lifecycle lock (8.232585ms)
+✔ selection from characters formats only selected notes (25.742098ms)
+✔ selection from characters never writes draft field values (20.107205ms)
+✔ selection from create formats only selected notes (19.432658ms)
+✔ selection from create never writes draft field values (15.11766ms)
+✔ selected world, embedded-world and favorite helpers run once with selected arguments (14.34613ms)
+✔ selected chrome does not hide controls immediately before showing them (11.99172ms)
+✔ final editor state and terminal ordering match independent base: ordinary (37.832292ms)
+✔ final editor state and terminal ordering match independent base: draft entry (33.125578ms)
+✔ final editor state and terminal ordering match independent base: group peek (32.792651ms)
+✔ final editor state and terminal ordering match independent base: no menu switch (33.946692ms)
+✔ final editor state and terminal ordering match independent base: group without menu switch (26.294308ms)
+✔ final editor state and terminal ordering match independent base: legacy optional fields (33.548579ms)
+✔ final editor state and terminal ordering match independent base: empty optional fields (22.953376ms)
+✔ final editor state and terminal ordering match independent base: media globally forbidden (26.69888ms)
+✔ final editor state and terminal ordering match independent base: media allowed override (32.419347ms)
+✔ final editor state and terminal ordering match independent base: media forbidden override (41.691032ms)
+✔ final editor state and terminal ordering match independent base: group media override (34.866372ms)
+✔ final editor state and terminal ordering match independent base: residual controls (28.28133ms)
+✔ default create restoration remains identical to base (switchMenu=true) (57.329031ms)
+✔ default create restoration remains identical to base (switchMenu=false) (39.343797ms)
+✔ opening an existing character then returning to create restores the unchanged draft (33.105801ms)
+✔ legacy draft FileList restoration and asynchronous avatar path match base (create) (67.800945ms)
+✔ legacy draft FileList restoration and asynchronous avatar path match base (selected) (34.245479ms)
+✔ an avatar draft is not restored when the previous selected button is not create (10.970237ms)
+✔ legacy selected draft-avatar crop outcome remains identical (cancelled) (34.951986ms)
+✔ legacy selected draft-avatar crop outcome remains identical (accepted) (28.150007ms)
+✔ character delete waits for deferred edit publication and late edits cannot resurrect it (22.754858ms)
+✔ character rename waits for deferred edit publication and late edits cannot resurrect it (6.65351ms)
+✔ one user keeps leading and latest snapshots for three histories of the same character (193.063869ms)
+✔ Chinese names, groups and users keep independent latest snapshots and retention quotas (145.097066ms)
+✔ resolved path aliases share one schedule and one quota on Windows (8.085064ms)
+✔ user handles separate scheduling and quotas even for the same resolved history and backup directory (24.620438ms)
+✔ shutdown flush drains backups admitted by chat saves already queued behind a file lock (32.406815ms)
+✔ legacy and new backups remain listed and downloadable with their exact original bytes (21.890158ms)
+✔ backup browser deletes under file and directory locks into recoverable storage (54.258859ms)
+Attempt to delete non-chat backup file: other.jsonl
+Attempt to download non-chat backup file: other.jsonl
+✔ backup browser preserves invalid-prefix and missing-file responses (8.188925ms)
+✔ delayed leading writes serialize latest trailing data and flush waits for actual filesystem writes (26.413941ms)
+✔ keys run independently and timed trailing snapshots retain only the latest per key (36.052396ms)
+✔ capacity eviction drains active and pending data while overflow writes remain part of flush (26.144863ms)
+✔ default capacity retains at most 256 throttles and admission flushes the oldest pending snapshot (194.457495ms)
+✔ access-triggered idle retirement flushes pending data and a reused key starts leading again (79.98582ms)
+Artificial fixtures retained at /workspace/sillytavern-perf-lab/.fixtures/backup-isolation-dde9c859-4c49-4d03-aa2a-4efe22d1d1e2
+✔ a real filesystem rejection is caught and a later snapshot can retry without poisoned state (4.039528ms)
+✔ character save allows missing file without losing rejected bytes (126.014203ms)
+✔ character save allows empty file without losing rejected bytes (15.905921ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-legacy-object.jsonl" does not have integrity metadata matching "expected". The integrity validation has been skipped.
+✔ character save allows legacy object without losing rejected bytes (17.162203ms)
+✔ character save allows matching slug without losing rejected bytes (9.02662ms)
+✔ character save allows BOM matching slug without losing rejected bytes (15.514965ms)
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-mismatched-slug.jsonl". The expected integrity slug was "expected".
+✔ character save rejects mismatched slug without losing rejected bytes (6.684072ms)
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-BOM-mismatched-slug.jsonl". The expected integrity slug was "expected".
+✔ character save rejects BOM mismatched slug without losing rejected bytes (13.212246ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-invalid-JSON.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-invalid-JSON.jsonl". The expected integrity slug was "expected".
+✔ character save rejects invalid JSON without losing rejected bytes (7.141877ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-null-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-null-header.jsonl". The expected integrity slug was "expected".
+✔ character save rejects null header without losing rejected bytes (10.977332ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-array-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-array-header.jsonl". The expected integrity slug was "expected".
+✔ character save rejects array header without losing rejected bytes (5.05431ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-string-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-string-header.jsonl". The expected integrity slug was "expected".
+✔ character save rejects string header without losing rejected bytes (6.445255ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-number-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-number-header.jsonl". The expected integrity slug was "expected".
+✔ character save rejects number header without losing rejected bytes (5.727282ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-boolean-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-boolean-header.jsonl". The expected integrity slug was "expected".
+✔ character save rejects boolean header without losing rejected bytes (6.220713ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl". The expected integrity slug was "expected".
+✔ character save rejects blank first line of nonempty file without losing rejected bytes (13.463025ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-whitespace-only-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-whitespace-only-nonempty-file.jsonl". The expected integrity slug was "expected".
+✔ character save rejects whitespace-only nonempty file without losing rejected bytes (7.175122ms)
+✔ character force save retains explicit overwrite semantics for malformed (4.315345ms)
+✔ character force save retains explicit overwrite semantics for mismatch (6.429334ms)
+✔ character no-slug save retains explicit overwrite semantics for malformed (9.195251ms)
+✔ character no-slug save retains explicit overwrite semantics for mismatch (8.735191ms)
+✔ group save allows missing file without losing rejected bytes (3.846463ms)
+✔ group save allows empty file without losing rejected bytes (4.01127ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-legacy-object.jsonl" does not have integrity metadata matching "expected". The integrity validation has been skipped.
+✔ group save allows legacy object without losing rejected bytes (11.320797ms)
+✔ group save allows matching slug without losing rejected bytes (6.031844ms)
+✔ group save allows BOM matching slug without losing rejected bytes (5.683377ms)
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-mismatched-slug.jsonl". The expected integrity slug was "expected".
+✔ group save rejects mismatched slug without losing rejected bytes (6.075313ms)
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-BOM-mismatched-slug.jsonl". The expected integrity slug was "expected".
+✔ group save rejects BOM mismatched slug without losing rejected bytes (8.186725ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-invalid-JSON.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-invalid-JSON.jsonl". The expected integrity slug was "expected".
+✔ group save rejects invalid JSON without losing rejected bytes (9.526253ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-null-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-null-header.jsonl". The expected integrity slug was "expected".
+✔ group save rejects null header without losing rejected bytes (10.619978ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-array-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-array-header.jsonl". The expected integrity slug was "expected".
+✔ group save rejects array header without losing rejected bytes (3.188333ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-string-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-string-header.jsonl". The expected integrity slug was "expected".
+✔ group save rejects string header without losing rejected bytes (18.10542ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-number-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-number-header.jsonl". The expected integrity slug was "expected".
+✔ group save rejects number header without losing rejected bytes (8.398523ms)
+✔ group save rejects boolean header without losing rejected bytes (2.869655ms)
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-boolean-header.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-boolean-header.jsonl". The expected integrity slug was "expected".
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-blank-first-line-of-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-blank-first-line-of-nonempty-file.jsonl". The expected integrity slug was "expected".
+File "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-whitespace-only-nonempty-file.jsonl" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.
+Chat integrity check failed for "/workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-whitespace-only-nonempty-file.jsonl". The expected integrity slug was "expected".
+✔ group save rejects blank first line of nonempty file without losing rejected bytes (6.699018ms)
+✔ group save rejects whitespace-only nonempty file without losing rejected bytes (6.549974ms)
+✔ group force save retains explicit overwrite semantics for malformed (7.244053ms)
+✔ group force save retains explicit overwrite semantics for mismatch (8.488179ms)
+✔ group no-slug save retains explicit overwrite semantics for malformed (9.00401ms)
+✔ group no-slug save retains explicit overwrite semantics for mismatch (5.583776ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-0f5616ae-847f-4677-bc0a-348fbd3abf63.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-0f5616ae-847f-4677-bc0a-348fbd3abf63.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-0f5616ae-847f-4677-bc0a-348fbd3abf63.jsonl
+✔ degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail {"name": (4.983083ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-8410d38e-e260-443d-a6ad-24313c578354.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-8410d38e-e260-443d-a6ad-24313c578354.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-8410d38e-e260-443d-a6ad-24313c578354.jsonl
+✔ degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail null (1.010582ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-46cc62ef-d093-4902-a5bd-7ea73092158a.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-46cc62ef-d093-4902-a5bd-7ea73092158a.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-46cc62ef-d093-4902-a5bd-7ea73092158a.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-268e7918-a7e1-4b08-9452-9d8dbb78495c.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-268e7918-a7e1-4b08-9452-9d8dbb78495c.jsonl
+✔ degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail [] (4.141814ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-268e7918-a7e1-4b08-9452-9d8dbb78495c.jsonl
+✔ degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail 42 (5.966257ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-b12ae4f4-9cbf-4165-9061-b425612fd61d.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-b12ae4f4-9cbf-4165-9061-b425612fd61d.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-b12ae4f4-9cbf-4165-9061-b425612fd61d.jsonl
+✔ degraded preview retains identity/stat/metadata and excludes unreadable nonblank tail {"unexpected":"field"} (6.241066ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/single-truncated.jsonl
+✔ unreadable single-row history produces a safe zero-count degraded preview (1.205383ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-array-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-boolean-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-invalid-JSON.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-null-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-number-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-string-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-0f5616ae-847f-4677-bc0a-348fbd3abf63.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-268e7918-a7e1-4b08-9452-9d8dbb78495c.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-46cc62ef-d093-4902-a5bd-7ea73092158a.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-8410d38e-e260-443d-a6ad-24313c578354.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-b12ae4f4-9cbf-4165-9061-b425612fd61d.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/search-truncated-unique.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/single-truncated.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-array-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-boolean-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-invalid-JSON.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-null-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-number-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-string-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-0f5616ae-847f-4677-bc0a-348fbd3abf63.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-268e7918-a7e1-4b08-9452-9d8dbb78495c.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-46cc62ef-d093-4902-a5bd-7ea73092158a.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-8410d38e-e260-443d-a6ad-24313c578354.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-b12ae4f4-9cbf-4165-9061-b425612fd61d.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/search-truncated-unique.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/single-truncated.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-array-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-boolean-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-invalid-JSON.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-null-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-number-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-string-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-0f5616ae-847f-4677-bc0a-348fbd3abf63.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-268e7918-a7e1-4b08-9452-9d8dbb78495c.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-46cc62ef-d093-4902-a5bd-7ea73092158a.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-8410d38e-e260-443d-a6ad-24313c578354.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-b12ae4f4-9cbf-4165-9061-b425612fd61d.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/search-truncated-unique.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/single-truncated.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-array-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-blank-first-line-of-nonempty-file.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-boolean-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-invalid-JSON.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-null-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-number-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/character-string-header.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-0f5616ae-847f-4677-bc0a-348fbd3abf63.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-268e7918-a7e1-4b08-9452-9d8dbb78495c.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-46cc62ef-d093-4902-a5bd-7ea73092158a.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-8410d38e-e260-443d-a6ad-24313c578354.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/preview-b12ae4f4-9cbf-4165-9061-b425612fd61d.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/search-truncated-unique.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/single-truncated.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-search-truncated-unique.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-search-truncated-unique.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-search-truncated-unique.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/groupChats/group-search-truncated-unique.jsonl
+✔ real search includes degraded character and group histories only when complete rows or filename match (57.002999ms)
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/recent-version-truncated.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/recent-version-truncated.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/recent-version-truncated.jsonl
+Found an invalid or corrupted last line in a chat file: /workspace/sillytavern-perf-lab/.fixtures/file-safety-5ec86c93-79a9-4d9b-b5b8-8be5730ed10e/chats/Synthetic/recent-version-truncated.jsonl
+✔ real recent caches degraded metadata previews and invalidates changed bad-tail versions (40.490824ms)
+Chat text export failed. SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:716:35
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Chat exported as synthetic.txt
+✔ HTTP text export handles malformed-middle and serves subsequent requests (11.392585ms)
+Chat text export failed. SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:716:35
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+Chat exported as synthetic.txt
+✔ HTTP text export handles truncated-last and serves subsequent requests (9.328537ms)
+Chat exported as synthetic.txt
+Chat exported as synthetic.txt
+✔ HTTP text export handles empty-lines and serves subsequent requests (10.382286ms)
+Chat exported as synthetic.txt
+Chat exported as synthetic.txt
+✔ HTTP text export handles BOM and serves subsequent requests (9.365551ms)
+Chat text export failed. Error: Synthetic read error
+    at Immediate._onImmediate (file:///workspace/sillytavern-perf-lab/tests/chat-file-safety.test.mjs:251:63)
+    at process.processImmediate (node:internal/timers:574:21) {
+  code: 'EIO'
+}
+Chat exported as synthetic.txt
+✔ HTTP text export settles once on a mid-stream read error and remains available (3.689855ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/ordered-source.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/ordered-target.jsonl
+Successfully renamed chat file.
+✔ rename waits for an in-flight save, then rejects late saves at the retired name (189.222203ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/force-source.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/force-target.jsonl
+Successfully renamed chat file.
+✔ force does not revive a renamed or deleted chat (62.192226ms)
+✔ delete waits for a queued save and retains the completed contents in recovery storage (80.699041ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/save-as-source.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/save-as-target.jsonl
+Successfully renamed chat file.
+✔ new untombstoned names still save and saved-as data does not alter the renamed target (13.302101ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/occupied-source.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/occupied-target.jsonl
+✔ rename never overwrites an existing target and source remains writable (15.482801ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/competing-a.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/competing-target.jsonl
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/competing-b.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/competing-target.jsonl
+Successfully renamed chat file.
+✔ two concurrent sources competing for one target publish only one complete chat (19.814088ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/reverse-a.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/reverse-b.jsonl
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/reverse-b.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/reverse-a.jsonl
+✔ reverse multi-path requests settle without deadlock and preserve both occupied files (8.888044ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/restart-source.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/restart-target.jsonl
+Successfully renamed chat file.
+✔ retirement is enforced by a fresh process after module state is lost (541.889837ms)
+✔ CAI multi-history import retains every distinct history with noncolliding names (10.585461ms)
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:810:35
+✔ invalid JSON import fails without destroying the original upload (5.981413ms)
+✔ unsupported import format settles with an error and retains the upload (3.644451ms)
+✔ concurrent group imports do not replace each other and retain uploads recoverably (19.891229ms)
+✔ deleting an entire group retires its chats and metadata against late writers (16.574113ms)
+﹣ Windows case aliases refer to the same retired path (0.116139ms) # Requires Windows case-insensitive path semantics
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/marker-failure.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/marker-failed-target.jsonl
+Error renaming chat file: Error: artificial marker failure
+    at fs.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:232:85)
+    at node:internal/util:492:21
+    at new Promise (<anonymous>)
+    at node:internal/util:478:12
+    at writeFileAsync (/workspace/sillytavern-perf-lab/node_modules/write-file-atomic/lib/index.js:142:31)
+    at async retireChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:421:5)
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:547:26
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:624:13 {
+  code: 'EIO'
+}
+✔ marker creation failure leaves the rename source active and removes the published candidate recoverably (40.021784ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/recycle-failure.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/recycle-failed-target.jsonl
+Error renaming chat file: Error: artificial source move failure
+    at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:246:61)
+    at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:548:13
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:624:13 {
+  code: 'EIO'
+}
+✔ a failed source recycle rolls back this rename marker and candidate without sealing the original path (17.728961ms)
+Error: artificial deletion failure
+    at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:260:61)
+    at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+    at async recycleRetiredChat (file:///workspace/sillytavern-perf-lab/src/chat-io.js:524:18)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:648:13 {
+  code: 'EIO'
+}
+✔ a failed deletion move rolls back only its own marker and allows a subsequent save (10.463136ms)
+Error: artificial second publication failure
+    at fs.promises.link (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:275:97)
+    at publishExclusive (file:///workspace/sillytavern-perf-lab/src/chat-io.js:476:27)
+    at async createChatFileExclusive (file:///workspace/sillytavern-perf-lab/src/chat-io.js:487:5)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:869:25
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/chats.js:864:13 {
+  code: 'EIO'
+}
+✔ a partially published import is recycled and its original upload remains available (10.727279ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/complete-publish.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/complete-target.jsonl
+Successfully renamed chat file.
+✔ rename publishes a complete target in one exclusive link, without exposing a partially copied file (10.341842ms)
+✔ deleting a character directory waits for a chat save and prevents late get/save/import recreation (118.796667ms)
+Error: artificial directory move failure
+    at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:332:64)
+    at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1548:32 {
+  code: 'EIO'
+}
+✔ failed character-directory recycling leaves the avatar and chats active (41.377492ms)
+Char CharacterBefore has Spec v2 data missing for unknown field: description
+Char CharacterBefore has Spec v2 data missing for unknown field: personality
+Char CharacterBefore has Spec v2 data missing for unknown field: scenario
+Char CharacterBefore has Spec v2 data missing for unknown field: mes_example
+Char CharacterBefore has Spec v2 data missing for unknown field: tags
+✔ character rename retires the old directory while the new avatar and chat remain usable (45.032352ms)
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: description
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: personality
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: scenario
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: mes_example
+Char CharacterCompetitorA has Spec v2 data missing for unknown field: tags
+✔ two character renames toward one new name do not overwrite the first published avatar or history (52.51783ms)
+Failed to read image: /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/uploads/retired-create-7ddda788-747b-4cee-bf16-abec494e4820.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ a deleted character name can be created again, while an ordinary save stays retired until then (47.000418ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/cycle-a.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/cycle-b.jsonl
+Successfully renamed chat file.
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/cycle-b.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/cycle-a.jsonl
+Successfully renamed chat file.
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/reuse-other.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/reuse-source.jsonl
+Successfully renamed chat file.
+✔ chat rename can return to an absent retired name, and delete then rename reuses it (116.953068ms)
+Char RenameCycleA has Spec v2 data missing for unknown field: description
+Char RenameCycleA has Spec v2 data missing for unknown field: personality
+Char RenameCycleA has Spec v2 data missing for unknown field: scenario
+Char RenameCycleA has Spec v2 data missing for unknown field: mes_example
+Char RenameCycleA has Spec v2 data missing for unknown field: tags
+Char RenameCycleB has Spec v2 data missing for unknown field: description
+Char RenameCycleB has Spec v2 data missing for unknown field: personality
+Char RenameCycleB has Spec v2 data missing for unknown field: scenario
+Char RenameCycleB has Spec v2 data missing for unknown field: mes_example
+Char RenameCycleB has Spec v2 data missing for unknown field: tags
+✔ character rename can return to an absent previous name (68.698517ms)
+✔ malformed import request bodies settle without disrupting subsequent HTTP requests (14.273104ms)
+✔ optional import display names can be omitted while valid uploaded JSONL remains compatible (8.79949ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/relocated-source.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/relocated-target.jsonl
+Successfully renamed chat file.
+✔ relative retirement identities survive copying an entirely artificial data root (115.123462ms)
+✔ internal staging junctions are rejected instead of writing through a directory alias (27.334007ms)
+✔ internal recovery junctions are rejected while the original file remains intact (6.416094ms)
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: description
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: personality
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: scenario
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: mes_example
+Char CharacterMoveFailure has Spec v2 data missing for unknown field: tags
+Error: artificial character directory rename failure
+    at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:465:64)
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1155:42
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1137:13 {
+  code: 'EIO'
+}
+✔ failed character-directory rename restores the original avatar and writable chat without a candidate (16.602519ms)
+Error: artificial avatar move failure
+    at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:480:61)
+    at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1550:17 {
+  code: 'EIO'
+}
+✔ failed avatar deletion restores an already-recycled chat directory and its marker (17.4838ms)
+✔ explicit character creation does not overwrite an existing avatar (11.474508ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/internal-marker-source.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/Synthetic/internal-marker-target.jsonl
+Successfully renamed chat file.
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/.chat-lifecycle/dd1394d43be1ed0c42675ec4492cc9ba7e35c7bbacd10cc12fc44c95b560de9f.json
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/.chat-lifecycle/moved-marker.json
+✔ chat routes cannot rename internal retirement markers to revive a retired path (34.832499ms)
+Old chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/RetirementBefore/previous-name.jsonl
+New chat name /workspace/sillytavern-perf-lab/.fixtures/lifecycle-fb1c3cec-be3e-4071-b73a-1608d80d07b5/chats/RetirementBefore/still-active.jsonl
+Successfully renamed chat file.
+Char RetirementBefore has Spec v2 data missing for unknown field: description
+Char RetirementBefore has Spec v2 data missing for unknown field: personality
+Char RetirementBefore has Spec v2 data missing for unknown field: scenario
+Char RetirementBefore has Spec v2 data missing for unknown field: mes_example
+Char RetirementBefore has Spec v2 data missing for unknown field: tags
+✔ character rename inherits retired chat names while retaining writable active histories (73.950463ms)
+✔ group metadata rejects invalid IDs and readers ignore legacy traversal and aliases (60.090856ms)
+Group deletion did not complete. Retained files can be recovered. Error: injected group move failure
+    at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:562:37)
+    at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+    at async recycleRetiredChat (file:///workspace/sillytavern-perf-lab/src/chat-io.js:524:18)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/groups.js:247:50 {
+  code: 'EIO'
+}
+✔ failed group deletion at second-history never leaves active metadata pointing at retired chats (23.04911ms)
+Group deletion did not complete. Retained files can be recovered. Error: injected group move failure
+    at fs.promises.rename (file:///workspace/sillytavern-perf-lab/tests/chat-lifecycle.test.mjs:562:37)
+    at recycleChatPath (file:///workspace/sillytavern-perf-lab/src/chat-io.js:411:23)
+    at async recycleRetiredChat (file:///workspace/sillytavern-perf-lab/src/chat-io.js:524:18)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/groups.js:240:13 {
+  code: 'EIO'
+}
+✔ failed group deletion at metadata never leaves active metadata pointing at retired chats (9.23052ms)
+✔ success preserves void return and terminal event order without scheduling small loads (16.345878ms)
+✔ large visible text receives exactly one post-render task boundary (7.662255ms)
+✔ truncated history counts only visible text (10.6715ms)
+✔ clear immediately invalidates the load suspended at unshallowCharacter (17.502199ms)
+✔ clear immediately invalidates the load suspended at fetch (9.664394ms)
+✔ clear immediately invalidates the load suspended at loadItemizedPrompts (8.362229ms)
+✔ clear immediately invalidates the load suspended at printMessages (7.895857ms)
+✔ same-file reload supersedes late response without overwriting newer model (12.002757ms)
+✔ clear during task boundary suppresses menu terminal events and delayed focus (8.670928ms)
+✔ stale render rejection does not enter catch fallback (7.833915ms)
+✔ real fetch failure still renders fallback and logs error (9.51904ms)
+✔ CHAT_CHANGED listener cancellation suppresses later first-message events and CHAT_LOADED (11.014132ms)
+✔ delayed textarea focus ignores a cleared successful load (10.828609ms)
+✔ cancelled legacy open never persists character (7.800329ms)
+✔ cancelled guarded open never persists character (8.321861ms)
+✔ general redisplay remains atomic without task scheduling (0.33919ms)
+✔ visible text threshold at 249999 characters (4.335526ms)
+✔ visible text threshold at 250000 characters (15.484366ms)
+✔ visible text threshold at 250001 characters (11.029127ms)
+✔ CHAT_LOADED synchronous navigation cancels outer persistence (3.441632ms)
+✔ cancelled new chat does not save or delete the selected history (8.637196ms)
+✔ group identity change during response refuses model application (8.376725ms)
+✔ json response suspension cannot overwrite changed metadata (8.2005ms)
+✔ empty load preserves greeting save and event order (7.442601ms)
+✔ legitimate CHAT_CHANGED metadata update preserves successful terminal events (10.757716ms)
+✔ clear invalidates before its prompt persistence await completes (4.553491ms)
+✔ targeted default character selection propagates cancelled load (7.665472ms)
+✔ cancelled reload does not refresh swipe buttons for a newer chat (3.215481ms)
+✔ same-file reload during CHAT_CHANGED suppresses old terminal events even with restored metadata (7.466357ms)
+✔ recent character history opens exactly once without loading its default (9.248286ms)
+✔ legacy selection retains its void return, default load and reset behavior (1.0837ms)
+✔ legacy same-character selection retains switchMenu=true (1.808875ms)
+✔ legacy same-character selection retains switchMenu=false (1.078075ms)
+✔ targeting the default loads once without changing or persisting the filename (1.365328ms)
+✔ targeting the already open same-character file retains switchMenu=true (5.472732ms)
+✔ targeting the already open same-character file retains switchMenu=false (0.988084ms)
+✔ same-character history runs normal loading, form selection and newChat persistence (1.08439ms)
+✔ shallow card replacement is refreshed before comparing target with history (1.367936ms)
+✔ shallow card replacement is refreshed before comparing target with refreshed-default (4.444706ms)
+✔ explicit invalid chatFile undefined refuses without changing selection (0.981715ms)
+✔ explicit invalid chatFile null refuses without changing selection (0.92706ms)
+✔ explicit invalid chatFile 0 refuses without changing selection (0.894346ms)
+✔ explicit invalid chatFile {} refuses without changing selection (4.928544ms)
+✔ explicit invalid chatFile "" refuses without changing selection (0.909708ms)
+✔ explicit invalid chatFile "   " refuses without changing selection (0.986474ms)
+✔ invalid character ID and missing avatar never load or save active settings (0.966208ms)
+✔ targeted selection respects guard {"isChatSaving":true} including current character (3.753042ms)
+✔ targeted selection respects guard {"selected_group":"busy-group","is_group_generating":true} including current character (0.98775ms)
+✔ targeted selection respects guard {"is_send_press":true} including current character (0.864997ms)
+✔ targeted group-to-character navigation resets prior state and loads only the target (6.076476ms)
+✔ stale clearChat prep refuses after navigation to {"this_chid":2} (1.10662ms)
+✔ stale unshallowCharacter prep refuses after navigation to {"this_chid":2} (1.255906ms)
+✔ stale clearChat prep refuses after navigation to {"selected_group":"new-group"} (1.132932ms)
+✔ stale unshallowCharacter prep refuses after navigation to {"selected_group":"new-group"} (5.027486ms)
+✔ overlapping recent clicks are ignored and a later click can open normally (17.861726ms)
+✔ recent busy state releases on failure and preserves error toast before retry (3.763516ms)
+✔ recent busy state releases after refused selection (5.525518ms)
+✔ history transition refuses stale identity during openCharacterChat waitUntilCondition (1.019988ms)
+✔ history transition refuses stale identity during openCharacterChat clearChat (0.946298ms)
+✔ history transition refuses stale identity during openCharacterChat getChat (0.853656ms)
+✔ card identity changing at the same index during refresh refuses the target (4.204198ms)
+✔ ordinary openCharacterChat keeps its legacy void return and persistence (1.042646ms)
+✔ cross-character history does not overwrite unopened default prompt storage with empty prompts (1.931721ms)
+✔ targeted same-character history retains normal prompt-saving clear (6.016997ms)
+✔ legacy history retains normal prompt-saving clear (1.362634ms)
+✔ failed cross-character refresh can retry the default without accepting an unloaded blank chat (5.075951ms)
+✔ failed refresh preserves navigation selected during preparation {"this_chid":2,"name2":"Other","chat_metadata":{"loaded":"other-default"}} (1.01608ms)
+✔ failed refresh preserves navigation selected during preparation {"selected_group":"other-group","name2":"Group","chat_metadata":{"loaded":"group-history"}} (4.222158ms)
+✔ failed same-character preparation retains the chat that was already loaded (1.023783ms)
+✔ older preparation rejection preserves newer same-character newer-history load (7.204041ms)
+✔ older preparation resolution preserves newer same-character newer-history load (1.255071ms)
+✔ older preparation rejection preserves newer same-character default load (3.458217ms)
+✔ older preparation resolution preserves newer same-character default load (1.36147ms)
+✔ initial awaited clear refuses a newer homepage metadata state (5.15997ms)
+✔ targeted waitUntilCondition refuses a newer same-character metadata state before filename assignment (1.209626ms)
+✔ targeted clearChat refuses a newer same-character metadata state before filename assignment (0.928008ms)
+✔ same-character refresh refuses a newer metadata state before opening requested history (0.9465ms)
+✔ targeted history load refuses newer same-character filename before persistence or settings (4.116146ms)
+✔ targeted default load refuses newer same-character filename before persistence or settings (1.007468ms)
+{
+  avatar_url: 'Smoke.png',
+  ch_name: 'Smoke',
+  description: 'edited',
+  field: 'description',
+  value: 'attribute'
+}
+/tmp/data-endpoint-smoke-fQkEtv/characters/Smoke.png was copied to /tmp/data-endpoint-smoke-fQkEtv/characters/Smoke_1.png
+Importing from v1 json
+Importing from v1 json
+Importing from v1 json
+Importing from BYAF
+Warning: BYAF character has no images
+Created Scenario - 2026-10-28@15h38m56s216ms-5ccc6f3e-1034-425a-b8ce-02fb32647f04 imported.jsonl chat from BYAF import
+▶ all data-writing routes publish valid minimal requests without nested new lock keys
+  ✔ character create, edits, single/bulk/all merge, duplicate and imports (605.427234ms)
+Old chat name /tmp/data-endpoint-smoke-fQkEtv/chats/Smoke/original.jsonl
+New chat name /tmp/data-endpoint-smoke-fQkEtv/chats/Smoke/renamed.jsonl
+Successfully renamed chat file.
+  ✔ ordinary chat save/get/rename/delete and single/batch import (79.399571ms)
+Old chat name /tmp/data-endpoint-smoke-fQkEtv/groupChats/group-smoke.jsonl
+New chat name /tmp/data-endpoint-smoke-fQkEtv/groupChats/group-renamed.jsonl
+Successfully renamed chat file.
+  ✔ group metadata and histories, including rename and group deletion with histories (66.951326ms)
+  ✔ scheduled leading/trailing backups and backup delete (23.385544ms)
+Char Smoke has Spec v2 data mismatch with Spec v1 for field: description attribute bulk
+  ✔ character rename with chat histories and delete with histories (30.323662ms)
+✔ all data-writing routes publish valid minimal requests without nested new lock keys (808.531947ms)
+✔ a live owner blocks another process and leaves the lock unchanged (108.363171ms)
+✔ the same process cannot take a second root while it still owns one (9.842474ms)
+✔ a dead pid on this host is reclaimed (56.189947ms)
+✔ a dead pid on another host is not reclaimed (56.89658ms)
+✔ an unreadable owner file is left in place (3.868891ms)
+✔ a missing data root is created and a child exit removes the lock (85.284894ms)
+✔ process.exit and an uncaught exception remove the lock (197.920585ms)
+✔ a symlink owner file is not followed or rewritten (2.122963ms)
+✔ two processes cannot both reclaim one stale owner (152.939578ms)
+✔ a stale reclaim marker is taken over once and a fresh one is not (617.154074ms)
+✔ acquiring a data root never spawns a compiler (122.419154ms)
+✔ EPERM from process.kill means the same-host owner is alive (1.644126ms)
+✔ an unexpected environment error refuses ownership with diagnostics (0.904332ms)
+✔ a new owner record stores a token and the host identity (4.388217ms)
+✔ a live pid with a different boot or start identity is reclaimed (2.929925ms)
+✔ a matching boot and start identity is refused even when the token differs (2.972103ms)
+✔ a live pid without identity fields is kept (1.989297ms)
+✔ EPERM with a matching identity refuses and a mismatch is reclaimed (7.069926ms)
+✔ two processes cannot both reclaim one reused pid (108.588113ms)
+✔ owner cleanup uses bounded sibling names and failed release can be retried (2.416158ms)
+✔ an expired marker cannot revoke a paused live reclaimer (1324.264767ms)
+✔ release retains bookkeeping after reading the renamed owner fails (3.447867ms)
+✔ legacy Linux identity with a live pid refuses with a clear diagnostic (7.122988ms)
+✔ Linux acquisition p95 is recorded (52.383329ms)
+ℹ Linux acquisition p95=3.760ms (n=30)
+✔ two real Linux processes compare ticks and boot ids independently (138.27717ms)
+✔ a second real process after a btime shift cannot reclaim the live Linux owner (84.736558ms)
+✔ enabled backups flush the latest throttled snapshot and recycle expired versions (107.516258ms)
+✔ stable normal mode performs no VN visibility geometry read (13.906332ms)
+✔ stable VN mode performs no VN visibility geometry read (1.495189ms)
+✔ stable VN retains sprites and drag geometry with no layout boxes (synthetic :visible=false) (3.853713ms)
+✔ leaving VN resets once despite no layout boxes (synthetic :visible=false) (6.067211ms)
+✔ stable VN retains sprites and drag geometry with CSS-hidden ancestor (1.256594ms)
+✔ leaving VN resets once despite CSS-hidden ancestor (5.802466ms)
+✔ initial normal mode preserves dragged holder while enforcing wrapper display every time (2.321015ms)
+✔ external VN display changes do not invent a normal-mode transition (1.405987ms)
+✔ desktop/mobile and group/single mode changes reset exactly once each (5.590716ms)
+✔ home returns before applying mode and same-mode reopen keeps drag positions (2.474432ms)
+✔ home followed by different mode resets once on reopen (8.231049ms)
+✔ explicit lastMessage invalidation refreshes stable VN without resetting geometry (1.27762ms)
+✔ newChat refresh remains independent from stable-mode invalidation (2.078763ms)
+✔ actual CHAT_CHANGED handler still clears sprites and invalidates the message independently (1.713385ms)
+✔ applied state advances before first async sprite validation (3.011842ms)
+✔ offline connectivity visibility predicate and reconnect refresh remain intact (2.509415ms)
+✔ no sprites/defaults still skips expression rendering (4.137775ms)
+✔ normal geometry terminal behavior independently matches immutable base (normal) (21.334492ms)
+✔ normal geometry terminal behavior independently matches immutable base (VN) (11.378699ms)
+✔ ordinary errors do not open a lifecycle popup (1.93821ms)
+✔ Keep this tab neither reloads nor downloads the conflicted snapshot (10.292771ms)
+✔ a later conflict for the same chat downloads its latest frozen snapshot once (1.718348ms)
+✔ different chat identities receive separate serial popups and exact JSONL downloads (5.199662ms)
+✔ popup failure releases that identity and does not block a queued chat or a retry (8.109912ms)
+✔ reverse character save responses download the newest submitted snapshot (8.938152ms)
+✔ an older response after the newest popup closes does not offer an older download (8.377876ms)
+✔ a newer response as the previous popup completes still offers its own recovery (1.54372ms)
+✔ a same-realm popup completion cannot consume a newer conflict without offering it (1.210245ms)
+✔ character recovery uses the frozen request payload after in-memory editing (1.595236ms)
+✔ late group conflict keeps the submitted group snapshot and identity after switching chats (7.472586ms)
+✔ group bookmark freezes its payload before awaiting the group metadata write (1.382839ms)
+✔ character lifecycle save returns failure through saveChatConditional without force or cache success (5.949235ms)
+✔ successful character save still returns success and writes caches (2.557805ms)
+✔ insertAt retains unsaved messages and redraws locally after lifecycle save failure (5.678153ms)
+✔ successful insertAt retains the existing server reload behavior (5.742494ms)
+✔ group lifecycle save returns failure through saveChatConditional without editing group metadata (9.974702ms)
+✔ successful group save still edits group metadata and returns success (1.334158ms)
+✔ actual character saves with the same file name but different avatars have distinct conflict identities (1.798144ms)
+✔ group bookmark save shares its identity with a save of that same group chat (4.835088ms)
+✔ token-count backfill keeps the tab after a lifecycle failure instead of reloading (3.133012ms)
+✔ preloading populates the same cache used by synchronous and asynchronous rendering (13.54081ms)
+✔ 50 cold asynchronous renderers share one request and compiled template while keeping their data (9.235558ms)
+✔ a renderer joins preloading and localization and sanitization still run for every caller (2.354005ms)
+✔ failed preloading is nonfatal, has no toast, and a normal renderer can retry (6.86514ms)
+✔ a synchronous fallback is retained and a late asynchronous reply cannot replace its cache (1.757535ms)
+✔ template preloading keeps full-path identity and helpers registered after preloading (1.33544ms)
+✔ a normal asynchronous rendering failure preserves its toast and undefined return (5.4462ms)
+✔ eligible built-in templates preload before ordered script activation without waiting for preloads (1.3477ms)
+✔ disabled, active, incompatible and missing dependency/module extensions do not preload templates (0.881805ms)
+✔ earlier hooks still control later activation after template preloading (0.834994ms)
+✔ third-party templates are not guessed or downloaded by the built-in template plan (2.540938ms)
+✔ startup preloading feeds the actual extension wrapper cache identity (6.561396ms)
+✔ unknown inherited object keys do not prevent known built-in template warming (0.739334ms)
+✔ group IDs cannot traverse to another user or silently alias sanitized names (34.804338ms)
+✔ direct group endpoints reject malformed IDs and info refuses aliases and retirement (314.910581ms)
+✔ missing historical Git objects are an optional prerequisite (14.630853ms)
+✔ available historical sources remain independent Git bytes (10.06955ms)
+✔ reversed different-file reads preserve the newest cache and suppress stale events (5.325046ms)
+✔ reversed same-file reads preserve the newest cache and suppress stale events (4.76618ms)
+✔ stale read rejection neither empties current cache nor logs (0.992958ms)
+✔ close during pending read preserves stored prompts and refuses late cache resurrection (2.789829ms)
+✔ late clear persistence cannot empty a newer loaded cache or chat model (2.90433ms)
+✔ current storage failure suppresses writes including generated pushes until successful retry (5.342056ms)
+✔ loaded listener rejection preserves successfully read cache (0.823967ms)
+✔ listener cancellation rejection preserves newer cache without stale log (30.105121ms)
+✔ legacy no-id supersedes a pending read and creates saveable empty neutral state (0.85236ms)
+✔ missing stored prompts become ready empty and preserve legacy event payloads (11.932717ms)
+✔ optional caller ownership rejects the request before storage begins (0.672434ms)
+✔ stale prepared reservation does not supersede or start a read (0.667893ms)
+✔ caller ownership lost during storage prevents assignment and events (0.613709ms)
+✔ started ready save completes for its original filename and rows after a newer read (0.693934ms)
+✔ character reserves before preparation and fresh greeting save without overwriting unread prompts (27.452015ms)
+✔ character canceled during prompt read stops before rendering and chat events (10.904877ms)
+✔ old group suspended at validateGroup cannot supersede newer prompts (2.236833ms)
+✔ old group suspended at unshallowGroupMembers cannot supersede newer prompts (1.231596ms)
+✔ old group suspended at loadGroupChat cannot supersede newer prompts (2.182199ms)
+✔ same-file group reopen supersedes the older group fetch (5.884602ms)
+✔ group prompt cancellation stops before message model and metadata application (1.400837ms)
+✔ validation may legitimately initialize a missing group chat id (0.932355ms)
+✔ already stale group entry cannot reserve over the selected group cache (0.800047ms)
+✔ group filename changed during preparation is canceled before starting a prompt read (1.026996ms)
+✔ repeated clear of an addressed loaded chat preserves stored inspection prompts (0.90421ms)
+✔ repeated clear of an addressed pending chat preserves stored inspection prompts (0.695677ms)
+✔ repeated clear of an addressed failed chat preserves stored inspection prompts (7.591884ms)
+✔ clear without an addressed chat retains ready neutral empty-save behavior (0.792313ms)
+✔ successful reload after repeated clear restores ready save-as behavior (0.733854ms)
+✔ openGroupById propagates a canceled actual prompt read as false (17.115554ms)
+✔ canceled recent group opening never activates, saves settings or clears HOME again (4.508689ms)
+✔ already-selected group preserves legacy false and opens another recent history normally (2.37314ms)
+✔ already-selected recent group still refuses isChatSaving (1.489844ms)
+✔ already-selected recent group still refuses is_send_press (1.128731ms)
+✔ already-selected recent group still refuses is_group_generating (7.409118ms)
+✔ rapid same-group recent entries only continue the newest requested history (1.462603ms)
+✔ same-group filename change after selected-group return prevents stale recent continuation (1.260692ms)
+✔ same-group reopen during awaited clear cannot let the older entry start a late read (2.799034ms)
+✔ native reset during awaited opening clear prevents a late group selection (3.169928ms)
+✔ openGroupById refuses success when prompt ownership changes during awaited rendering (1.771022ms)
+✔ normal group terminal events may replace metadata without canceling successful opening (1.643332ms)
+✔ started saves isolate nested prompt rows until deferred serialization (0.798458ms)
+✔ prompt saves fall back to detached JSON when clone is unavailable (0.851979ms)
+✔ prompt saves fall back to detached JSON when clone is non-cloneable (6.904184ms)
+✔ prompt saves fall back to detached JSON when clone is rejected (0.688801ms)
+✔ unserializable fallback preserves the previous stored prompts (0.732095ms)
+✔ launcher overrides an existing unsafe config on every preparation (44.758077ms)
+✔ wrapper does not pull a reader down when pending media settles after scrolling up (2.678085ms)
+✔ wrapper respects the current auto-scroll preference for already-ready media (4.98147ms)
+✔ repeated wrapper calls replace the batch without accumulating event listeners (1.096575ms)
+✔ a load followed by error cannot settle the same item twice while another item is pending (7.015434ms)
+✔ the one-second wrapper deadline releases listeners even if no media event arrives (1103.887518ms)
+✔ clearChat cancels the old batch before removing DOM and a new chat gets its own batch (1.613334ms)
+✔ wrapper keeps the message media selector and immediate ready-media scroll options (1.466664ms)
+✔ empty media does not scroll and mixed image/audio/video waits for all pending items (8.676354ms)
+✔ cancel is idempotent and releases every listener and timer without scrolling (1.591991ms)
+✔ configured expiry removes all event handlers without a final media event (52.115192ms)
+✔ a late event checks the deadline even when the expiry callback has not run (3.791592ms)
+✔ settlement clears both handlers and the timer before checking current permission (0.999626ms)
+✔ ready media checks permission once and empty or unrecognized media never scrolls (0.847886ms)
+✔ an empty replacement cancels an unfinished batch without causing a scroll (0.890238ms)
+✔ a cancelled batch timer cannot clean listeners from a newer batch (1.511777ms)
+✔ permission callback can track a new batch and old cleanup never removes it (0.857805ms)
+✔ scroll callback can replace a settled batch and new media still settles once (0.890397ms)
+✔ duplicate media references settle once and many items do not need a shared abort signal (5.136899ms)
+✔ actual formatting preserves numeric/string/coercible IDs and undefined depths (9.407725ms)
+✔ actual formatting skips sparse holes and truthy system flags like map/filter (5.454257ms)
+✔ seeded mixed histories agree with the former expression for every index (49.866446ms)
+✔ edits, insertion, deletion, system toggles and replacement use current history (1.356469ms)
+✔ actual regex min/max filters preserve transformed output for valid and undefined depths (8.343885ms)
+✔ placement, bias stripping, transient reasoning, narrator, hidden and comments remain intact (1.061351ms)
+✔ formatting still forwards sanitizer overrides and preserves boundary order and chat data (1.332028ms)
+✔ formatting the last 100 of 3000 messages reads at most 5050 system flags (30.932435ms)
+ℹ is_system reads: legacy=300000, actual=5050, budget=5050
+✔ two group chats in one directory proceed without waiting for each other (1.532421ms)
+✔ same file stays exclusive while its parent is only shared (0.326737ms)
+✔ directory exclusive waits for shared holders and blocks later file ops (4.610516ms)
+✔ explicit directory exclusive wins over a shared parent in the same reservation (1.055321ms)
+✔ crossed shared and exclusive reservations finish (0.415939ms)
+✔ a failed reservation releases every path it held (0.633478ms)
+✔ a completed save starts deferred backup while an unrelated lock stays held (0.367199ms)
+✔ nested reservations reuse held keys and reject new keys and upgrades (0.303956ms)
+✔ nested new file rejects even with a queued directory writer (0.250137ms)
+✔ deferred work waits for originating and enclosing reservations to release (0.395545ms)
+✔ search matches words across different messages and uses filename fallback (82.762248ms)
+✔ search does at most linear lowercase work for an absent word (22.217248ms)
+✔ chat info ignores blank tail lines and retains metadata and message count (1.780105ms)
+✔ chat info settles for a file containing only blank lines (4.773347ms)
+✔ chat save uses asynchronous writes and keeps serialized contents (6.655534ms)
+✔ chat reads are asynchronous and keep JSONL parsing behavior (0.855114ms)
+✔ same path operations stay ordered while distinct paths can proceed (0.80154ms)
+✔ queue recovers after a failed operation (0.657112ms)
+✔ failed atomic replacement retains the previous chat (6.520213ms)
+✔ expired backups are moved to recoverable storage with one stat per candidate (7.243989ms)
+Chat file was deleted while it was being scanned: /workspace/sillytavern-perf-lab/.fixtures/tests-7fc3eb20-fe88-41e7-9e84-632892ba31ef/missing.jsonl
+✔ missing chat info resolves as a vanished chat instead of hanging (2.831365ms)
+✔ stream errors reject and release the reader (1.088607ms)
+✔ legacy matcher callbacks and their errors remain supported (5.832408ms)
+✔ metadata is not searched as message content (12.62639ms)
+✔ integrity failure leaves the stored chat untouched (3.000859ms)
+✔ queued save checks integrity after the earlier replacement (7.90615ms)
+✔ single and group HTTP save/get contracts return arrays and ok (20.369149ms)
+✔ invalid backup retention refuses to move any files (0.988664ms)
+✔ launcher prepares fixed loopback and rejects external/link data paths (39.875613ms)
+✔ win-boot stamps match inside the documented tolerance and not past it (8.295792ms)
+✔ process start wins over a skewed win-boot stamp (0.314918ms)
+✔ an unstable Windows boot sample is omitted after two reads more than 2s apart (0.172997ms)
+✔ Windows re-probes foreign PIDs across successive incarnations (11.720972ms)
+✔ a fresh observer after a clock step cannot reclaim by Windows boot estimate (0.2816ms)
+✔ Windows omits identity when PowerShell is unavailable instead of mixing WMIC timestamps (2.835142ms)
+✔ Linux parses raw ticks after the LAST parenthesis, independent of btime (0.783086ms)
+✔ Linux v2 compares boot and ticks; legacy and unreadable identity refuse (0.146644ms)
+✔ real /recent keeps response semantics and avoids unchanged JSONL streams on repeat (156.970139ms)
+✔ real filesystem changes invalidate same-size/restored-mtime writes and replacements (14.016969ms)
+✔ cache owns cloned snapshots; annotations, roots and metadata modes stay isolated (0.549239ms)
+✔ stable concurrent reads coalesce and return independent objects (0.33143ms)
+✔ a write during a pending read prevents storing that unstable snapshot (0.288461ms)
+✔ older read completion cannot replace or clear a newer version cache or pending read (7.265325ms)
+✔ stat/read failures release records and retries do not reuse failed or invalid results (0.706708ms)
+✔ older rejected operations cannot erase newer pending entries (4.63088ms)
+✔ entry limit uses LRU and TTL is absolute rather than sliding (0.411603ms)
+✔ estimated byte budget evicts entries and oversized results return fully without retention (0.580294ms)
+✔ pending entry capacity falls back to uncached reads without breaking existing coalescing (0.344945ms)
+✔ empty file info retains the existing reader semantics and is cacheable (5.223639ms)
+✔ estimated entry weight includes nested object overhead beyond serialized characters (0.702292ms)
+✔ a delayed older initial stat cannot displace a newer version pending read (0.291565ms)
+✔ a delayed older stat failure cannot clear a newer successful cache entry (0.198052ms)
+✔ every identity component including single nanosecond changes invalidates cached info (0.527516ms)
+✔ invalid empty responses ignore annotations and oversized snapshots remain independent (0.273261ms)
+✔ shutdown rejects new requests and drains admitted writes and trailing backups (3.461841ms)
+✔ closed responses release the drain and completion is idempotent (0.466355ms)
+✔ disconnect does not release an async persistence handler before it completes (0.760797ms)
+✔ shutdown rejects handlers delayed by earlier middleware (0.185114ms)
+✔ rejected handlers reach Express and do not prevent draining (0.193554ms)
+✔ sync handlers that return a promise are tracked and rejected after stop (1.124953ms)
+✔ sync thenable rejections are forwarded and do not block a later drain (0.877364ms)
+✔ drain deadline rejects while a response stays open (31.327574ms)
+✔ one 200ms shutdown budget reports a hung atomic write and preserves the original (305.203421ms)
+✔ chat and backup waits consume the same shutdown signal and report pending keys (25.329331ms)
+✔ shutdown drain APIs reject missing signals and legacy numeric timeouts (0.259622ms)
+Old chat name /tmp/retired-recreate-AZp9mi/chats/SyntheticReuse/reuse-other.jsonl
+New chat name /tmp/retired-recreate-AZp9mi/chats/SyntheticReuse/reuse-source.jsonl
+Successfully renamed chat file.
+Old chat name /tmp/retired-recreate-AZp9mi/chats/SyntheticCycle/cycle-a.jsonl
+New chat name /tmp/retired-recreate-AZp9mi/chats/SyntheticCycle/cycle-b.jsonl
+✔ an absent retired chat can be a rename target, while an ordinary save still conflicts (112.179915ms)
+Successfully renamed chat file.
+Old chat name /tmp/retired-recreate-AZp9mi/chats/SyntheticCycle/cycle-b.jsonl
+New chat name /tmp/retired-recreate-AZp9mi/chats/SyntheticCycle/cycle-a.jsonl
+Successfully renamed chat file.
+✔ chat rename can return to an absent previous name (16.067627ms)
+✔ a visible path keeps its retirement marker and an occupied rename target is unchanged (8.541272ms)
+✔ clearing an absent child does not drop a retired parent marker or follow a marker symlink (4.530302ms)
+Char RenameCycleA has Spec v2 data missing for unknown field: personality
+Char RenameCycleA has Spec v2 data missing for unknown field: scenario
+Char RenameCycleA has Spec v2 data missing for unknown field: first_mes
+Char RenameCycleA has Spec v2 data missing for unknown field: mes_example
+Char RenameCycleA has Spec v2 data missing for unknown field: tags
+Char RenameCycleB has Spec v2 data missing for unknown field: personality
+Char RenameCycleB has Spec v2 data missing for unknown field: scenario
+Char RenameCycleB has Spec v2 data missing for unknown field: first_mes
+Char RenameCycleB has Spec v2 data missing for unknown field: mes_example
+Char RenameCycleB has Spec v2 data missing for unknown field: tags
+Failed to read image: ./public/img/ai4.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ character rename can return to an absent name and delete then create reuses it (77.938381ms)
+Failed to read image: /tmp/retired-recreate-AZp9mi/uploads/not-a-png.png Error: Could not find MIME for Buffer
+    at Jimp.fromBuffer (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/core/dist/esm/index.js:176:23)
+    at async tryReadImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:359:24)
+    at async getInputImage (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:275:24)
+    at async writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:283:28)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13
+Error: Invalid .png file header
+    at extractChunks (/workspace/sillytavern-perf-lab/node_modules/png-chunks-extract/index.js:13:31)
+    at write (file:///workspace/sillytavern-perf-lab/src/character-card-parser.js:16:20)
+    at writeCharacterData (file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:287:29)
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1095:36
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13
+Error: Character creation did not complete
+    at file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1096:40
+    at async file:///workspace/sillytavern-perf-lab/src/chat-io.js:388:28
+    at async file:///workspace/sillytavern-perf-lab/src/endpoints/characters.js:1078:13
+Failed to read image: ./public/img/ai4.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ a failed character create restores the retirement marker (34.955572ms)
+✔ a failed chat rename restores the destination retirement marker (14.466436ms)
+Found a chara_card_v3 character file.
+Char ReimportWritable has Spec v2 data missing for unknown field: personality
+Char ReimportWritable has Spec v2 data missing for unknown field: scenario
+Char ReimportWritable has Spec v2 data missing for unknown field: first_mes
+Char ReimportWritable has Spec v2 data missing for unknown field: mes_example
+Char ReimportWritable has Spec v2 data missing for unknown field: tags
+Failed to read image: /tmp/retired-recreate-AZp9mi/uploads/reimport.png [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11898:35)
+      at schemeFetch (node:internal/deps/undici/undici:13450:34)
+      at mainFetch (node:internal/deps/undici/undici:13298:30)
+      at fetching (node:internal/deps/undici/undici:13267:7)
+      at fetch (node:internal/deps/undici/undici:13131:20)
+      at fetch (node:internal/deps/undici/undici:17998:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at __wbg_init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/codec/pkg/squoosh_png.js:205:17)
+      at init (file:///workspace/sillytavern-perf-lab/node_modules/@jsquash/png/decode.js:17:21)
+      at Object.decode (file:///workspace/sillytavern-perf-lab/node_modules/@jimp/wasm-png/dist/esm/index.js:36:19)
+}
+✔ delete then re-import publishes a character with writable chats (28.991426ms)
+Found a chara_card_v3 character file.
+Char ImportDeleteRace has Spec v2 data missing for unknown field: personality
+Char ImportDeleteRace has Spec v2 data missing for unknown field: scenario
+Char ImportDeleteRace has Spec v2 data missing for unknown field: first_mes
+Char ImportDeleteRace has Spec v2 data missing for unknown field: mes_example
+Char ImportDeleteRace has Spec v2 data missing for unknown field: tags
+✔ deletion cancels an import paused in image processing without resurrection (9.394352ms)
+✔ delete waits for cancelled import publication writes and leaves no resurrected files (13.764005ms)
+✔ publication crash at authorized keeps retirement across restart and allows explicit retry (230.434224ms)
+✔ publication crash at temporary keeps retirement across restart and allows explicit retry (203.789366ms)
+✔ publication crash at published keeps retirement across restart and allows explicit retry (215.454971ms)
+✔ publication crash at before-recycle keeps retirement across restart and allows explicit retry (246.004831ms)
+Legacy retired-path hold requires manual handling: /tmp/legacy-holds-gDRtCN/.chat-lifecycle/hold-visible.json /tmp/legacy-holds-gDRtCN/visible.jsonl
+✔ legacy holds restore absent retirements and preserve visible-path evidence (11.335108ms)
+✔ a marker cannot be cleared before publication or authorized without a lock (8.511355ms)
+✔ publication authorization is path-bound and revoked for inherited timers after failure (26.752312ms)
+✔ legacy hold corrupt fails with actionable diagnostics (1.359334ms)
+✔ legacy hold missing fails with actionable diagnostics (4.5458ms)
+✔ legacy hold invalid fails with actionable diagnostics (1.577674ms)
+✔ legacy hold traversal fails with actionable diagnostics (5.93996ms)
+✔ legacy hold absolute fails with actionable diagnostics (1.360718ms)
+✔ legacy hold reserved fails with actionable diagnostics (2.045139ms)
+✔ legacy hold symlink fails with actionable diagnostics (3.49107ms)
+✔ legacy target symlink fails with actionable diagnostics (5.018911ms)
+✔ a real frontend build failure exits the full application with status 1 before listening (2337.358333ms)
+▶ exclusive ownership I/O failures exit 78 before data writes or listen
+  ✔ open: EACCES (714.651154ms)
+  ✔ open: EIO (698.07831ms)
+  ✔ open: EPERM (880.59073ms)
+  ✔ read: EACCES (859.864066ms)
+  ✔ read: EIO (832.202735ms)
+  ✔ read: EPERM (667.486933ms)
+  ✔ rename: EACCES (689.074086ms)
+  ✔ rename: EIO (576.846115ms)
+  ✔ rename: EPERM (917.134347ms)
+  ✔ unlink: EACCES (715.368106ms)
+  ✔ unlink: EIO (756.650066ms)
+  ✔ unlink: EPERM (940.391087ms)
+  ✔ proc: EACCES (916.545546ms)
+  ✔ proc: EIO (708.156382ms)
+  ✔ proc: EPERM (832.775969ms)
+✔ exclusive ownership I/O failures exit 78 before data writes or listen (11763.528354ms)
+✔ a corrupt legacy hold exits real server startup with recovery instructions (992.323858ms)
+✔ real server SIGTERM bounds a hanging HTTP chat save to one 200ms deadline (17405.750947ms)
+ℹ SIGTERM to report: 200.9ms; to exit: 341.7ms; exit=1
+✔ registering the real startup route graph does not load Transformers or Vectra (793.835979ms)
+✔ first pipeline use configures local runtime and preserves model options and warm reuse (342.279818ms)
+✔ simultaneous image and pipeline requests configure the cold dependency exactly once (406.665036ms)
+✔ a failed dependency import rejects pipeline use and a later request can retry (403.122503ms)
+✔ invalid image decoding keeps the existing null response (426.291841ms)
+✔ a failed dependency import keeps image null behavior and a later image can retry (363.94007ms)
+✔ first vector list requests use real LocalIndex and preserve stored hashes without inference (645.234953ms)
+✔ vector import failure is an HTTP error on first use and later requests retry (858.945205ms)
+✔ frontend cache survives a backend-only Git revision change (14.676741ms)
+✔ frontend cache identity includes uncommitted webpack.config.js bytes (12.916015ms)
+✔ frontend cache identity includes uncommitted package.json bytes (7.395369ms)
+✔ frontend cache identity includes uncommitted package-lock.json bytes (9.618411ms)
+✔ Webpack explicitly snapshots application config, package and lockfile (2.470901ms)
+Recycled outdated cache directory: synthetic-old-cache
+✔ a distribution without lockfiles still configures and builds real frontend output (1439.878854ms)
+✔ optional package-lock.json presence, edits and absence change cache identity (18.252984ms)
+✔ optional npm-shrinkwrap.json presence, edits and absence change cache identity (12.796213ms)
+✔ missing package metadata remains fatal while its fixture bytes are recoverable (2.150798ms)
+✔ outdated caches are recoverable and the existing recycle directory is preserved (8.739362ms)
+✔ dist output remains separate from the configured data root (6.996903ms)
+✔ startup rejects run-error and closes its compiler (0.8189ms)
+✔ startup rejects missing-stats and closes its compiler (0.635913ms)
+✔ startup rejects stats-errors and closes its compiler (4.682755ms)
+✔ startup rejects close-error and closes its compiler (0.502889ms)
+✔ startup rejects run-throw and closes its compiler (0.447065ms)
+✔ startup rejects close-throw and closes its compiler (0.454836ms)
+✔ successful startup remains pending until compiler close finishes (1.715062ms)
+✔ real Webpack repairs output and invalidates changed entry and installed dependency (1909.264414ms)
+ℹ Synthetic fixtures retained at /workspace/sillytavern-perf-lab/.fixtures/startup-webpack-90a59ca1-4551-4cb9-bf60-ccbc46a7584e/real-compilation
+✔ SentencePieceTokenizer: 50 cold callers share path resolution and construction (13.639924ms)
+✔ SentencePieceTokenizer: late caller cannot observe an instance before initialization completes (3.754154ms)
+✔ SentencePieceTokenizer: initialization rejection returns null to all callers and permits retry (3.669646ms)
+✔ SentencePieceTokenizer: path rejection is shared and fallback arguments survive retry (5.069342ms)
+✔ SentencePieceTokenizer: synchronous path failure does not latch a failed Promise (2.386057ms)
+✔ SentencePieceTokenizer: synchronous factory failure leaves no partial cache (0.732149ms)
+✔ SentencePieceTokenizer: warm cache returns the same ready instance without new I/O (0.776888ms)
+✔ SentencePieceTokenizer: distinct wrapper instances initialize independently (0.697518ms)
+✔ WebTokenizer: 50 cold callers share path resolution and construction (10.967975ms)
+✔ WebTokenizer: late caller cannot observe an instance before initialization completes (2.017044ms)
+✔ WebTokenizer: initialization rejection returns null to all callers and permits retry (2.800525ms)
+✔ WebTokenizer: path rejection is shared and fallback arguments survive retry (4.255852ms)
+✔ WebTokenizer: synchronous path failure does not latch a failed Promise (0.631744ms)
+✔ WebTokenizer: synchronous factory failure leaves no partial cache (0.507589ms)
+✔ WebTokenizer: warm cache returns the same ready instance without new I/O (0.984453ms)
+✔ WebTokenizer: distinct wrapper instances initialize independently (2.599455ms)
+✔ WebTokenizer: file read failure is shared and a subsequent request retries (5.69887ms)
+Instantiated the tokenizer for llama
+Instantiated the tokenizer for llama
+Real local tokenizer compatibility: llama; 50 cold + 5 warm encodes + 5 decodes; baseline equal; initialization=1
+✔ llama: real bundled model handles 50 cold HTTP encodes and preserves baseline output (426.512546ms)
+Instantiated the tokenizer for llama3
+Instantiated the tokenizer for llama3
+Real local tokenizer compatibility: llama3; 50 cold + 5 warm encodes + 5 decodes; baseline equal; initialization=1
+✔ llama3: real bundled model handles 50 cold HTTP encodes and preserves baseline output (1371.391691ms)
+✔ webllm returns one ordered vector per text across batch boundaries (3.243141ms)
+✔ webllm preserves duplicate input order and missing embeddings (0.674755ms)
+✔ koboldcpp returns one ordered vector per text across batch boundaries (5.42176ms)
+✔ koboldcpp preserves duplicate input order and missing embeddings (0.594325ms)
+✔ an unknown source throws for nonempty input while empty input returns an empty list (0.961454ms)
+✔ nomicai keeps remote provider batches at ten and forwards source arguments (4.879927ms)
+✔ togetherai keeps remote provider batches at ten and forwards source arguments (0.608684ms)
+✔ mistral keeps remote provider batches at ten and forwards source arguments (1.699ms)
+✔ openai keeps remote provider batches at ten and forwards source arguments (4.151189ms)
+✔ electronhub keeps remote provider batches at ten and forwards source arguments (0.756443ms)
+✔ openrouter keeps remote provider batches at ten and forwards source arguments (1.233687ms)
+✔ transformers keeps remote provider batches at ten and forwards source arguments (0.580942ms)
+✔ extras keeps remote provider batches at ten and forwards source arguments (0.600224ms)
+✔ palm keeps remote provider batches at ten and forwards source arguments (2.579469ms)
+✔ vertexai keeps remote provider batches at ten and forwards source arguments (0.653768ms)
+✔ cohere keeps remote provider batches at ten and forwards source arguments (2.589655ms)
+✔ llamacpp keeps remote provider batches at ten and forwards source arguments (0.636448ms)
+✔ vllm keeps remote provider batches at ten and forwards source arguments (7.29108ms)
+✔ ollama keeps remote provider batches at ten and forwards source arguments (0.601798ms)
+✔ chutes keeps remote provider batches at ten and forwards source arguments (0.640566ms)
+✔ nanogpt keeps remote provider batches at ten and forwards source arguments (0.580515ms)
+✔ siliconflow keeps remote provider batches at ten and forwards source arguments (0.52838ms)
+✔ workers_ai keeps remote provider batches at ten and forwards source arguments (0.54587ms)
+ℹ tests 588
+ℹ suites 0
+ℹ pass 587
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 35316.979253

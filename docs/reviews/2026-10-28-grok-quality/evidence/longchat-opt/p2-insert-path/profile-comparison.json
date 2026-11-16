@@ -1,0 +1,108 @@
+[
+  {
+    "side": "base",
+    "file": "preprofile/2000-0-1-open.cpuprofile.gz",
+    "sha256": "589823b561aa03932af59f88b0feec90ea700cd82b5224c068bc04c61a0f5a52",
+    "sampledMs": 5589.909,
+    "functions": {
+      "updateMessageElement": {
+        "inclusivePercent": 32.01705072479713,
+        "inclusiveMs": 1789.724,
+        "selfPercent": 0.2361934693391252,
+        "selfMs": 13.203,
+        "observed": true
+      },
+      "redisplayChat": {
+        "inclusivePercent": 43.871984320317196,
+        "inclusiveMs": 2452.404,
+        "selfPercent": 0.019266861052657566,
+        "selfMs": 1.077,
+        "observed": true
+      },
+      "doScroll": {
+        "inclusivePercent": 8.183907823901963,
+        "inclusiveMs": 457.473,
+        "selfPercent": 8.16453362657603,
+        "selfMs": 456.39,
+        "observed": true
+      },
+      "refreshSwipeButtons": {
+        "inclusivePercent": 5.7015239425185635,
+        "inclusiveMs": 318.71,
+        "selfPercent": 0.0,
+        "selfMs": 0.0,
+        "observed": true
+      },
+      "printMessages": {
+        "inclusivePercent": 43.871984320317196,
+        "inclusiveMs": 2452.404,
+        "selfPercent": 0.0,
+        "selfMs": 0.0,
+        "observed": true
+      },
+      "addOneMessage": {
+        "inclusivePercent": 0.0,
+        "inclusiveMs": 0.0,
+        "selfPercent": 0.0,
+        "selfMs": 0.0,
+        "observed": false
+      }
+    },
+    "native": {
+      "getPropertyValueUnderRefreshSwipeButtonsSelfMs": 287.04099999999795
+    }
+  },
+  {
+    "side": "head",
+    "file": "head-profile/2000-0-1-open.cpuprofile.gz",
+    "sha256": "f2644cf079f1df3cc65cfc9693fa9301af356b0a9331e983af8fc5e9f85e6566",
+    "sampledMs": 5033.855,
+    "functions": {
+      "updateMessageElement": {
+        "inclusivePercent": 34.67855152760658,
+        "inclusiveMs": 1745.668,
+        "selfPercent": 0.19527777419095305,
+        "selfMs": 9.83,
+        "observed": true
+      },
+      "redisplayChat": {
+        "inclusivePercent": 47.6047681150927,
+        "inclusiveMs": 2396.355,
+        "selfPercent": 0.012674183106188003,
+        "selfMs": 0.638,
+        "observed": true
+      },
+      "doScroll": {
+        "inclusivePercent": 9.122551205785626,
+        "inclusiveMs": 459.216,
+        "selfPercent": 9.065219399446349,
+        "selfMs": 456.33,
+        "observed": true
+      },
+      "refreshSwipeButtons": {
+        "inclusivePercent": 5.806166446987448,
+        "inclusiveMs": 292.274,
+        "selfPercent": 0.0031188820496418747,
+        "selfMs": 0.157,
+        "observed": true
+      },
+      "printMessages": {
+        "inclusivePercent": 47.61088668624742,
+        "inclusiveMs": 2396.663,
+        "selfPercent": 0.0030592855773557246,
+        "selfMs": 0.154,
+        "observed": true
+      },
+      "addOneMessage": {
+        "inclusivePercent": 0.0,
+        "inclusiveMs": 0.0,
+        "selfPercent": 0.0,
+        "selfMs": 0.0,
+        "observed": false
+      }
+    },
+    "native": {
+      "getPropertyValueUnderRefreshSwipeButtonsSelfMs": 259.99900000000116
+    }
+  }
+]

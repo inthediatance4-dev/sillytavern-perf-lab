@@ -1,0 +1,12 @@
+{
+  "size": 2000,
+  "truncation": 0,
+  "iteration": 1,
+  "status": "timeout",
+  "profiled": false,
+  "error": "Locator.inner_text: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\")\n",
+  "dialogs": [],
+  "pageErrorStacks": [],
+  "pageErrors": [],
+  "forbiddenRequests": []
+}

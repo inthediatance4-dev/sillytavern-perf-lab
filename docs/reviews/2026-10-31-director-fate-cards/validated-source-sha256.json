@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "973e8ebbd7f744585798ec866cb642db013de5ef",
+  "files": {
+    "README.md": "d05854d1a7a6461518ff93f45d468706ef9bc1085765917cb8fa6d6978af60cc",
+    "README.zh-CN.md": "987ae3bf861b906e5c2b0eedcc9e4a44f10a1615b8bfbf8ec15049e484e7bb86",
+    "docs/superpowers/plans/2026-10-31-director-fate-cards.md": "1da692725081b76d8f1e6c9786fe16969fa4b0ecc3f920a60524937b0f80623d",
+    "docs/superpowers/specs/2026-10-31-director-fate-cards.md": "015b0a397ac17597ae9707fba8295cf7514df844b3f34734bef2d8c2594e09a1",
+    "package.json": "77e5f0d047848475ef16280883913666fab735bd873f37f7ca5b26982dd06c26",
+    "public/script.js": "a38b482ce3c2bc7bd43ca57009ea6d32b9460ccef4d4daa17795834efc634821",
+    "public/scripts/events.js": "1b322db4a3fc9b4b7fa5af8b3d4de8eaba0ccfc551d76892849f81258fa413d5",
+    "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+    "public/scripts/extensions/director/fate-ui.js": "c5c3125915409f399ad4f18713f2d38dd3419be1a6cc390b2e3a2d4e60606d4f",
+    "public/scripts/extensions/director/fate.js": "ac163bb996450617d525ba06f53d90bce900ce18aaefd22c8bd3db8b2244adc5",
+    "public/scripts/extensions/director/index.js": "ac9207b766b59719f1169714a623d7f406fac5efc481918b3cb2cdd58e517c4a",
+    "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+    "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+    "public/scripts/extensions/director/manifest.json": "b4118443a33dfdb8fe751b8b27d75e1c18cb0c4d20cc3e91dd53350538355200",
+    "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+    "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+    "public/scripts/extensions/director/style.css": "0e88b5590da06c5ddf8e508e62ca8a23a1848846ce052c79f3ddaa7be2607afb",
+    "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+    "public/scripts/group-chats.js": "3ed4a448f78dbd67060c06e84c95100ee64a7a506236c81a69d44f9d18ab3640",
+    "scripts/fake-openai-endpoint.mjs": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+    "tests/browser-director-lab.py": "00ae85805f8d3d98fac47bd0352c723faf5f796e94239704224ac4bf4906ae9a",
+    "tests/browser_fate_cases.py": "60693fc69bccee8bb80ac008dab1f1aabf741d30a012d23030f892e26c5b7533",
+    "tests/director-fate-group-scope.test.mjs": "468e438bc953db052aed7f63ea9ef029b437f57ab18ec287de29c5c9c2594e2b",
+    "tests/director-fate.test.mjs": "d24226e40933e4d27ba9c80156cdb665c3bc5ff67871cdc55506e3d1207717cf",
+    "tests/lab_browser.py": "6b942d461c94f78fb8d498e2dd40858fed18d7fe8b261a91aae099b8e3755fc0"
+  }
+}

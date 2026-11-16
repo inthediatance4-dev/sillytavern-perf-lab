@@ -1,0 +1,52 @@
+diff --git a/public/script.js b/public/script.js
+index a526b5f..489535b 100644
+--- a/public/script.js
++++ b/public/script.js
+@@ -1511,6 +1511,39 @@ export async function replaceCurrentChat() {
+ let olderMessagesLoading = false;
+ let olderMessagesInsertion = null;
+ 
++/**
++ * Retires the oldest message DOM at the send boundary, after older preparation.
++ * Trimming immediately after show-more would discard the batch just loaded and
++ * prevent further history navigation. The chat array and message events are untouched.
++ */
++function trimMessageDom() {
++    const count = power_user.chat_truncation;
++    if (!(count > 0)) return;
++    const container = chatElement[0];
++    const messages = container.querySelectorAll(':scope > .mes');
++    const removeCount = messages.length - 5 * count;
++    if (removeCount <= 0) return;
++
++    // Keep an open editor (including reasoning) and focused extension controls alive.
++    for (let i = 0; i < removeCount; i++) {
++        if (Number(messages[i].getAttribute('mesid')) === Number(this_edit_mes_id)
++            || messages[i].querySelector('textarea') || messages[i].contains(document.activeElement)) return;
++    }
++
++    const anchor = messages[removeCount];
++    const top = anchor.getBoundingClientRect().top;
++    for (let i = 0; i < removeCount; i++) $(messages[i]).remove();
++    if (Number(anchor.getAttribute('mesid')) > 0 && !document.getElementById('show_more_messages')) {
++        const button = document.createElement('div');
++        button.id = 'show_more_messages';
++        button.textContent = 'Show more messages';
++        container.prepend(button);
++    }
++    // Use the surviving anchor's geometry even when CSS scroll anchoring is disabled.
++    container.scrollTop += anchor.getBoundingClientRect().top - top;
++    updateEditArrowClasses();
++}
++
+ /** One slice of off-DOM preparation. Variable message cost, so this is a time budget rather than a count. */
+ const OLDER_SLICE_BUDGET_MS = 10;
+ 
+@@ -6041,6 +6074,7 @@ export async function sendMessageAsUser(messageText, messageBias, insertAt = nul
+ 
+     await populateFileAttachment(message);
+     if (olderMessagesInsertion) await olderMessagesInsertion;
++    trimMessageDom();
+     statMesProcess(message, 'user', characters, this_chid, '');
+ 
+     chat_metadata.tainted = true;

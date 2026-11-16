@@ -1,3 +1,7 @@
+import { restoreLegacyRetiredHolds } from './chat-io.js';
+import { reconcileLifecycle, reportLifecycleScan } from './lifecycle-reconcile.js';
+import { runShutdown } from './request-drain.js';
+import { pendingChatIOPaths } from './chat-io.js';
 // native node modules
 import fs from 'node:fs';
 import path from 'node:path';
@@ -70,10 +74,16 @@ import { router as usersPublicRouter } from './endpoints/users-public.js';
 import { init as statsInit, onExit as statsOnExit } from './endpoints/stats.js';
 import { checkForNewContent } from './endpoints/content-manager.js';
 import { init as settingsInit } from './endpoints/settings.js';
+import { createRequestDrain } from './request-drain.js';
+import { acquireDataRootOwnership } from './data-root-owner.js';
+import { flushChatBackups, pendingChatBackupPaths } from './endpoints/chats.js';
 import { redirectDeprecatedEndpoints, ServerStartup, setupPrivateEndpoints } from './server-startup.js';
 import { diskCache } from './endpoints/characters.js';
 import { migrateFlatSecrets } from './endpoints/secrets.js';
 import { migrateGroupChatsMetadataFormat } from './endpoints/groups.js';
+
+const startupTrace = process.env.ST_STARTUP_TRACE ? await import('./startup-trace.js') : null;
+if (startupTrace) startupTrace.mark('imports_done');
 
 // Work around a node v20.0.0, v20.1.0, and v20.2.0 bug. The issue was fixed in v20.3.0.
 // https://github.com/nodejs/node/issues/47822#issuecomment-1564708870
@@ -96,11 +106,25 @@ if (!cliArgs.enableIPv6 && !cliArgs.enableIPv4) {
     process.exit(1);
 }
 
+// Opt-in. Ordinary startup and tests leave this unset. The lab launcher sets it.
+if (cliArgs.exclusiveDataRoot) {
+    try {
+        if (startupTrace) startupTrace.mark('lock_acquire_begin', { exclusive: true });
+        const owner = await acquireDataRootOwnership(globalThis.DATA_ROOT);
+        if (startupTrace) startupTrace.mark('lock_acquire_end', { exclusive: true });
+        if (!owner.lockPath) throw new Error('Data-root ownership was not verified');
+    } catch (error) {
+        console.error(error.message);
+        process.exit(78);
+    }
+}
 // Set keep-alive preference for all HTTP/HTTPS requests.
 http.globalAgent = new http.Agent({ keepAlive: cliArgs.enableKeepAlive });
 https.globalAgent = new https.Agent({ keepAlive: cliArgs.enableKeepAlive });
 
 const app = express();
+const requestDrain = createRequestDrain();
+app.use(requestDrain.middleware);
 app.use(helmet({
     contentSecurityPolicy: false,
 }));
@@ -299,6 +323,7 @@ async function preSetupTasks() {
     console.log();
 
     const directories = await getUserDirectoriesList();
+    if (startupTrace) startupTrace.mark('pre_setup_migrations_begin');
     await migrateGroupChatsMetadataFormat(directories);
     await checkForNewContent(directories);
     await diskCache.verify(directories);
@@ -309,21 +334,28 @@ async function preSetupTasks() {
     await settingsInit();
     await statsInit();
 
+    if (startupTrace) startupTrace.mark('pre_setup_migrations_end');
     const pluginsDirectory = path.join(serverDirectory, 'plugins');
+    if (startupTrace) startupTrace.mark('plugins_begin');
     const cleanupPlugins = await loadPlugins(app, pluginsDirectory);
+    if (startupTrace) startupTrace.mark('plugins_end');
     const consoleTitle = process.title;
 
     let isExiting = false;
     const exitProcess = async () => {
         if (isExiting) return;
         isExiting = true;
-        await statsOnExit();
-        if (typeof cleanupPlugins === 'function') {
-            await cleanupPlugins();
-        }
-        diskCache.dispose();
+        console.log('Stopping admission and draining in-flight requests.');
+        const code = await runShutdown([
+            ['requests', signal => requestDrain.stop(signal)],
+            ['chat I/O and backups', signal => flushChatBackups(signal)],
+        ], () => [...pendingChatIOPaths(), ...pendingChatBackupPaths()], undefined, [
+            ['statistics', () => statsOnExit()],
+            ['plugins', () => typeof cleanupPlugins === 'function' ? cleanupPlugins() : undefined],
+            ['cache', () => diskCache.dispose()],
+        ]);
         setWindowTitle(consoleTitle);
-        process.exit();
+        process.exit(code || process.exitCode || 0);
     };
 
     // Set up event listeners for a graceful shutdown
@@ -331,6 +363,7 @@ async function preSetupTasks() {
     process.on('SIGTERM', exitProcess);
     process.on('uncaughtException', (err) => {
         console.error('Uncaught exception:', err);
+        process.exitCode = 1;
         exitProcess();
     });
 
@@ -343,6 +376,7 @@ async function preSetupTasks() {
         logAllowed: !!getConfigValue('privateAddressWhitelist.log.allowedRequests', false, 'boolean'),
         allowUnresolvedHosts: !!getConfigValue('privateAddressWhitelist.allowUnresolvedHosts', false, 'boolean'),
         enableKeepAlive: cliArgs.enableKeepAlive,
+        requestProxyEnabled: !!cliArgs.requestProxyEnabled,
     };
     initPrivateRequestFilter(requestFilterOptions);
 
@@ -350,7 +384,9 @@ async function preSetupTasks() {
     initRequestProxy({ enabled: cliArgs.requestProxyEnabled, url: cliArgs.requestProxyUrl, bypass: cliArgs.requestProxyBypass, enableKeepAlive: cliArgs.enableKeepAlive, privateRequestFilterEnabled: requestFilterOptions.enabled });
 
     // Wait for frontend libs to compile
+    if (startupTrace) startupTrace.mark('webpack_begin');
     await webpackMiddleware.runWebpackCompiler({ pruneCache: true });
+    if (startupTrace) startupTrace.mark('webpack_end');
 }
 
 /**
@@ -476,14 +512,39 @@ function setDnsResolutionOrder() {
 }
 
 // User storage module needs to be initialized before starting the server
-initUserStorage(globalThis.DATA_ROOT)
+(startupTrace ? startupTrace.measureAsync('init_user_storage', () => initUserStorage(globalThis.DATA_ROOT)) : initUserStorage(globalThis.DATA_ROOT))
     .then(setDnsResolutionOrder)
     .then(ensurePublicDirectoriesExist)
+    .then(async () => {
+        for (const directories of await getUserDirectoriesList()) {
+            for (const root of [directories.chats, directories.characters, directories.groupChats]) {
+                if (startupTrace) startupTrace.mark('lifecycle_begin', { rootKind: path.basename(root), exclusive: cliArgs.exclusiveDataRoot });
+                if (cliArgs.exclusiveDataRoot) await reconcileLifecycle(root);
+                else {
+                    // Pre-existing legacy hold restoration is kept; the new scan itself is read-only.
+                    if (startupTrace) startupTrace.mark('restore_legacy_holds_begin');
+                    await restoreLegacyRetiredHolds(root);
+                    if (startupTrace) startupTrace.mark('restore_legacy_holds_end');
+                    await reportLifecycleScan(root, { dataRoot: globalThis.DATA_ROOT });
+                }
+                if (startupTrace) startupTrace.mark('lifecycle_end', { rootKind: path.basename(root) });
+            }
+        }
+        if (startupTrace) startupTrace.mark('user_migrations_begin');
+    })
     .then(migrateUserData)
     .then(migrateSystemPrompts)
     .then(migratePublicOverrides)
-    .then(verifySecuritySettings)
+    .then(startupTrace ? () => { startupTrace.mark('user_migrations_end'); return verifySecuritySettings(); } : verifySecuritySettings)
     .then(preSetupTasks)
     .then(apply404Middleware)
-    .then(() => new ServerStartup(app, cliArgs).start())
+    .then(() => {
+        if (startupTrace) startupTrace.mark('listen_begin');
+        const started = new ServerStartup(app, cliArgs).start();
+        return startupTrace ? started.then(result => {
+            startupTrace.mark('listen_end');
+            startupTrace.finalize({ rss: process.memoryUsage().rss });
+            return result;
+        }) : started;
+    })
     .then(postSetupTasks);

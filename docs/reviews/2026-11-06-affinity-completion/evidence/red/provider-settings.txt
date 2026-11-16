@@ -1,0 +1,51 @@
+Event emitted: settings
+Event emitted: settings
+✖ isolated OpenAI requests cannot consume another request response-length restoration hook (5.117ms)
+✖ isolated text-completion parameters skip extension mutation hooks while legacy calls retain them (2.0209ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.7641
+
+✖ failing tests:
+
+test at tests\director-affinity-provider.test.mjs:390:1
+✖ isolated OpenAI requests cannot consume another request response-length restoration hook (5.117ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  1 !== 0
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-provider.test.mjs:411:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\director-affinity-provider.test.mjs:419:1
+✖ isolated text-completion parameters skip extension mutation hooks while legacy calls retain them (2.0209ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'Own evidence injected by extension'
+  - 'Own evidence'
+                 ^
+
+      at TestContext.<anonymous> (file:///<repo>/tests/director-affinity-provider.test.mjs:431:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Own evidence injected by extension',
+    expected: 'Own evidence',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

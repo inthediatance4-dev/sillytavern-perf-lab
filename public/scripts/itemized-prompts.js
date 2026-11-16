@@ -14,29 +14,81 @@ let priorPromptArrayItemForRawPromptDisplay;
 
 const promptStorage = localforage.createInstance({ name: 'SillyTavern_Prompts' });
 export let itemizedPrompts = [];
+let promptRequest = Symbol('initial prompt cache');
+let promptCacheReady = true;
+
+/** Reserve a load before any caller preparation or greeting save. */
+export function reserveItemizedPrompts() {
+    promptRequest = Symbol('prompt load');
+    promptCacheReady = false;
+    itemizedPrompts = [];
+    return promptRequest;
+}
+
+/** Invalidate pending reads while preserving a ready snapshot for closing saves. */
+export function cancelItemizedPromptsLoad() {
+    promptRequest = Symbol('prompt clear');
+    return promptRequest;
+}
+
+/** Check an opaque load/clear reservation without superseding it. */
+export function isItemizedPromptsRequestCurrent(request) {
+    return request === promptRequest;
+}
+
+/**
+ * Reset only the cache still owned by this clear.
+ * @param {symbol} request Clear reservation
+ * @param {object} [options] Cache readiness after reset
+ * @param {boolean} [options.ready=false] True only for an explicitly neutral cache
+ * @returns {boolean} Whether the reset still owned the cache
+ */
+export function resetItemizedPrompts(request, { ready = false } = {}) {
+    if (!isItemizedPromptsRequestCurrent(request)) return false;
+    itemizedPrompts = [];
+    promptCacheReady = ready;
+    return true;
+}
 
 /**
  * Gets the itemized prompts for a chat.
  * @param {string} chatId Chat ID to load
+ * @param {object} [options] Prepared reservation and caller ownership
+ * @param {symbol} [options.request] A synchronous reservation
+ * @param {function(): boolean} [options.isCurrent] Caller ownership check
+ * @returns {Promise<void|false>} False when canceled; legacy success remains void
  */
-export async function loadItemizedPrompts(chatId) {
+export async function loadItemizedPrompts(chatId, { request, isCurrent = () => true } = {}) {
+    if (!isCurrent() || (request !== undefined && !isItemizedPromptsRequestCurrent(request))) return false;
+    request ??= reserveItemizedPrompts();
+    const ownsCache = () => isItemizedPromptsRequestCurrent(request) && isCurrent();
+    if (!chatId) {
+        resetItemizedPrompts(request, { ready: true });
+        return;
+    }
+
+    let loaded;
     try {
-        if (!chatId) {
-            itemizedPrompts = [];
-            return;
-        }
-
-        itemizedPrompts = await promptStorage.getItem(chatId);
-
-        if (!itemizedPrompts) {
-            itemizedPrompts = [];
-        }
-
-        await eventSource.emit(event_types.ITEMIZED_PROMPTS_LOADED, { chatId: chatId });
+        loaded = await promptStorage.getItem(chatId);
     } catch {
+        if (!ownsCache()) return false;
         console.log('Error loading itemized prompts for chat', chatId);
         itemizedPrompts = [];
+        promptCacheReady = false;
+        return;
     }
+    if (!ownsCache()) return false;
+    itemizedPrompts = loaded || [];
+    promptCacheReady = true;
+    try {
+        if (!ownsCache()) return false;
+        await eventSource.emit(event_types.ITEMIZED_PROMPTS_LOADED, { chatId: chatId });
+    } catch {
+        if (!ownsCache()) return false;
+        // A listener failure does not invalidate a successful storage read.
+        console.log('Error emitting itemized prompts loaded for chat', chatId);
+    }
+    if (!ownsCache()) return false;
 }
 
 /**
@@ -45,11 +97,20 @@ export async function loadItemizedPrompts(chatId) {
  */
 export async function saveItemizedPrompts(chatId) {
     try {
-        if (!chatId) {
+        if (!chatId || !promptCacheReady) {
             return;
         }
-
-        await promptStorage.setItem(chatId, itemizedPrompts);
+        // Keep the started save's rows independent of a later load or reset.
+        let snapshot;
+        try {
+            snapshot = structuredClone(itemizedPrompts);
+        } catch {
+            // Older browsers and extension-added functions cannot use structuredClone.
+            // Prompts are JSON data: omit unsupported properties without sharing rows.
+            // If JSON also fails (e.g. cycles), the outer catch preserves stored data.
+            snapshot = JSON.parse(JSON.stringify(itemizedPrompts));
+        }
+        await promptStorage.setItem(chatId, snapshot);
         await eventSource.emit(event_types.ITEMIZED_PROMPTS_SAVED, { chatId: chatId });
     } catch {
         console.log('Error saving itemized prompts for chat', chatId);

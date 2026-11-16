@@ -1,0 +1,7 @@
+Initial final audit: public/script.js whole-file SHA-256 assertion failed after concurrent M2 edits.
+Inspected diff: edits affect P3 preparation/navigation, outside all M4-exercised scopes.
+Compared getChat, getFirstDisplayedMessageId, saveReply and StreamingProcessor with starting HEAD: 4/4 byte-identical.
+Other recorded source SHA-256 values: all match.
+Branch and HEAD unchanged; git diff --check exit 0.
+All 3 saved test logs: 38 pass, 0 fail/cancel/skip/todo each.
+No test rerun. Unrelated concurrent files left untouched.

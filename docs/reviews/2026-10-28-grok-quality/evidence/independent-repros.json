@@ -1,0 +1,77 @@
+[
+  {
+    "scenario": "owner-fail-open",
+    "reproduced": true,
+    "result": {
+      "lockPath": null,
+      "pid": 6324,
+      "hostname": "<HOST>",
+      "startedAt": "2026-10-28T04:52:22.527Z",
+      "unverified": true
+    },
+    "existingLiveOwnerPreserved": true,
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "shutdown-bound",
+    "reproduced": true,
+    "configuredDrainMs": 20,
+    "drainElapsedMs": 25,
+    "elapsedMs": 180,
+    "outcome": "still-blocked",
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "nested-shared",
+    "reproduced": true,
+    "outcome": "deadlocked",
+    "filesystemWrites": 0,
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "export-malformed",
+    "reproduced": true,
+    "uncaughtException": "SyntaxError",
+    "responseHandled": false,
+    "exit": 70,
+    "signal": null
+  },
+  {
+    "scenario": "character-reimport",
+    "reproduced": true,
+    "import": {
+      "status": 200,
+      "data": {
+        "file_name": "ReviewCard"
+      }
+    },
+    "edit": {
+      "status": 200
+    },
+    "chatWritable": false,
+    "reason": "retired_path",
+    "visibleAvatar": true,
+    "exit": 0,
+    "signal": null
+  },
+  {
+    "scenario": "import-delete-race",
+    "reproduced": true,
+    "deletion": {
+      "status": 200
+    },
+    "avatarAfterDelete": false,
+    "importing": {
+      "status": 200,
+      "data": {
+        "file_name": "ReviewCard"
+      }
+    },
+    "avatarResurrected": true,
+    "exit": 0,
+    "signal": null
+  }
+]

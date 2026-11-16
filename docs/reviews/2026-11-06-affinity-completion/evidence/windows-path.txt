@@ -1,0 +1,13 @@
+✔ Windows keys expand short ancestors consistently before and after publication (1.9857ms)
+✔ Windows key canonicalization preserves access and I/O failures (0.8622ms)
+✔ native temp aliases share locks, retirement markers and publication authorization (122.9159ms)
+✔ short and long lifecycle roots find root-relative markers in both directions (simulation) (12.4726ms)
+✔ DOS short-name lifecycle roots preserve retirement in both directions (native Windows) (95.5393ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 347.8597

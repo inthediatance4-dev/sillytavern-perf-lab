@@ -1,0 +1,20 @@
+{
+  "revisions": {
+    "base": "dfab84be2da4bb64ec3924ff8f60f4cc1ae2a18d",
+    "head": "WORKTREE"
+  },
+  "settings": [
+    {
+      "size": 2000,
+      "truncation": 100,
+      "equivalence": [
+        {
+          "iteration": 0,
+          "status": "equal",
+          "equal": true,
+          "differences": {}
+        }
+      ]
+    }
+  ]
+}

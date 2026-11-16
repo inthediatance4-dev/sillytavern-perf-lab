@@ -1,0 +1,34 @@
+✖ cross-review lineage: original completion during a continuation reasoning await survives its later stop (17.0127ms)
+✔ cross-review lineage: MESSAGE_EDITED rejects an original completion deferred during continuation progress (6.9333ms)
+✔ cross-review lineage: owner rejects an original completion deferred during continuation progress (1.9351ms)
+✔ cross-review lineage: marker rejects an original completion deferred during continuation progress (1.5524ms)
+✔ cross-review lineage: nonappend rejects an original completion deferred during continuation progress (1.3977ms)
+✔ cross-review lineage: disable-enable rejects an original completion deferred during continuation progress (1.6245ms)
+✔ cross-review lineage: CHAT_CHANGED rejects an original completion deferred during continuation progress (9.2014ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 313.0806
+
+✖ failing tests:
+
+test at tests\director-affinity-lifecycle.test.mjs:1472:1
+✖ cross-review lineage: original completion during a continuation reasoning await survives its later stop (17.0127ms)
+  AssertionError [ERR_ASSERTION]: the successful original retains its receipt authority
+
+  0 !== 1
+
+      at TestContext.<anonymous> (<repo>/tests/director-affinity-lifecycle.test.mjs:1487:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

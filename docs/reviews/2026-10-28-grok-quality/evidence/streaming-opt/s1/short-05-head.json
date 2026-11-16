@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 5,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 66.7,
+    "framesOver16_7Pct": 8.148148148148149,
+    "framesOver33Pct": 2.9629629629629632,
+    "loafCount": 3,
+    "loafTotalMs": 292.2999999988824,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 32.5,
+    "loafScriptotherMs": 135.00000000186265,
+    "formatP50Ms": 1.099999999627471,
+    "formatP95Ms": 1.599999999627471,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.09999999962747097,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 22.436004073666826,
+    "firstTokenMs": 114.88134765625,
+    "finishMs": 237.736328125,
+    "typingP50Ms": 18.60009765625,
+    "typingP95Ms": 30.800048828125,
+    "scrollStolen": 0
+  },
+  "dom": {
+    "incremental": 53,
+    "full": 109,
+    "fade": 0,
+    "frames": 54
+  },
+  "samples": {
+    "frames": 170,
+    "keys": 13,
+    "hooks": 192
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282839063.8188,
+    "receivedNs": "8557995771565",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793282839076.518,
+    "lastChunkEpochMs": 1793282841483.3638,
+    "doneEpochMs": 1793282841483.3835,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

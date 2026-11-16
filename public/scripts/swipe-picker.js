@@ -281,7 +281,9 @@ async function openSwipePicker(messageId) {
             return template[0];
         }));
 
-        listContainer.replaceChildren(...swipeBlocks);
+        const fragment = document.createDocumentFragment();
+        for (const block of swipeBlocks) fragment.append(block);
+        listContainer.replaceChildren(fragment);
         setSelectedSwipe(selectedSwipeId);
 
         if (swipeBlocks.length === 0) {

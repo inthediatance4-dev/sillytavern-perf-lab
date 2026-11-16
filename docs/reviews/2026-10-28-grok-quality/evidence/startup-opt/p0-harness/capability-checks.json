@@ -1,0 +1,9 @@
+{
+  "nodeCpuProfileNodes": 7769,
+  "nodeCpuProfileSamples": 6304,
+  "chromiumTraceEvents": 24975,
+  "s2SkippedDropCaches": true,
+  "s2WarmBuiltModules": 0,
+  "launchExitCode": 0,
+  "launchLockGone": true
+}

@@ -1,0 +1,1223 @@
+{
+  "base": "698119e",
+  "head": "dafc05e0d0c40d213d687232115528d14fdb59c1",
+  "runnerHead": "dafc05e0d0c40d213d687232115528d14fdb59c1",
+  "mode": "affinity-only",
+  "thirdPartyEnabled": true,
+  "saveDuringDryRunProbe": false,
+  "testRunnerSha256": "1beaeb4c4777a8effcaec15fb80bb64b50d7865582d2841fb6c0c6326279420b",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "4ff907eec4a9b075c88e6a9edc40d7637698828c1449ec29537c30aec1589f4a",
+      "focusCount": 2
+    },
+    "affinityNativeTenthCompletionAndReplayIdempotence": true,
+    "affinityNativeFifthCompletionAndAutomaticPersistence": true,
+    "affinityReloadLiteralMemoryAndNativeEditWithdrawal": true,
+    "affinityConcurrentQuietKeepsLiteralMemoryAndCompletionReceipt": true,
+    "affinityImmediateNativeReloadPreservesReceiptAndNeverSavesEmptyChat": true,
+    "affinityMajorUsesIndependentNativeProviderRequest": true,
+    "affinity390pxControlsPersistAndExposeNoScore": true,
+    "affinitySidecarInputAndOutputBudgetNeverMutatesMainSettings": true,
+    "affinityNewMainCancelsOnlySidecarAndStillCompletes": true,
+    "affinityNativeFailureAndStopDoNotCountAndRetryWorks": true,
+    "affinityNativeStreamSaveGapMouseMutexControl": true,
+    "affinityNativeStreamSaveGapEnterKeepsBothReceipts": true,
+    "affinityNativeStreamSaveGapContinueKeepsOneLogicalReceipt": true,
+    "affinityActualGroupAvatarsAndWholeBatchCadence": true,
+    "affinityGroupOwnerRemovalFreezesAndRejoinRestoresMemory": true
+  },
+  "failedRequests": [
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/backends/chat-completions/generate",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://<host>/api/ping",
+      "method": "POST",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "disabledThirdPartyExtensions": [],
+  "affinityIsolation": {
+    "mode": "native-default",
+    "runtimeSettings": {
+      "enabled": true,
+      "interval": 10
+    }
+  },
+  "thirdPartyRuntime": {
+    "loadedEntrypoints": [
+      "/scripts/extensions/third-party/JS-Slash-Runner/dist/index.js",
+      "/scripts/extensions/third-party/st-memory-enhancement/index.js"
+    ],
+    "tavernHelperAvailable": true
+  },
+  "selectedCases": [
+    "cadence",
+    "persistence",
+    "overlap",
+    "reloadRace",
+    "majorAndMobile",
+    "sidecarBudget",
+    "cancellation",
+    "saveGap",
+    "saveGapContinue",
+    "group"
+  ],
+  "affinityReview": {
+    "cadence": {
+      "defaults": {
+        "enabled": true,
+        "interval": "10"
+      },
+      "tenthReplyEvaluations": 1,
+      "replayIssued": 10,
+      "nativeReplays": [
+        "swipe",
+        "regenerate",
+        "continue"
+      ],
+      "passed": true
+    },
+    "persistence": {
+      "issuedAfterReload": 5,
+      "literalInRequestExactlyOnce": true,
+      "sourceEditedThroughUI": true,
+      "withdrawnBeforeNextRequest": true,
+      "passed": true
+    },
+    "overlap": {
+      "requests": 2,
+      "memoryOccurrences": [
+        0,
+        1
+      ],
+      "markerOccurrences": [
+        0,
+        0
+      ],
+      "issuedAfter": 6,
+      "quiet": {
+        "reply": "AFF_EXTERNAL_QUIET_DONE",
+        "completed": [
+          "quiet"
+        ],
+        "normalStillPaused": true
+      },
+      "passed": true
+    },
+    "reloadRace": {
+      "paused": {
+        "length": 0,
+        "oldIssued": 5
+      },
+      "emptySaves": [],
+      "passed": true
+    },
+    "majorAndMobile": {
+      "majorScore": 5,
+      "evaluatorRequests": 1,
+      "independentVerificationRequests": 1,
+      "extraGenerationLifecycleEvents": 0,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "controlBounds": {
+        "left": 6.046875,
+        "right": 383.953125,
+        "width": 377.90625,
+        "viewport": 390,
+        "overflow": 0
+      },
+      "settingsPersisted": true,
+      "scoreControlsVisible": false,
+      "physicalPhoneTested": false,
+      "screenshot": "affinity-mobile.png",
+      "passed": true
+    },
+    "sidecarBudget": {
+      "context": 4096,
+      "mainReplyTokensBeforeAndAfter": 64,
+      "sidecarOutputTokens": 1024,
+      "sidecarInputTokens": 2636,
+      "originalUserCharacters": 5285,
+      "shownUserCharacters": 1460,
+      "followingMainRequestTokens": 64,
+      "passed": true
+    },
+    "cancellation": {
+      "heldSidecarFailure": "net::ERR_ABORTED",
+      "mainCompletedWhileSidecarPending": true,
+      "issuedAfterNewMain": 6,
+      "staleEvents": 0,
+      "expectedMainRejections": {
+        "apiFailure": {
+          "rejected": true,
+          "message": "Internal Server Error"
+        },
+        "stop": {
+          "rejected": true,
+          "message": "Clicked stop button"
+        }
+      },
+      "passed": true
+    },
+    "saveGap": {
+      "mouse": {
+        "trigger": "native send button",
+        "beforeSecondSend": {
+          "events": [
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 62947.69999999995,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 63394.09999999986,
+              "generating": false,
+              "saving": false
+            }
+          ],
+          "started": 1,
+          "received": 1,
+          "completed": 0,
+          "isSendPress": false,
+          "generating": false,
+          "saving": true,
+          "ledger": {
+            "version": 1,
+            "id": "3500f772-a7a8-4f28-93ba-b614251533b4",
+            "nextId": 1,
+            "issued": 0,
+            "cursor": 0,
+            "events": [],
+            "archives": []
+          },
+          "replies": [
+            {
+              "mes": "AFF_REPLY_056: I remember the river promise and respect your boundary.",
+              "marker": null
+            }
+          ],
+          "textarea": "",
+          "sendVisible": true
+        },
+        "duringHeldSave": {
+          "events": [
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 62947.69999999995,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 63394.09999999986,
+              "generating": false,
+              "saving": false
+            }
+          ],
+          "started": 1,
+          "received": 1,
+          "completed": 0,
+          "isSendPress": false,
+          "generating": false,
+          "saving": true,
+          "ledger": {
+            "version": 1,
+            "id": "3500f772-a7a8-4f28-93ba-b614251533b4",
+            "nextId": 1,
+            "issued": 0,
+            "cursor": 0,
+            "events": [],
+            "archives": []
+          },
+          "replies": [
+            {
+              "mes": "AFF_REPLY_056: I remember the river promise and respect your boundary.",
+              "marker": {
+                "version": 1,
+                "scope": "3500f772-a7a8-4f28-93ba-b614251533b4",
+                "id": "0ce18017-3b87-452d-8df2-9f0375cc90a6",
+                "receipt": 0
+              }
+            }
+          ],
+          "textarea": "AFF_SECOND_STREAM_SAVE_GAP_mouse",
+          "sendVisible": true
+        },
+        "afterBothComplete": {
+          "events": [
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 62947.69999999995,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 63394.09999999986,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "GENERATION_COMPLETED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 64293.89999999991,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 64357.09999999986,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 64778.89999999991,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": true,
+              "time": 64880.69999999995,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "GENERATION_COMPLETED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 64964.39999999991,
+              "generating": false,
+              "saving": false
+            }
+          ],
+          "started": 2,
+          "received": 2,
+          "completed": 2,
+          "isSendPress": false,
+          "generating": false,
+          "saving": true,
+          "ledger": {
+            "version": 1,
+            "id": "3500f772-a7a8-4f28-93ba-b614251533b4",
+            "nextId": 1,
+            "issued": 2,
+            "cursor": 0,
+            "events": [],
+            "archives": []
+          },
+          "replies": [
+            {
+              "mes": "AFF_REPLY_056: I remember the river promise and respect your boundary.",
+              "marker": {
+                "version": 1,
+                "scope": "3500f772-a7a8-4f28-93ba-b614251533b4",
+                "id": "0ce18017-3b87-452d-8df2-9f0375cc90a6",
+                "receipt": 1
+              }
+            },
+            {
+              "mes": "AFF_REPLY_057: I remember the river promise and respect your boundary.",
+              "marker": {
+                "version": 1,
+                "scope": "3500f772-a7a8-4f28-93ba-b614251533b4",
+                "id": "1533efb0-cd9b-4e0c-b1e5-650690d478f1",
+                "receipt": 2
+              }
+            }
+          ],
+          "textarea": "",
+          "sendVisible": true
+        },
+        "persisted": {
+          "issued": 2,
+          "receipts": [
+            1,
+            2
+          ],
+          "texts": [
+            "AFF_REPLY_056: I remember the river promise and respect your boundary.",
+            "AFF_REPLY_057: I remember the river promise and respect your boundary."
+          ]
+        }
+      },
+      "enter": {
+        "trigger": "native textarea Enter",
+        "beforeSecondSend": {
+          "events": [
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66227.09999999986,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66677.30000000005,
+              "generating": false,
+              "saving": false
+            }
+          ],
+          "started": 1,
+          "received": 1,
+          "completed": 0,
+          "isSendPress": false,
+          "generating": false,
+          "saving": true,
+          "ledger": {
+            "version": 1,
+            "id": "4ea0ac6c-51d3-4e2a-b1d0-c47f49dc5b8c",
+            "nextId": 1,
+            "issued": 0,
+            "cursor": 0,
+            "events": [],
+            "archives": []
+          },
+          "replies": [
+            {
+              "mes": "AFF_REPLY_058: I remember the river promise and respect your boundary.",
+              "marker": null
+            }
+          ],
+          "textarea": "",
+          "sendVisible": true
+        },
+        "duringHeldSave": {
+          "events": [
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66227.09999999986,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66677.30000000005,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66902.3999999999,
+              "generating": false,
+              "saving": true
+            }
+          ],
+          "started": 2,
+          "received": 1,
+          "completed": 0,
+          "isSendPress": false,
+          "generating": false,
+          "saving": true,
+          "ledger": {
+            "version": 1,
+            "id": "4ea0ac6c-51d3-4e2a-b1d0-c47f49dc5b8c",
+            "nextId": 1,
+            "issued": 0,
+            "cursor": 0,
+            "events": [],
+            "archives": []
+          },
+          "replies": [
+            {
+              "mes": "AFF_REPLY_058: I remember the river promise and respect your boundary.",
+              "marker": {
+                "version": 1,
+                "scope": "4ea0ac6c-51d3-4e2a-b1d0-c47f49dc5b8c",
+                "id": "ba4a316b-47d1-4969-9713-67aafede0338",
+                "receipt": 0
+              }
+            }
+          ],
+          "textarea": "AFF_SECOND_STREAM_SAVE_GAP_enter",
+          "sendVisible": true
+        },
+        "afterBothComplete": {
+          "events": [
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66227.09999999986,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66677.30000000005,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "GENERATION_STARTED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66902.3999999999,
+              "generating": false,
+              "saving": true
+            },
+            {
+              "event": "GENERATION_COMPLETED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 66929.30000000005,
+              "generating": true,
+              "saving": false
+            },
+            {
+              "event": "MESSAGE_RECEIVED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 67356.3999999999,
+              "generating": false,
+              "saving": false
+            },
+            {
+              "event": "GENERATION_COMPLETED",
+              "type": "normal",
+              "dryRun": false,
+              "time": 67566.59999999986,
+              "generating": false,
+              "saving": false
+            }
+          ],
+          "started": 2,
+          "received": 2,
+          "completed": 2,
+          "isSendPress": false,
+          "generating": false,
+          "saving": true,
+          "ledger": {
+            "version": 1,
+            "id": "4ea0ac6c-51d3-4e2a-b1d0-c47f49dc5b8c",
+            "nextId": 1,
+            "issued": 2,
+            "cursor": 0,
+            "events": [],
+            "archives": []
+          },
+          "replies": [
+            {
+              "mes": "AFF_REPLY_058: I remember the river promise and respect your boundary.",
+              "marker": {
+                "version": 1,
+                "scope": "4ea0ac6c-51d3-4e2a-b1d0-c47f49dc5b8c",
+                "id": "ba4a316b-47d1-4969-9713-67aafede0338",
+                "receipt": 1
+              }
+            },
+            {
+              "mes": "AFF_REPLY_059: I remember the river promise and respect your boundary.",
+              "marker": {
+                "version": 1,
+                "scope": "4ea0ac6c-51d3-4e2a-b1d0-c47f49dc5b8c",
+                "id": "c71133d7-50c7-475d-bd32-ce9f5451ad04",
+                "receipt": 2
+              }
+            }
+          ],
+          "textarea": "",
+          "sendVisible": true
+        },
+        "persisted": {
+          "issued": 2,
+          "receipts": [
+            1,
+            2
+          ],
+          "texts": [
+            "AFF_REPLY_058: I remember the river promise and respect your boundary.",
+            "AFF_REPLY_059: I remember the river promise and respect your boundary."
+          ]
+        }
+      },
+      "passed": true
+    },
+    "saveGapContinue": {
+      "trigger": "native options menu Continue",
+      "continueSeparator": " ",
+      "expectedText": "AFF_REPLY_060: I remember the river promise and respect your boundary. AFF_REPLY_061: I remember the river promise and respect your boundary.",
+      "beforeContinue": {
+        "events": [
+          {
+            "event": "GENERATION_STARTED",
+            "type": "normal",
+            "time": 69211.30000000005,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "normal",
+            "time": 69641.69999999995,
+            "generating": false,
+            "saving": false
+          }
+        ],
+        "started": [
+          "normal"
+        ],
+        "received": [
+          "normal"
+        ],
+        "completed": [],
+        "isSendPress": false,
+        "generating": false,
+        "saving": true,
+        "ledger": {
+          "version": 1,
+          "id": "c07d65aa-0e11-42d4-8ca8-9fe26ddcbc6e",
+          "nextId": 1,
+          "issued": 0,
+          "cursor": 0,
+          "events": [],
+          "archives": []
+        },
+        "replies": [
+          {
+            "mes": "AFF_REPLY_060: I remember the river promise and respect your boundary.",
+            "marker": null
+          }
+        ]
+      },
+      "whileFirstSaveHeld": {
+        "events": [
+          {
+            "event": "GENERATION_STARTED",
+            "type": "normal",
+            "time": 69211.30000000005,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "normal",
+            "time": 69641.69999999995,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "GENERATION_STARTED",
+            "type": "continue",
+            "time": 69941,
+            "generating": true,
+            "saving": true
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "continue",
+            "time": 70214.5,
+            "generating": false,
+            "saving": true
+          }
+        ],
+        "started": [
+          "normal",
+          "continue"
+        ],
+        "received": [
+          "normal",
+          "continue"
+        ],
+        "completed": [],
+        "isSendPress": false,
+        "generating": false,
+        "saving": true,
+        "ledger": {
+          "version": 1,
+          "id": "c07d65aa-0e11-42d4-8ca8-9fe26ddcbc6e",
+          "nextId": 1,
+          "issued": 0,
+          "cursor": 0,
+          "events": [],
+          "archives": []
+        },
+        "replies": [
+          {
+            "mes": "AFF_REPLY_060: I remember the river promise and respect your boundary. AFF_REPLY_061: I remember the river promise and respect your boundary.",
+            "marker": {
+              "version": 1,
+              "scope": "c07d65aa-0e11-42d4-8ca8-9fe26ddcbc6e",
+              "id": "d7cc8344-6021-4792-9808-ae1bdf95d4d0",
+              "receipt": 0
+            }
+          }
+        ]
+      },
+      "afterBothComplete": {
+        "events": [
+          {
+            "event": "GENERATION_STARTED",
+            "type": "normal",
+            "time": 69211.30000000005,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "normal",
+            "time": 69641.69999999995,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "GENERATION_STARTED",
+            "type": "continue",
+            "time": 69941,
+            "generating": true,
+            "saving": true
+          },
+          {
+            "event": "MESSAGE_RECEIVED",
+            "type": "continue",
+            "time": 70214.5,
+            "generating": false,
+            "saving": true
+          },
+          {
+            "event": "GENERATION_COMPLETED",
+            "type": "normal",
+            "time": 70275.8999999999,
+            "generating": false,
+            "saving": false
+          },
+          {
+            "event": "GENERATION_COMPLETED",
+            "type": "continue",
+            "time": 70382.09999999986,
+            "generating": false,
+            "saving": false
+          }
+        ],
+        "started": [
+          "normal",
+          "continue"
+        ],
+        "received": [
+          "normal",
+          "continue"
+        ],
+        "completed": [
+          "normal",
+          "continue"
+        ],
+        "isSendPress": false,
+        "generating": false,
+        "saving": false,
+        "ledger": {
+          "version": 1,
+          "id": "c07d65aa-0e11-42d4-8ca8-9fe26ddcbc6e",
+          "nextId": 1,
+          "issued": 1,
+          "cursor": 0,
+          "events": [],
+          "archives": []
+        },
+        "replies": [
+          {
+            "mes": "AFF_REPLY_060: I remember the river promise and respect your boundary. AFF_REPLY_061: I remember the river promise and respect your boundary.",
+            "marker": {
+              "version": 1,
+              "scope": "c07d65aa-0e11-42d4-8ca8-9fe26ddcbc6e",
+              "id": "d7cc8344-6021-4792-9808-ae1bdf95d4d0",
+              "receipt": 1
+            }
+          }
+        ]
+      },
+      "persisted": {
+        "issued": 1,
+        "receipts": [
+          1
+        ],
+        "texts": [
+          "AFF_REPLY_060: I remember the river promise and respect your boundary. AFF_REPLY_061: I remember the river promise and respect your boundary."
+        ]
+      },
+      "passed": true
+    },
+    "group": {
+      "actualAvatars": [
+        "DirectorSynthetic-aafc86fc13.png",
+        "AffinityTwin-ddcfa3f1e4.png",
+        "DirectorSynthetic-aafc86fc13.png",
+        "AffinityTwin-ddcfa3f1e4.png",
+        "DirectorSynthetic-aafc86fc13.png",
+        "AffinityTwin-ddcfa3f1e4.png"
+      ],
+      "members": [
+        "DirectorSynthetic-aafc86fc13.png",
+        "AffinityTwin-ddcfa3f1e4.png"
+      ],
+      "initialIssued": 6,
+      "initialEvaluatorRequests": 1,
+      "offlineEvidenceIds": [
+        "f1ccaab1-e431-4658-8a5a-59bf9d93c6f5:e:2"
+      ],
+      "restoredSameEvidence": true,
+      "passed": true
+    }
+  },
+  "pass": true,
+  "pageErrors": [],
+  "generationRequests": 80,
+  "chromium": "156.0.8078.81",
+  "sourceSha256": {
+    "public/script.js": "43f5acc9bcf4375043c1a9654820eef03678bd29d51e975e82499fd5bc5ff386",
+    "public/scripts/events.js": "1b322db4a3fc9b4b7fa5af8b3d4de8eaba0ccfc551d76892849f81258fa413d5",
+    "public/scripts/extensions/director/affinity-prompt-budget.js": "60a37188ae98cb502c03755af2e8000d699f3a2f17ff9d839b4cf2f251c5008e",
+    "public/scripts/extensions/director/affinity-state.js": "6d2a1fbc454d025a9f05bb1c371e0746ff0b2ab2a72eae20fc004c75ce583596",
+    "public/scripts/extensions/director/affinity.js": "00959882ea2cdd153c72bcc496af69682d9c5b9b0a958823bd96b209acd9fbac",
+    "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+    "public/scripts/extensions/director/fate-decks.js": "177156478df597867ed534b0856d22ba108edd01d2de0258b53308f7c1ebde40",
+    "public/scripts/extensions/director/fate-marks.js": "0a11f8271e91061f59f44401ae177ac45edb1262026215652e0d39d0407fd32e",
+    "public/scripts/extensions/director/fate-sound.js": "ad635a0d34d191482a83852e9b97aa6d1c4a0f6b2a122f3c67fe3a3c8897b234",
+    "public/scripts/extensions/director/fate-ui.js": "f21251d40a0f0a7c04b8aa682116ef9171cb6d7b126b88c08acd1ca39b8909f6",
+    "public/scripts/extensions/director/fate.js": "50c09e08ff3ab919c3d6cee81cab32531e48fc9768b6ad46c083ae874254885e",
+    "public/scripts/extensions/director/index.js": "500e331d1660ad52feb57f6e30c1fd0f00f7b196bf4113e983e1712cba5a3a76",
+    "public/scripts/extensions/director/instruct.js": "3180eab345c964129508bd6ad1680d82c268f47dcd68ddcf72876e6c38be98f2",
+    "public/scripts/extensions/director/manager.js": "0d93113d97f21e6502d63187324f884e8c201f02eebe51d6eba79d7704f24628",
+    "public/scripts/extensions/director/manifest.json": "65316256f46b9ffd5eb6abfba2356ef7e053b20d81942c8cd1dbe9ad3edefdac",
+    "public/scripts/extensions/director/presets.js": "bfe185001d3364ed39a63631be43b1ba58db2d7b26fdddb4745d2fee455b16cf",
+    "public/scripts/extensions/director/settings.html": "a2b40fde634f85441e0abf591a714ef20178b9c896d64d3aa619ef4f5a6c5d28",
+    "public/scripts/extensions/director/style.css": "56873c67419ec372eb270249d6db343a0bee18b097cc71919db8cb64f9a37489",
+    "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+    "public/scripts/group-chats.js": "60c98f1434e1081c8ba4dd582a59a284a6c49e06d606d371ed813cf3fda3c545",
+    "public/scripts/isolated-quiet-prompt.js": "03e0b41b994a4cd1ee236084642ab57aa8ad1ececc982bb5a645c3a28a2c2712",
+    "public/scripts/openai.js": "8109c177a62ac849cc6b7c5834474495aa03fc401d2ce6f78e6d43c73f2cbece",
+    "public/scripts/textgen-settings.js": "b5f3bdaad780a79bd5877eab796121752480d0af0bf35f0a1f7991e158933c5d",
+    "public/scripts/tokenizers.js": "59abb66e4d2ad0ff7171c2ec9f3009d26ed79088e78b87eb0b60638eaae4d6f9",
+    "tests/browser_affinity_cases.py": "f5a3f1d10b6308374602867dbeb67f3f3c16edf9329a1f590c63efeddc8ef5b9",
+    "tests/browser_fate_cases.py": "101ccfef5e6eff5f06f1f330c09793e30c2acf3273ef58fccda131db3c9dde78",
+    "tests/browser_fate_review_cases.py": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6"
+  },
+  "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+  "fateReviewCaseSha256": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6",
+  "affinityCaseSha256": "f5a3f1d10b6308374602867dbeb67f3f3c16edf9329a1f590c63efeddc8ef5b9",
+  "node": "v24.22.1"
+}

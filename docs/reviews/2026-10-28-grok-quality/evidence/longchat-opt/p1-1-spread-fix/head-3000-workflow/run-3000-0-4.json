@@ -1,0 +1,585 @@
+{
+  "size": 3000,
+  "truncation": 0,
+  "iteration": 4,
+  "status": "ok",
+  "profiled": false,
+  "onboarding": [],
+  "open": {
+    "ms": 10601.199999999255,
+    "tasks": [
+      {
+        "start": 2738.300000000745,
+        "duration": 7774
+      },
+      {
+        "start": 10514.300000000745,
+        "duration": 1380
+      },
+      {
+        "start": 11923.800000000745,
+        "duration": 183
+      },
+      {
+        "start": 12107.10000000149,
+        "duration": 122
+      },
+      {
+        "start": 12505.5,
+        "duration": 141
+      }
+    ],
+    "loadedTruncationBeforeOverride": 0,
+    "settings": {
+      "charListGrid": false,
+      "tokenizer": 99,
+      "token_padding": 64,
+      "collapse_newlines": false,
+      "pin_examples": false,
+      "strip_examples": false,
+      "trim_sentences": false,
+      "always_force_name2": true,
+      "user_prompt_bias": "",
+      "show_user_prompt_bias": true,
+      "auto_continue": {
+        "enabled": false,
+        "allow_chat_completions": false,
+        "target_length": 400
+      },
+      "markdown_escape_strings": "",
+      "chat_truncation": 0,
+      "streaming_fps": 30,
+      "smooth_streaming": false,
+      "smooth_streaming_no_think": false,
+      "smooth_streaming_speed": 50,
+      "stream_fade_in": false,
+      "fast_ui_mode": true,
+      "avatar_style": 0,
+      "chat_display": 0,
+      "toastr_position": "toast-top-center",
+      "chat_width": 50,
+      "never_resize_avatars": false,
+      "show_card_avatar_urls": false,
+      "play_message_sound": false,
+      "play_sound_unfocused": true,
+      "auto_save_msg_edits": false,
+      "confirm_message_delete": true,
+      "sort_field": "name",
+      "sort_order": "asc",
+      "sort_rule": null,
+      "font_scale": 1,
+      "blur_strength": 10,
+      "shadow_width": 2,
+      "main_text_color": "rgba(220, 220, 210, 1)",
+      "italics_text_color": "rgba(145, 145, 145, 1)",
+      "underline_text_color": "rgba(188, 231, 207, 1)",
+      "quote_text_color": "rgba(225, 138, 36, 1)",
+      "blur_tint_color": "rgba(23, 23, 23, 1)",
+      "chat_tint_color": "rgba(23, 23, 23, 1)",
+      "user_mes_blur_tint_color": "rgba(30, 30, 30, 0.9)",
+      "bot_mes_blur_tint_color": "rgba(30, 30, 30, 0.9)",
+      "shadow_color": "rgba(0, 0, 0, 1)",
+      "border_color": "rgba(0, 0, 0, 0.5)",
+      "custom_css": "",
+      "waifuMode": false,
+      "movingUI": false,
+      "movingUIState": {},
+      "movingUIPreset": "Default",
+      "noShadows": true,
+      "theme": "Dark Lite",
+      "gestures": true,
+      "auto_swipe": false,
+      "auto_swipe_minimum_length": 0,
+      "auto_swipe_blacklist": [],
+      "auto_swipe_blacklist_threshold": 2,
+      "auto_scroll_chat_to_bottom": true,
+      "auto_fix_generated_markdown": false,
+      "send_on_enter": 0,
+      "console_log_prompts": false,
+      "request_token_probabilities": false,
+      "show_group_chat_queue": false,
+      "allow_name1_display": false,
+      "allow_name2_display": false,
+      "hotswap_enabled": true,
+      "timer_enabled": false,
+      "timestamps_enabled": true,
+      "timestamp_model_icon": true,
+      "mesIDDisplay_enabled": false,
+      "hideChatAvatars_enabled": false,
+      "max_context_unlocked": false,
+      "message_token_count_enabled": false,
+      "expand_message_actions": false,
+      "enableZenSliders": false,
+      "enableLabMode": false,
+      "prefer_character_prompt": true,
+      "prefer_character_jailbreak": true,
+      "quick_continue": false,
+      "quick_impersonate": false,
+      "continue_on_send": false,
+      "trim_spaces": true,
+      "relaxed_api_urls": false,
+      "world_import_dialog": true,
+      "enable_auto_select_input": false,
+      "enable_md_hotkeys": false,
+      "tag_import_setting": 1,
+      "tag_sort_mode": "manual",
+      "disable_group_trimming": false,
+      "single_line": false,
+      "instruct": {
+        "enabled": false,
+        "preset": "Alpaca",
+        "input_sequence": "### Instruction:",
+        "output_sequence": "### Response:",
+        "last_output_sequence": "",
+        "system_sequence": "### Input:",
+        "stop_sequence": "",
+        "wrap": true,
+        "macro": true,
+        "names_behavior": "force",
+        "activation_regex": "",
+        "first_output_sequence": "",
+        "skip_examples": false,
+        "output_suffix": "\n\n",
+        "input_suffix": "\n\n",
+        "system_suffix": "\n\n",
+        "user_alignment_message": "",
+        "system_same_as_user": false,
+        "last_system_sequence": "",
+        "first_input_sequence": "",
+        "last_input_sequence": "",
+        "sequences_as_stop_strings": true,
+        "story_string_prefix": "",
+        "story_string_suffix": ""
+      },
+      "context": {
+        "preset": "Default",
+        "story_string": "{{#if anchorBefore}}{{anchorBefore}}\n{{/if}}{{#if system}}{{system}}\n{{/if}}{{#if wiBefore}}{{wiBefore}}\n{{/if}}{{#if description}}{{description}}\n{{/if}}{{#if personality}}{{char}}'s personality: {{personality}}\n{{/if}}{{#if scenario}}Scenario: {{scenario}}\n{{/if}}{{#if wiAfter}}{{wiAfter}}\n{{/if}}{{#if persona}}{{persona}}\n{{/if}}{{#if anchorAfter}}{{anchorAfter}}\n{{/if}}",
+        "chat_start": "***",
+        "example_separator": "***",
+        "use_stop_strings": true,
+        "names_as_stop_strings": true,
+        "story_string_position": 0,
+        "story_string_depth": 1,
+        "story_string_role": 0
+      },
+      "instruct_derived": false,
+      "context_derived": false,
+      "context_size_derived": false,
+      "model_templates_mappings": {},
+      "chat_template_hash": "",
+      "sysprompt": {
+        "enabled": true,
+        "name": "Neutral - Chat",
+        "content": "Write {{char}}'s next reply in a fictional chat between {{char}} and {{user}}."
+      },
+      "reasoning": {
+        "name": "Think XML",
+        "auto_parse": false,
+        "add_to_prompts": false,
+        "auto_expand": false,
+        "show_hidden": false,
+        "prefix": "<think>",
+        "suffix": "</think>",
+        "separator": "\n",
+        "max_additions": 1
+      },
+      "personas": {
+        "user-default.png": "User"
+      },
+      "default_persona": null,
+      "persona_descriptions": {
+        "user-default.png": {
+          "description": "",
+          "position": 0
+        }
+      },
+      "persona_description": "",
+      "persona_description_position": 0,
+      "persona_description_role": 0,
+      "persona_description_depth": 2,
+      "persona_description_lorebook": "",
+      "persona_show_notifications": true,
+      "persona_sort_order": "asc",
+      "custom_stopping_strings": "",
+      "custom_stopping_strings_macro": true,
+      "fuzzy_search": true,
+      "encode_tags": false,
+      "experimental_macro_engine": true,
+      "servers": [],
+      "bogus_folders": false,
+      "zoomed_avatar_magnification": false,
+      "show_tag_filters": false,
+      "aux_field": "character_version",
+      "stscript": {
+        "parser": {
+          "flags": {
+            "1": true,
+            "2": true
+          }
+        },
+        "autocomplete": {
+          "state": 2,
+          "autoHide": false,
+          "style": "theme",
+          "font": {
+            "scale": 0.8
+          },
+          "width": {
+            "left": 1,
+            "right": 1
+          },
+          "select": 3,
+          "showInAllMacroFields": false
+        }
+      },
+      "restore_user_input": true,
+      "reduced_motion": false,
+      "compact_input_area": true,
+      "show_swipe_num_all_messages": false,
+      "auto_connect": false,
+      "auto_load_chat": false,
+      "forbid_external_media": true,
+      "external_media_allowed_overrides": [],
+      "external_media_forbidden_overrides": [],
+      "pin_styles": true,
+      "click_to_edit": false,
+      "media_display": "list",
+      "image_overswipe": "generate",
+      "ui_mode": 1
+    },
+    "longTasks": {
+      "count": 5,
+      "totalMs": 9600,
+      "maxMs": 7774
+    }
+  },
+  "afterOpen": {
+    "usedSize": 27035880,
+    "totalSize": 28430336,
+    "embedderHeapUsedSize": 285225752,
+    "backingStorageSize": 7166395,
+    "nodes": 228191,
+    "messages": 3000
+  },
+  "scroll": {
+    "frames": [
+      16.536000000000058,
+      50.100000000000364,
+      116.60000000000036,
+      83.39999999999964,
+      83.29999999999927,
+      83.30000000000109,
+      50.099999999998545,
+      33.30000000000109,
+      49.899999999999636,
+      50.100000000000364,
+      50,
+      33.29999999999927,
+      50,
+      50,
+      50,
+      50,
+      50,
+      66.70000000000073,
+      49.899999999999636,
+      66.70000000000073,
+      50,
+      66.69999999999891,
+      83.30000000000109,
+      66.69999999999891,
+      66.60000000000036,
+      66.59999999999854,
+      50.10000000000218,
+      50,
+      66.59999999999854,
+      50.10000000000218,
+      49.89999999999782,
+      33.29999999999927,
+      66.80000000000291,
+      33.29999999999927,
+      49.89999999999782,
+      83.40000000000146,
+      66.59999999999854,
+      50.10000000000218,
+      50,
+      33.29999999999927,
+      50,
+      50,
+      66.59999999999854,
+      50,
+      50,
+      50.10000000000218,
+      49.89999999999782,
+      33.400000000001455,
+      66.59999999999854,
+      33.400000000001455,
+      33.29999999999927,
+      33.29999999999927,
+      50,
+      33.30000000000291,
+      33.39999999999782,
+      33.400000000001455,
+      33.20000000000073,
+      50,
+      50,
+      33.39999999999782,
+      33.29999999999927,
+      16.600000000002183,
+      16.69999999999709,
+      33.400000000001455,
+      33.29999999999927,
+      33.29999999999927,
+      33.400000000001455,
+      33.29999999999927,
+      33.29999999999927,
+      33.400000000001455,
+      33.29999999999927,
+      33.29999999999927,
+      33.30000000000291,
+      33.29999999999927,
+      33.39999999999782,
+      33.30000000000291,
+      33.29999999999927,
+      33.39999999999782,
+      33.30000000000291,
+      33.39999999999782,
+      33.29999999999927,
+      33.400000000001455,
+      49.900000000001455,
+      33.29999999999927,
+      16.700000000000728,
+      50,
+      50,
+      33.29999999999927,
+      33.39999999999782,
+      33.30000000000291,
+      33.29999999999927,
+      33.39999999999782,
+      33.30000000000291,
+      33.29999999999927,
+      33.39999999999782,
+      33.30000000000291,
+      33.39999999999782,
+      33.29999999999927,
+      33.30000000000291,
+      33.29999999999927,
+      33.29999999999927,
+      50.099999999998545,
+      49.900000000001455,
+      50,
+      33.400000000001455,
+      33.29999999999927,
+      33.39999999999782,
+      49.900000000001455,
+      33.400000000001455,
+      50,
+      33.29999999999927,
+      50,
+      50,
+      83.39999999999782,
+      66.60000000000218,
+      50,
+      66.70000000000073,
+      33.29999999999927,
+      49.89999999999782,
+      33.400000000001455,
+      50,
+      50.099999999998545
+    ],
+    "batches": [],
+    "olderMessagesRemain": false,
+    "tasks": [
+      {
+        "start": 14888.700000001118,
+        "duration": 66
+      },
+      {
+        "start": 14954.800000000745,
+        "duration": 116
+      },
+      {
+        "start": 15071.200000001118,
+        "duration": 79
+      },
+      {
+        "start": 15158.900000000373,
+        "duration": 72
+      },
+      {
+        "start": 15231.800000000745,
+        "duration": 87
+      },
+      {
+        "start": 15493.300000000745,
+        "duration": 50
+      },
+      {
+        "start": 15680.800000000745,
+        "duration": 56
+      },
+      {
+        "start": 15785.700000001118,
+        "duration": 64
+      },
+      {
+        "start": 15849.900000000373,
+        "duration": 52
+      },
+      {
+        "start": 15902.700000001118,
+        "duration": 52
+      },
+      {
+        "start": 15955.300000000745,
+        "duration": 55
+      },
+      {
+        "start": 16011.200000001118,
+        "duration": 62
+      },
+      {
+        "start": 16074.10000000149,
+        "duration": 66
+      },
+      {
+        "start": 16141.10000000149,
+        "duration": 80
+      },
+      {
+        "start": 16221.400000000373,
+        "duration": 66
+      },
+      {
+        "start": 16288.10000000149,
+        "duration": 63
+      },
+      {
+        "start": 16352,
+        "duration": 58
+      },
+      {
+        "start": 16410.900000000373,
+        "duration": 56
+      },
+      {
+        "start": 16467.700000001118,
+        "duration": 53
+      },
+      {
+        "start": 16522.10000000149,
+        "duration": 51
+      },
+      {
+        "start": 16573.300000000745,
+        "duration": 55
+      },
+      {
+        "start": 16721.300000000745,
+        "duration": 59
+      },
+      {
+        "start": 16822.10000000149,
+        "duration": 69
+      },
+      {
+        "start": 16940.300000000745,
+        "duration": 72
+      },
+      {
+        "start": 17013,
+        "duration": 52
+      },
+      {
+        "start": 17204.10000000149,
+        "duration": 58
+      },
+      {
+        "start": 17262.5,
+        "duration": 50
+      },
+      {
+        "start": 17313.300000000745,
+        "duration": 56
+      },
+      {
+        "start": 17369.800000000745,
+        "duration": 51
+      },
+      {
+        "start": 17553.200000001118,
+        "duration": 59
+      },
+      {
+        "start": 18855.300000000745,
+        "duration": 50
+      },
+      {
+        "start": 19462.900000000373,
+        "duration": 56
+      },
+      {
+        "start": 19887.400000000373,
+        "duration": 65
+      },
+      {
+        "start": 19952.5,
+        "duration": 67
+      },
+      {
+        "start": 20019.900000000373,
+        "duration": 59
+      },
+      {
+        "start": 20079.300000000745,
+        "duration": 57
+      },
+      {
+        "start": 20136.800000000745,
+        "duration": 58
+      }
+    ],
+    "frameMs": {
+      "n": 122,
+      "median": 49.89999999999782,
+      "p95": 83.29999999999927
+    },
+    "over16_7Percent": 97.54098360655738,
+    "over50Percent": 23.770491803278688,
+    "longTasks": {
+      "count": 37,
+      "totalMs": 2297,
+      "maxMs": 116
+    }
+  },
+  "afterScroll": {
+    "usedSize": 27002644,
+    "totalSize": 28168192,
+    "embedderHeapUsedSize": 278756160,
+    "backingStorageSize": 7166179,
+    "nodes": 228191,
+    "messages": 3000
+  },
+  "send": {
+    "ms": 8850.28895600044,
+    "payloadBytes": 4713507,
+    "responseWaitMs": 68.256,
+    "requestToResponseEndMs": 626.907,
+    "serverTiming": null,
+    "serverMs": 67.386,
+    "timing": {
+      "startTime": 1793193351438.651,
+      "domainLookupStart": -1,
+      "domainLookupEnd": -1,
+      "connectStart": -1,
+      "secureConnectionStart": -1,
+      "connectEnd": -1,
+      "requestStart": 7.218,
+      "responseStart": 75.474,
+      "responseEnd": 634.125
+    }
+  },
+  "dialogs": [],
+  "pageErrorStacks": [],
+  "pageErrors": [],
+  "forbiddenRequests": []
+}

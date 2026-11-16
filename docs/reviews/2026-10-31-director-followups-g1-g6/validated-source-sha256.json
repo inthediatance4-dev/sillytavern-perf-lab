@@ -1,0 +1,23 @@
+{
+  "README.md": "cbcb3b83c6b4042b2f731a93c814094b5d3cd5417a6ae20ed82c23e86722bd3d",
+  "README.zh-CN.md": "5614b6e61dc966024220cc18be0fcc5744f96bee5fa53f263b21176ca9bf1890",
+  "public/script.js": "fe361db92bbb64f254ac31b93c06e46995dffd8da9c231ead03d0746bd71526e",
+  "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+  "public/scripts/extensions/director/index.js": "c8a9e52152fdd625df66ad6d343e3361f94ae0541a3555891412ee864dc65d8e",
+  "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+  "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+  "public/scripts/extensions/director/manifest.json": "659ed94ffbd5de1c69d7c78628bd78de8ef69110f1018f0d57f61c76196b8e52",
+  "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+  "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+  "public/scripts/extensions/director/style.css": "6e4eabc72c59d4c758583574c871d614c171c65e7fda47215981ea3332422005",
+  "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+  "public/scripts/streaming-perf.js": "5f45c7ebf8138edf46ee39917dfc48a15ff08c805d96626be818abcf9d8bc116",
+  "public/scripts/utils.js": "2a2cfe240d5a84ce2e09ba053db6c0c71473b6406173f614f3521d89f50ada61",
+  "scripts/fake-openai-endpoint.mjs": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+  "scripts/longchat-lab-server.mjs": "35ea33164fe61b11185eb1b72da881d7f229892b1c0c4046fdd6a3571d47fee1",
+  "tests/browser-director-lab.py": "7f7e51936a40bdb91136d909b9278b49d9f42c71d83caf901ae832dca1907c00",
+  "tests/browser-streaming-adaptive.py": "b99dc2d3eb4bfc04a1fdcc0cdeb75642eb68c03f54e572f8d5750ef82e66f43d",
+  "tests/director-rebind.test.mjs": "7d0bed1ff50e66bf2e4327af4a775c03e7d4fa667ea17e25726775746bd20e1d",
+  "tests/lab_browser.py": "6b942d461c94f78fb8d498e2dd40858fed18d7fe8b261a91aae099b8e3755fc0",
+  "tests/streaming-dom.test.mjs": "b1807c0a523918b9fce342287b5ac075a2203ba8d61aa7542b4702544971e30e"
+}

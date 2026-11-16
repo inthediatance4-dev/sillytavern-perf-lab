@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 4,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 16.8,
+    "framesOver16_7Pct": 5.807200929152149,
+    "framesOver33Pct": 0.6968641114982579,
+    "loafCount": 3,
+    "loafTotalMs": 228.09999999962747,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 0,
+    "loafScriptotherMs": 123.79999999888241,
+    "formatP50Ms": 1.8999999985098839,
+    "formatP95Ms": 2.400000000372529,
+    "domP50Ms": 0.2999999988824129,
+    "domP95Ms": 0.40000000037252903,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0.10000000149011612,
+    "updatesPerSecond": 22.096318880083185,
+    "firstTokenMs": 95.5234375,
+    "finishMs": 96.797607421875,
+    "typingP50Ms": 33.39990234375,
+    "typingP95Ms": 39.199951171875,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 877,
+    "keys": 73,
+    "hooks": 993
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793283607585.9766,
+    "receivedNs": "9326517939103",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793283607594.6958,
+    "lastChunkEpochMs": 1793283622122.0024,
+    "doneEpochMs": 1793283622122.0193,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

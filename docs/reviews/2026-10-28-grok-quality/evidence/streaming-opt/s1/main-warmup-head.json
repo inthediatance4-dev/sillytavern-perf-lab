@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 0,
+  "discarded": true,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 16.8,
+    "framesOver16_7Pct": 5.208333333333334,
+    "framesOver33Pct": 0.23148148148148145,
+    "loafCount": 3,
+    "loafTotalMs": 238.40000000037253,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 26.899999999441206,
+    "loafScriptotherMs": 63.50000000093132,
+    "formatP50Ms": 1.2999999998137355,
+    "formatP95Ms": 2.1000000005587935,
+    "domP50Ms": 0.20000000018626451,
+    "domP95Ms": 0.2999999998137355,
+    "reasoningP95Ms": 0,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 24.90514977085974,
+    "firstTokenMs": 121.17919921875,
+    "finishMs": 189.866455078125,
+    "typingP50Ms": 23,
+    "typingP95Ms": 30.5,
+    "scrollStolen": 22
+  },
+  "dom": {
+    "incremental": 360,
+    "full": 109,
+    "fade": 0,
+    "frames": 361
+  },
+  "samples": {
+    "frames": 1193,
+    "keys": 73,
+    "hooks": 1451
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282304129.721,
+    "receivedNs": "8023061678495",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 2005,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793282304148.1394,
+    "lastChunkEpochMs": 1793282318643.1335,
+    "doneEpochMs": 1793282318643.1565,
+    "requestBodySha256": "e2fe49bf512155b518e15bb3f4608129d84525d92d4bf0bfa9a3994b3e563090"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

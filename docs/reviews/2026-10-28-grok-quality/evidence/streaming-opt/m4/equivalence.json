@@ -1,0 +1,436 @@
+{
+  "baseRevision": "ee771bb",
+  "head": "WORKTREE",
+  "optimized": true,
+  "smooth": true,
+  "extensions": "Built-in extensions enabled; unrelated third-party extensions disabled on both products.",
+  "cadence": "Final HTML/data and event count/order are exact assertions. Per-run synchronous .mes_text innerHTML write counts are reported; wall-clock tick cadence is not asserted across independent runs.",
+  "ignoredFields": [
+    "gen_started",
+    "gen_finished",
+    "send_date",
+    "create_date",
+    "date_last_chat",
+    "time_to_first_token",
+    "reasoning_duration",
+    "integrity",
+    "gen_id"
+  ],
+  "ignoredFieldReasons": {
+    "gen_started": "Wall-clock start of this generation.",
+    "gen_finished": "Wall-clock end of this generation.",
+    "send_date": "Message timestamp assigned when the row is created.",
+    "create_date": "Chat-file header timestamp. Message bodies are compared instead.",
+    "date_last_chat": "Character or group recency timestamp, not message text.",
+    "time_to_first_token": "Latency from generation start to the first token.",
+    "reasoning_duration": "Wall-clock reasoning duration. The header \"Thought for \u2026\" and data-duration are derived from it; .mes_reasoning HTML is compared exactly.",
+    "integrity": "Random UUID assigned on save (uuidv4), not a hash of the message text.",
+    "gen_id": "Group batch id. Greeting uses Date.now()*Math.random(); a reply uses Date.now()."
+  },
+  "note": "Optimized mode paints first visible content immediately; subsequent writes can lag STREAM_TOKEN_RECEIVED by a frame plus its post-frame task. Slow formatting can skip one or two more frames. Finish paints immediately. OFF mode uses synchronous full writes; S2 follow-bottom remains enabled.",
+  "pass": true,
+  "cases": {
+    "domPatch": {
+      "pass": true,
+      "patch": {
+        "extended": "incremental",
+        "extendedText": [
+          "one",
+          "two",
+          "FOUR",
+          "five"
+        ],
+        "shrunk": "incremental",
+        "shrunkCount": 1,
+        "replaced": "full",
+        "replacedName": "DIV",
+        "forced": "full",
+        "forcedText": "other"
+      }
+    },
+    "normal": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 710,
+        "head": 710
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 328,
+        "full": 42,
+        "fade": 0,
+        "frames": 363
+      },
+      "tokensEqual": true,
+      "tokenOrderSha256": {
+        "base": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0",
+        "head": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0"
+      },
+      "mesTextEqual": true,
+      "memoryEqual": true,
+      "jsonlEqual": true,
+      "jsonlSha256": {
+        "base": "025b8baf04315646cce1d7fba903ac280913ae3babaa8d7d43e78eed33715acd",
+        "head": "025b8baf04315646cce1d7fba903ac280913ae3babaa8d7d43e78eed33715acd"
+      },
+      "domUpdateCounts": {
+        "base": 363,
+        "head": 37
+      }
+    },
+    "stop": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 8,
+        "head": 8
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "4be2168815feae312aa653949a23ed60e7e1ab91a1de623cfa6a6ae3d4f7a642",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 0,
+        "full": 10,
+        "fade": 0,
+        "frames": 3
+      },
+      "tokensEqual": true,
+      "tokenOrderSha256": {
+        "base": "eea81f6368dba3c42bdb09e112a9158ccaaaaf4d2c339ffe07be08491030eae5",
+        "head": "eea81f6368dba3c42bdb09e112a9158ccaaaaf4d2c339ffe07be08491030eae5"
+      },
+      "mesTextEqual": true,
+      "memoryEqual": true,
+      "jsonlEqual": true,
+      "jsonlSha256": {
+        "base": "e41597416b1393269beee758dbb76c5ede2e52e6b806ba7882e107f45be5d6e9",
+        "head": "e41597416b1393269beee758dbb76c5ede2e52e6b806ba7882e107f45be5d6e9"
+      },
+      "domUpdateCounts": {
+        "base": 4,
+        "head": 5
+      }
+    },
+    "continue": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 710,
+        "head": 710
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "fb63a00f30c5f24676e123e8246786881285362cf0aa649c1fa1134f93571c9b",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 327,
+        "full": 41,
+        "fade": 0,
+        "frames": 362
+      },
+      "tokensEqual": true,
+      "tokenOrderSha256": {
+        "base": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0",
+        "head": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0"
+      },
+      "mesTextEqual": true,
+      "memoryEqual": true,
+      "jsonlEqual": true,
+      "jsonlSha256": {
+        "base": "331702acbb0d8a6132a1507effeb349f64af377d7a9ef6d62f44b5b0b25cf866",
+        "head": "331702acbb0d8a6132a1507effeb349f64af377d7a9ef6d62f44b5b0b25cf866"
+      },
+      "domUpdateCounts": {
+        "base": 364,
+        "head": 38
+      }
+    },
+    "swipe": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 710,
+        "head": 710
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 328,
+        "full": 42,
+        "fade": 0,
+        "frames": 363
+      },
+      "tokensEqual": true,
+      "tokenOrderSha256": {
+        "base": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0",
+        "head": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0"
+      },
+      "mesTextEqual": true,
+      "memoryEqual": true,
+      "jsonlEqual": true,
+      "jsonlSha256": {
+        "base": "774b9c0b960e2923d28a66e8721df33279e40c1a704cf05e77f1e885cd5af868",
+        "head": "774b9c0b960e2923d28a66e8721df33279e40c1a704cf05e77f1e885cd5af868"
+      },
+      "domUpdateCounts": {
+        "base": 364,
+        "head": 39
+      }
+    },
+    "reasoning": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 1269,
+        "head": 1269
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 327,
+        "full": 596,
+        "fade": 0,
+        "frames": 638
+      },
+      "tokensEqual": true,
+      "tokenOrderSha256": {
+        "base": "dde1f4bacc2f1a75f6b5be0b94d433b9e631f27f5778b7d8b4b60c3afd611c44",
+        "head": "dde1f4bacc2f1a75f6b5be0b94d433b9e631f27f5778b7d8b4b60c3afd611c44"
+      },
+      "mesTextEqual": true,
+      "memoryEqual": true,
+      "jsonlEqual": true,
+      "jsonlSha256": {
+        "base": "4840e164a4ca19deccddd9c4513ad33955902ed1712a2f66f93b7c95217c2ea4",
+        "head": "4840e164a4ca19deccddd9c4513ad33955902ed1712a2f66f93b7c95217c2ea4"
+      },
+      "domUpdateCounts": {
+        "base": 640,
+        "head": 314
+      }
+    },
+    "group": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 710,
+        "head": 710
+      },
+      "received": {
+        "base": 1,
+        "head": 1
+      },
+      "rendered": {
+        "base": 1,
+        "head": 1
+      },
+      "mesTextSha256": "587be52685140b21994e97abeca8408804b9c6fe64ab76cd6923962bb8e70b68",
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 3,
+        "head": 3
+      },
+      "headDom": {
+        "incremental": 327,
+        "full": 42,
+        "fade": 0,
+        "frames": 362
+      },
+      "tokensEqual": true,
+      "tokenOrderSha256": {
+        "base": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0",
+        "head": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0"
+      },
+      "mesTextEqual": true,
+      "memoryEqual": true,
+      "jsonlEqual": true,
+      "jsonlSha256": {
+        "base": "0f560c25c57b7dfae19b9bd38174f016750618e0ac685d1c9ff23b2c418dea02",
+        "head": "0f560c25c57b7dfae19b9bd38174f016750618e0ac685d1c9ff23b2c418dea02"
+      },
+      "domUpdateCounts": {
+        "base": 363,
+        "head": 37
+      }
+    },
+    "impersonate": {
+      "pass": true,
+      "problems": [],
+      "tokenCount": {
+        "base": 710,
+        "head": 710
+      },
+      "received": {
+        "base": 0,
+        "head": 0
+      },
+      "rendered": {
+        "base": 0,
+        "head": 0
+      },
+      "mesTextSha256": null,
+      "directEqual": {
+        "base": true,
+        "head": true
+      },
+      "chatLength": {
+        "base": 1,
+        "head": 1
+      },
+      "headDom": {
+        "incremental": 0,
+        "full": 0,
+        "fade": 0,
+        "frames": 0
+      },
+      "tokensEqual": true,
+      "tokenOrderSha256": {
+        "base": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0",
+        "head": "5e8626c0b20c763623f9454648149ba9cd8003aab1254cc34150e574920858a0"
+      },
+      "mesTextEqual": true,
+      "memoryEqual": true,
+      "jsonlEqual": true,
+      "jsonlSha256": {
+        "base": "fd18a7e31809f03b281b40329dddef1cad5713873476c2f586017019e8d38c45",
+        "head": "fd18a7e31809f03b281b40329dddef1cad5713873476c2f586017019e8d38c45"
+      },
+      "domUpdateCounts": {
+        "base": 0,
+        "head": 0
+      },
+      "textareaSha256": "f2798f6ee8e2db3f00a2687781fbb75a0dba28a5479498d0b3b096300dd45dff"
+    }
+  },
+  "settings": {
+    "base": {
+      "smooth_streaming": true,
+      "optimized_streaming": true,
+      "optimizedCheckbox": null
+    },
+    "head": {
+      "smooth_streaming": true,
+      "optimized_streaming": true,
+      "optimizedCheckbox": true
+    }
+  },
+  "tabOrderEqual": false,
+  "tabOrderEqualExceptDirector": true,
+  "tabOrder": {
+    "base": [
+      "DIV#leftNavDrawerIcon||drawer-icon.fa-solid",
+      "DIV#API-status-top||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#WIDrawerIcon||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#rightNavDrawerIcon||drawer-icon.fa-solid",
+      "DIV#options_button||fa-solid.fa-bars",
+      "DIV#extensionsMenuButton||fa-solid.fa-magic-wand-sparkles",
+      "TEXTAREA#send_textarea|text|mdHotkeys",
+      "DIV#send_but||fa-solid.fa-paper-plane"
+    ],
+    "head": [
+      "DIV#leftNavDrawerIcon||drawer-icon.fa-solid",
+      "DIV#API-status-top||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#WIDrawerIcon||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#||drawer-icon.fa-solid",
+      "DIV#rightNavDrawerIcon||drawer-icon.fa-solid",
+      "DIV#options_button||fa-solid.fa-bars",
+      "DIV#extensionsMenuButton||fa-solid.fa-magic-wand-sparkles",
+      "DIV#directorButton||interactable",
+      "TEXTAREA#send_textarea|text|mdHotkeys",
+      "DIV#send_but||fa-solid.fa-paper-plane"
+    ],
+    "baseLen": 13,
+    "headLen": 14,
+    "baseOnly": [],
+    "headOnly": [
+      "DIV#directorButton||interactable"
+    ],
+    "intentionalExtra": "\ud83c\udfac Director button beside the extensions menu"
+  }
+}

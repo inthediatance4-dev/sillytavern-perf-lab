@@ -1,0 +1,70 @@
+{
+  "side": "base",
+  "scenario": "main",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 10,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 6.352941176470588,
+    "framesOver33Pct": 1.1764705882352942,
+    "loafCount": 8,
+    "loafTotalMs": 558.1000000014901,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 25.800000000745058,
+    "loafScriptotherMs": 207.8000000026077,
+    "formatP50Ms": 1.5,
+    "formatP95Ms": 2.199999999254942,
+    "domP50Ms": 0.2000000011175871,
+    "domP95Ms": 0.3999999985098839,
+    "reasoningP95Ms": 0.2000000011175871,
+    "scrollCallP95Ms": 0,
+    "updatesPerSecond": 22.260742981886224,
+    "firstTokenMs": 100.13037109375,
+    "finishMs": 174.591064453125,
+    "typingP50Ms": 30.300048828125,
+    "typingP95Ms": 38.900146484375,
+    "scrollStolen": 0
+  },
+  "dom": null,
+  "samples": {
+    "frames": 891,
+    "keys": 74,
+    "hooks": 1001
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793289426201.3696,
+    "receivedNs": "15067833890153",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793289426210.2388,
+    "lastChunkEpochMs": 1793289440765.009,
+    "doneEpochMs": 1793289440765.032,
+    "requestBodySha256": "d2848a84676f1c64e1629bfd7e6f997f0bcace32be94dccb36f828b593d2a2f3"
+  },
+  "finalTextSha256": "96d90df6291f06d5dce72b101b9ad4d340ab2b1199b156857e9659fd41eafa10"
+}

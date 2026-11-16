@@ -1,0 +1,69 @@
+{
+  "side": "head",
+  "scenario": "continue",
+  "dimensions": {
+    "messages": 2000,
+    "tokens": 3000,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "continue"
+  },
+  "iteration": 3,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 33.4,
+    "frameP99Ms": 50.1,
+    "framesOver16_7Pct": 25.213675213675213,
+    "framesOver33Pct": 21.082621082621085,
+    "loafCount": 12,
+    "loafTotalMs": 967.5000000074506,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 75.20000001043081,
+    "loafScriptotherMs": 458.19999999552965,
+    "formatP50Ms": 2,
+    "formatP95Ms": 6.399999998509884,
+    "domP50Ms": 0.29999999701976776,
+    "domP95Ms": 4.399999998509884,
+    "reasoningP95Ms": 0.20000000298023224,
+    "scrollCallP95Ms": 0.09999999403953552,
+    "updatesPerSecond": 19.290698841811746,
+    "firstTokenMs": 204.571044921875,
+    "finishMs": 336.7724609375,
+    "typingP50Ms": 28.300048828125,
+    "typingP95Ms": 49.39990234375,
+    "scrollStolen": 1
+  },
+  "samples": {
+    "frames": 737,
+    "keys": 74,
+    "hooks": 1158
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793273728099.629,
+    "receivedNs": "55886238061957",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 1467,
+    "firstChunkEpochMs": 1793273728107.9915,
+    "lastChunkEpochMs": 1793273742985.6277,
+    "doneEpochMs": 1793273742985.6436,
+    "requestBodySha256": "7baa51f4ea213aefcd1f0d760adacd0fa01e86ed75d6f7eacfaaadcffdb9ab2a"
+  },
+  "finalTextSha256": "1f4940eb66887c9e5470400b83a7114725b1c2dc78c7bf35aaaa192eb50dde86"
+}

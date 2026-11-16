@@ -1,0 +1,22 @@
+P2-a and P2-c implementation complete; coordinator commit required.
+Base/HEAD SHA: 9360604104812ea008eaaddd106fd39cc5484697
+Optimization commit SHAs: unavailable; Git index.lock creation fails on read-only shared metadata. Files remain in worktree. No push performed.
+Intended commits:
+  perf(startup): enable Node compile cache when available (P2-c)
+  perf(startup): skip webpack when input and output identities match (P2-a)
+Tests: Node 20.19.2 / 22.20.0 / 24.22.1 full CI command each 752 passed, 0 failed, 8 platform skips (760 total).
+Targeted Node24 webpack+compile-cache: 28/28. ESLint touched JS/MJS + git diff --check passed.
+Extra startup check: Node22 60/60. Node20 59/60 due existing independent disabled-trace CloseReq assertion; module/test bytes unchanged from baseline. Outside test:perf.
+S3 B-warm A/B: archived 9360604 vs WORKTREE; 12 alternating samples per side; 2000 paired bootstrap resamples, 95% CI.
+httpMs: base=1432.1ms head=628.8ms delta=-803.2ms CI95=[-1463.3,-391.6] significant=True
+webpackMs: base=814.9ms head=35.0ms delta=-779.9ms CI95=[-1290.0,-714.5] significant=True
+serverMainImportMs: base=387.9ms head=286.3ms delta=-101.5ms CI95=[-262.1,83.0] significant=False
+uiMs: base=4405.1ms head=2872.6ms delta=-1532.5ms CI95=[-2375.3,-156.9] significant=True
+sendMs: base=5237.9ms head=3586.6ms delta=-1651.3ms CI95=[-2498.5,-115.2] significant=True
+Compile-cache import speedup is not proven (CI includes zero). Webpack/HTTP improvement is proven in this combined Linux S3 run.
+12/12 measured head runs verified-skip; 24/24 measured exits=0 and owner locks removed; two warmups also clean.
+Full-build/skip lib.js SHA256 matches (assets.json). No filesystem safety or ownership guarantees weakened.
+Evidence: docs/reviews/2026-10-28-grok-quality/evidence/startup-opt/p2-ac-ab/README.md
+Product/test source SHA256 values: p2-ac-ab/source-checksums.json.
+Requested sibling handoff path is read-only in this sandbox; this evidence-local file is the fallback for coordinator.
+Local ignored node_modules facade enables writable .cache; original dependency link retained under ignored fixtures/.recycle; packages unchanged.

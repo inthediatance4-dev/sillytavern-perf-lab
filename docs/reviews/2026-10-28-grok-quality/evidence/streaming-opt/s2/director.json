@@ -1,0 +1,60 @@
+{
+  "base": "ffd5f4e",
+  "checks": {
+    "disabledBaseDomExact": {
+      "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+      "chatSha256": "dea4f0b1f54feda1f9db610ff0ef23e40fb3c566e6769e287ec122819c1b8011",
+      "focusCount": 2
+    },
+    "buttonAdjacentAndIntentionalFocusEntry": true,
+    "digitsScopedTextareaSafeEscOutsideClose": true,
+    "cancelInsertsNothing": true,
+    "manageFooterOpensSettingsDefaultHotkeyOff": true,
+    "chatChangedCancelsPendingInput": true,
+    "narratorByteAndRenderedHtmlExactToSys": true,
+    "commentAndDirectorMetadataSaved": true,
+    "instructAddsNoChatMessage": true,
+    "promptNarratorIncludedCommentExcludedInstructOnce": true,
+    "autoGenerateOptIn": true,
+    "defaultChapterTitleAndLiveNumber": true,
+    "nextChapterCountComputedLive": true,
+    "configuredHotkeyWorksAndSkipsTyping": true,
+    "customPresetAllFieldsPersistAcrossReload": true,
+    "dragReorderUpdatesStoredOrder": true,
+    "keyboardReorderUpdatesDigitMapping": true,
+    "slashQuotedNameLiteralInputRemainingDefaultsEmptyPipe": true,
+    "slashPromptsOnlyRemainingRequiredInputsAndCancelIsAtomic": true,
+    "exportVersionedJsonAndInvalidImportAtomicError": true,
+    "deleteAndValidImportRoundTrip": true,
+    "restoreDefaultsCancelAcceptAndReload": true,
+    "slashDirectorIndexTextExactNarrator": true,
+    "actualQuickReplyExecutionExactNarrator": true,
+    "digitOneInsertsOnlyWhenPopoverClosed": true,
+    "chapterDividersUseLiveNumbersOutsideMesText": true,
+    "markUnmarkArbitraryMessagePersistsWithoutNumber": true,
+    "deleteMiddleChapterRecomputesNumbers": true,
+    "chapterListJumpsAcrossTwoThousandMessages": true,
+    "groupNarratorCommentAndInstruct": true
+  },
+  "longChat": {
+    "file": "DirectorLong-9b5d10f6eb",
+    "loadedBeforeJump": 100,
+    "confirmDistance": 1900
+  },
+  "pageErrors": [],
+  "generationRequests": 5,
+  "chromium": "156.0.8078.4",
+  "sourceSha256": {
+    "public/scripts/extensions/director/chapters.js": "5cbaa36c344bd4fbc8f223771da9d852735154367ea380afebf615be6f86ff50",
+    "public/scripts/extensions/director/index.js": "d7e377df336daa5daf2c6522e06a86efae193ace8ee2752a99bf7ee757cb4234",
+    "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+    "public/scripts/extensions/director/manifest.json": "3360a76afd7fa911dc3b7bb0ebc05fbcf6aed536acde892dec00d066169c57f9",
+    "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+    "public/scripts/extensions/director/settings.html": "41fd980b6f5e52325370db72c26951937249dd6f7773f5249a8c6f96bd8b9d73",
+    "public/scripts/extensions/director/style.css": "36099ef21fc602033ad0a33c2c33dd69ae9d467bf832c973962258ee1827eabb",
+    "public/scripts/extensions/director/template.js": "b073d64e562b0e4f253f0593db5aa27801a426b84edbede5d7060b4cb6e79ab8",
+    "tests/browser-director-lab.py": "6468f61ea45e3c3aa928a35a2894be2cfdf97092c8b6e377a2c5ae45790fdf1b"
+  },
+  "fakeEndpointSha256": "956d65379872e9c0e62932bc20295256bd7681c22699fb488f21c2feaa39bbb0",
+  "node": "v24.22.1"
+}

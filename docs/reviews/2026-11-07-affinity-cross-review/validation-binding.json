@@ -1,0 +1,55 @@
+{
+  "affinity-accepted-browser.json": {
+    "reportedHeadAtStart": "dafc05e0d0c40d213d687232115528d14fdb59c1",
+    "verifiedSourceCommit": "dafc05e0d0c40d213d687232115528d14fdb59c1",
+    "matchingSourceFiles": 27,
+    "runnerAndHelperMatched": true,
+    "pass": true,
+    "checks": 17,
+    "generationRequests": 88,
+    "pageErrors": [],
+    "failedRequestCounts": {
+      "http://<host>/api/ping net::ERR_ABORTED": 84,
+      "http://<host>/api/backends/chat-completions/generate net::ERR_ABORTED": 2
+    },
+    "selectedCases": [
+      "cadence",
+      "persistence",
+      "overlap",
+      "budget",
+      "reloadRace",
+      "majorAndMobile",
+      "sidecarBudget",
+      "cancellation",
+      "saveGap",
+      "saveGapContinue",
+      "group"
+    ]
+  },
+  "affinity-accepted-third-party.json": {
+    "reportedHeadAtStart": "dafc05e0d0c40d213d687232115528d14fdb59c1",
+    "verifiedSourceCommit": "dafc05e0d0c40d213d687232115528d14fdb59c1",
+    "matchingSourceFiles": 27,
+    "runnerAndHelperMatched": true,
+    "pass": true,
+    "checks": 16,
+    "generationRequests": 80,
+    "pageErrors": [],
+    "failedRequestCounts": {
+      "http://<host>/api/ping net::ERR_ABORTED": 77,
+      "http://<host>/api/backends/chat-completions/generate net::ERR_ABORTED": 2
+    },
+    "selectedCases": [
+      "cadence",
+      "persistence",
+      "overlap",
+      "reloadRace",
+      "majorAndMobile",
+      "sidecarBudget",
+      "cancellation",
+      "saveGap",
+      "saveGapContinue",
+      "group"
+    ]
+  }
+}

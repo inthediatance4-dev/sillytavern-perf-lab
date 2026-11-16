@@ -1,0 +1,12 @@
+{
+  "size": 2000,
+  "truncation": 100,
+  "iteration": 2,
+  "status": "timeout",
+  "profiled": true,
+  "error": "Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"dialog[open]\").locator(\".popup-button-ok\")\n    - locator resolved to <div autofocus=\"\" tabindex=\"0\" role=\"button\" data-i18n=\"OK\" data-result=\"1\" class=\"popup-button-ok menu_button result-control menu_button_default interactable\">OK</div>\n  - attempting click action\n    - waiting for element to be visible, enabled and stable\n  - element was detached from the DOM, retrying\n",
+  "dialogs": [],
+  "pageErrorStacks": [],
+  "pageErrors": [],
+  "forbiddenRequests": []
+}

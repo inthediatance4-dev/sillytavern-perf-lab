@@ -1,0 +1,25 @@
+{
+  "count": 20,
+  "entries": [
+    "﹣ a zero recycle budget purges recycle storage and leaves visible backups (120.2211ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\recycle-budget-V5P2CR\\primary.jsonl' -> '<temp>\\recycle-budget-V5P2CR\\.recycle\\link.jsonl')",
+    "﹣ group metadata rejects invalid IDs and readers ignore legacy traversal and aliases (62.1109ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<repo>\\.fixtures\\lifecycle-531b96cc-b92f-4ad7-bda5-b09b16a222b0\\other-user\\secret.jsonl' -> '<repo>\\.fixtures\\lifecycle-531b96cc-b92f-4ad7-bda5-b09b16a222b0\\groupChats\\alias.jsonl')",
+    "﹣ a symlink owner file is not followed or rewritten (11.6568ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\st-owner-6EJurc\\symlink\\victim' -> '<temp>\\st-owner-6EJurc\\symlink\\.st-lab-owner.lock')",
+    "﹣ acquiring a data root never spawns a compiler (30.4697ms) # Compiler executable probes require POSIX shell scripts",
+    "﹣ legacy Linux identity with a live pid refuses with a clear diagnostic (0.4206ms) # Linux legacy format",
+    "﹣ Linux acquisition p95 is recorded (0.2394ms) # Linux timing requirement",
+    "﹣ two real Linux processes compare ticks and boot ids independently (0.281ms) # requires Linux /proc",
+    "﹣ a second real process after a btime shift cannot reclaim the live Linux owner (0.196ms) # requires Linux /proc",
+    "﹣ group IDs cannot traverse to another user or silently alias sanitized names (57.9155ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\group-history-path-CjwrHU\\bob\\group-chats\\private.jsonl' -> '<temp>\\group-history-path-CjwrHU\\alice\\group-chats\\alias.jsonl')",
+    "﹣ direct group endpoints reject malformed IDs and info refuses aliases and retirement (3239.8971ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\group-reader-routes-Nr3Huc\\secret.jsonl' -> '<temp>\\group-reader-routes-Nr3Huc\\group-chats\\alias.jsonl')",
+    "﹣ symlink roots are refused rather than followed (28.3558ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\integrity-znDt3h' -> '<temp>\\integrity-aHu1n7\\default-user\\chats')",
+    "﹣ startup refuses symlink staging instead of touching its contents (13.1861ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\reconcile-other-6FMrgl' -> '<temp>\\reconcile-nZ80Ql\\.chat-staging')",
+    "﹣ Linux parses raw ticks after the LAST parenthesis, independent of btime (0.7707ms) # requires Linux identity provider",
+    "﹣ clearing an absent child does not drop a retired parent marker or follow a marker symlink (173.178ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\retired-parent-twWbv1\\outside-bytes' -> '<temp>\\retired-parent-twWbv1\\.chat-lifecycle\\8367cd66fdd136bba8ba23f8805bb050dd6289401c8ec3b0be44a3c233eef90d.json')",
+    "﹣ legacy hold symlink fails with actionable diagnostics (12.0964ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\legacy-alias-51jAZc\\source' -> '<temp>\\legacy-alias-51jAZc\\.chat-lifecycle\\hold-alias.json')",
+    "﹣ legacy target symlink fails with actionable diagnostics (11.457ms) # Symlink creation unavailable on win32: EPERM (EPERM: operation not permitted, symlink '<temp>\\legacy-alias-RqhZbz\\source' -> '<temp>\\legacy-alias-RqhZbz\\target')",
+    "﹣ proc: EACCES (0.2862ms) # Requires Linux /proc identity reads",
+    "﹣ proc: EIO (0.1343ms) # Requires Linux /proc identity reads",
+    "﹣ proc: EPERM (0.1061ms) # Requires Linux /proc identity reads",
+    "﹣ real server SIGTERM bounds a hanging HTTP chat save to one 200ms deadline (0.463ms) # Windows child.kill(SIGTERM) terminates Node without delivering a graceful signal"
+  ]
+}

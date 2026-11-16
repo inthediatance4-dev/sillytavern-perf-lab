@@ -1,24 +1,32 @@
+import { isLifecycleInternalName } from '../chat-io.js';
+import { trackPersistenceRouter } from '../request-drain.js';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
-import process from 'node:process';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { randomUUID, createHash } from 'node:crypto';
 
 import express from 'express';
 import sanitize from 'sanitize-filename';
-import { sync as writeFileAtomicSync } from 'write-file-atomic';
 import _ from 'lodash';
 
 import validateAvatarUrlMiddleware from '../middleware/validateFileName.js';
+import { createTextMatcher } from '../chat-search.js';
+import { createChatInfoCache } from '../chat-info-cache.js';
+import { createChatBackupScheduler } from '../chat-backup-scheduler.js';
+import {
+    withPathLock, withPathLocks, chatLockPaths, writeChatFile, recycleOldChatBackups, waitForChatIO, runAfterPathLocks,
+    assertChatWritable, usingRetiredPathReuse, usingRetiredPathReuses, isValidGroupChatId, resolveGroupChatPath, ChatLifecycleError, renameChatFile, recycleRetiredChat, recycleChatPath, createChatFileExclusive,
+    pathLockKey,
+} from '../chat-io.js';
 import {
     getConfigValue,
     humanizedDateTime,
     tryParse,
     generateTimestamp,
-    removeOldBackups,
     formatBytes,
-    tryWriteFileSync,
-    tryReadFileSync,
-    tryDeleteFile,
     readFirstLine,
     isPathUnderParent,
 } from '../util.js';
@@ -27,54 +35,64 @@ const isBackupEnabled = !!getConfigValue('backups.chat.enabled', true, 'boolean'
 const maxTotalChatBackups = Number(getConfigValue('backups.chat.maxTotalBackups', -1, 'number'));
 const throttleInterval = Number(getConfigValue('backups.chat.throttleInterval', 10_000, 'number'));
 const checkIntegrity = !!getConfigValue('backups.chat.checkIntegrity', true, 'boolean');
+// numberOfBackups limits visible backup files only. It is not a disk bound.
+// maxRecycleBytes limits bytes already inside the backup directory's .recycle folder; -1 keeps them all.
+const maxChatBackups = Number(getConfigValue('backups.common.numberOfBackups', 50, 'number'));
+const maxRecycleBytes = Number(getConfigValue('backups.chat.maxRecycleBytes', -1, 'number'));
 
 export const CHAT_BACKUPS_PREFIX = 'chat_';
+
+/**
+ * Builds a stable filename key for a chat's backups.
+ * Non-ASCII characters are replaced with underscores, so names such as CJK ones
+ * would all collapse to the same key and share one backup quota. A short hash of
+ * the raw name keeps those keys distinct while ASCII names stay unchanged (#5780).
+ * @param {string} name The name of the chat.
+ * @returns {string} Sanitized filename key for the backup files.
+ */
+export function getBackupKey(name) {
+    const sanitized = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    if (/[^\x20-\x7E]/.test(name)) {
+        const hash = crypto.createHash('sha256').update(name).digest('hex').slice(0, 8);
+        return `${sanitized}_${hash}`;
+    }
+    return sanitized;
+}
 
 /**
  * Saves a chat to the backups directory.
  * @param {string} directory The user's backup directory.
  * @param {string} name The name of the chat.
  * @param {string} data The serialized chat to save.
- * @param {string} backupPrefix The file prefix. Typically CHAT_BACKUPS_PREFIX.
+ * @param {string} identity Stable hash of the user and canonical history path.
  * @returns
  */
-function backupChat(directory, name, data, backupPrefix = CHAT_BACKUPS_PREFIX) {
+async function backupChat(directory, name, data, identity) {
     try {
-        if (!isBackupEnabled) { return; }
-        if (!fs.existsSync(directory)) {
-            console.error(`The chat couldn't be backed up because no directory exists at ${directory}!`);
-        }
-        // replace non-alphanumeric characters with underscores
-        name = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase();
-
-        const backupFile = path.join(directory, `${backupPrefix}${name}_${generateTimestamp()}.jsonl`);
-
-        tryWriteFileSync(backupFile, data);
-        removeOldBackups(directory, `${backupPrefix}${name}_`);
-        if (isNaN(maxTotalChatBackups) || maxTotalChatBackups < 0) {
-            return;
-        }
-        removeOldBackups(directory, backupPrefix, maxTotalChatBackups);
+        if (!isBackupEnabled) return;
+        // Wait for the originating and enclosing in-process reservations via
+        // runAfterPathLocks before reserving the backup directory.
+        await runAfterPathLocks(() => withPathLock(directory, async () => {
+            name = sanitize(name).replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 80) || 'chat';
+            const quotaPrefix = `${CHAT_BACKUPS_PREFIX}${name}_${identity}_`;
+            const backupFile = path.join(directory, `${quotaPrefix}${generateTimestamp()}_${randomUUID()}.jsonl`);
+            await writeChatFile(backupFile, data);
+            const recycleOptions = { maxRecycleBytes };
+            await recycleOldChatBackups(directory, quotaPrefix, maxChatBackups, recycleOptions);
+            if (!isNaN(maxTotalChatBackups) && maxTotalChatBackups >= 0) {
+                await recycleOldChatBackups(directory, CHAT_BACKUPS_PREFIX, maxTotalChatBackups, recycleOptions);
+            }
+        }));
     } catch (err) {
         console.error(`Could not backup chat for ${name}`, err);
     }
 }
 
-/**
- * @type {Map<string, import('lodash').DebouncedFunc<typeof backupChat>>}
- */
-const backupFunctions = new Map();
+const backupScheduler = createChatBackupScheduler(backupChat, { interval: throttleInterval });
 
-/**
- * Gets a backup function for a user.
- * @param {string} handle User handle
- * @returns {typeof backupChat} Backup function
- */
-function getBackupFunction(handle) {
-    if (!backupFunctions.has(handle)) {
-        backupFunctions.set(handle, _.throttle(backupChat, throttleInterval, { leading: true, trailing: true }));
-    }
-    return backupFunctions.get(handle) || (() => { });
+/** Match path-lock normalization, including Windows case-insensitive paths. */
+function backupIdentity(handle, filePath) {
+    return JSON.stringify([handle, pathLockKey(filePath)]);
 }
 
 /**
@@ -94,11 +112,15 @@ function getPreviewMessage(lastMessage) {
         : lastMessage;
 }
 
-process.on('exit', () => {
-    for (const func of backupFunctions.values()) {
-        func.flush();
-    }
-});
+export const pendingChatBackupPaths = backupScheduler.pendingPaths;
+
+/** Flush throttled backups and await writes before a normal shutdown. */
+export async function flushChatBackups(signal) {
+    // Queued chat saves can admit snapshots while their file writes finish.
+    await waitForChatIO(signal);
+    await backupScheduler.flush(signal);
+    await waitForChatIO(signal);
+}
 
 /**
  * Imports a chat from Ooba's format.
@@ -201,7 +223,7 @@ function importCAIChat(userName, characterName, jsonData) {
         return [starter, ...historyData];
     }
 
-    const newChats = (jsonData.histories.histories ?? []).map(history => newChats.push(convert(history).map(obj => JSON.stringify(obj)).join('\n')));
+    const newChats = (jsonData.histories.histories ?? []).map(history => convert(history).map(obj => JSON.stringify(obj)).join('\n'));
     return newChats;
 }
 
@@ -319,12 +341,23 @@ async function checkChatIntegrity(filePath, integritySlug) {
         return true;
     }
 
-    // Parse the first line of the chat file as JSON
+    // An empty file has no history that could be lost by overwriting it.
+    if ((await fs.promises.stat(filePath)).size === 0) {
+        return true;
+    }
+
+    // Strip a UTF-8 BOM an external editor may have added before parsing the header.
     const firstLine = await readFirstLine(filePath);
-    const jsonData = tryParse(firstLine);
+    const jsonData = tryParse(String(firstLine ?? '').replace(/^\uFEFF/, ''));
+
+    // Nonempty malformed headers need the existing explicit overwrite flow.
+    if (typeof jsonData !== 'object' || jsonData === null || Array.isArray(jsonData)) {
+        console.warn(`File "${filePath}" is not empty, but its first line could not be parsed as a chat header. Overwriting it requires an explicit confirmation.`);
+        return false;
+    }
     const chatIntegrity = jsonData?.chat_metadata?.integrity;
 
-    // If the chat has no integrity metadata, assume it's intact
+    // Parsed legacy object headers without integrity metadata remain compatible.
     if (!chatIntegrity) {
         console.debug(`File "${filePath}" does not have integrity metadata matching "${integritySlug}". The integrity validation has been skipped.`);
         return true;
@@ -357,78 +390,108 @@ async function checkChatIntegrity(filePath, integritySlug) {
  * @typedef {(textArray: string[]) => boolean} ChatMatchFunction
  */
 export async function getChatInfo(pathToFile, additionalData = {}, withMetadata = false, matcher = null) {
-    return new Promise(async (res) => {
-        const parsedPath = path.parse(pathToFile);
-        const stats = await fs.promises.stat(pathToFile);
-        const hasMatcher = (typeof matcher === 'function');
+    const parsedPath = path.parse(pathToFile);
+    const hasMatcher = (typeof matcher === 'function');
 
-        const chatData = {
-            match: false,
-            file_id: parsedPath.name,
-            file_name: parsedPath.base,
-            file_size: formatBytes(stats.size),
-            chat_items: 0,
-            mes: '[The chat is empty]',
-            last_mes: stats.mtimeMs,
-            ...additionalData,
-        };
+    // A chat that is deleted while a scan is running is not an error: treat it like a corrupted chat and move on.
+    const chatVanished = () => {
+        console.warn('Chat file was deleted while it was being scanned:', pathToFile);
+        return { match: false };
+    };
 
-        if (stats.size === 0) {
-            res(chatData);
-            return;
+    let stats;
+    try {
+        stats = await fs.promises.stat(pathToFile);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return chatVanished();
         }
+        throw error;
+    }
 
+    const chatData = {
+        match: false,
+        file_id: parsedPath.name,
+        file_name: parsedPath.base,
+        file_size: formatBytes(stats.size),
+        chat_items: 0,
+        mes: '[The chat is empty]',
+        last_mes: stats.mtimeMs,
+        ...additionalData,
+    };
+    if (stats.size === 0) return chatData;
+
+    return new Promise((resolve, reject) => {
         const fileStream = fs.createReadStream(pathToFile);
-        const rl = readline.createInterface({
-            input: fileStream,
-            crlfDelay: Infinity,
-        });
-
+        const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
         let lastLine;
         let itemCounter = 0;
         let hasAnyMatch = false;
         let matchBuffer = [];
-        rl.on('line', (line) => {
-            if (withMetadata && itemCounter === 0) {
-                const jsonData = tryParse(line);
-                if (jsonData && _.isObjectLike(jsonData.chat_metadata)) {
-                    chatData.chat_metadata = jsonData.chat_metadata;
-                }
+        let failed = false;
+        const fail = error => {
+            failed = true;
+            if (error.code === 'ENOENT') {
+                // The file can still disappear between the stat above and the stream opening or while scanning.
+                resolve(chatVanished());
+            } else {
+                reject(error);
             }
-            // Skip matching if any match was already found
-            if (hasMatcher && !hasAnyMatch && itemCounter > 0) {
-                const jsonData = tryParse(line);
-                if (jsonData) {
-                    matchBuffer.push(jsonData.mes || '');
-                    if (matcher(matchBuffer)) {
-                        hasAnyMatch = true;
-                        matchBuffer = [];
+            rl.close();
+            fileStream.destroy();
+        };
+        fileStream.once('error', fail);
+        rl.once('error', fail);
+        rl.on('line', line => {
+            if (failed || !line.trim()) return;
+            try {
+                if (withMetadata && itemCounter === 0) {
+                    const jsonData = tryParse(line);
+                    if (jsonData && _.isObjectLike(jsonData.chat_metadata)) chatData.chat_metadata = jsonData.chat_metadata;
+                }
+                if (hasMatcher && !hasAnyMatch && itemCounter > 0) {
+                    const jsonData = tryParse(line);
+                    if (jsonData) {
+                        if (typeof matcher.accept === 'function') {
+                            hasAnyMatch = matcher.accept(jsonData.mes || '');
+                        } else {
+                            // Preserve support for existing array-based callbacks.
+                            matchBuffer.push(jsonData.mes || '');
+                            hasAnyMatch = matcher(matchBuffer);
+                        }
+                        if (hasAnyMatch) matchBuffer = [];
                     }
                 }
+                itemCounter++;
+                lastLine = line;
+            } catch (error) {
+                fail(error);
             }
-            itemCounter++;
-            lastLine = line;
         });
         rl.on('close', () => {
-            rl.close();
-
-            if (lastLine) {
-                const jsonData = tryParse(lastLine);
-                if (jsonData && (jsonData.name || jsonData.character_name || jsonData.chat_metadata)) {
-                    chatData.chat_items = (itemCounter - 1);
-                    chatData.mes = jsonData.mes || '[The message is empty]';
-                    chatData.last_mes = jsonData.send_date || new Date(Math.round(stats.mtimeMs)).toISOString();
-                    chatData.match = hasMatcher ? hasAnyMatch : true;
-
-                    res(chatData);
-                } else {
-                    console.warn('Found an invalid or corrupted chat file:', pathToFile);
-                    res({});
-                }
+            if (failed) return;
+            if (!lastLine) return resolve(chatData);
+            const jsonData = tryParse(lastLine);
+            if (jsonData && (jsonData.name || jsonData.character_name || jsonData.chat_metadata)) {
+                chatData.chat_items = Math.max(0, itemCounter - 1);
+                chatData.mes = jsonData.mes || '[The message is empty]';
+                chatData.last_mes = jsonData.send_date || new Date(Math.round(stats.mtimeMs)).toISOString();
+                chatData.match = hasMatcher ? hasAnyMatch : true;
+                resolve(chatData);
+            } else {
+                console.warn('Found an invalid or corrupted last line in a chat file:', pathToFile);
+                // Keep identity, stat data, metadata and earlier matches visible without repairing the file.
+                // The counter includes nonblank rows; exclude the header and unreadable trailing row.
+                chatData.chat_items = Math.max(0, itemCounter - 2);
+                chatData.mes = '[The message is empty]';
+                chatData.match = hasMatcher ? hasAnyMatch : true;
+                resolve(chatData);
             }
         });
     });
 }
+
+const getRecentChatInfo = createChatInfoCache((file, metadata) => getChatInfo(file, {}, metadata));
 
 export const router = express.Router();
 
@@ -450,21 +513,26 @@ class IntegrityMismatchError extends Error {
  * @param {Array} chatData The chat array to save.
  * @param {string} filePath Target file path for the data.
  * @param {boolean} skipIntegrityCheck If undefined, the chat's integrity will not be checked.
- * @param {string} handle The users handle, passed to getBackupFunction.
+ * @param {string} handle The user's handle, part of the backup identity.
  * @param {string} cardName Passed to backupChat.
  * @param {string} backupDirectory Passed to backupChat.
  */
-export async function trySaveChat(chatData, filePath, skipIntegrityCheck = false, handle, cardName, backupDirectory) {
-    const jsonlData = chatData?.map(m => JSON.stringify(m)).join('\n');
-
-    const doIntegrityCheck = (checkIntegrity && !skipIntegrityCheck);
-    const chatIntegritySlug = doIntegrityCheck ? chatData?.[0]?.chat_metadata?.integrity : undefined;
-
-    if (chatIntegritySlug && !await checkChatIntegrity(filePath, chatIntegritySlug)) {
-        throw new IntegrityMismatchError(`Chat integrity check failed for "${filePath}". The expected integrity slug was "${chatIntegritySlug}".`);
-    }
-    tryWriteFileSync(filePath, jsonlData);
-    getBackupFunction(handle)(backupDirectory, cardName, jsonlData);
+export async function trySaveChat(chatData, filePath, skipIntegrityCheck = false, handle, cardName, backupDirectory, lifecycleRoot = path.dirname(filePath)) {
+    await withPathLocks(chatLockPaths([filePath]), async () => {
+        await assertChatWritable(filePath, lifecycleRoot);
+        const doIntegrityCheck = checkIntegrity && !skipIntegrityCheck;
+        const chatIntegritySlug = doIntegrityCheck ? chatData?.[0]?.chat_metadata?.integrity : undefined;
+        if (chatIntegritySlug && !await checkChatIntegrity(filePath, chatIntegritySlug)) {
+            throw new IntegrityMismatchError(`Chat integrity check failed for "${filePath}". The expected integrity slug was "${chatIntegritySlug}".`);
+        }
+        const jsonlData = chatData?.map(m => JSON.stringify(m)).join('\n');
+        await writeChatFile(filePath, jsonlData);
+        if (isBackupEnabled) {
+            const key = backupIdentity(handle, filePath);
+            const identity = createHash('sha256').update(key).digest('hex');
+            backupScheduler.schedule(key, backupDirectory, cardName, jsonlData, identity);
+        }
+    });
 }
 
 router.post('/save', validateAvatarUrlMiddleware, async function (request, response) {
@@ -479,12 +547,13 @@ router.post('/save', validateAvatarUrlMiddleware, async function (request, respo
         }
 
         if (Array.isArray(chatData)) {
-            await trySaveChat(chatData, chatFilePath, request.body.force, handle, cardName, request.user.directories.backups);
+            await trySaveChat(chatData, chatFilePath, request.body.force, handle, cardName, request.user.directories.backups, request.user.directories.chats);
             return response.send({ ok: true });
         } else {
             return response.status(400).send({ error: 'The request\'s body.chat is not an array.' });
         }
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
         if (error instanceof IntegrityMismatchError) {
             console.error(error.message);
             return response.status(400).send({ error: 'integrity' });
@@ -499,45 +568,37 @@ router.post('/save', validateAvatarUrlMiddleware, async function (request, respo
  * @param {string} chatFilePath The full chat file path.
  * @returns {Array}} If the chatFilePath cannot be read, this will return [].
  */
-export function getChatData(chatFilePath) {
-    let chatData = [];
-
-    const chatJSON = tryReadFileSync(chatFilePath) ?? '';
-    if (chatJSON.length > 0) {
-        const lines = chatJSON.split('\n');
-        // Iterate through the array of strings and parse each line as JSON
-        chatData = lines.map(line => tryParse(line)).filter(x => x);
-    } else {
-        console.warn(`File not found: ${chatFilePath}. The chat does not exist or is empty.`);
+export async function getChatData(chatFilePath) {
+    try {
+        const chatJSON = await fs.promises.readFile(chatFilePath, 'utf8');
+        if (chatJSON.length > 0) return chatJSON.split('\n').map(line => tryParse(line)).filter(Boolean);
+    } catch (error) {
+        if (error.code !== 'ENOENT') console.error(`Error reading ${chatFilePath}: ${error.message}`);
     }
-
-    return chatData;
+    console.warn(`File not found: ${chatFilePath}. The chat does not exist or is empty.`);
+    return [];
 }
 
-router.post('/get', validateAvatarUrlMiddleware, function (request, response) {
+router.post('/get', validateAvatarUrlMiddleware, async function (request, response) {
     try {
         const dirName = String(request.body.avatar_url).replace('.png', '');
         const directoryPath = path.join(request.user.directories.chats, dirName);
         if (!isPathUnderParent(request.user.directories.chats, directoryPath)) {
             return response.sendStatus(400);
         }
-        const chatDirExists = fs.existsSync(directoryPath);
-
-        //if no chat dir for the character is found, make one with the character name
-        if (!chatDirExists) {
-            fs.mkdirSync(directoryPath);
-            return response.send({});
-        }
-
-        if (!request.body.file_name) {
-            return response.send({});
-        }
-
         const chatFileName = `${String(request.body.file_name)}.jsonl`;
         const chatFilePath = path.join(directoryPath, sanitize(chatFileName));
-
-        return response.send(getChatData(chatFilePath));
+        return await withPathLocks(chatLockPaths([chatFilePath]), async () => {
+            await assertChatWritable(chatFilePath, request.user.directories.chats);
+            if (!fs.existsSync(directoryPath)) {
+                await fs.promises.mkdir(directoryPath, { recursive: true });
+                return response.send({});
+            }
+            if (!request.body.file_name) return response.send({});
+            return response.send(await getChatData(chatFilePath));
+        });
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
         console.error(error);
         return response.send({});
     }
@@ -561,22 +622,20 @@ router.post('/rename', validateAvatarUrlMiddleware, async function (request, res
         console.debug('Old chat name', pathToOriginalFile);
         console.debug('New chat name', pathToRenamedFile);
 
-        if (!fs.existsSync(pathToOriginalFile) || fs.existsSync(pathToRenamedFile)) {
-            console.error('Either Source or Destination files are not available');
-            return response.status(400).send({ error: true });
-        }
-
-        fs.copyFileSync(pathToOriginalFile, pathToRenamedFile);
-        fs.unlinkSync(pathToOriginalFile);
+        const lifecycleRoot = request.body.is_group ? request.user.directories.groupChats : request.user.directories.chats;
+        await withPathLocks(chatLockPaths([pathToOriginalFile, pathToRenamedFile]), async () => {
+            await renameChatFile(pathToOriginalFile, pathToRenamedFile, lifecycleRoot);
+        });
         console.info('Successfully renamed chat file.');
         return response.send({ ok: true, sanitizedFileName });
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
         console.error('Error renaming chat file:', error);
         return response.status(500).send({ error: true });
     }
 });
 
-router.post('/delete', validateAvatarUrlMiddleware, function (request, response) {
+router.post('/delete', validateAvatarUrlMiddleware, async function (request, response) {
     try {
         if (!path.extname(request.body.chatfile)) {
             request.body.chatfile += '.jsonl';
@@ -588,14 +647,13 @@ router.post('/delete', validateAvatarUrlMiddleware, function (request, response)
         if (!isPathUnderParent(request.user.directories.chats, chatFilePath)) {
             return response.sendStatus(400);
         }
-        //Return success if the file was deleted.
-        if (tryDeleteFile(chatFilePath)) {
-            return response.send({ ok: true });
-        } else {
-            console.error('The chat file was not deleted.');
-            return response.sendStatus(400);
-        }
+        await withPathLocks(chatLockPaths([chatFilePath]), async () => {
+            await recycleRetiredChat(chatFilePath, request.user.directories.chats);
+        });
+        return response.send({ ok: true });
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
+        if (error.code === 'ENOENT') return response.sendStatus(400);
         console.error(error);
         return response.sendStatus(500);
     }
@@ -612,68 +670,95 @@ router.post('/export', validateAvatarUrlMiddleware, async function (request, res
     if (!request.body.is_group && !isPathUnderParent(request.user.directories.chats, filename)) {
         return response.sendStatus(400);
     }
-    let exportfilename = request.body.exportfilename;
-    if (!fs.existsSync(filename)) {
-        const errorMessage = {
-            message: `Could not find JSONL file to export. Source chat file: ${filename}.`,
-        };
-        console.error(errorMessage.message);
-        return response.status(404).json(errorMessage);
-    }
+    const exportfilename = request.body.exportfilename;
+    const controller = new AbortController();
+    const onClose = () => { if (!response.writableFinished) controller.abort(); };
+    response.on('close', onClose);
     try {
-        // Short path for JSONL files
-        if (request.body.format === 'jsonl') {
+        await withPathLocks([
+            { path: path.dirname(filename), mode: 'shared' },
+            { path: filename, mode: 'shared' },
+        ], async () => {
+            if (controller.signal.aborted) return;
+            if (!fs.existsSync(filename)) {
+                return response.status(404).json({ message: `Could not find JSONL file to export. Source chat file: ${filename}.` });
+            }
+            const raw = request.body.format === 'jsonl';
+            let lineNumber = 0;
+            let parsingLine = false;
+            async function* converted() {
+                const input = fs.createReadStream(filename, { encoding: 'utf8', signal: controller.signal });
+                let lines;
+                try {
+                    if (raw) {
+                        // JSONL has always been a byte-preserving UTF-8 export, without row parsing.
+                        yield* input;
+                        return;
+                    }
+                    lines = readline.createInterface({ input, crlfDelay: Infinity });
+                    for await (let line of lines) {
+                        lineNumber++;
+                        if (lineNumber === 1) line = line.replace(/^\uFEFF/, '');
+                        if (!line.trim()) continue;
+                        parsingLine = true;
+                        const data = JSON.parse(line);
+                        if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid chat JSONL object');
+                        if (!data.is_system && data.mes) {
+                            const message = (data?.extra?.display_text || data.mes).replace(/\r?\n/g, '\n');
+                            yield `${data.name}: ${message}\n\n`;
+                        }
+                        parsingLine = false;
+                    }
+                } finally {
+                    lines?.close();
+                    input.destroy();
+                }
+            }
             try {
-                const rawFile = fs.readFileSync(filename, 'utf8');
-                const successMessage = {
-                    message: `Chat saved to ${exportfilename}`,
-                    result: rawFile,
-                };
-
-                console.info(`Chat exported as ${exportfilename}`);
-                return response.status(200).json(successMessage);
-            } catch (err) {
-                console.error(err);
-                const errorMessage = {
-                    message: `Could not read JSONL file to export. Source chat file: ${filename}.`,
-                };
-                console.error(errorMessage.message);
-                return response.status(500).json(errorMessage);
+                // Validate conversion before sending any headers or export bytes.
+                for await (const chunk of converted()) { void chunk; }
+            } catch (error) {
+                if (controller.signal.aborted) return;
+                console.error('Chat export validation failed.', error);
+                if (raw) return response.status(500).json({ message: `Could not read JSONL file to export. Source chat file: ${filename}.` });
+                return response.status(parsingLine ? 400 : 500).json({
+                    message: parsingLine ? 'Invalid chat JSONL row.' : 'Could not read chat JSONL file.',
+                    line: parsingLine ? lineNumber : lineNumber + 1,
+                });
             }
-        }
-
-        const readStream = fs.createReadStream(filename);
-        const rl = readline.createInterface({
-            input: readStream,
-        });
-        let buffer = '';
-        rl.on('line', (line) => {
-            const data = JSON.parse(line);
-            // Skip non-printable/prompt-hidden messages
-            if (data.is_system) {
-                return;
+            lineNumber = 0;
+            parsingLine = false;
+            async function* envelope() {
+                yield `{"message":${JSON.stringify(`Chat saved to ${exportfilename}`)},"result":"`;
+                for await (const chunk of converted()) yield JSON.stringify(chunk).slice(1, -1);
+                yield '"}';
             }
-            if (data.mes) {
-                const name = data.name;
-                const message = (data?.extra?.display_text || data?.mes || '').replace(/\r?\n/g, '\n');
-                buffer += (`${name}: ${message}\n\n`);
-            }
-        });
-        rl.on('close', () => {
-            const successMessage = {
-                message: `Chat saved to ${exportfilename}`,
-                result: buffer,
-            };
+            response.status(200).set('Content-Type', 'application/json; charset=utf-8');
+            // A pass-two I/O failure must destroy the response, never complete a truncated 200.
+            await pipeline(Readable.from(envelope()), response, { signal: controller.signal });
             console.info(`Chat exported as ${exportfilename}`);
-            return response.status(200).json(successMessage);
         });
-    } catch (err) {
-        console.error('chat export failed.', err);
-        return response.sendStatus(400);
+    } catch (error) {
+        if (controller.signal.aborted) return;
+        console.error('Chat export failed.', error);
+        if (response.headersSent) response.destroy(error);
+        else response.sendStatus(500);
+    } finally {
+        response.off('close', onClose);
     }
 });
 
-router.post('/group/import', function (request, response) {
+function validateImportedChat(data) {
+    const lines = data.split('\n').filter(line => line.trim());
+    if (!lines.length) throw new Error('Empty chat import');
+    const objects = lines.map(line => JSON.parse(line));
+    if (objects.some(value => !value || typeof value !== 'object' || Array.isArray(value))) throw new Error('Invalid chat JSONL object');
+    const header = objects[0];
+    if (!(header.user_name !== undefined || header.name !== undefined || header.chat_metadata !== undefined)) throw new Error('Invalid chat header');
+    return data;
+}
+
+router.post('/group/import', async function (request, response) {
     try {
         const filedata = request.file;
 
@@ -681,25 +766,36 @@ router.post('/group/import', function (request, response) {
             return response.sendStatus(400);
         }
 
-        const chatname = humanizedDateTime();
+        const chatname = `${humanizedDateTime()}-${randomUUID()}`;
         const pathToUpload = path.join(filedata.destination, filedata.filename);
         const pathToNewFile = path.join(request.user.directories.groupChats, `${chatname}.jsonl`);
-        fs.copyFileSync(pathToUpload, pathToNewFile);
-        fs.unlinkSync(pathToUpload);
+        const data = validateImportedChat(await fs.promises.readFile(pathToUpload, 'utf8'));
+        await withPathLocks(chatLockPaths([pathToNewFile]), async () => {
+            await usingRetiredPathReuse(pathToNewFile, request.user.directories.groupChats, async () => {
+                await assertChatWritable(pathToNewFile, request.user.directories.groupChats);
+                await createChatFileExclusive(pathToNewFile, data);
+            });
+        });
+        // Publication is complete. Failure to archive the upload leaves it in place.
+        await recycleChatPath(pathToUpload).catch(error => console.error('Imported upload retained in place', error));
         return response.send({ res: chatname });
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
         console.error(error);
-        return response.send({ error: true });
+        return response.status(400).send({ error: true });
     }
 });
 
-router.post('/import', validateAvatarUrlMiddleware, function (request, response) {
-    if (!request.body) return response.sendStatus(400);
+router.post('/import', validateAvatarUrlMiddleware, async function (request, response) {
+    if (!request.body || typeof request.body.avatar_url !== 'string' || !request.body.avatar_url
+        || (request.body.character_name !== undefined && typeof request.body.character_name !== 'string')
+        || (request.body.user_name !== undefined && typeof request.body.user_name !== 'string')) return response.sendStatus(400);
 
     const format = request.body.file_type;
+    if (!['json', 'jsonl'].includes(format)) return response.status(400).send({ error: 'unsupported_format' });
     const avatarUrl = (request.body.avatar_url).replace('.png', '');
-    const characterName = sanitize(request.body.character_name) || 'Character';
-    const userName = sanitize(request.body.user_name) || 'User';
+    const characterName = sanitize(request.body.character_name ?? '') || 'Character';
+    const userName = sanitize(request.body.user_name ?? '') || 'User';
     const fileNames = [];
 
     if (!request.file) {
@@ -713,10 +809,10 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
 
     try {
         const pathToUpload = path.join(request.file.destination, request.file.filename);
-        const data = fs.readFileSync(pathToUpload, 'utf8');
+        const data = await fs.promises.readFile(pathToUpload, 'utf8');
+        let importedChats;
 
         if (format === 'json') {
-            fs.unlinkSync(pathToUpload);
             const jsonData = JSON.parse(data);
 
             /** @type {function(string, string, object): string|string[]} */
@@ -734,25 +830,11 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
                 importFunc = importRisuChat;
             } else { // Unknown format
                 console.error('Incorrect chat format .json');
-                return response.send({ error: true });
+                return response.status(400).send({ error: true });
             }
-
-            const handleChat = (chat) => {
-                const fileName = `${characterName} - ${humanizedDateTime()} imported.jsonl`;
-                const filePath = path.join(directoryPath, fileName);
-                fileNames.push(fileName);
-                writeFileAtomicSync(filePath, chat, 'utf8');
-            };
 
             const chat = importFunc(userName, characterName, jsonData);
-
-            if (Array.isArray(chat)) {
-                chat.forEach(handleChat);
-            } else {
-                handleChat(chat);
-            }
-
-            return response.send({ res: true, fileNames });
+            importedChats = Array.isArray(chat) ? chat : [chat];
         }
 
         if (format === 'jsonl') {
@@ -763,7 +845,7 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
 
             if (!(jsonData.user_name !== undefined || jsonData.name !== undefined || jsonData.chat_metadata !== undefined)) {
                 console.error('Incorrect chat format .jsonl');
-                return response.send({ error: true });
+                return response.status(400).send({ error: true });
             }
 
             // Do a tiny bit of work to import Chub Chat data
@@ -777,32 +859,55 @@ router.post('/import', validateAvatarUrlMiddleware, function (request, response)
                 console.warn('Failed to flatten Chub Chat data: ', error);
             }
 
-            const fileName = `${characterName} - ${humanizedDateTime()} imported.jsonl`;
-            const filePath = path.join(directoryPath, fileName);
-            fileNames.push(fileName);
-            if (flattenedChat !== data) {
-                writeFileAtomicSync(filePath, flattenedChat, 'utf8');
-            } else {
-                fs.copyFileSync(pathToUpload, filePath);
-            }
-            fs.unlinkSync(pathToUpload);
-            response.send({ res: true, fileNames });
+            importedChats = [flattenedChat];
         }
+        if (!importedChats?.length) return response.status(400).send({ error: 'empty_import' });
+        // Validate the complete batch before publishing any destination.
+        importedChats.forEach(validateImportedChat);
+        importedChats.forEach(() => fileNames.push(`${characterName} - ${humanizedDateTime()}-${randomUUID()} imported.jsonl`));
+        const paths = fileNames.map(name => path.join(directoryPath, name));
+        await withPathLocks(chatLockPaths(paths), async () => {
+            await usingRetiredPathReuses(paths.map(filePath => ({ filePath, lifecycleRoot: request.user.directories.chats })), async () => {
+                const published = [];
+                try {
+                    for (let index = 0; index < paths.length; index++) {
+                        await assertChatWritable(paths[index], request.user.directories.chats);
+                        await createChatFileExclusive(paths[index], importedChats[index]);
+                        published.push(paths[index]);
+                    }
+                } catch (error) {
+                    for (const candidate of published) await recycleChatPath(candidate, request.user.directories.chats).catch(recoveryError => console.error('Failed import candidate retained in place', recoveryError));
+                    throw error;
+                }
+            });
+        });
+        await recycleChatPath(pathToUpload).catch(error => console.error('Imported upload retained in place', error));
+        return response.send({ res: true, fileNames });
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
         console.error(error);
-        return response.send({ error: true });
+        return response.status(400).send({ error: true });
     }
 });
 
-router.post('/group/get', (request, response) => {
+router.post('/group/get', async (request, response) => {
     if (!request.body || !request.body.id) {
         return response.sendStatus(400);
     }
 
     const id = request.body.id;
-    const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+    if (!isValidGroupChatId(id)) return response.sendStatus(400);
+    const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
 
-    return response.send(getChatData(chatFilePath));
+    try {
+        return await withPathLocks(chatLockPaths([chatFilePath]), async () => {
+            await assertChatWritable(chatFilePath, request.user.directories.groupChats);
+            return response.send(await getChatData(chatFilePath));
+        });
+    } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
+        console.error(error); return response.sendStatus(500);
+    }
 });
 
 router.post('/group/info', async (request, response) => {
@@ -812,33 +917,38 @@ router.post('/group/info', async (request, response) => {
         }
 
         const id = request.body.id;
-        const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+        if (!isValidGroupChatId(id)) return response.sendStatus(400);
+        const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
 
-        const chatInfo = await getChatInfo(chatFilePath);
+        const chatInfo = await withPathLocks(chatLockPaths([chatFilePath]), async () => {
+            await assertChatWritable(chatFilePath, request.user.directories.groupChats);
+            return getChatInfo(chatFilePath);
+        });
         return response.send(chatInfo);
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason });
         console.error(error);
         return response.sendStatus(500);
     }
 });
 
-router.post('/group/delete', (request, response) => {
+router.post('/group/delete', async (request, response) => {
     try {
         if (!request.body || !request.body.id) {
             return response.sendStatus(400);
         }
 
         const id = request.body.id;
-        const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+        if (!isValidGroupChatId(id)) return response.sendStatus(400);
+        const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
 
-        //Return success if the file was deleted.
-        if (tryDeleteFile(chatFilePath)) {
-            return response.send({ ok: true });
-        } else {
-            console.error('The group chat file was not deleted.');
-            return response.sendStatus(400);
-        }
+        await withPathLocks(chatLockPaths([chatFilePath]), async () => {
+            await recycleRetiredChat(chatFilePath, request.user.directories.groupChats);
+        });
+        return response.send({ ok: true });
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
+        if (error.code === 'ENOENT') return response.sendStatus(400);
         console.error(error);
         return response.sendStatus(500);
     }
@@ -851,17 +961,19 @@ router.post('/group/save', async function (request, response) {
         }
 
         const id = request.body.id;
+        if (!isValidGroupChatId(id)) return response.sendStatus(400);
         const handle = request.user.profile.handle;
-        const chatFilePath = path.join(request.user.directories.groupChats, sanitize(`${id}.jsonl`));
+        const chatFilePath = path.join(request.user.directories.groupChats, `${id}.jsonl`);
         const chatData = request.body.chat;
 
         if (Array.isArray(chatData)) {
-            await trySaveChat(chatData, chatFilePath, request.body.force, handle, String(id), request.user.directories.backups);
+            await trySaveChat(chatData, chatFilePath, request.body.force, handle, String(id), request.user.directories.backups, request.user.directories.groupChats);
             return response.send({ ok: true });
         } else {
             return response.status(400).send({ error: 'The request\'s body.chat is not an array.' });
         }
     } catch (error) {
+        if (error instanceof ChatLifecycleError) return response.status(409).send({ error: 'chat_lifecycle', reason: error.reason, action: 'reload_or_save_as' });
         if (error instanceof IntegrityMismatchError) {
             console.error(error.message);
             return response.status(400).send({ error: 'integrity' });
@@ -903,9 +1015,14 @@ router.post('/search', validateAvatarUrlMiddleware, async function (request, res
 
             // Find group chat files for given group ID
             const groupChatsDir = path.join(request.user.directories.groupChats);
-            chatFiles = targetGroup.chats
-                .map(chatId => path.join(groupChatsDir, `${chatId}.jsonl`))
-                .filter(fileName => fs.existsSync(fileName));
+            for (const chatId of targetGroup.chats) {
+                try {
+                    const file = await resolveGroupChatPath(groupChatsDir, chatId);
+                    if (fs.existsSync(file)) chatFiles.push(file);
+                } catch (error) {
+                    if (!(error instanceof ChatLifecycleError)) throw error;
+                }
+            }
         } else {
             // Regular character chat directory
             const character_name = avatar_url.replace('.png', '');
@@ -916,7 +1033,7 @@ router.post('/search', validateAvatarUrlMiddleware, async function (request, res
             }
 
             chatFiles = fs.readdirSync(directoryPath)
-                .filter(file => path.extname(file) === '.jsonl')
+                .filter(file => !isLifecycleInternalName(file) && path.extname(file) === '.jsonl')
                 .map(fileName => path.join(directoryPath, fileName));
         }
 
@@ -943,7 +1060,7 @@ router.post('/search', validateAvatarUrlMiddleware, async function (request, res
         };
 
         for (const chatFile of chatFiles) {
-            const matcher = query ? hasTextMatch : null;
+            const matcher = query ? createTextMatcher(fragments) : null;
             const chatInfo = await getChatInfo(chatFile, {}, false, matcher);
             const hasMatch = chatInfo.match || hasTextMatch([chatInfo.file_id ?? '']);
 
@@ -986,7 +1103,7 @@ router.post('/recent', async function (request, response) {
 
         const getCharacterChatFiles = async () => {
             const pngDirents = await fs.promises.readdir(request.user.directories.characters, { withFileTypes: true });
-            const pngFiles = pngDirents.filter(e => e.isFile() && path.extname(e.name) === '.png').map(e => e.name);
+            const pngFiles = pngDirents.filter(e => e.isFile() && !isLifecycleInternalName(e.name) && path.extname(e.name) === '.png').map(e => e.name);
 
             for (const pngFile of pngFiles) {
                 const chatsDirectory = pngFile.replace('.png', '');
@@ -997,7 +1114,7 @@ router.post('/recent', async function (request, response) {
                 const pathStats = await fs.promises.stat(pathToChats);
                 if (pathStats.isDirectory()) {
                     const chatFiles = await fs.promises.readdir(pathToChats);
-                    const jsonlFiles = chatFiles.filter(file => path.extname(file) === '.jsonl');
+                    const jsonlFiles = chatFiles.filter(file => !isLifecycleInternalName(file) && path.extname(file) === '.jsonl');
 
                     for (const file of jsonlFiles) {
                         const filePath = path.join(pathToChats, file);
@@ -1010,7 +1127,7 @@ router.post('/recent', async function (request, response) {
 
         const getGroupChatFiles = async () => {
             const groupDirents = await fs.promises.readdir(request.user.directories.groups, { withFileTypes: true });
-            const groups = groupDirents.filter(e => e.isFile() && path.extname(e.name) === '.json').map(e => e.name);
+            const groups = groupDirents.filter(e => e.isFile() && !isLifecycleInternalName(e.name) && path.extname(e.name) === '.json').map(e => e.name);
 
             for (const group of groups) {
                 try {
@@ -1020,7 +1137,12 @@ router.post('/recent', async function (request, response) {
 
                     if (Array.isArray(groupData.chats)) {
                         for (const chat of groupData.chats) {
-                            const filePath = path.join(request.user.directories.groupChats, `${chat}.jsonl`);
+                            let filePath;
+                            try { filePath = await resolveGroupChatPath(request.user.directories.groupChats, chat); }
+                            catch (error) {
+                                if (error instanceof ChatLifecycleError) continue;
+                                throw error;
+                            }
                             if (!fs.existsSync(filePath)) {
                                 continue;
                             }
@@ -1037,7 +1159,7 @@ router.post('/recent', async function (request, response) {
 
         const getRootChatFiles = async () => {
             const dirents = await fs.promises.readdir(request.user.directories.chats, { withFileTypes: true });
-            const chatFiles = dirents.filter(e => e.isFile() && path.extname(e.name) === '.jsonl').map(e => e.name);
+            const chatFiles = dirents.filter(e => e.isFile() && !isLifecycleInternalName(e.name) && path.extname(e.name) === '.jsonl').map(e => e.name);
 
             for (const file of chatFiles) {
                 const filePath = path.join(request.user.directories.chats, file);
@@ -1062,8 +1184,8 @@ router.post('/recent', async function (request, response) {
         const jsonFilesPromise = recentChats.map((file) => {
             const withMetadata = !!request.body.metadata;
             return file.groupId
-                ? getChatInfo(file.filePath, { group: file.groupId }, withMetadata)
-                : getChatInfo(file.filePath, { avatar: file.pngFile }, withMetadata);
+                ? getRecentChatInfo(file.filePath, { group: file.groupId }, withMetadata)
+                : getRecentChatInfo(file.filePath, { avatar: file.pngFile }, withMetadata);
         });
 
         const chatData = (await Promise.allSettled(jsonFilesPromise)).filter(x => x.status === 'fulfilled').map(x => x.value);
@@ -1075,3 +1197,5 @@ router.post('/recent', async function (request, response) {
         return response.sendStatus(500);
     }
 });
+
+trackPersistenceRouter(router);

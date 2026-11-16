@@ -1,0 +1,75 @@
+{
+  "side": "head",
+  "scenario": "short",
+  "dimensions": {
+    "messages": 100,
+    "tokens": 500,
+    "smooth": false,
+    "reasoning": false,
+    "mode": "send"
+  },
+  "iteration": 6,
+  "discarded": false,
+  "status": "ok",
+  "metrics": {
+    "frameP50Ms": 16.7,
+    "frameP95Ms": 16.8,
+    "frameP99Ms": 50,
+    "framesOver16_7Pct": 9.774436090225564,
+    "framesOver33Pct": 4.511278195488721,
+    "loafCount": 2,
+    "loafTotalMs": 355.7999999988824,
+    "loafScriptmessageFormattingMs": 0,
+    "loafScriptDOMPurifyMs": 0,
+    "loafScriptkeyboardMs": 27.199999999254942,
+    "loafScriptotherMs": 314.1000000014901,
+    "formatP50Ms": 1.099999999627471,
+    "formatP95Ms": 2.300000000745058,
+    "domP50Ms": 0.19999999925494194,
+    "domP95Ms": 0.30000000074505806,
+    "reasoningP95Ms": 0.10000000149011612,
+    "scrollCallP95Ms": 0.09999999962747097,
+    "updatesPerSecond": 20.65891634244535,
+    "firstTokenMs": 191.218505859375,
+    "finishMs": 307.379638671875,
+    "typingP50Ms": 16,
+    "typingP95Ms": 20.800048828125,
+    "scrollStolen": 0
+  },
+  "dom": {
+    "incremental": 50,
+    "full": 109,
+    "fade": 0,
+    "frames": 51
+  },
+  "samples": {
+    "frames": 173,
+    "keys": 12,
+    "hooks": 183
+  },
+  "settings": {
+    "chat_truncation": 100,
+    "streaming_fps": 30,
+    "smooth_streaming": false,
+    "smooth_streaming_speed": 50,
+    "stream_fade_in": false,
+    "show_thoughts": true,
+    "stream_openai": true,
+    "source": "custom",
+    "documentFocused": true,
+    "reasoning_auto_expand": false
+  },
+  "generation": {
+    "receivedEpochMs": 1793282847717.2815,
+    "receivedNs": "8566649233718",
+    "path": "/v1/chat/completions",
+    "model": "startup-synthetic",
+    "messageCount": 18,
+    "chunks": 255,
+    "firstChunkEpochMs": 1793282847729.5527,
+    "lastChunkEpochMs": 1793282850198.2205,
+    "doneEpochMs": 1793282850198.2412,
+    "requestBodySha256": "921dd523069c48e9ad57eb57a25c7ebd3483b57a21d835203adcb7d8d2aa1868"
+  },
+  "finalTextSha256": "adbb1ff4df06ceec291aa7c6d35b508d1f4f9f5b6a84565894e4eed48aab1df2"
+}

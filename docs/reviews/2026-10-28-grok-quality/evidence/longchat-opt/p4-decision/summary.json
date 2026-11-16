@@ -1,0 +1,305 @@
+{
+  "baseRevision": "c612e0283173a399c11dd8f3d860dcc958f3add2",
+  "headRevision": "uncommitted P4 working tree",
+  "productSourceSha256": "8c1fc62beaa46c54092f4fd16e34f6c3c8243c14f1c28c4bc42fdc41383392d4",
+  "environment": {
+    "node": "24.22.1",
+    "chromium": "156.0.8078.4",
+    "platform": "Linux headless",
+    "messages": 2000,
+    "truncation": 100,
+    "shapeSeed": 20261028,
+    "extensionsEnabled": false
+  },
+  "baseNoLoad": {
+    "sendMs": {
+      "n": 7,
+      "values": [
+        459.7495070011064,
+        612.3889179980324,
+        446.06153499989887,
+        394.47952499904204,
+        398.988589997316,
+        381.7537930008257,
+        387.8883830002451
+      ],
+      "median": 398.988589997316,
+      "p95": 612.3889179980324
+    },
+    "domNodes": {
+      "n": 7,
+      "values": [
+        14035,
+        14035,
+        14035,
+        14035,
+        14035,
+        14035,
+        14035
+      ],
+      "median": 14035,
+      "p95": 14035
+    },
+    "messages": {
+      "n": 7,
+      "values": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "median": 100,
+      "p95": 100
+    }
+  },
+  "baseTenLoads": {
+    "sendMs": {
+      "n": 7,
+      "values": [
+        1487.4398129977635,
+        1454.2614660022082,
+        1666.502305000904,
+        1034.8454329978267,
+        909.4762409986288,
+        1704.8404180022771,
+        1701.9859129977704
+      ],
+      "median": 1487.4398129977635,
+      "p95": 1704.8404180022771
+    },
+    "domNodes": {
+      "n": 7,
+      "values": [
+        87858,
+        87858,
+        87858,
+        87858,
+        87858,
+        87858,
+        87858
+      ],
+      "median": 87858,
+      "p95": 87858
+    },
+    "messages": {
+      "n": 7,
+      "values": [
+        1100,
+        1100,
+        1100,
+        1100,
+        1100,
+        1100,
+        1100
+      ],
+      "median": 1100,
+      "p95": 1100
+    }
+  },
+  "headTenLoads": {
+    "sendMs": {
+      "n": 5,
+      "values": [
+        763.9363650014275,
+        1060.3619110006548,
+        2215.3793919969758,
+        1834.2079639987787,
+        996.5840699987893
+      ],
+      "median": 1060.3619110006548,
+      "p95": 2215.3793919969758
+    },
+    "domNodes": {
+      "n": 5,
+      "values": [
+        43627,
+        43684,
+        43684,
+        43684,
+        43684
+      ],
+      "median": 43684,
+      "p95": 43684
+    },
+    "messages": {
+      "n": 5,
+      "values": [
+        501,
+        501,
+        501,
+        501,
+        501
+      ],
+      "median": 501,
+      "p95": 501
+    }
+  },
+  "decisionRatioBOverA": {
+    "ratio": 3.7280259393076114,
+    "percentile95CI": [
+      2.3199611528890545,
+      4.314510146000362
+    ],
+    "seed": 20261029,
+    "resamples": 50000,
+    "method": "independent resampling, ratio of medians, nearest-rank percentiles"
+  },
+  "p4Required": true,
+  "headOverLoadedBase": {
+    "ratio": 0.7128771878598689,
+    "percentile95CI": [
+      0.5135914464073688,
+      1.772446305034455
+    ],
+    "seed": 20261029,
+    "resamples": 50000,
+    "method": "independent resampling, ratio of medians, nearest-rank percentiles"
+  },
+  "headOverNoLoadBase": {
+    "ratio": 2.657624647882256,
+    "percentile95CI": [
+      1.7315171451291052,
+      5.552488084964732
+    ],
+    "seed": 20261029,
+    "resamples": 50000,
+    "method": "independent resampling, ratio of medians, nearest-rank percentiles"
+  },
+  "targetMsExclusive": 598.482884995974,
+  "latencyAcceptanceMet": false,
+  "headBeforeSend": {
+    "sendMs": {
+      "n": 5,
+      "values": [
+        763.9363650014275,
+        1060.3619110006548,
+        2215.3793919969758,
+        1834.2079639987787,
+        996.5840699987893
+      ],
+      "median": 1060.3619110006548,
+      "p95": 2215.3793919969758
+    },
+    "domNodes": {
+      "n": 5,
+      "values": [
+        87858,
+        87915,
+        87915,
+        87915,
+        87915
+      ],
+      "median": 87915,
+      "p95": 87915
+    },
+    "messages": {
+      "n": 5,
+      "values": [
+        1100,
+        1100,
+        1100,
+        1100,
+        1100
+      ],
+      "median": 1100,
+      "p95": 1100
+    }
+  },
+  "inputIndex": [
+    {
+      "path": "runs/a-0/run-2000-100-0.json",
+      "sha256": "f89da9caa65419341ab8ba76c2840b78d489e79deec16a3b30c4ba6c8c8e9ba3"
+    },
+    {
+      "path": "runs/a-1/run-2000-100-0.json",
+      "sha256": "03f5292a9f63154f7bfe05ce396f84f65f1fa50d881343a54e7ac2f3141756df"
+    },
+    {
+      "path": "runs/a-2/run-2000-100-0.json",
+      "sha256": "e51418fe6479a18e4bb453d5d49927c45592544adf302996a198ec63d37fa5a4"
+    },
+    {
+      "path": "runs/a-3/run-2000-100-0.json",
+      "sha256": "f2b6bef7c67251553e059f69139760cf0e46c61addfd9d6c49026e76ccb14303"
+    },
+    {
+      "path": "runs/a-4/run-2000-100-0.json",
+      "sha256": "62bdb85baf1db139059adacc728ae5d005b65c12fd3c3f42b6ece531d930fe08"
+    },
+    {
+      "path": "runs/a-5/run-2000-100-0.json",
+      "sha256": "ec44d1642a6b26acc3742f51f7e2052de4f59840300c89b0d78896d4caa20272"
+    },
+    {
+      "path": "runs/a-6/run-2000-100-0.json",
+      "sha256": "c66cab83b6eed4dd9eed4974eb65a51498dde824403c00e336a93de95acb8417"
+    },
+    {
+      "path": "runs/b-0/run-2000-100-0.json",
+      "sha256": "04af94d13979dfedf776e47c318de3208a357a44b21b7f67936657083f5fb4b7"
+    },
+    {
+      "path": "runs/b-1/run-2000-100-0.json",
+      "sha256": "0e38e056a0f6b6f28bd092cad09c136b4d07bf62a051c7f10669d7aaeb40923e"
+    },
+    {
+      "path": "runs/b-2/run-2000-100-0.json",
+      "sha256": "d9f929a59f3ee70d21109bc1299902fe012f256de1ae21128d858ff76a843bea"
+    },
+    {
+      "path": "runs/b-3/run-2000-100-0.json",
+      "sha256": "937a78a5d7d884109a66dadca97274f81c72b17751a41b44c58cfb62907d0544"
+    },
+    {
+      "path": "runs/b-4/run-2000-100-0.json",
+      "sha256": "20d74443ab4d280d28ec1275cd26775fcb5ea967c4f6890e7e9479d780ab8a5f"
+    },
+    {
+      "path": "runs/b-5/run-2000-100-0.json",
+      "sha256": "95137a007dff02a063a1903181429000b2aede0b303bc8b70ecd5903e40cb232"
+    },
+    {
+      "path": "runs/b-6/run-2000-100-0.json",
+      "sha256": "f95285e656526fe98f3cdfcd6d9b11ac5211a3da6183738600d501ac2bdf3dd7"
+    },
+    {
+      "path": "head-10/run-2000-100-0.json",
+      "sha256": "16a86c5be35f7b0cff6c4d165945f0f6ef034086dc9beed31fef24acef50154e"
+    },
+    {
+      "path": "head-10/run-2000-100-1.json",
+      "sha256": "4cdb2ac72e185159232b5141f3b4b8ea08d20d45ce74c9835d49198c9e812d5f"
+    },
+    {
+      "path": "head-10/run-2000-100-2.json",
+      "sha256": "81a783416fe28187d63086477d71cb795ce5fe8a94257bded0d07f931014567b"
+    },
+    {
+      "path": "head-10/run-2000-100-3.json",
+      "sha256": "df03c98b8d86a44f81261f04ef5667c41e603bc0d1c7409b5a0778e0d118b57a"
+    },
+    {
+      "path": "head-10/run-2000-100-4.json",
+      "sha256": "fe45be556174869fa5cf41f4b538ece5ab309107a16021ac5c93adda4a5d5a6a"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "runs/b-6/run-2000-100-1.json",
+      "reason": "Additional CPU-profiled run; retained, excluded from ordinary latency statistics."
+    }
+  ],
+  "notes": [
+    "Reused every supplied ordinary gate run; no gate remeasurement.",
+    "Head samples are before/after against existing baseline, not contemporaneously interleaved A/B.",
+    "Trim runs inside send before save; the original fill/input-through-save-response timer includes its cost.",
+    "afterSend is outside the send timer; 500 old messages plus the newly appended message remain.",
+    "All five samples retained, including high-latency samples; no rerun-to-green.",
+    "A second equivalence process was started then interrupted before any open/timing record; timing runs were completed before subsequent equivalence checks.",
+    "Report generation initially failed on unavailable frame values; fixed and regenerated from saved JSON without new measurements.",
+    "First three-load equivalence failed solely on a transient success toast in computed Tab order. The harness now waits for actual toast expiry. Failed comparison retained."
+  ]
+}

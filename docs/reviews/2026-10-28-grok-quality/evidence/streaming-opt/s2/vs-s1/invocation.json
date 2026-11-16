@@ -1,0 +1,66 @@
+{
+  "args": {
+    "scenario": "main",
+    "runs": 10,
+    "output": "docs/reviews/2026-10-28-grok-quality/evidence/streaming-opt/s2/vs-s1",
+    "node": "/usr/local/lib/nodejs/node",
+    "python": "/tmp/pw-venv/bin/python",
+    "rate": 200,
+    "seed": "opus-streaming-s0",
+    "jitter": 0.25,
+    "base": "6465e75",
+    "head": "WORKTREE"
+  },
+  "scenarios": [
+    [
+      "main",
+      {
+        "messages": 2000,
+        "tokens": 3000,
+        "smooth": false,
+        "reasoning": false,
+        "mode": "send"
+      }
+    ]
+  ],
+  "products": {
+    "base": {
+      "revision": "6465e75862930e9b9da51f72e963d6cf30c6987b",
+      "lab": {
+        "dataRoot": "<tmp>/base/data",
+        "configPath": "<tmp>/base/config.yaml",
+        "port": 38977
+      }
+    },
+    "head": {
+      "revision": "WORKTREE",
+      "lab": {
+        "dataRoot": "<tmp>/head/data",
+        "configPath": "<tmp>/head/config.yaml",
+        "port": 33645
+      }
+    }
+  },
+  "temporary": "<tmp>",
+  "timingOverlaySha256": null,
+  "toolCommit": "6465e75862930e9b9da51f72e963d6cf30c6987b",
+  "sourceSha256": {
+    "scripts/measure-streaming.mjs": "1020fc963fed5a9e006ddfccdeb69bdc16b92a28d14fa49659e5043fb31e75a1",
+    "scripts/fake-openai-endpoint.mjs": "956d65379872e9c0e62932bc20295256bd7681c22699fb488f21c2feaa39bbb0",
+    "scripts/measure-streaming-browser.py": "3b9aff4eb9e5351047f871b2131ccf97eaf156f0c9ab8013a86013b1b7c166e5",
+    "scripts/streaming-browser-probe.js": "23bb78e74b306388678bae6d8973d2ed79067a4e5b794cde866c0e0d7f38b625",
+    "scripts/benchmark-statistics.mjs": "2e29a4aefce1f04a2a2990641dfc1baed6ea521e979b86ce4ff1585ca1c38945",
+    "tests/browser-longchat-perf.py": "c6b9772a9ddf270697ba887afdab9511914557f926e834a01be332c5ba01a095",
+    "tests/lab_browser.py": "6b942d461c94f78fb8d498e2dd40858fed18d7fe8b261a91aae099b8e3755fc0",
+    "public/script.js": "3c5a8d2aec746b027f7216d00a18217ddbb3abf3bab08c0d516265294e4e9116",
+    "public/scripts/reasoning.js": "7e1fae2cf1616adeab8e9c0d14d62e06878900b33425be21d97bc478b770edcf",
+    "public/scripts/streaming-perf.js": "851bc4d31efbc8d892c137e70842a28800609300a3f96d24641e8c494174184e"
+  },
+  "chromium": "156.0.8078.4",
+  "node": "v24.22.1",
+  "platform": "linux",
+  "cpus": 8,
+  "cpu": "Intel(R) Xeon(R) Processor",
+  "bootstrapSeed": "opus-round1.5",
+  "resamples": 2000
+}

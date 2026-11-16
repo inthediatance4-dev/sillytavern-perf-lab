@@ -1,0 +1,15 @@
+[
+  {
+    "scenario": "export-malformed",
+    "reproduced": false,
+    "response": {
+      "status": 400,
+      "data": {
+        "message": "Invalid chat JSONL row.",
+        "line": 2
+      }
+    },
+    "exit": 0,
+    "signal": null
+  }
+]

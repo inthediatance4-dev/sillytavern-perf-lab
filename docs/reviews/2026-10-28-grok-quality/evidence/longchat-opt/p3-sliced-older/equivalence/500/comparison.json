@@ -1,0 +1,5 @@
+{
+  "equal": true,
+  "differences": {},
+  "note": "Head repeated after the paired browser closed before its record was written. Base is the completed side of that pair."
+}

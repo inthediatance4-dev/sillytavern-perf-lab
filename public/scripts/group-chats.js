@@ -79,8 +79,11 @@ import {
     unshallowCharacter,
     chatElement,
     ensureMessageMediaIsArray,
+    handleChatLifecycleConflict,
+    captureChatLifecycleSnapshot,
 } from '../script.js';
 import { printTagList, createTagMapFromList, applyTagsOnCharacterSelect, tag_map, applyTagsOnGroupSelect, printTagFilters, tag_filter_type } from './tags.js';
+import { isItemizedPromptsRequestCurrent, reserveItemizedPrompts } from './itemized-prompts.js';
 import { FILTER_TYPES, FilterHelper } from './filters.js';
 import { isExternalMediaAllowed } from './chats.js';
 import { POPUP_TYPE, Popup, callGenericPopup } from './popup.js';
@@ -114,6 +117,7 @@ let hideMutedSprites = false;
 let groups = [];
 /** @type {string|null} */
 let selected_group = null;
+let groupChatOpenSerial = 0;
 let group_generation_id = null;
 let fav_grp_checked = false;
 let openGroupId = null;
@@ -165,26 +169,48 @@ async function _save(group, reload = true) {
 
 // Group chats
 async function regenerateGroup() {
-    let generationId = getLastMessageGenerationId();
+    if (is_send_press || is_group_generating) return;
 
-    while (chat.length > 0) {
-        const lastMes = chat[chat.length - 1];
-        const this_generationId = lastMes.extra?.gen_id;
-
-        // for new generations after the update
-        if ((generationId && this_generationId) && generationId !== this_generationId) {
-            break;
-        } else if (lastMes.is_user || lastMes.is_system) {
-            // legacy for generations before the update
-            break;
+    // This operation deletes the previous batch before its normal Generate calls.
+    // Let extensions distinguish an explicit replay from an ordinary deletion.
+    const operation = { groupId: selected_group, chatId: getCurrentChatId(), generationId: getLastMessageGenerationId() };
+    const ownerMetadata = chat_metadata;
+    const isCurrentOwner = () => selected_group === operation.groupId && getCurrentChatId() === operation.chatId && chat_metadata === ownerMetadata;
+    // Extension listeners may save metadata before the group wrapper takes over.
+    setSendButtonState(true);
+    let ownsSendLock = true;
+    try {
+        await eventSource.emit(event_types.GROUP_REGENERATION_STARTED, operation);
+        if (!isCurrentOwner() || operation.cancelled || getLastMessageGenerationId() !== operation.generationId) {
+            return;
         }
 
-        await deleteLastMessage();
-    }
+        while (chat.length > 0) {
+            if (!isCurrentOwner()) return;
+            const lastMes = chat[chat.length - 1];
+            const this_generationId = lastMes.extra?.gen_id;
 
-    const abortController = new AbortController();
-    setExternalAbortController(abortController);
-    return generateGroupWrapper(false, 'normal', { signal: abortController.signal });
+            // for new generations after the update
+            if ((operation.generationId && this_generationId) && operation.generationId !== this_generationId) {
+                break;
+            } else if (lastMes.is_user || lastMes.is_system) {
+                // legacy for generations before the update
+                break;
+            }
+
+            await deleteLastMessage();
+        }
+
+        if (!isCurrentOwner()) return;
+        const abortController = new AbortController();
+        setExternalAbortController(abortController);
+        ownsSendLock = false;
+        return await generateGroupWrapper(false, 'normal', { signal: abortController.signal });
+    } finally {
+        await eventSource.emit(event_types.GROUP_REGENERATION_FINISHED, operation);
+        // A switched chat may inherit our lock; native generation marks the body while it owns it.
+        if (ownsSendLock && (isCurrentOwner() || document.body.dataset.generating === undefined)) setSendButtonState(false);
+    }
 }
 
 /**
@@ -250,7 +276,7 @@ async function validateGroup(group) {
  * Loads the chat messages for a specific group.
  * @param {string} groupId - The ID of the group to load chat messages for.
  * @param {boolean} reload - Whether to reload the group chat after loading.
- * @returns {Promise<void>} A promise that resolves when the chat messages have been loaded.
+ * @returns {Promise<void|false>} False when a newer navigation cancels the load.
  */
 export async function getGroupChat(groupId, reload = false) {
     const group = groups.find((x) => x.id === groupId);
@@ -259,12 +285,23 @@ export async function getGroupChat(groupId, reload = false) {
         return;
     }
 
+    if (selected_group !== groupId) return false;
+    const promptRequest = reserveItemizedPrompts();
+    let chat_id = group.chat_id;
+    const ownsSelection = () => isItemizedPromptsRequestCurrent(promptRequest)
+        && selected_group === groupId && groups.find(x => x.id === groupId) === group;
+    const isCurrent = () => ownsSelection() && group.chat_id === chat_id;
+
     // Run validation before any loading
     await validateGroup(group);
+    if (!ownsSelection()) return false;
+    if (chat_id == null) chat_id = group.chat_id;
+    if (!isCurrent()) return false;
     await unshallowGroupMembers(groupId);
+    if (!isCurrent()) return false;
 
-    const chat_id = group.chat_id;
     const data = await loadGroupChat(chat_id);
+    if (!isCurrent()) return false;
     const metadata = data?.[0]?.chat_metadata ?? {};
     const freshChat = !metadata.tainted && (!Array.isArray(data) || !data.length);
 
@@ -278,7 +315,7 @@ export async function getGroupChat(groupId, reload = false) {
         metadata.integrity = uuidv4();
     }
 
-    await loadItemizedPrompts(getCurrentChatId());
+    if (await loadItemizedPrompts(chat_id, { request: promptRequest, isCurrent }) === false || !isCurrent()) return false;
 
     if (group && Array.isArray(group.members) && freshChat) {
         chat.splice(0, chat.length);
@@ -303,12 +340,14 @@ export async function getGroupChat(groupId, reload = false) {
         }
         await saveGroupChat(groupId, false);
     } else if (Array.isArray(data) && data.length) {
-        chat.splice(0, chat.length, ...data);
+        chat.splice(0, chat.length);
+        for (const message of data) chat.push(message);
         chat.forEach(ensureMessageMediaIsArray);
         chatElement.find('.mes').remove();
         await printMessages();
     }
 
+    if (!isCurrent()) return false;
     updateChatMetadata(metadata, true);
 
     if (reload) {
@@ -317,6 +356,7 @@ export async function getGroupChat(groupId, reload = false) {
 
     await eventSource.emit(event_types.CHAT_CHANGED, getCurrentChatId());
     if (freshChat) await eventSource.emit(event_types.GROUP_CHAT_CREATED);
+    if (!isCurrent()) return false;
 }
 
 /**
@@ -609,6 +649,7 @@ async function getFirstCharacterMessage(character) {
 }
 
 function resetSelectedGroup() {
+    groupChatOpenSerial++;
     selected_group = null;
     is_group_generating = false;
 }
@@ -618,13 +659,13 @@ function resetSelectedGroup() {
  * @param {string} groupId Group ID
  * @param {boolean} shouldSaveGroup Whether to save the group after saving the chat
  * @param {boolean} force Force the saving on integrity error
- * @returns {Promise<void>} A promise that resolves when the group chat has been saved.
+ * @returns {Promise<boolean>} Whether the group chat was saved
  */
 async function saveGroupChat(groupId, shouldSaveGroup, force = false) {
     const group = groups.find(x => x.id == groupId);
     if (!group) {
         console.warn('Group not found', groupId);
-        return;
+        return false;
     }
     const chatId = group.chat_id;
     group.date_last_chat = Date.now();
@@ -634,6 +675,7 @@ async function saveGroupChat(groupId, shouldSaveGroup, force = false) {
         user_name: 'unused',
         character_name: 'unused',
     };
+    const chatSnapshot = captureChatLifecycleSnapshot([chatHeader, ...chat]);
     const saveGroupChatRequest = await compressRequest({
         method: 'POST',
         headers: getRequestHeaders(),
@@ -643,11 +685,12 @@ async function saveGroupChat(groupId, shouldSaveGroup, force = false) {
 
     if (!response.ok) {
         const errorData = await response.json();
+        if (await handleChatLifecycleConflict(errorData, chatSnapshot, JSON.stringify(['group', chatId]))) return false;
         const isIntegrityError = errorData?.error === 'integrity' && !force;
         if (!isIntegrityError) {
             toastr.error(t`Check the server connection and reload the page to prevent data loss.`, t`Group Chat could not be saved`);
             console.error('Group chat could not be saved', response);
-            return;
+            return false;
         }
 
         const popupResult = await Popup.show.input(
@@ -663,15 +706,16 @@ async function saveGroupChat(groupId, shouldSaveGroup, force = false) {
         if (!forceSaveConfirmed) {
             console.warn('Chat integrity check failed, and user did not confirm the overwrite. Reloading the page.');
             window.location.reload();
-            return;
+            return false;
         }
 
-        await saveGroupChat(groupId, shouldSaveGroup, true);
+        return await saveGroupChat(groupId, shouldSaveGroup, true);
     }
 
     if (shouldSaveGroup) {
         await editGroup(groupId, false, false);
     }
+    return true;
 }
 
 /**
@@ -1908,13 +1952,14 @@ async function uploadGroupAvatar(event) {
 
     $('#dialogue_popup').addClass('large_dialogue_popup wide_dialogue_popup');
 
-    const croppedImage = await callGenericPopup('Set the crop position of the avatar image', POPUP_TYPE.CROP, '', { cropImage: result });
+    const croppedImage = power_user.never_resize_avatars ? result :
+        await callGenericPopup('Set the crop position of the avatar image', POPUP_TYPE.CROP, '', { cropImage: result });
 
     if (!croppedImage) {
         return;
     }
 
-    let thumbnail = await createThumbnail(String(croppedImage), 200, 300);
+    let thumbnail = await createThumbnail(String(croppedImage), 300, 300);
     //remove data:image/whatever;base64
     thumbnail = thumbnail.replace(/^data:image\/[a-z]+;base64,/, '');
     let _thisGroup = groups.find((x) => x.id == openGroupId);
@@ -2020,12 +2065,14 @@ export async function openGroupById(groupId) {
         return false;
     }
 
-    if (!groups.find(x => x.id === groupId)) {
+    const group = groups.find(x => x.id === groupId);
+    if (!group) {
         console.log('Group not found', groupId);
         return false;
     }
 
     if (!is_send_press && !is_group_generating) {
+        groupChatOpenSerial++;
         select_group_chats(groupId, false);
 
         if (selected_group !== groupId) {
@@ -2033,12 +2080,18 @@ export async function openGroupById(groupId) {
             setCharacterId(undefined);
             setCharacterName('');
             resetSelectedGroup();
+            const openSerial = groupChatOpenSerial;
+            const chatId = group.chat_id;
+            const metadata = chat_metadata;
             await clearChat({ clearData: true });
+            if (openSerial !== groupChatOpenSerial || selected_group !== null
+                || groups.find(x => x.id === groupId) !== group || group.chat_id !== chatId
+                || chat_metadata !== metadata) return false;
             cancelTtsPlay();
             selected_group = groupId;
             setEditedMessageId(undefined);
             updateChatMetadata({}, true);
-            await getGroupChat(groupId);
+            if (await getGroupChat(groupId) === false || openSerial !== groupChatOpenSerial) return false;
             return true;
         }
     }
@@ -2244,8 +2297,6 @@ export async function deleteGroupChatByName(groupId, chatName) {
         return;
     }
 
-    group.chats.splice(group.chats.indexOf(chatName), 1);
-
     const response = await fetch('/api/chats/group/delete', {
         method: 'POST',
         headers: getRequestHeaders(),
@@ -2257,6 +2308,7 @@ export async function deleteGroupChatByName(groupId, chatName) {
         console.error('Group chat could not be deleted');
         return;
     }
+    group.chats.splice(group.chats.indexOf(chatName), 1);
 
     // If the deleted chat was the current chat, switch to the last chat in the group
     if (group.chat_id === chatName) {
@@ -2282,13 +2334,6 @@ export async function deleteGroupChat(groupId, chatId, { jumpToNewChat = true } 
         return;
     }
 
-    group.chats.splice(group.chats.indexOf(chatId), 1);
-
-    if (group.chat_id === chatId) {
-        group.chat_id = '';
-        updateChatMetadata({}, true);
-    }
-
     const response = await fetch('/api/chats/group/delete', {
         method: 'POST',
         headers: getRequestHeaders(),
@@ -2296,6 +2341,11 @@ export async function deleteGroupChat(groupId, chatId, { jumpToNewChat = true } 
     });
 
     if (response.ok) {
+        group.chats.splice(group.chats.indexOf(chatId), 1);
+        if (group.chat_id === chatId) {
+            group.chat_id = '';
+            updateChatMetadata({}, true);
+        }
         if (jumpToNewChat) {
             if (group.chats.length) {
                 await openGroupChat(groupId, group.chats[group.chats.length - 1]);
@@ -2378,16 +2428,20 @@ export async function saveGroupBookmarkChat(groupId, name, metadata, mesId, chat
             ? chat.slice(0, Number(mesId) + 1)
             : chat;
 
+    const chatSnapshot = captureChatLifecycleSnapshot([chatHeader, ...trimmedChat]);
+    const saveChatBody = JSON.stringify({ id: name, chat: [chatHeader, ...trimmedChat] });
     await editGroup(groupId, true, false);
 
     const saveChatRequest = await compressRequest({
         method: 'POST',
         headers: getRequestHeaders(),
-        body: JSON.stringify({ id: name, chat: [chatHeader, ...trimmedChat] }),
+        body: saveChatBody,
     });
     const response = await fetch('/api/chats/group/save', saveChatRequest);
 
     if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (await handleChatLifecycleConflict(errorData, chatSnapshot, JSON.stringify(['group', name]))) return;
         toastr.error(t`Check the server connection and reload the page to prevent data loss.`, t`Group chat could not be saved`);
         console.error('Group chat could not be saved', response);
     }

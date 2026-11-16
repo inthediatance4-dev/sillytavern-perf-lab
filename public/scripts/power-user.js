@@ -132,6 +132,7 @@ export const power_user = {
     markdown_escape_strings: '',
     chat_truncation: 100,
     streaming_fps: 30,
+    optimized_streaming: true,
     smooth_streaming: false,
     smooth_streaming_no_think: false,
     smooth_streaming_speed: 50,
@@ -273,7 +274,7 @@ export const power_user = {
 
     reasoning: {
         name: DEFAULT_REASONING_TEMPLATE,
-        auto_parse: false,
+        auto_parse: true,
         add_to_prompts: false,
         auto_expand: false,
         show_hidden: false,
@@ -1531,7 +1532,7 @@ export function applyStylePins() {
 
         const pinsElement = document.createElement('div');
         pinsElement.classList.add('style-pins');
-        pinsElement.append(...Array.from(styleTags));
+        for (const style of styleTags) pinsElement.append(style);
         chatElement.prepend(pinsElement);
     } catch (error) {
         console.error('Error applying style pins:', error);
@@ -1564,6 +1565,11 @@ export async function loadPowerUserSettings(settings, data) {
             delete settings.power_user.auto_sort_tags;
         }
         Object.assign(power_user, settings.power_user);
+    }
+
+    // The settings merge is shallow; older reasoning objects may lack this preference.
+    if (power_user.reasoning.auto_parse === undefined) {
+        power_user.reasoning.auto_parse = true;
     }
 
     if (power_user.stscript === undefined) {
@@ -1749,6 +1755,7 @@ export async function loadPowerUserSettings(settings, data) {
 
     $('#streaming_fps').val(power_user.streaming_fps);
     $('#streaming_fps_counter').val(power_user.streaming_fps);
+    $('#optimized_streaming').prop('checked', power_user.optimized_streaming);
 
     $('#smooth_streaming').prop('checked', power_user.smooth_streaming);
     $('#smooth_streaming_no_think').prop('checked', power_user.smooth_streaming_no_think);
@@ -2818,9 +2825,10 @@ async function loadUntilMesId(mesId) {
     return target;
 }
 
-async function doMesCut(_, text) {
+async function doMesCut(args, text) {
     console.debug(`was asked to cut message id #${text}`);
     const range = stringToRange(text, 0, chat.length - 1);
+    const deleteToolCalls = args?.toolcalls === undefined || isTrueBoolean(args.toolcalls);
 
     //reject invalid args or no args
     if (!range) {
@@ -2828,12 +2836,16 @@ async function doMesCut(_, text) {
         return;
     }
 
-    let totalMesToCut = (range.end - range.start) + 1;
-    let mesIDToCut = range.start;
+    const messagesToCut = chat.slice(range.start, range.end + 1);
     let cutText = '';
 
-    for (let i = 0; i < totalMesToCut; i++) {
-        cutText += (chat[mesIDToCut]?.mes || '') + '\n';
+    for (const message of messagesToCut) {
+        const mesIDToCut = chat.indexOf(message);
+        if (mesIDToCut === -1) {
+            continue;
+        }
+
+        cutText += (message?.mes || '') + '\n';
         let mesToCut = $('#chat').find(`.mes[mesid=${mesIDToCut}]`);
 
         if (!mesToCut.length) {
@@ -2845,7 +2857,7 @@ async function doMesCut(_, text) {
         }
 
         setEditedMessageId(mesIDToCut);
-        await deleteMessage(mesIDToCut, null, false);
+        await deleteMessage(mesIDToCut, null, false, deleteToolCalls);
     }
 
     await saveChatConditional();
@@ -2853,7 +2865,7 @@ async function doMesCut(_, text) {
     return cutText;
 }
 
-async function doDelMode(_, text) {
+async function doDelMode(args, text) {
     //reject invalid args
     if (text && isNaN(text)) {
         toastr.warning('Must enter a number or nothing.');
@@ -2862,7 +2874,8 @@ async function doDelMode(_, text) {
 
     // Just enter the delete mode.
     if (!text) {
-        $('#option_delete_mes').trigger('click', { fromSlashCommand: true });
+        const deleteToolCalls = args?.toolcalls === undefined || isTrueBoolean(args.toolcalls);
+        $('#option_delete_mes').trigger('click', { fromSlashCommand: true, deleteToolCalls });
         return '';
     }
 
@@ -2879,7 +2892,7 @@ async function doDelMode(_, text) {
     }
 
     const range = `${chat.length - count}-${chat.length - 1}`;
-    return doMesCut(_, range);
+    return doMesCut(args, range);
 }
 
 function doResetPanels() {
@@ -3400,6 +3413,11 @@ jQuery(() => {
     $('#streaming_fps').on('input', function () {
         power_user.streaming_fps = Number($('#streaming_fps').val());
         $('#streaming_fps_counter').val(power_user.streaming_fps);
+        saveSettingsDebounced();
+    });
+
+    $('#optimized_streaming').on('input', function () {
+        power_user.optimized_streaming = !!$(this).prop('checked');
         saveSettingsDebounced();
     });
 
@@ -4145,6 +4163,15 @@ jQuery(() => {
         name: 'del',
         callback: doDelMode,
         aliases: ['delete', 'delmode'],
+        namedArgumentList: [
+            SlashCommandNamedArgument.fromProps({
+                name: 'toolcalls',
+                description: 'also delete associated tool-call messages',
+                typeList: [ARGUMENT_TYPE.BOOLEAN],
+                defaultValue: 'true',
+                enumList: commonEnumProviders.boolean('trueFalse')(),
+            }),
+        ],
         unnamedArgumentList: [
             new SlashCommandArgument(
                 'optional number', [ARGUMENT_TYPE.NUMBER], false,
@@ -4157,6 +4184,15 @@ jQuery(() => {
         name: 'cut',
         callback: doMesCut,
         returns: 'the text of cut messages separated by a newline',
+        namedArgumentList: [
+            SlashCommandNamedArgument.fromProps({
+                name: 'toolcalls',
+                description: 'also delete associated tool-call messages',
+                typeList: [ARGUMENT_TYPE.BOOLEAN],
+                defaultValue: 'true',
+                enumList: commonEnumProviders.boolean('trueFalse')(),
+            }),
+        ],
         unnamedArgumentList: [
             SlashCommandArgument.fromProps({
                 description: 'number or range',

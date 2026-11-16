@@ -1,0 +1,558 @@
+{
+    "base": "ffd5f4e",
+    "head": "60fdb33d873feec217f6149ee93bbdc22981bdee",
+    "runnerHead": "60fdb33d873feec217f6149ee93bbdc22981bdee",
+    "mode": "full",
+    "thirdPartyEnabled": false,
+    "saveDuringDryRunProbe": false,
+    "testRunnerSha256": "2eafa09f35fc1ed2acecc358703f7c6051c9d4e515a5712a6538c8e0cf0d40bf",
+    "checks": {
+        "disabledBaseDomExact": {
+            "leftSha256": "8a7b79eeb7f0f96d61c215ef771309cdbfd710612500bf06f450dba393a94235",
+            "chatSha256": "52601aa4f2f064d153e5513b36e53d02e71d41ddeddc6b9343368d968fba9be9",
+            "focusCount": 2
+        },
+        "buttonAdjacentAndIntentionalFocusEntry": true,
+        "digitsScopedTextareaSafeEscOutsideClose": true,
+        "cancelInsertsNothing": true,
+        "manageFooterOpensSettingsDefaultHotkeyOff": true,
+        "chatChangedCancelsPendingInput": true,
+        "narratorByteAndRenderedHtmlExactToSys": true,
+        "commentAndDirectorMetadataSaved": true,
+        "instructAddsNoChatMessage": true,
+        "promptNarratorIncludedCommentExcludedInstructOnce": true,
+        "autoGenerateOptIn": true,
+        "defaultChapterTitleAndLiveNumber": true,
+        "nextChapterCountComputedLive": true,
+        "configuredHotkeyWorksAndSkipsTyping": true,
+        "customPresetAllFieldsPersistAcrossReload": true,
+        "dragReorderUpdatesStoredOrder": true,
+        "keyboardReorderUpdatesDigitMapping": true,
+        "slashQuotedNameLiteralInputRemainingDefaultsEmptyPipe": true,
+        "slashPromptsOnlyRemainingRequiredInputsAndCancelIsAtomic": true,
+        "exportVersionedJsonAndInvalidImportAtomicError": true,
+        "deleteAndValidImportRoundTrip": true,
+        "restoreDefaultsCancelAcceptAndReload": true,
+        "slashDirectorIndexTextExactNarrator": true,
+        "actualQuickReplyExecutionExactNarrator": true,
+        "digitOneInsertsOnlyWhenPopoverClosed": true,
+        "chapterDividersUseLiveNumbersOutsideMesText": true,
+        "chapterSurvivesSwipeAwayBackAndDiskReload": true,
+        "markUnmarkArbitraryMessagePersistsWithoutNumber": true,
+        "unmarkClearsExistingSwipesAfterDiskReload": true,
+        "chapterSurvivesNewSwipeGenerationAndDiskReload": {
+            "swipesBeforeMark": 1,
+            "newSwipeId": 1,
+            "checkedSwipeIdsAfterReload": [
+                0,
+                1
+            ]
+        },
+        "unmarkClearsGeneratedAndOriginalSwipesAfterDiskReload": true,
+        "deleteMiddleChapterRecomputesNumbers": true,
+        "chapterListJumpsAcrossTwoThousandMessages": true,
+        "groupNarratorCommentAndInstruct": true,
+        "instructSurvivesApi500ThenConsumedOnSuccessfulRetryAndDiskReload": true,
+        "instructSurvivesStopThenConsumedOnSuccessfulStreamingRetry": true,
+        "ordinaryEphemeralInjectStillClearsOnStop": true,
+        "instructChipIntentionalFocusEntry": true,
+        "instructRebindSwipeRegenerateContinueAndChatScope": true,
+        "userInputMacrosStayLiteral": true,
+        "quietAndImpersonateDoNotConsumePending": true,
+        "regenerateDeleteSkipDoesNotStick": true,
+        "disconnectedRegenerateThenDeleteClearsBinding": true,
+        "regenerateBindingSurvivesEarlierInterceptorAbort": true,
+        "regenerateBindingSurvivesEarlierInterceptorStop": true,
+        "dryRunPreservesRegenerateDeleteToken": true,
+        "firstMessageNarrationKeepsLiteralMacros": true,
+        "ordinaryGenerationSavesLiteralFirstNarration": true,
+        "everyFirstMessageSaveStaysLiteral": true,
+        "overlappingDryRunsPreserveSavesClonesAndApiEdits": true,
+        "chatSwitchDuringDryRunPreservesBothChats": true,
+        "ordinaryGreetingStillExpandsAndManualChapterStaysLiteral": true,
+        "firstCommentSurvivesDryRunCloneSaveAndReload": true
+    },
+    "failedRequests": [
+        {
+            "url": "http://<host>/api/backends/chat-completions/generate",
+            "method": "POST",
+            "failure": "net::ERR_ABORTED"
+        },
+        {
+            "url": "http://<host>/api/backends/chat-completions/generate",
+            "method": "POST",
+            "failure": "net::ERR_ABORTED"
+        },
+        {
+            "url": "http://<host>/api/backends/chat-completions/generate",
+            "method": "POST",
+            "failure": "net::ERR_ABORTED"
+        },
+        {
+            "url": "http://<host>/api/backends/chat-completions/generate",
+            "method": "POST",
+            "failure": "net::ERR_ABORTED"
+        }
+    ],
+    "disabledThirdPartyExtensions": [
+        "third-party/JS-Slash-Runner",
+        "third-party/st-memory-enhancement"
+    ],
+    "thirdPartyRuntime": {
+        "loadedEntrypoints": [],
+        "tavernHelperAvailable": false
+    },
+    "chapterSwipeAudit": {
+        "before": {
+            "busy": false,
+            "length": 16,
+            "swipeId": 0,
+            "swipes": 1
+        },
+        "after": {
+            "busy": false,
+            "length": 16,
+            "swipeId": 1,
+            "swipes": 2
+        },
+        "requestsBefore": 4,
+        "requestsAfter": 5
+    },
+    "longChat": {
+        "file": "DirectorLong-bb707b6db3",
+        "loadedBeforeJump": 100,
+        "confirmDistance": 1900
+    },
+    "f3Audit": {
+        "saveRequests": [
+            {
+                "phase": "create-fixture",
+                "at": 1793734522.7307806,
+                "firstMessages": [
+                    "placeholder"
+                ],
+                "rows": 2
+            },
+            {
+                "phase": "create-fixture",
+                "at": 1793734523.2944424,
+                "firstMessages": [
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}"
+                ],
+                "rows": 2
+            },
+            {
+                "phase": "create-fixture",
+                "at": 1793734523.7753832,
+                "firstMessages": [
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}"
+                ],
+                "rows": 3
+            },
+            {
+                "phase": "save-then-quiet",
+                "at": 1793734523.8910284,
+                "firstMessages": [
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}"
+                ],
+                "rows": 3
+            },
+            {
+                "phase": "ordinary-generation",
+                "at": 1793734524.4890916,
+                "firstMessages": [
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}"
+                ],
+                "rows": 4
+            },
+            {
+                "phase": "ordinary-generation",
+                "at": 1793734524.8027527,
+                "firstMessages": [
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                    "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}"
+                ],
+                "rows": 5
+            }
+        ],
+        "saveCallers": [
+            {
+                "phase": "create-fixture",
+                "at": 1793734522.729653,
+                "frames": [
+                    {
+                        "functionName": "eval",
+                        "url": "",
+                        "lineNumber": 2,
+                        "columnNumber": 31
+                    },
+                    {
+                        "functionName": "evaluate",
+                        "url": "",
+                        "lineNumber": 376,
+                        "columnNumber": 17
+                    },
+                    {
+                        "functionName": "",
+                        "url": "",
+                        "lineNumber": 0,
+                        "columnNumber": 43
+                    }
+                ]
+            },
+            {
+                "phase": "create-fixture",
+                "at": 1793734523.292615,
+                "frames": [
+                    {
+                        "functionName": "saveChat",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 8100,
+                        "columnNumber": 29
+                    },
+                    {
+                        "functionName": "saveChatConditional",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 10209,
+                        "columnNumber": 20
+                    },
+                    {
+                        "functionName": "sendNarratorMessage",
+                        "url": "http://<host>/scripts/slash-commands.js",
+                        "lineNumber": 6065,
+                        "columnNumber": 14
+                    },
+                    {
+                        "functionName": "insertLiteralMessage",
+                        "url": "http://<host>/scripts/extensions/director/index.js",
+                        "lineNumber": 234,
+                        "columnNumber": 22
+                    },
+                    {
+                        "functionName": "usePreset",
+                        "url": "http://<host>/scripts/extensions/director/index.js",
+                        "lineNumber": 298,
+                        "columnNumber": 22
+                    },
+                    {
+                        "functionName": "",
+                        "url": "http://<host>/scripts/extensions/director/index.js",
+                        "lineNumber": 518,
+                        "columnNumber": 45
+                    }
+                ]
+            },
+            {
+                "phase": "create-fixture",
+                "at": 1793734523.773345,
+                "frames": [
+                    {
+                        "functionName": "saveChat",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 8100,
+                        "columnNumber": 29
+                    },
+                    {
+                        "functionName": "saveChatConditional",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 10209,
+                        "columnNumber": 20
+                    },
+                    {
+                        "functionName": "sendCommentMessage",
+                        "url": "http://<host>/scripts/slash-commands.js",
+                        "lineNumber": 6151,
+                        "columnNumber": 14
+                    },
+                    {
+                        "functionName": "insertLiteralMessage",
+                        "url": "http://<host>/scripts/extensions/director/index.js",
+                        "lineNumber": 234,
+                        "columnNumber": 22
+                    },
+                    {
+                        "functionName": "usePreset",
+                        "url": "http://<host>/scripts/extensions/director/index.js",
+                        "lineNumber": 298,
+                        "columnNumber": 22
+                    },
+                    {
+                        "functionName": "",
+                        "url": "http://<host>/scripts/extensions/director/index.js",
+                        "lineNumber": 518,
+                        "columnNumber": 45
+                    }
+                ]
+            },
+            {
+                "phase": "save-then-quiet",
+                "at": 1793734523.889351,
+                "frames": [
+                    {
+                        "functionName": "saveChat",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 8100,
+                        "columnNumber": 29
+                    },
+                    {
+                        "functionName": "saveChatConditional",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 10209,
+                        "columnNumber": 20
+                    },
+                    {
+                        "functionName": "eval",
+                        "url": "",
+                        "lineNumber": 3,
+                        "columnNumber": 39
+                    },
+                    {
+                        "functionName": "evaluate",
+                        "url": "",
+                        "lineNumber": 376,
+                        "columnNumber": 17
+                    },
+                    {
+                        "functionName": "",
+                        "url": "",
+                        "lineNumber": 0,
+                        "columnNumber": 43
+                    }
+                ]
+            },
+            {
+                "phase": "ordinary-generation",
+                "at": 1793734524.487328,
+                "frames": [
+                    {
+                        "functionName": "saveChat",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 8100,
+                        "columnNumber": 29
+                    },
+                    {
+                        "functionName": "saveChatConditional",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 10209,
+                        "columnNumber": 20
+                    },
+                    {
+                        "functionName": "sendMessageAsUser",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 6504,
+                        "columnNumber": 14
+                    },
+                    {
+                        "functionName": "Generate",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 5016,
+                        "columnNumber": 18
+                    },
+                    {
+                        "functionName": "eval",
+                        "url": "",
+                        "lineNumber": 0,
+                        "columnNumber": 45
+                    },
+                    {
+                        "functionName": "evaluate",
+                        "url": "",
+                        "lineNumber": 376,
+                        "columnNumber": 17
+                    },
+                    {
+                        "functionName": "",
+                        "url": "",
+                        "lineNumber": 0,
+                        "columnNumber": 43
+                    }
+                ]
+            },
+            {
+                "phase": "ordinary-generation",
+                "at": 1793734524.800607,
+                "frames": [
+                    {
+                        "functionName": "saveChat",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 8100,
+                        "columnNumber": 29
+                    },
+                    {
+                        "functionName": "saveChatConditional",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 10209,
+                        "columnNumber": 20
+                    },
+                    {
+                        "functionName": "onSuccess",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 6155,
+                        "columnNumber": 14
+                    },
+                    {
+                        "functionName": "Generate",
+                        "url": "http://<host>/script.js",
+                        "lineNumber": 6032,
+                        "columnNumber": 30
+                    }
+                ]
+            }
+        ],
+        "snapshots": [
+            {
+                "phase": "after-quiet",
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}"
+            },
+            {
+                "phase": "after-ordinary-save",
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}"
+            }
+        ],
+        "events": [
+            {
+                "name": "MESSAGE_SENT",
+                "at": 1793734523.187,
+                "firstMes": "\u3010Director Synthetic\u3011Director Synthetic \u548c Synthetic Tester b",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "USER_MESSAGE_RENDERED",
+                "at": 1793734523.191,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "MESSAGE_SENT",
+                "at": 1793734523.668,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "USER_MESSAGE_RENDERED",
+                "at": 1793734523.672,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "GENERATION_STARTED",
+                "at": 1793734523.896,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": "quiet",
+                "dryRun": false
+            },
+            {
+                "name": "GENERATE_AFTER_DATA",
+                "at": 1793734524.1,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "GENERATION_ENDED",
+                "at": 1793734524.106,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "GENERATION_STARTED",
+                "at": 1793734524.124,
+                "firstMes": null,
+                "generationType": "normal",
+                "dryRun": true
+            },
+            {
+                "name": "GENERATE_AFTER_DATA",
+                "at": 1793734524.306,
+                "firstMes": null,
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "GENERATION_STARTED",
+                "at": 1793734524.381,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": "normal",
+                "dryRun": false
+            },
+            {
+                "name": "MESSAGE_SENT",
+                "at": 1793734524.495,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "USER_MESSAGE_RENDERED",
+                "at": 1793734524.498,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "GENERATE_AFTER_DATA",
+                "at": 1793734524.691,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            },
+            {
+                "name": "GENERATION_ENDED",
+                "at": 1793734524.809,
+                "firstMes": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+                "generationType": null,
+                "dryRun": null
+            }
+        ]
+    },
+    "f3Interleavings": {
+        "twoRunsPaused": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+        "clonedSnapshotWhilePaused": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+        "oneRunFinished": "\u3010Director Synthetic\u3011{{char}} \u548c {{user}} {{random::a,b}}",
+        "editor": "direct write and saveChat",
+        "editedTextAfterBothRuns": "Intentional API edit while a dry run is paused.",
+        "beforeAssemblyEdit": "Intentional API edit before host prompt assembly.",
+        "switchedChat": "New chat literal {{char}} / {{user}} / {{random::a,b}}",
+        "greetings": {
+            "ordinary": "Hello Director Synthetic / Synthetic Tester",
+            "expectedOrdinary": "Hello Director Synthetic / Synthetic Tester",
+            "chapter": "Chapter literal {{char}} / {{random::a,b}}"
+        }
+    },
+    "pass": true,
+    "pageErrors": [],
+    "generationRequests": 63,
+    "chromium": "156.0.8078.47",
+    "sourceSha256": {
+        "public/script.js": "9f5c478a9b95c3a42d38b6fa8c660b083a55acaa9de60da493ce731b7519e176",
+        "public/scripts/events.js": "1b322db4a3fc9b4b7fa5af8b3d4de8eaba0ccfc551d76892849f81258fa413d5",
+        "public/scripts/extensions/director/chapters.js": "1cf7737c84f2a18601e1a87a0151ebff692482c2f441d36545e8606ffce9d3c1",
+        "public/scripts/extensions/director/fate-decks.js": "177156478df597867ed534b0856d22ba108edd01d2de0258b53308f7c1ebde40",
+        "public/scripts/extensions/director/fate-marks.js": "f9a437bacf6d220f2333cb94a8b28b3d1cac24d29b61ec5f06bfb4a79c4095ab",
+        "public/scripts/extensions/director/fate-sound.js": "ad635a0d34d191482a83852e9b97aa6d1c4a0f6b2a122f3c67fe3a3c8897b234",
+        "public/scripts/extensions/director/fate-ui.js": "890d9fabb699e31272ae0c3c66ea068420246ee5284a80b41c699cb197a24e08",
+        "public/scripts/extensions/director/fate.js": "399335967efac222fb410f2eed3a37c3365eae06d07f380b96f9d002b66cec10",
+        "public/scripts/extensions/director/index.js": "27bf1dc70b18a510407c8fff5d57ddb6088382194ec51f4c39f3a8ed0b0129ed",
+        "public/scripts/extensions/director/instruct.js": "a77099fc9bc758dff2465f9c8e4a1ae9ae5b136ff5154f4bae0b31f3d872e171",
+        "public/scripts/extensions/director/manager.js": "208bbcc5b97ebc255f35164efc81a66ec197f7064fcc14ec5d40045c2bbe9afe",
+        "public/scripts/extensions/director/manifest.json": "b4118443a33dfdb8fe751b8b27d75e1c18cb0c4d20cc3e91dd53350538355200",
+        "public/scripts/extensions/director/presets.js": "476410a9fe3df728ffb9febbfd05b9f39e11f1575e1eef7f10db8182df23ddaa",
+        "public/scripts/extensions/director/settings.html": "dcbc6d59bcb0ef6cc0fd2d946bf39c41f8ad95e0bb35d7e64272a279f2f0d64f",
+        "public/scripts/extensions/director/style.css": "cdc9eb8514ff249cb057b8bde21fe65b8475f2acdb1925232739384e3da2720a",
+        "public/scripts/extensions/director/template.js": "34f3aaca4d78472b45b1b6f9abe2be08301aae89e81c8402b5ea4975952bb9d3",
+        "public/scripts/group-chats.js": "60c98f1434e1081c8ba4dd582a59a284a6c49e06d606d371ed813cf3fda3c545",
+        "tests/browser_fate_cases.py": "a8bf8647e271472f6850924dd8a448f51478e8f4f78e3218a299a5f8a58685eb",
+        "tests/browser_fate_review_cases.py": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6"
+    },
+    "fakeEndpointSha256": "a4fdac773298651947dd6d67f6a8390d0a42accc4a8a1f3d8497b8ad33699888",
+    "fateReviewCaseSha256": "6a79c852a0d191212982adb0c9a87cfd25efebedbcde3cd38946768be94362f6",
+    "node": "v22.20.0"
+}

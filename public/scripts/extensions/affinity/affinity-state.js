@@ -142,13 +142,58 @@ function referenceMap(refs) {
     return map;
 }
 
+function normalizedQuote(text) {
+    const chars = [], starts = [], ends = [];
+    let offset = 0;
+    for (const original of text) {
+        for (const char of original.normalize('NFKC')) {
+            if (/[\s\p{P}]/u.test(char)) continue;
+            chars.push(char);
+            starts.push(offset);
+            ends.push(offset + original.length);
+        }
+        offset += original.length;
+    }
+    return { chars, starts, ends };
+}
+
+// A single DP row bounds memory to the quote (<=180 UTF-16 units). Never
+// stitch fragments together or search another slot. Tied source spans fail.
+function tolerantQuoteSpan(text, quoted) {
+    if (text.length > 20000) return null;
+    const source = normalizedQuote(text);
+    const row = new Uint16Array(quoted.length + 1);
+    let longest = 0, end = -1, ambiguous = false;
+    for (let i = 0; i < source.chars.length; i++) {
+        for (let j = quoted.length; j > 0; j--) {
+            row[j] = source.chars[i] === quoted[j - 1] ? row[j - 1] + 1 : 0;
+            if (row[j] > longest) {
+                longest = row[j]; end = i; ambiguous = false;
+            } else if (row[j] && row[j] === longest && i !== end) ambiguous = true;
+        }
+    }
+    if (ambiguous || (longest !== quoted.length && (longest < 12 || longest / quoted.length < 0.8))) return null;
+    const offset = source.starts[end - longest + 1];
+    const quote = text.slice(offset, source.ends[end]);
+    return quote.length <= 180 ? { offset, quote } : null;
+}
+
 function bindQuote(quote, refs) {
     const ref = refs.get(quote?.slot);
     if (!ref || !short(quote.quote, 180)) return null;
+    const normalized = normalizedQuote(quote.quote).chars;
+    if (normalized.length < 4) return null;
     const offset = own(quote, 'offset') ? quote.offset : ref.text.indexOf(quote.quote);
-    if (!natural(offset) || ref.text.slice(offset, offset + quote.quote.length) !== quote.quote
-        || (!own(quote, 'offset') && ref.text.indexOf(quote.quote, offset + 1) !== -1)) return null;
-    return { slot: ref.slot, index: ref.index, swipe: ref.swipe, fingerprint: ref.fingerprint, quote: quote.quote, offset };
+    let span;
+    if (own(quote, 'offset') || offset !== -1) {
+        if (!natural(offset) || ref.text.slice(offset, offset + quote.quote.length) !== quote.quote
+            || (!own(quote, 'offset') && ref.text.indexOf(quote.quote, offset + 1) !== -1)) return null;
+        span = { quote: quote.quote, offset };
+    } else {
+        span = tolerantQuoteSpan(ref.text, normalized);
+        if (!span) return null;
+    }
+    return { slot: ref.slot, index: ref.index, swipe: ref.swipe, fingerprint: ref.fingerprint, ...span };
 }
 
 function sameQuote(a, b) {

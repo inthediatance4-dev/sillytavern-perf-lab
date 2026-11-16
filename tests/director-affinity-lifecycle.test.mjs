@@ -816,6 +816,7 @@ for (const verification of ['confirm', 'defer']) {
             later ??= { ...silent, valence: 'positive', acknowledgement: { slot: context.chat.at(-1).extra.__affinity.id, quote: context.chat.at(-1).mes } };
             return JSON.stringify({ events: [later] });
         } });
+        lab.context.chat[0].mes = '我答应把借来的书还给你。';
         await settleMany(lab, 5);
         const id = lab.state().events.find(event => event.kind === 'outcome').id;
         assert.equal(affinityScores(lab.state())['a.png'], 0);

@@ -1778,7 +1778,11 @@ test('round3: extraction teaches null outcome flags for observations and exact o
     const lab = fixture({ interval: 5 });
     await settleMany(lab, 5);
     const prompt = lab.calls[0][0].quietPrompt;
-    assert.match(prompt, /fact\/attitude\/promise outcomeKnown 必填 null/);
+    assert.match(prompt, /fact\/attitude\/promise 的 outcomeKnown 建议填 null，省略也按未知处理/);
+    const eventSchema = AFFINITY_SCHEMA.value.properties.events.items;
+    assert.ok(!eventSchema.required.includes('outcomeKnown'));
+    assert.deepEqual(eventSchema.properties.outcomeKnown.type, ['boolean', 'null']);
+    assert.equal(eventSchema.properties.outcomeKnown.default, null);
     assert.match(prompt, /anchorId\/result\/ack仅限outcome/);
     assert.match(prompt, /fact\/attitude.*outcomeKnown.*门槛/);
     assert.match(prompt, /UTF-16/);

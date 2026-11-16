@@ -118,6 +118,55 @@ test('parser preserves valid siblings and reports only aggregate rejection categ
     }
 });
 
+test('omitted outcome knowledge preserves attitudes and facts without inventing knowledge', () => {
+    const refs = [ref(0, '你私自翻看信件，让我对你更加戒备。'), ...[
+        '我翻看了抽屉里的私人信件。', '我拍下了私人信件的内容。', '我把信件照片留在了手机里。',
+    ].map((text, index) => ref(index + 1, text, { owner: 'player' }))];
+    const items = [attitude(refs[0], { valence: 'negative', relationshipChanged: true, thread: '私人信件' }),
+        ...refs.slice(1).map(source => proposal(source, { actor: 'user', recipient: 'character', knownToCharacter: 'unknown' }))];
+    items.forEach(item => delete item.outcomeKnown);
+    const parsed = parseAffinityResponse(JSON.stringify({ events: items }), { onRejected: () => assert.fail('valid omission') });
+    assert.equal(parsed.length, 4);
+    assert.ok(parsed.every(item => item.outcomeKnown === null));
+    const state = apply(fresh(), items, refs);
+    assert.equal(state.events.length, 4, 'direct application uses the same defaults');
+    assert.equal(affinityScores(state)['a.png'], -3);
+    assert.doesNotMatch(buildAffinityMemory(state, refs, 'a.png'), /甲记得玩家说过的边界/);
+    assert.equal(candidateKey(items[0], refs), candidateKey(parsed[0], refs));
+    assert.deepEqual(reconcileAffinity(JSON.parse(JSON.stringify(state)), refs, owners), state);
+});
+
+test('nullable optional metadata becomes absent and security fields remain required', () => {
+    const source = ref(0, '我现在更信任你了。');
+    const item = attitude(source, { outcomeKnown: null, thread: null, relationshipChanged: null,
+        anchorId: null, result: null, acknowledgement: null });
+    const [parsed] = parseAffinityResponse(JSON.stringify({ events: [item] }));
+    assert.equal(parsed.relationshipChanged, false);
+    for (const key of ['thread', 'anchorId', 'result', 'acknowledgement']) assert.equal(Object.hasOwn(parsed, key), false);
+    assert.equal(affinityScores(apply(fresh(), [item], [source]))['a.png'], 0);
+    for (const key of ['owner', 'kind', 'fact', 'actor', 'recipient', 'status', 'valence', 'impact',
+        'confidence', 'attitudeExplicit', 'knownToCharacter', 'source']) {
+        const missing = attitude(source);
+        delete missing[key];
+        assert.deepEqual(parseAffinityResponse(JSON.stringify({ events: [missing] })), [], key);
+        assert.equal(apply(fresh(), [missing], [source]).events.length, 0, key);
+    }
+});
+
+test('missing outcome knowledge never resolves a promise or earns outcome points', () => {
+    const source = ref(0, '我答应明天把借来的书归还给你。', { owner: 'player' });
+    const result = ref(1, '我已经把借来的书放回你的书架。', { owner: 'player' });
+    const ack = ref(2, '我看到了归还的书，现在对你更信任了。');
+    const refs = [source, result, ack];
+    const base = apply(fresh(), [promise(source, { actor: 'user', recipient: 'character' })], refs);
+    const item = outcome(base.events[0], result, { acknowledgement: { slot: ack.slot, quote: ack.text } });
+    delete item.outcomeKnown;
+    const state = apply(base, parseAffinityResponse(JSON.stringify({ events: [item] })), refs);
+    assert.equal(state.events.length, 2);
+    assert.equal(affinityScores(state)['a.png'], 0);
+    assert.match(buildAffinityMemory(state, refs, 'a.png'), /尚待兑现的约定/);
+});
+
 test('application is immutable and exact quote/fingerprint/swipe binding survives JSON reload', () => {
     const source = ref(0, '甲说：“我记住了你的边界。”');
     const state = fresh();

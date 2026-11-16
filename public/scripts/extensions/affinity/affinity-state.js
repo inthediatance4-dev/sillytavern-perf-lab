@@ -31,6 +31,19 @@ function quoteShape(value) {
         && (!own(value, 'offset') || natural(value.offset));
 }
 
+// Nullable provider fields carry no authority. Omission means unknown; null
+// optional references/metadata mean absent, never inferred evidence.
+function proposalDefaults(value) {
+    if (!object(value)) return value;
+    const proposal = { ...value };
+    if (!own(proposal, 'outcomeKnown')) proposal.outcomeKnown = null;
+    for (const key of ['thread', 'anchorId', 'result', 'acknowledgement']) {
+        if (proposal[key] === null) delete proposal[key];
+    }
+    if (proposal.relationshipChanged === null) proposal.relationshipChanged = false;
+    return proposal;
+}
+
 function proposalShape(value) {
     return object(value) && Object.keys(value).every(key => proposalKeys.has(key))
         && ['owner', 'kind', 'fact', 'actor', 'recipient', 'status', 'valence', 'impact', 'confidence', 'attitudeExplicit', 'outcomeKnown', 'knownToCharacter', 'source'].every(key => own(value, key))
@@ -98,11 +111,13 @@ export function parseAffinityResponse(raw, { onRejected } = {}) {
         throw new TypeError('Invalid affinity response schema');
     }
     const rejected = new Map();
-    const events = value.events.filter(event => {
-        const category = !safeTree(event) ? 'unsafe' : !proposalShape(event) ? 'schema' : null;
-        if (!category) return true;
+    const events = value.events.flatMap(event => {
+        const safe = safeTree(event);
+        const proposal = safe ? proposalDefaults(event) : null;
+        const category = !safe ? 'unsafe' : !proposalShape(proposal) ? 'schema' : null;
+        if (!category) return [proposal];
         rejected.set(category, (rejected.get(category) ?? 0) + 1);
-        return false;
+        return [];
     });
     if (typeof onRejected === 'function') for (const [category, count] of rejected) {
         try { onRejected({ category, count }); } catch { /* Diagnostics cannot discard valid evidence. */ }
@@ -211,6 +226,8 @@ export function affinityScoreEligible(event) {
 }
 
 export function candidateKey(proposal, refs) {
+    if (!safeTree(proposal)) return '';
+    proposal = proposalDefaults(proposal);
     if (!proposalShape(proposal)) return '';
     const map = referenceMap(refs);
     const source = bindQuote(proposal.source, map);
@@ -311,7 +328,8 @@ function storedProposal(event) {
             proposal[key] = { slot: quote.slot, quote: quote.quote, ...(own(quote, 'offset') ? { offset: quote.offset } : {}) };
         }
     }
-    return proposalShape(proposal) ? proposal : null;
+    const normalized = proposalDefaults(proposal);
+    return proposalShape(normalized) ? normalized : null;
 }
 
 function laterThan(source, result) {
@@ -519,8 +537,10 @@ export function applyAffinityEvaluation(state, proposals, refs, owners, { verifi
     const evidence = new Map();
     current().forEach(event => rememberEvidence(evidence, event));
     const drop = category => { if (typeof onDrop === 'function') { try { onDrop({ category }); } catch { /* Diagnostics cannot alter acceptance. */ } } };
-    for (const proposal of Array.isArray(proposals) ? proposals.slice(0, 24) : []) {
-        if (!safeTree(proposal) || !proposalShape(proposal)) { drop('shape'); continue; }
+    for (const value of Array.isArray(proposals) ? proposals.slice(0, 24) : []) {
+        if (!safeTree(value)) { drop('shape'); continue; }
+        const proposal = proposalDefaults(value);
+        if (!proposalShape(proposal)) { drop('shape'); continue; }
         if (!validStructure(proposal)) { drop('structure'); continue; }
         if (frozenOwners.has(proposal.owner)) { drop('owner'); continue; }
         const source = bindQuote(proposal.source, map);

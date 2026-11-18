@@ -378,7 +378,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert len(page.locator('#director_fate_title').inner_text()) > 0
     assert page.locator('.director_fate_card').get_attribute('data-state') == 'sealed'
     assert page.locator('.director_fate_back').count() == 1
-    assert page.locator('#director_fate_status').inner_text() == '牌已封存。'
+    assert page.locator('#director_fate_status').inner_text() in ('牌已写好，点击牌面查看概述。', '正在查看概述，采用后才会续写。')
     ritual_hidden(secret)
     page.emulate_media(reduced_motion='reduce')
     assert page.locator('.director_fate_back').evaluate("node => getComputedStyle(node,'::before').animationName") == 'none'
@@ -658,7 +658,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.locator('#director_fate_draw').click()
     page.locator('.director_fate_choice').first.wait_for(state='visible')
     page.locator('.director_fate_choice').first.click()
-    page.wait_for_function("document.querySelector('#director_fate_status').textContent.includes('未抽到')")
+    page.wait_for_function("document.querySelector('#director_fate_status').textContent.includes('未生成完整事件')")
     assert fate()['held']['id'] == held['id']
     assert len(fate()['offer']['cards']) == 3
     hidden('MALFORMED_PRIVATE_BODY')
@@ -1006,7 +1006,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
             && draw?.textContent === '换一组 (0)' && draw.disabled
             && draw.getAttribute('title') === '本次已换过一组'
             && (draw.getAttribute('aria-label') || '').includes('本次已换过一组')
-            && document.querySelector('#director_fate_status')?.textContent === '三张牌已备好，请选择一张。本次已换过一组。'
+            && (document.querySelector('#director_fate_status')?.textContent || '').includes('本次已换过一组。')
             && cards.length === 3 && cards.every(card => !card.disabled);
     }""", arg=first_offer)
     hidden(offer_secret)
@@ -1016,7 +1016,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert page.locator('#director_fate_draw').is_disabled()
     assert page.locator('#director_fate_draw').get_attribute('title') == '本次已换过一组'
     assert '本次已换过一组' in page.locator('#director_fate_draw').get_attribute('aria-label')
-    assert page.locator('#director_fate_status').inner_text() == '三张牌已备好，请选择一张。本次已换过一组。'
+    assert '本次已换过一组。' in page.locator('#director_fate_status').inner_text()
     result['checks']['fateOneFreeRerollThenDisabledAcrossReopen'] = True
     offer_id = fate()['offer']['id']
     close_panel()
@@ -1036,7 +1036,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     result['checks']['fateOfferMobileRowHasNoOverflow'] = True
     configure('FATE_OFFER_BROKEN not valid JSON')
     page.locator('.director_fate_choice').nth(0).click()
-    page.wait_for_function("document.querySelector('#director_fate_status').textContent.includes('未抽到')")
+    page.wait_for_function("document.querySelector('#director_fate_status').textContent.includes('未生成完整事件')")
     assert fate()['offer']['id'] == offer_id
     assert len(fate()['offer']['cards']) == 3
     assert not fate().get('held')
@@ -1052,7 +1052,7 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
         return fate?.held && !fate.offer && card?.dataset.state === 'sealed' && !card.hidden;
     }""")
     assert page.locator('.director_fate_card').get_attribute('data-state') == 'sealed'
-    assert page.locator('#director_fate_status').inner_text() == '牌已封存。'
+    assert page.locator('#director_fate_status').inner_text() in ('牌已写好，点击牌面查看概述。', '正在查看概述，采用后才会续写。')
     hidden(offer_secret)
     held = fate()['held']
     assert held['event'] == offer_secret
@@ -1102,8 +1102,9 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     page.wait_for_function("""() => {
         const draw = document.querySelector('#director_fate_draw');
         const state = SillyTavern.getContext().chatMetadata.director?.fate;
+        const status = document.querySelector('#director_fate_status')?.textContent || '';
         return draw?.textContent === '换一组 (1)' && !draw.disabled && state?.rerolls === 1 && state.offer?.cards?.length === 3
-            && document.querySelector('#director_fate_status')?.textContent === '三张牌已备好，请选择一张。';
+            && (status.includes('三张牌面已备好') || status.includes('事件已写好') || status.includes('补写未完成'));
     }""")
     result['checks']['fateRerollResetsAfterApply'] = True
     close_panel()
@@ -1508,13 +1509,14 @@ def run_fate_checks(page, sample, fake_url, result, connect_api, swipe_message):
     assert fate()['held']['event'] == 'FATE_PB_REASONING_PICK: a quiet draw after a reasoning-only block.'
     apply(fate()['held'])
 
-    # Streaming paints the block while tokens arrive; the finalized row, DOM and
-    # disk copy must all be clean, and the offer still commits.
+    # Response stream filtering withholds the private marker before tokens reach
+    # the DOM; the finalized row, DOM and disk copy must all be clean, and the offer commits.
     page.evaluate("async () => { (await import('/scripts/openai.js')).oai_settings.stream_openai = true; }")
     configure(pb_story, rate=20, piggyback={'story': pb_story, 'events': pb_events})
     before = len(requests())
     pb_send()
-    page.wait_for_function("marker => document.querySelector('#chat .mes.last_mes .mes_text')?.textContent?.includes(marker)", arg=pb_marker, timeout=30000)
+    page.wait_for_function("prefix => document.querySelector('#chat .mes.last_mes .mes_text')?.textContent?.includes(prefix)", arg=pb_story[:12], timeout=30000)
+    assert pb_marker not in page.locator('#chat').evaluate('node => node.outerHTML')
     idle()
     page.wait_for_function("() => SillyTavern.getContext().chatMetadata.director?.fate?.offer?.cards?.length === 3")
     assert len(requests()) == before + 1

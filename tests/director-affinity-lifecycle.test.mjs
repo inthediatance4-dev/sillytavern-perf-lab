@@ -2093,3 +2093,133 @@ test('the evaluator carries a complete JSON example for providers without native
     for (const key of AFFINITY_SCHEMA.value.properties.events.items.required) assert.ok(Object.hasOwn(example.events[0], key), key);
     assert.equal(example.events[0].relationshipChanged, false);
 });
+
+test('native narrator and manually voiced assistant lines cannot supply character attitudes', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        const messages = JSON.parse(args[0].quietPrompt.split('\n消息：')[1]);
+        return JSON.stringify({ events: messages.filter(ref => ref.text.startsWith('代写')).map(ref => ({
+            ...factFor(context.chat[ref.index]), kind: 'attitude', valence: 'positive', attitudeExplicit: true,
+        })) });
+    } });
+    for (const extra of [{ type: 'narrator' }, { api: 'manual', model: 'slash command' }]) {
+        lab.context.chat.push({ is_user: false, is_system: false, name: '相同名字',
+            original_avatar: 'a.png', mes: '代写的角色说现在信任玩家。', extra });
+        await lab.generate();
+    }
+    await settleMany(lab, 3);
+    assert.equal(lab.state().issued, 5);
+    assert.equal(lab.calls.length, 1);
+    assert.doesNotMatch(lab.calls[0][0].quietPrompt, /代写的角色/);
+    assert.deepEqual(lab.state().events, []);
+});
+
+test('changing an accepted assistant reply to the native narrator role revokes its evidence', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context }) => JSON.stringify({
+        events: [{ ...factFor(context.chat[1]), kind: 'attitude', valence: 'positive', attitudeExplicit: true }],
+    }) });
+    await settleMany(lab, 5);
+    assert.equal(affinityScores(lab.state())['a.png'], 2);
+    // /message-role system leaves is_system unset and marks the host narrator type.
+    lab.context.chat[1].extra.type = 'narrator';
+    await lab.emit('MESSAGE_EDITED', 1);
+    await lab.controller.settle();
+    assert.deepEqual(lab.state().events, []);
+    lab.prepare('normal');
+    assert.equal(lab.preparedMemory, undefined);
+    assert.equal(lab.calls.length, 1);
+});
+
+test('a prepared group memory can only be restored for the same speaking avatar', async () => {
+    const fact = '甲私下记住了玩家的名字。';
+    const lab = fixture({ group: true, interval: 5, reply: ({ context }) => JSON.stringify({
+        events: [factFor(context.chat.at(-1), { fact })],
+    }) });
+    await settleMany(lab, 5);
+    lab.prepare('normal');
+    const own = { prompt: lab.preparedMemory };
+    await lab.emit('GENERATE_AFTER_DATA', own, false, { type: 'normal' });
+    assert.ok(own.prompt.includes(fact));
+    lab.prepare('normal');
+    const other = { prompt: lab.preparedMemory };
+    lab.context.characterId = 1;
+    await lab.emit('GENERATE_AFTER_DATA', other, false, { type: 'normal' });
+    assert.equal(other.prompt, '');
+});
+
+test('editing an evaluated player line revisits its unchanged reply only with the next batch', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        const messages = JSON.parse(args[0].quietPrompt.split('\n消息：')[1]);
+        return JSON.stringify({ events: messages.filter(ref => ref.owner === 'player').map(ref => ({
+            ...factFor(context.chat[ref.index]), actor: 'user', recipient: 'character', fact: ref.text,
+        })) });
+    } });
+    lab.context.chat[0].mes = '这次请叫我小舟。';
+    await settleMany(lab, 5);
+    assert.equal(lab.state().events[0].source.quote, '这次请叫我小舟。');
+    lab.context.chat[0].mes = '以后请直接叫我阿澈。';
+    await lab.emit('MESSAGE_EDITED', 0);
+    await lab.controller.settle();
+    assert.equal(lab.state().events.length, 0);
+    assert.equal(lab.calls.length, 1);
+    await settleMany(lab, 5);
+    assert.equal(lab.calls.length, 2);
+    assert.deepEqual(lab.state().events.map(event => event.source.quote), ['以后请直接叫我阿澈。']);
+});
+
+test('returning to a revoked swipe still allows its evidence to be re-extracted on the next batch', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        const messages = JSON.parse(args[0].quietPrompt.split('\n消息：')[1]);
+        return JSON.stringify({ events: messages.filter(ref => ref.index === 1).map(ref => factFor(context.chat[ref.index])) });
+    } });
+    await settleMany(lab, 5);
+    const original = lab.state().events[0];
+    const source = lab.context.chat[1];
+    for (const [swipe, text] of [[1, '另一条分支的回复。'], [0, original.source.quote]]) {
+        source.swipe_id = swipe;
+        source.mes = text;
+        lab.finalize(source);
+        await lab.emit('MESSAGE_SWIPED', 1);
+        await lab.controller.settle();
+        assert.equal(lab.calls.length, 1);
+        assert.deepEqual(lab.state().events, []);
+    }
+    await settleMany(lab, 5);
+    assert.equal(lab.calls.length, 2);
+    assert.equal(lab.state().events[0]?.source.quote, original.source.quote);
+    assert.notEqual(lab.state().events[0].id, original.id);
+});
+
+test('a distinct same-text swipe is re-evaluated under its own physical index', async () => {
+    const lab = fixture({ interval: 5, reply: ({ context, args }) => {
+        const messages = JSON.parse(args[0].quietPrompt.split('\n消息：')[1]);
+        return JSON.stringify({ events: messages.filter(ref => ref.index === 1).map(ref => factFor(context.chat[ref.index])) });
+    } });
+    await settleMany(lab, 5);
+    const original = lab.state().events[0];
+    const source = lab.context.chat[1];
+    source.swipe_id = 1;
+    lab.finalize(source);
+    await lab.emit('MESSAGE_SWIPED', 1);
+    await lab.controller.settle();
+    assert.deepEqual(lab.state().events, []);
+    assert.equal(lab.calls.length, 1);
+    await settleMany(lab, 5);
+    assert.equal(lab.state().events[0]?.source.swipe, 1);
+    assert.notEqual(lab.state().events[0].id, original.id);
+});
+
+test('native reordering during extraction invalidates the full pending result', async () => {
+    const gate = deferred();
+    const lab = fixture({ interval: 5, reply: () => gate.promise });
+    await generateMany(lab, 5);
+    await until(() => lab.calls.length === 1, 'the evaluator is waiting for its provider');
+    const chat = lab.context.chat;
+    const unchanged = factFor(chat[4]);
+    // The host can move adjacent messages without emitting an edit event.
+    [chat[1], chat[2]] = [chat[2], chat[1]];
+    gate.resolve(JSON.stringify({ events: [unchanged] }));
+    await lab.controller.settle();
+    assert.deepEqual(lab.state().events, []);
+    assert.equal(lab.marker(chat[4]).evaluated, undefined);
+    assert.equal(lab.calls.length, 1);
+});

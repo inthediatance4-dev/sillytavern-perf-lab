@@ -193,6 +193,25 @@ test('a failed, invalid or stopped pick keeps the offer and the previous held ca
     }
 });
 
+for (const replacement of ['offer', 'held', 'chat']) {
+    test(`an in-flight pick cannot consume a replaced ${replacement} or retry its stale prompt`, async () => {
+        const fixture = lab();
+        await fixture.controller.draw();
+        await fixture.controller.deal();
+        const pending = deferred();
+        fixture.setResponse(() => pending.promise);
+        const picking = fixture.controller.pick(2);
+        const state = fixture.metadata.director.fate;
+        if (replacement === 'chat') fixture.context.chat = [...fixture.context.chat];
+        else state[replacement] = { ...state[replacement], id: 'replacement' };
+        const retained = structuredClone(state);
+        pending.resolve('invalid late answer');
+        assert.equal(await picking, false);
+        assert.deepEqual(fixture.metadata.director.fate, retained);
+        assert.equal(fixture.quietCalls.length, 2, 'one initial draw and one pick');
+    });
+}
+
 test('a new controller reads the same saved offer', async () => {
     const fixture = lab();
     assert.equal(await fixture.controller.deal(), true);

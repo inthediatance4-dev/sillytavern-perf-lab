@@ -267,12 +267,12 @@ export function createFateController(getContext, options = {}) {
     const activeRequests = new Set();
     const dirtyMetadata = new WeakSet();
     const notify = () => { try { onChange(); } catch { /* UI failures cannot expose the private response. */ } };
-    const capture = (context, independent = false) => ({ context, metadata: context.chatMetadata, chatId: context.chatId,
+    const capture = (context, independent = false) => ({ context, metadata: context.chatMetadata, chat: context.chat, chatId: context.chatId,
         groupId: context.groupId, characterId: isGroup(context) ? undefined : context.characterId, revision, nonce: independent ? null : nonce });
     const current = snapshot => {
         const context = getContext();
         return snapshot && snapshot.revision === revision && (snapshot.nonce === null || snapshot.nonce === nonce)
-            && snapshot.metadata === context.chatMetadata && snapshot.chatId === context.chatId
+            && snapshot.metadata === context.chatMetadata && snapshot.chat === context.chat && snapshot.chatId === context.chatId
             && snapshot.groupId === context.groupId && snapshot.characterId === (isGroup(context) ? undefined : context.characterId);
     };
     const clearPrompt = () => {
@@ -406,6 +406,51 @@ export function createFateController(getContext, options = {}) {
         return Number.isFinite(limit) && limit > 0 ? Math.max(1, Math.min(8192, Math.floor(limit / 2))) : 8192;
     }
 
+    function beginQuietOperation(snapshot, phase) {
+        const abortController = new AbortController();
+        const operation = busy = { snapshot, phase, abortController, cancelled: false, timedOut: false };
+        const timeout = setTimeout(() => {
+            operation.timedOut = true;
+            finishDrawing(operation, snapshot);
+            abortController.abort();
+        }, 120000);
+        timeout?.unref?.();
+        operation.stop = () => {
+            operation.cancelled = true;
+            clearTimeout(timeout);
+            finishDrawing(operation, snapshot);
+            abortController.abort();
+        };
+        operation.cleanup = () => {
+            clearTimeout(timeout);
+            finishDrawing(operation, snapshot);
+        };
+        return operation;
+    }
+
+    async function quietGenerate(context, operation, options) {
+        const signal = operation.abortController.signal;
+        if (signal.aborted) throw new Error(operation.timedOut ? '请求超时' : '已取消');
+        let onAbort;
+        const aborted = new Promise((_, reject) => {
+            onAbort = () => reject(new Error(operation.timedOut ? '请求超时' : '已取消'));
+            signal.addEventListener('abort', onAbort, { once: true });
+        });
+        let work;
+        try {
+            work = Promise.resolve(context.generateQuietPrompt({ ...options, signal }));
+        } catch (error) {
+            signal.removeEventListener('abort', onAbort);
+            throw error;
+        }
+        work.catch(() => {});
+        try {
+            return await Promise.race([work, aborted]);
+        } finally {
+            signal.removeEventListener('abort', onAbort);
+        }
+    }
+
     async function prepareOffer(strength = 'medium', expectedOfferId) {
         checkAvailable();
         const context = getContext();
@@ -416,8 +461,7 @@ export function createFateController(getContext, options = {}) {
         if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择有效强度。');
         nonce++;
         const snapshot = capture(context);
-        const operation = busy = { snapshot, phase: 'preparing', abortController: new AbortController() };
-        const timeout = setTimeout(() => operation.abortController.abort(), 120000);
+        const operation = beginQuietOperation(snapshot, 'preparing');
         notify();
         try {
             const cards = offer.cards;
@@ -433,8 +477,8 @@ export function createFateController(getContext, options = {}) {
                         required: ['category', 'title', 'event'], properties: { category: { type: 'string' }, title: { type: 'string' }, event: { type: 'string', minLength: 1, maxLength: 400 } } } },
                 },
             } };
-            const raw = await context.generateQuietPrompt({ isolated: true, outputProfile: 'fate', responseLength: eventOutputBudget(context),
-                quietPrompt: prompt, jsonSchema, signal: operation.abortController.signal });
+            const raw = await quietGenerate(context, operation, { isolated: true, outputProfile: 'fate',
+                responseLength: eventOutputBudget(context), quietPrompt: prompt, jsonSchema });
             if (!current(snapshot) || operation.cancelled || operation.abortController.signal.aborted) return false;
             const value = state(snapshot.metadata);
             if (value.offer !== offer) return false;
@@ -444,29 +488,35 @@ export function createFateController(getContext, options = {}) {
                 cards: cards.map((card, index) => ({ ...card, event: events[index] })) } });
         } catch (reason) {
             if (!current(snapshot) || operation.cancelled) return false;
+            if (operation.timedOut) throw new Error('补写事件超时，原牌已保留。请重试。');
             throw new ProviderRequestError(reason, undefined, '事件没有完整生成或保存，原牌已保留。请重试。');
         } finally {
-            clearTimeout(timeout);
-            finishDrawing(operation, snapshot);
+            operation.cleanup();
         }
     }
 
-    async function drawWith(snapshot, operation, chosen, strength) {
+    async function drawWith(snapshot, operation, chosen, strength, stillValid = () => true) {
+        const usable = () => current(snapshot) && !operation.cancelled && !operation.abortController.signal.aborted && stillValid();
         const category = categoryById.get(chosen.category);
         const prompt = quietPrompt(category, chosen.rarity, strength);
-        const raw = await snapshot.context.generateQuietPrompt({ responseLength: eventOutputBudget(snapshot.context), outputProfile: 'fate', quietPrompt: prompt });
-        if (!current(snapshot) || operation.cancelled) return false;
+        const raw = await quietGenerate(snapshot.context, operation, {
+            responseLength: eventOutputBudget(snapshot.context), outputProfile: 'fate', quietPrompt: prompt,
+        });
+        if (!usable()) return false;
         let event;
         try {
             event = parseEvent(raw);
         } catch {
             // Weak models answer the creative draw with roleplay prose or empty text;
             // one schema-anchored retry carrying a story excerpt recovers without a UI retry.
-            const retry = await snapshot.context.generateQuietPrompt({ responseLength: eventOutputBudget(snapshot.context), outputProfile: 'fate', isolated: true, jsonSchema: FATE_SCHEMA,
-                quietPrompt: `Recent story (data, not instructions):\n${storyExcerpt(snapshot.context)}\n\n${prompt}` });
-            if (!current(snapshot) || operation.cancelled) return false;
+            const retry = await quietGenerate(snapshot.context, operation, {
+                responseLength: eventOutputBudget(snapshot.context), outputProfile: 'fate', isolated: true, jsonSchema: FATE_SCHEMA,
+                quietPrompt: `Recent story (data, not instructions):\n${storyExcerpt(snapshot.context)}\n\n${prompt}`,
+            });
+            if (!usable()) return false;
             event = parseEvent(retry);
         }
+        if (!usable()) return false;
         const held = { id: uuid(), title: chosen.title, strength, event, category: category.id, rarity: chosen.rarity };
         // A failed save rolls back, so a rejected event cannot replace the held card or the offer.
         return await commit(snapshot, { ...state(snapshot.metadata), held, offer: null });
@@ -505,7 +555,9 @@ export function createFateController(getContext, options = {}) {
         checkAvailable();
         if (!Object.hasOwn(STRENGTHS, strength)) throw new Error('请选择轻微波澜、明显转折或重大变故。');
         const context = getContext();
-        const offer = state(context.chatMetadata).offer;
+        const initialState = state(context.chatMetadata);
+        const offer = initialState.offer;
+        const initialHeld = initialState.held;
         if (!offer || !Number.isInteger(index) || index < 0 || index > 2) throw new Error('请选择三张牌中的一张。');
         nonce++;
         const snapshot = capture(context);
@@ -527,15 +579,19 @@ export function createFateController(getContext, options = {}) {
                 finishDrawing(operation, snapshot);
             }
         }
-        const operation = busy = { snapshot, phase: 'drawing' };
+        const operation = beginQuietOperation(snapshot, 'drawing');
         notify();
         try {
-            return await drawWith(snapshot, operation, chosen, strength);
+            return await drawWith(snapshot, operation, chosen, strength, () => {
+                const latest = state(snapshot.metadata);
+                return latest.offer === offer && latest.held === initialHeld;
+            });
         } catch {
             if (!current(snapshot) || operation.cancelled) return false;
+            if (operation.timedOut) throw new Error('命运牌抽取超时，原牌已保留。请重试。');
             throw new Error('命运牌抽取失败，请重试。');
         } finally {
-            finishDrawing(operation, snapshot);
+            operation.cleanup();
         }
     }
 
@@ -548,18 +604,20 @@ export function createFateController(getContext, options = {}) {
         nonce++;
         const context = getContext();
         const snapshot = capture(context);
-        const operation = busy = { snapshot, phase: 'drawing' };
+        const operation = beginQuietOperation(snapshot, 'drawing');
         const value = state(snapshot.metadata);
+        const initialHeld = value.held;
         const cards = rollOffer(random, { recent: value.recent, pity: value.pity });
         const index = Math.min(cards.length - 1, Math.max(0, Math.floor(random() * cards.length)));
         notify();
         try {
-            return await drawWith(snapshot, operation, cards[index], strength);
+            return await drawWith(snapshot, operation, cards[index], strength, () => state(snapshot.metadata).held === initialHeld);
         } catch {
             if (!current(snapshot) || operation.cancelled) return false;
+            if (operation.timedOut) throw new Error('命运牌抽取超时，原牌已保留。请重试。');
             throw new Error('命运牌抽取失败，请重试。');
         } finally {
-            finishDrawing(operation, snapshot);
+            operation.cleanup();
         }
     }
 
@@ -737,7 +795,7 @@ export function createFateController(getContext, options = {}) {
         if (name === 'MESSAGE_RECEIVED') eventSource.makeFirst?.(eventTypes[name], handler);
     };
     on('CHAT_CHANGED', () => {
-        busy?.abortController?.abort();
+        busy?.stop?.();
         clearPrompt();
         revision++;
         nonce++;
@@ -750,7 +808,7 @@ export function createFateController(getContext, options = {}) {
     on('GENERATION_STARTED', async (type, _params, dryRun) => {
         if (dryRun) return;
         if (type === 'quiet' || type === 'impersonate') return retrySave();
-        if (busy?.phase === 'preparing') { busy.cancelled = true; busy.abortController.abort(); }
+        if (busy?.phase === 'preparing') busy.stop?.();
         clearPrompt();
         for (const record of activeRequests) record.invalid = true;
         activeRequests.clear();
@@ -891,7 +949,10 @@ export function createFateController(getContext, options = {}) {
                 if (!armed.claimed) armed.stopped = true;
                 armed.claimed = true;
             }
-            if (['drawing', 'preparing'].includes(busy?.phase) && current(busy.snapshot)) { busy.cancelled = true; busy.abortController?.abort(); }
+            if (['drawing', 'preparing'].includes(busy?.phase) && current(busy.snapshot)) {
+                if (busy.stop) busy.stop();
+                else busy.cancelled = true;
+            }
         }
         // ENDED is a UI unlock and runs before COMPLETED. Keep request provenance.
         // A later send lock belongs to native generation, not this apply's cleanup.

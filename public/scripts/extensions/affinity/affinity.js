@@ -58,9 +58,11 @@ const VERIFY_SCHEMA = {
     } },
 };
 
-const isCharacter = message => message?.is_user === false && !message.is_system;
+const isCharacter = message => message?.is_user === false && !message.is_system
+    && message.extra?.type !== 'narrator' && message.extra?.api !== 'manual';
 const isGroup = context => context.groupId !== undefined && context.groupId !== null && context.groupId !== '';
 const ownObject = value => value && typeof value === 'object' && !Array.isArray(value);
+const evaluationMark = (swipe, fingerprint) => `${swipe}:${fingerprint}`;
 
 /** Show the verifier original context around every cited source, including tails. */
 function verificationMessages(refs, proposals) {
@@ -343,11 +345,23 @@ export function createAffinityController(getContext, options = {}) {
             }
             // Players have no receipt authority; a forged player receipt is cleared.
             if (message.is_user && marker.receipt !== 0) { marker = { ...marker, receipt: 0, evaluated: undefined }; dirty = true; }
+            const swipe = Number.isInteger(message.swipe_id) ? message.swipe_id : 0;
+            const fingerprint = messageFingerprint({ ...message, name: owner });
+            const selected = evaluationMark(swipe, fingerprint);
+            if (marker.evaluated === fingerprint && !message.swipes?.some((text, index) => index !== swipe && text === message.mes)) {
+                // Old marks only identified text. Preserve an unambiguous result on upgrade.
+                marker = { ...marker, evaluated: selected };
+                dirty = true;
+            } else if (marker.evaluated !== undefined && marker.evaluated !== selected) {
+                // Reverting a revoked branch before the next batch must still revisit it.
+                marker = { ...marker };
+                delete marker.evaluated;
+                dirty = true;
+            }
             seen.add(marker.id);
             stamp(message, marker);
-            refs.push({ slot: marker.id, index, swipe: Number.isInteger(message.swipe_id) ? message.swipe_id : 0,
-                fingerprint: messageFingerprint({ ...message, name: owner }), owner, name: message.name ?? owner,
-                text: message.mes, generated: marker.receipt > 0 && (message.is_user || allowed.has(owner)), receipt: message.is_user || allowed.has(owner) ? marker.receipt : 0, evaluated: marker.evaluated });
+            refs.push({ slot: marker.id, index, swipe, fingerprint, owner, name: message.name ?? owner,
+                text: message.mes, generated: marker.receipt > 0 && (message.is_user || allowed.has(owner)), receipt: message.is_user || allowed.has(owner) ? marker.receipt : 0, evaluated: marker.evaluated === selected });
         });
         cache = { key: { ...key, value: state() }, refs };
         return refs;
@@ -400,7 +414,7 @@ export function createAffinityController(getContext, options = {}) {
             });
         }, 0));
     }
-    const sameRef = (a, b) => a.slot === b.slot && a.swipe === b.swipe && a.fingerprint === b.fingerprint && a.owner === b.owner;
+    const sameRef = (a, b) => a.slot === b.slot && a.index === b.index && a.swipe === b.swipe && a.fingerprint === b.fingerprint && a.owner === b.owner;
     const ownerIdentity = () => affinityOwners(getContext()).map(owner => owner.id).sort().join('\n');
     const jobCurrent = record => {
         if (record.invalid || !enabled() || !current(record.snapshot) || record.owners !== ownerIdentity()) return false;
@@ -540,11 +554,15 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
             if (pending.length < interval()) return;
             const batch = pending.slice(0, interval());
             const selected = new Set(batch.map(ref => ref.slot));
+            const byIndex = new Map(refs.map(ref => [ref.index, ref]));
             // Revisit changed evidence once alongside a real batch, rather than
             // issuing one request for every edit or alternate swipe selection.
-            refs.filter(ref => ref.receipt > 0 && ref.receipt <= value.cursor && ref.evaluated !== ref.fingerprint)
+            refs.filter(ref => {
+                const previous = byIndex.get(ref.index - 1);
+                return ref.receipt > 0 && ref.receipt <= value.cursor
+                    && (!ref.evaluated || (previous?.owner === 'player' && !previous.evaluated));
+            })
                 .sort((a, b) => a.receipt - b.receipt).slice(0, 20).forEach(ref => selected.add(ref.slot));
-            const byIndex = new Map(refs.map(ref => [ref.index, ref]));
             for (const ref of refs.filter(ref => selected.has(ref.slot))) {
                 const previous = byIndex.get(ref.index - 1);
                 if (previous) selected.add(previous.slot);
@@ -572,7 +590,7 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
                 result.evaluatedRefs.forEach(ref => {
                     const message = getContext().chat[ref.index];
                     const marker = markerFor(message, next);
-                    if (marker && marker.id === ref.slot) stamp(message, { ...marker, evaluated: ref.fingerprint });
+                    if (marker && marker.id === ref.slot) stamp(message, { ...marker, evaluated: evaluationMark(ref.swipe, ref.fingerprint) });
                 });
                 invalidate();
             }
@@ -599,7 +617,7 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         const tag = `affinity${++frameSerial}x${uuid().replace(/[^a-zA-Z0-9]/g, '').slice(-12)}`;
         const protectedText = text.replace(/[{}<>\r\n]/g, character => MEMORY_DELIMITERS[character]);
         const token = `\uE010${tag}\uE011${protectedText}\uE012${tag}\uE013`;
-        frames.set(token, { text, snapshot: capture() });
+        frames.set(token, { text, owner, snapshot: capture() });
         for (let index = requestChat.length - 1; index >= 0; index--) {
             if (requestChat[index]?.extra?.affinityPrompt) requestChat.splice(index, 1);
         }
@@ -728,6 +746,9 @@ ${typeof options.maxOutputTokens === 'function' ? `本次最多输出${Math.max(
         transform(data, value => value.replace(MEMORY_FRAMES, token => {
             const frame = frames.get(token);
             if (!TYPES.has(requestType) || !frame || !enabled() || !current(frame.snapshot)) return '';
+            const context = getContext();
+            if (context.characters?.[context.characterId]?.avatar !== frame.owner
+                || !affinityOwners(context).some(owner => owner.id === frame.owner)) return '';
             used.add(token);
             return frame.text;
         }));

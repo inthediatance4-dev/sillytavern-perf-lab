@@ -100,6 +100,7 @@ function fixture({ show = false, autoParse = true, trim = true, mainApi = 'opena
         declaration(reasoning, 'export function parseReasoningFromString('),
         declaration(reasoning, 'export function parseReasoningInSwipes('),
         declaration(reasoning, 'export function extractReasoningFromData('),
+        declaration(reasoning, 'export function extractReasoningSignatureFromData('),
         declaration(reasoning, 'function registerReasoningAppEvents('),
         declaration(openai, 'export function getStreamingReply('),
         declaration(script, 'export function messageFormatting('),
@@ -406,5 +407,24 @@ test('continuing an incomplete tagged prefix applies the same visibility prefere
         await lab.handler.finish(0);
         assert.equal(lab.chat[0].extra.reasoning, show ? 'rs' : undefined);
         if (!show) assertNoReasoning(lab);
+    }
+});
+
+test('direct Gemini responses return thoughtSignature from the first matching text part', () => {
+    const lab = fixture();
+    const data = {
+        responseContent: {
+            parts: [
+                { inlineData: { mimeType: 'image/png', data: 'abc' }, thoughtSignature: 'sig-ignored' },
+                { text: 'answer', thoughtSignature: 'sig-gemini-text' },
+            ],
+        },
+    };
+    for (const chatCompletionSource of ['makersuite', 'vertexai']) {
+        assert.equal(
+            lab.context.extractReasoningSignatureFromData(data, { mainApi: 'openai', chatCompletionSource }),
+            'sig-gemini-text',
+            chatCompletionSource,
+        );
     }
 });

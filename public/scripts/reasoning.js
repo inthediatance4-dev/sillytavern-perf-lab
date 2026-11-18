@@ -205,11 +205,11 @@ export function extractReasoningSignatureFromData(data, {
 
     // Direct Gemini format: Extract from responseContent.parts if available (only text parts)
     if (isGemini && Array.isArray(data?.responseContent?.parts)) {
-        data.responseContent.parts.forEach((part) => {
+        for (const part of data.responseContent.parts) {
             if (part.thoughtSignature && typeof part.text === 'string') {
                 return part.thoughtSignature;
             }
-        });
+        }
     }
 
     return null;

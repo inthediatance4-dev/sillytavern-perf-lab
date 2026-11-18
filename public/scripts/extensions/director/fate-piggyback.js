@@ -98,7 +98,7 @@ export async function filterPiggybackResponse(response, capture, stream = respon
         state.restorePending = () => { owner[key] += state.pending; };
         return held ? combined.slice(0, -held) : combined;
     };
-    if (!stream) {
+    if (!stream || !response.body) {
         const data = await response.json();
         visitResponseText(data, replace);
         finish();
@@ -118,7 +118,11 @@ export async function filterPiggybackResponse(response, capture, stream = respon
         if (data === '[DONE]') { finish(); return drain() + frame + '\n\n'; }
         if (!data) queued.push({ render: () => frame + '\n\n' });
         else {
-            const value = JSON.parse(data);
+            let value;
+            try { value = JSON.parse(data); } catch {
+                queued.push({ render: () => frame + '\n\n' });
+                return drain();
+            }
             currentFrame = {};
             visitResponseText(value, replace);
             // Hold a possible marker prefix until it either completes or becomes

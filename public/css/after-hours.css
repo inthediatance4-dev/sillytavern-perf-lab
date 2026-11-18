@@ -1,16 +1,19 @@
-/* After Hours — a quiet writing room. Loaded only by the native theme. */
+/* After Hours — a quiet nocturnal salon & writing room. Loaded only by the native theme. */
 body {
-    --ah-ink: #0b111c;
-    --ah-panel: #141d2b;
-    --ah-raised: #1b2636;
-    --ah-copper: #e5b184;
-    --ah-muted: #b8ada4;
-    --ah-line: rgba(229, 177, 132, 0.18);
+    --ah-ink: #0a101a;
+    --ah-panel: #131c2b;
+    --ah-raised: #1a2638;
+    --ah-copper: #e5b482;
+    --ah-copper-soft: rgba(229, 180, 130, 0.14);
+    --ah-muted: #b9afa5;
+    --ah-line: rgba(229, 180, 130, 0.18);
     --interactable-outline-color: var(--ah-copper);
-    --interactable-outline-color-faint: rgba(229, 177, 132, 0.65);
+    --interactable-outline-color-faint: rgba(229, 180, 130, 0.65);
     color: var(--SmartThemeBodyColor);
-    background: radial-gradient(ellipse at 12% 0%, #273347 0%, transparent 50%),
-        radial-gradient(ellipse at 95% 100%, #30231f 0%, transparent 45%), var(--ah-ink);
+    background:
+        radial-gradient(ellipse at 14% 0%, #243147 0%, transparent 52%),
+        radial-gradient(ellipse at 92% 100%, #32231e 0%, transparent 46%),
+        var(--ah-ink);
 }
 
 /* Retain native backgrounds and their switching controls beneath the ink wash. */
@@ -34,7 +37,7 @@ body {
 #top-bar {
     border: 1px solid var(--ah-line);
     border-radius: 14px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 240, 220, 0.05);
 }
 
 .drawer-icon {
@@ -57,6 +60,7 @@ body:not(.movingUI):not(.waifuMode) #sheld {
     border: 1px solid var(--ah-line);
     border-radius: 18px;
     background-color: var(--SmartThemeChatTintColor);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 240, 220, 0.04);
 }
 
 body:not(.movingUI):not(.waifuMode) #chat {
@@ -240,8 +244,22 @@ body #chat .mes.selected {
 }
 
 #send_form {
-    border: 1px solid rgba(229, 177, 132, 0.28);
-    border-radius: 12px;
+    border: 1px solid rgba(229, 180, 130, 0.28);
+    border-radius: 13px;
+    background-color: rgba(15, 22, 34, 0.78);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 240, 220, 0.04);
+}
+
+#chat_new_content {
+    border-color: rgba(229, 180, 130, 0.42);
+    background: linear-gradient(180deg, rgba(25, 36, 54, 0.96), rgba(16, 23, 36, 0.96));
+    color: #f6e7d4;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 240, 220, 0.08);
+}
+
+#chat_new_content:hover {
+    border-color: var(--ah-copper);
+    color: #fff6ea;
 }
 
 #send_textarea {

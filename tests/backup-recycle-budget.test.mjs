@@ -151,3 +151,14 @@ test('configured maxRecycleBytes prunes throttled backups without removing the c
     assert.equal(await fs.readFile(file, 'utf8'), snapshots[2]);
     assert.ok(await treeSize(path.join(backups, '.recycle')) <= 1);
 });
+
+test('a zero recycle budget also removes zero-byte recycled files and their empty containers', async () => {
+    const dir = await makeDir();
+    const container = path.join(dir, '.recycle', 'empty-run');
+    await fs.mkdir(container, { recursive: true });
+    const zeroFile = path.join(container, 'empty.jsonl');
+    await fs.writeFile(zeroFile, '');
+    await recycleOldChatBackups(dir, 'chat_', 5, { maxRecycleBytes: 0 });
+    assert.equal(await fs.access(zeroFile).then(() => true, () => false), false);
+    assert.equal(await fs.access(container).then(() => true, () => false), false);
+});

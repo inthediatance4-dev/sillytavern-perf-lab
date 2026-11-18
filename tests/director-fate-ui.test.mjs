@@ -857,6 +857,54 @@ test('repairing the same offer updates previews without another deal', async t =
     assert.equal(h.query('.director_fate_choice_preview').textContent, 'A visitor arrives.');
 });
 
+test('opening a prepared strong offer picks at its stored strength without a rewrite', async t => {
+    const h = lab(t);
+    const cards = [{ title: '灯下的来信', rarity: 'rare', preview: '打烊前，有人推门进来。' }];
+    h.setView({ offer: { id: 'saved', cards, strength: 'strong', pregenerated: true } });
+    const picked = [];
+    h.controller.pick = async (_index, strength) => { picked.push(strength); return true; };
+    h.open(); t.after(() => h.close());
+    h.query('.director_fate_choice').click(); await settle();
+    assert.deepEqual(picked, ['strong']);
+    h.query('#director_fate_strength').value = 'light';
+    h.query('#director_fate_strength').fire('change');
+    h.panel.refresh();
+    assert.equal(h.query('#director_fate_strength').value, 'light');
+});
+
+test('confirming a log clear after changing chats cannot clear the new log', async t => {
+    const h = lab(t);
+    let chat = 'first', resolve;
+    h.controller.captureScope = () => { const captured = chat; return () => chat === captured; };
+    h.open({ tab: 'log' }); t.after(() => h.close());
+    h.setConfirm(new Promise(done => { resolve = done; }));
+    h.query('#director_fate_clear_log').click();
+    chat = 'second'; h.panel.refresh(); resolve(1); await settle();
+    assert.equal(h.clears, 0);
+});
+
+test('a cloned chat with the same card ID requires its own reveal', async t => {
+    const h = lab(t); let chat = 'original';
+    h.controller.captureScope = () => { const captured = chat; return () => chat === captured; };
+    h.open(); t.after(() => h.close());
+    h.query('#director_fate_flip').click();
+    assert.equal(h.query('.director_fate_face').textContent, secret);
+    chat = 'clone'; h.panel.refresh();
+    assert.equal(h.query('.director_fate_face').textContent, '');
+    assert.equal(h.query('#director_fate_flip').hidden, false);
+});
+
+test('returning from history prepares a missing offer only once', async t => {
+    const h = lab(t); let calls = 0;
+    h.setView({ offer: { id: 'faces', cards: [{ title: '信', rarity: 'rare' }], pregenerated: false } });
+    h.controller.prepareOffer = async () => { calls++; throw new Error('incomplete'); };
+    h.open({ tab: 'log' }); t.after(() => h.close());
+    assert.equal(calls, 0);
+    h.query('#director_fate_tab_current').click(); await settle();
+    h.query('#director_fate_tab_log').click(); h.query('#director_fate_tab_current').click(); await settle();
+    assert.equal(calls, 1);
+});
+
 test('automatic preparation belongs to the offer that opened the panel', async t => {
     const h = lab(t); t.after(() => h.close());
     const cards = [{ title: 'Test', rarity: 'rare' }];

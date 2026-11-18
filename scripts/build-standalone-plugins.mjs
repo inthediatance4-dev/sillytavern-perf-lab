@@ -126,8 +126,10 @@ function mapImport(specifier, sourcePath, packagePath, plugin, files) {
     if (!files.has(target)) throw new Error(`Unresolved package import ${specifier} in ${sourcePath}`);
     let relative = path.posix.relative(path.posix.dirname(packagePath), target);
     if (!relative.startsWith('.')) relative = `./${relative}`;
-    // Preserve ordinary local specifiers exactly; rewrite only host/runtime paths.
-    return resolved.startsWith(pluginSource) || sourcePath.startsWith(`${RUNTIME_SOURCE}/`) ? specifier : relative;
+    // Preserve ordinary local specifiers within the same tree; rewrite cross-tree/runtime paths.
+    const sameTree = (sourcePath.startsWith(pluginSource) && resolved.startsWith(pluginSource))
+        || (sourcePath.startsWith(`${RUNTIME_SOURCE}/`) && resolved.startsWith(`${RUNTIME_SOURCE}/`));
+    return sameTree ? specifier : relative;
 }
 
 function rewriteSource(record, packagePath, plugin, files) {

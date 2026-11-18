@@ -702,3 +702,64 @@ test('panel scope follows the chat and an expected offer cannot prepare another 
     h.switchChat();
     assert.equal(ownsChat(), false);
 });
+
+for (const action of ['prepareOffer', 'pick']) {
+    for (const interruption of ['stop', 'timeout']) {
+        test(`${action} releases a stalled provider on ${interruption} and ignores its reply after retry`, async t => {
+            const h = lab();
+            await h.controller.draw();
+            await h.controller.deal();
+            const before = h.metadata.director.fate;
+            let expire;
+            t.mock.method(globalThis, 'setTimeout', (callback, delay) => {
+                assert.equal(delay, 120000);
+                expire = callback;
+                return 0;
+            });
+            let signal;
+            let finishOldRequest;
+            h.context.generateQuietPrompt = options => {
+                signal = options.signal;
+                return new Promise(resolve => { finishOldRequest = resolve; });
+            };
+            const begin = () => action === 'pick' ? h.controller.pick(0) : h.controller.prepareOffer();
+            const oldRequest = begin().then(value => value, reason => reason);
+            if (interruption === 'stop') await h.emit('GENERATION_STOPPED');
+            else expire?.();
+            await new Promise(resolve => setImmediate(resolve));
+            assert.equal(h.controller.view().busy, false, 'a provider may ignore cancellation');
+            assert.equal(signal?.aborted, true);
+            const result = await oldRequest;
+            if (interruption === 'stop') assert.equal(result, false);
+            else assert.match(result.message, /超时/);
+            assert.equal(h.metadata.director.fate, before);
+
+            h.context.generateQuietPrompt = async () => action === 'pick'
+                ? JSON.stringify({ event: 'The retry succeeds.' }) : blockFor(before.offer.cards);
+            assert.equal(await begin(), true);
+            const retried = h.metadata.director.fate;
+            finishOldRequest('invalid late reply');
+            await new Promise(resolve => setImmediate(resolve));
+            assert.equal(h.metadata.director.fate, retried);
+        });
+    }
+}
+
+test('a normal reply can repair the offer while a previous pick is still waiting', async () => {
+    const h = lab();
+    await h.controller.draw();
+    await h.controller.deal();
+    const { held, offer } = h.metadata.director.fate;
+    let finishPick;
+    h.context.generateQuietPrompt = () => new Promise(resolve => { finishPick = resolve; });
+    const picking = h.controller.pick(1);
+    await h.round('A new reply.\n' + blockFor(offer.cards));
+    finishPick(JSON.stringify({ event: 'An outdated event.' }));
+    assert.equal(await picking, false);
+    assert.equal(h.metadata.director.fate.held, held);
+    assert.equal(h.controller.view().offer.pregenerated, true);
+    assert.equal(h.controller.view().offer.id, offer.id);
+    h.context.generateQuietPrompt = () => assert.fail('matching a prepared event costs no model request');
+    assert.equal(await h.controller.pick(1), true);
+    assert.equal(h.metadata.director.fate.held.event, privateEvents[1]);
+});

@@ -719,7 +719,7 @@ async function pruneRecycleStorage(recycleRoot, maxBytes) {
     let total = files.reduce((sum, file) => sum + file.bytes, 0);
     const removed = [];
     for (const file of files) {
-        if (total <= maxBytes) break;
+        if (maxBytes > 0 && total <= maxBytes) break;
         if (!isLexicalChild(recycleRoot, file.target)) throw new Error('Refusing to prune outside recycled backup storage');
         await fs.promises.rm(file.target, { force: true });
         total -= file.bytes;

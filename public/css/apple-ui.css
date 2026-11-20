@@ -12,54 +12,58 @@ html[data-apple-appearance="dark"] {
     --apple-font-serif: "New York", "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
     --apple-font-mono: "SF Mono", ui-monospace, "JetBrains Mono", "Noto Sans Mono", Menlo, Consolas, monospace;
 
-    /* Apple Dark Palette (Obsidian & Liquid Glass) */
-    --apple-canvas: #000000;
-    --apple-canvas-glow-a: rgba(10, 132, 255, 0.09);
-    --apple-canvas-glow-b: rgba(94, 92, 230, 0.07);
-    --apple-shell-bg: rgba(20, 20, 23, 0.94);
-    --apple-glass-bg: rgba(28, 28, 32, 0.82);
-    --apple-glass-strong: rgba(24, 24, 28, 0.96);
-    --apple-elevated-bg: rgba(40, 40, 46, 0.97);
+    /* Apple Dark Palette (Luminous Midnight Glass — clean & airy) */
+    --apple-canvas: #070b14;
+    --apple-canvas-glow-a: rgba(56, 152, 255, 0.19);
+    --apple-canvas-glow-b: rgba(116, 124, 255, 0.14);
+    --apple-canvas-glow-c: rgba(94, 214, 255, 0.085);
+    --apple-shell-bg: rgba(19, 24, 35, 0.74);
+    --apple-shell-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.052) 0%, rgba(255, 255, 255, 0.012) 34%, rgba(255, 255, 255, 0) 100%);
+    --apple-glass-bg: rgba(24, 31, 46, 0.62);
+    --apple-composer-bg: rgba(26, 33, 48, 0.70);
+    --apple-glass-strong: rgba(20, 26, 38, 0.84);
+    --apple-no-blur-surface: rgba(22, 28, 41, 0.90);
+    --apple-elevated-bg: rgba(34, 42, 58, 0.92);
     --apple-card-bg: rgba(255, 255, 255, 0.055);
-    --apple-card-hover: rgba(255, 255, 255, 0.095);
-    --apple-input-bg: rgba(118, 118, 128, 0.22);
-    --apple-input-focus-bg: rgba(118, 118, 128, 0.28);
-    --apple-control-bg: rgba(255, 255, 255, 0.09);
-    --apple-control-hover: rgba(255, 255, 255, 0.15);
+    --apple-card-hover: rgba(255, 255, 255, 0.098);
+    --apple-input-bg: rgba(148, 168, 205, 0.14);
+    --apple-input-focus-bg: rgba(148, 168, 205, 0.21);
+    --apple-control-bg: rgba(255, 255, 255, 0.085);
+    --apple-control-hover: rgba(255, 255, 255, 0.145);
     --apple-control-active: rgba(255, 255, 255, 0.20);
 
-    --apple-ink: #f5f5f7;
-    --apple-ink-secondary: rgba(235, 235, 245, 0.64);
-    --apple-ink-tertiary: rgba(235, 235, 245, 0.38);
-    --apple-quote: #64d2ff;
-    --apple-underline: #5ac8fa;
+    --apple-ink: #f7faff;
+    --apple-ink-secondary: rgba(222, 232, 248, 0.74);
+    --apple-ink-tertiary: rgba(205, 220, 245, 0.44);
+    --apple-quote: #7ce0ff;
+    --apple-underline: #70d6ff;
 
     --apple-accent: #0a84ff;
     --apple-accent-hover: #409cff;
-    --apple-accent-tint: rgba(10, 132, 255, 0.16);
-    --apple-accent-border: rgba(10, 132, 255, 0.36);
-    --apple-focus-ring: rgba(10, 132, 255, 0.45);
+    --apple-accent-tint: rgba(10, 132, 255, 0.18);
+    --apple-accent-border: rgba(96, 184, 255, 0.40);
+    --apple-focus-ring: rgba(64, 156, 255, 0.36);
     --apple-green: #30d158;
     --apple-red: #ff453a;
     --apple-red-tint: rgba(255, 69, 58, 0.18);
     --apple-amber: #ffd60a;
 
-    --apple-hairline: rgba(255, 255, 255, 0.11);
-    --apple-hairline-subtle: rgba(255, 255, 255, 0.065);
-    --apple-specular: rgba(255, 255, 255, 0.14);
+    --apple-hairline: rgba(215, 232, 255, 0.15);
+    --apple-hairline-subtle: rgba(215, 232, 255, 0.085);
+    --apple-specular: rgba(255, 255, 255, 0.22);
 
-    --apple-user-surface: rgba(10, 132, 255, 0.11);
-    --apple-user-border: rgba(10, 132, 255, 0.24);
-    --apple-bot-surface: rgba(255, 255, 255, 0.032);
-    --apple-code-bg: rgba(12, 12, 15, 0.85);
-    --apple-inline-code-bg: rgba(255, 255, 255, 0.10);
+    --apple-user-surface: rgba(16, 142, 255, 0.14);
+    --apple-user-border: rgba(104, 188, 255, 0.28);
+    --apple-bot-surface: rgba(255, 255, 255, 0.038);
+    --apple-code-bg: rgba(11, 15, 24, 0.78);
+    --apple-inline-code-bg: rgba(215, 232, 255, 0.12);
 
-    --apple-shadow-shell: 0 24px 70px rgba(0, 0, 0, 0.52);
-    --apple-shadow-float: 0 12px 36px rgba(0, 0, 0, 0.44);
-    --apple-shadow-menu: 0 18px 48px rgba(0, 0, 0, 0.56);
-    --apple-backdrop: rgba(0, 0, 0, 0.64);
-    --apple-switch-off: rgba(120, 120, 128, 0.36);
-    --apple-slider-track: rgba(255, 255, 255, 0.18);
+    --apple-shadow-shell: 0 26px 76px rgba(0, 4, 14, 0.48), 0 0 0 0.5px rgba(215, 232, 255, 0.06);
+    --apple-shadow-float: 0 12px 36px rgba(0, 6, 18, 0.40);
+    --apple-shadow-menu: 0 20px 52px rgba(0, 6, 20, 0.50);
+    --apple-backdrop: rgba(4, 8, 18, 0.54);
+    --apple-switch-off: rgba(132, 146, 174, 0.34);
+    --apple-slider-track: rgba(215, 232, 255, 0.20);
     --apple-thumb-shadow: 0 1px 4px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(0, 0, 0, 0.2);
     --apple-blur: 28px;
     --apple-color-scheme: dark;
@@ -70,9 +74,13 @@ html[data-apple-appearance="light"] {
     --apple-canvas: #f2f2f7;
     --apple-canvas-glow-a: rgba(0, 122, 255, 0.06);
     --apple-canvas-glow-b: rgba(175, 82, 222, 0.045);
+    --apple-canvas-glow-c: rgba(90, 200, 250, 0.04);
     --apple-shell-bg: rgba(255, 255, 255, 0.95);
-    --apple-glass-bg: rgba(255, 255, 255, 0.86);
-    --apple-glass-strong: rgba(250, 250, 252, 0.97);
+    --apple-shell-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 100%);
+    --apple-glass-bg: rgba(255, 255, 255, 0.84);
+    --apple-composer-bg: rgba(255, 255, 255, 0.92);
+    --apple-glass-strong: rgba(250, 250, 252, 0.96);
+    --apple-no-blur-surface: rgba(255, 255, 255, 0.95);
     --apple-elevated-bg: #ffffff;
     --apple-card-bg: rgba(255, 255, 255, 0.92);
     --apple-card-hover: #ffffff;
@@ -155,8 +163,9 @@ body {
     font-family: var(--apple-font-sans);
     color: var(--apple-ink);
     background:
-        radial-gradient(ellipse at 18% -8%, var(--apple-canvas-glow-a) 0%, transparent 52%),
-        radial-gradient(ellipse at 86% 108%, var(--apple-canvas-glow-b) 0%, transparent 48%),
+        radial-gradient(ellipse 68% 58% at 16% -6%, var(--apple-canvas-glow-a) 0%, transparent 58%),
+        radial-gradient(ellipse 60% 52% at 86% 106%, var(--apple-canvas-glow-b) 0%, transparent 54%),
+        radial-gradient(ellipse 52% 38% at 52% 14%, var(--apple-canvas-glow-c) 0%, transparent 56%),
         var(--apple-canvas);
     letter-spacing: -0.006em;
 }
@@ -294,6 +303,63 @@ body:not(.movingUI):not(.waifuMode) #top-settings-holder {
     transform: scale(0.91);
 }
 
+/* Standalone Exit-Chat Back Button (left side of top pill, visible only inside a chat) */
+#apple_exit_chat_drawer {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    padding-right: 6px;
+    margin-right: 2px;
+    border-right: 0.5px solid var(--apple-hairline);
+}
+
+#apple_exit_chat_drawer[hidden] {
+    display: none !important;
+}
+
+#apple_exit_chat_btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 32px;
+    margin: 0;
+    padding: 0 10px 0 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--apple-ink);
+    font-family: var(--apple-font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0.84;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+#apple_exit_chat_btn i {
+    font-size: 12px;
+}
+
+@media (hover: hover) {
+    #apple_exit_chat_btn:hover {
+        opacity: 1;
+        color: var(--apple-accent);
+        background-color: var(--apple-accent-tint);
+    }
+}
+
+#apple_exit_chat_btn:active {
+    transform: scale(0.93);
+}
+
+#apple_exit_chat_btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
 /* Integrated Dark / Light appearance toggle inside the top pill */
 #apple_appearance_drawer {
     flex: 0 0 auto !important;
@@ -371,12 +437,12 @@ body:not(.movingUI):not(.waifuMode) #sheld {
     max-width: calc(100dvw - 28px);
     border: 0.5px solid var(--apple-hairline);
     border-radius: 22px;
-    background-color: var(--apple-shell-bg);
+    background: var(--apple-shell-sheen), var(--apple-shell-bg);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     box-shadow:
         var(--apple-shadow-shell),
-        inset 0 0.5px 0 var(--apple-specular);
+        inset 0 1px 0 var(--apple-specular);
     overflow: hidden;
 }
 
@@ -412,6 +478,7 @@ body:not(.bubblechat):not(.documentstyle) #chat .mes:hover {
 body:not(.bubblechat):not(.documentstyle) #chat .mes[is_user="true"]:not(.selected) {
     background-color: var(--apple-user-surface);
     border-color: var(--apple-user-border);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.14);
 }
 
 body.bubblechat #chat .mes {
@@ -632,13 +699,13 @@ body:not(.movingUI):not(.waifuMode) #form_sheld {
     padding: 6px 8px;
     border: 0.5px solid var(--apple-hairline);
     border-radius: 22px;
-    background-color: var(--apple-glass-strong);
-    backdrop-filter: blur(var(--apple-blur)) saturate(190%);
-    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    background-color: var(--apple-composer-bg);
+    backdrop-filter: blur(var(--apple-blur)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(200%);
     backface-visibility: hidden;
     box-shadow:
         var(--apple-shadow-float),
-        inset 0 0.5px 0 var(--apple-specular);
+        inset 0 1px 0 var(--apple-specular);
     transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
@@ -1672,6 +1739,21 @@ dialog.apple-spotlight[open]::backdrop {
         font-size: min(17px, calc(4.8dvw));
     }
 
+    #apple_exit_chat_drawer {
+        padding-right: 4px;
+        margin-right: 0;
+    }
+
+    #apple_exit_chat_btn {
+        width: 30px;
+        height: 36px;
+        padding: 0;
+    }
+
+    #apple_exit_chat_btn .apple-exit-label {
+        display: none;
+    }
+
     body:not(.bubblechat):not(.documentstyle) #chat .mes {
         padding: 14px 10px 12px;
     }
@@ -1698,7 +1780,12 @@ html[data-apple-transitioning="true"] #chat .mes {
     transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease !important;
 }
 
-/* Fast UI / No-Blur Support: zero GPU blur cost when user enables no-blur */
+/* Fast UI / No-Blur Support: zero GPU blur cost when user enables no-blur, while keeping crisp translucent glass tones */
+body.no-blur #top-bar,
+body.no-blur #send_form {
+    background-color: var(--apple-no-blur-surface) !important;
+}
+
 body.no-blur #top-bar,
 body.no-blur #send_form,
 body.no-blur #chat_new_content,
@@ -1733,6 +1820,7 @@ body.reduced-motion *::after {
     .drawer-content,
     dialog.popup,
     #apple_appearance_toggle,
+    #apple_exit_chat_btn,
     #apple_scroll_bottom,
     .menu_button,
     .right_menu_button,

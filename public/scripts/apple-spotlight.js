@@ -150,6 +150,24 @@ export function collectSpotlightItems(doc = document) {
         });
     }
 
+    const exitBtn = doc.getElementById?.('apple_exit_chat_btn');
+    const closeChatOpt = doc.querySelector?.('#options #option_close_chat:not(.displayNone)')
+        ?? doc.getElementById?.('option_close_chat');
+    if (chatEl && !doc.querySelector?.('#chat .welcomePanel') && (exitBtn || closeChatOpt)) {
+        items.push({
+            id: 'action:exit-chat',
+            group: '快捷操作',
+            icon: 'fa-arrow-right-from-bracket',
+            title: '退出当前聊天',
+            subtitle: '返回主页列表',
+            keywords: 'exit close leave back home 退出 关闭 返回 主页 聊天',
+            run: () => {
+                if (exitBtn) exitBtn.click();
+                else closeChatOpt.click();
+            },
+        });
+    }
+
     // 2. Top-bar settings drawers
     const drawers = doc.querySelectorAll?.('#top-settings-holder > .drawer') ?? [];
     for (const drawer of drawers) {

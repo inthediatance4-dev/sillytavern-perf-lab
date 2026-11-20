@@ -56,6 +56,7 @@ test('collectSpotlightItems indexes drawers, inline settings sections, quick act
         documentElement: { dataset: { appleAppearance: 'dark' } },
         getElementById: id => {
             if (id === 'apple_appearance_toggle') return { click: () => actions.push(['toggle-theme']) };
+            if (id === 'apple_exit_chat_btn') return { click: () => actions.push(['exit-chat']) };
             if (id === 'directorButton') return { click: () => actions.push(['director']) };
             if (id === 'chat') return { scrollTop: 0, scrollHeight: 1000 };
             return null;
@@ -84,6 +85,7 @@ test('collectSpotlightItems indexes drawers, inline settings sections, quick act
     const titles = items.map(i => i.title);
     assert.equal(titles.some(x => x.includes('Apple Light')), true);
     assert.equal(titles.includes('打开盲抽命运牌'), true);
+    assert.equal(titles.includes('退出当前聊天'), true);
     assert.equal(titles.includes('扩展程序'), true);
     assert.equal(titles.includes('🎬 命运之牌'), true);
     assert.equal(titles.includes('Seraphina'), true);

@@ -17,6 +17,7 @@ test('Apple Dark and Apple Light themes are valid JSON and registered in default
 
     const settings = JSON.parse(read('../default/content/settings.json'));
     assert.equal(settings.power_user.theme, 'Apple Dark');
+    assert.equal(settings.power_user.fast_ui_mode, false);
 });
 
 test('index.html loads the global Apple UI stylesheet and appearance controller', () => {
@@ -92,7 +93,7 @@ test('applyAppleAppearance toggles dark/light dataset, transient cross-fade flag
     assert.equal(applyAppleAppearance('dark', { animate: true }), 'dark');
     assert.equal(globalThis.document.documentElement.dataset.appleAppearance, 'dark');
     assert.equal(globalThis.document.documentElement.dataset.appleTransitioning, 'true');
-    assert.equal(attrs.get('content'), '#000000');
+    assert.equal(attrs.get('content'), '#070b14');
     assert.equal(stored.get('st_apple_appearance'), 'dark');
     assert.equal(toggleBtn.attrs.get('aria-pressed'), 'false');
     assert.equal(icon.className, 'fa-solid fa-sun');
@@ -268,4 +269,54 @@ test('registerDismissLayer orders custom overlays by priority, supports declarat
         disposeLow();
         disposeHigh();
     }
+});
+
+test('standalone Exit Chat button stays hidden on welcome screen, shows in active chat, and invokes native close-chat', async () => {
+    const { hasActiveChat, syncExitChatButton, exitCurrentChat } = await import('../public/scripts/apple-ui.js');
+    const drawer = { hidden: true };
+    const exitBtn = { disabled: false };
+    let welcomePresent = true;
+    let hasMes = false;
+    let closedNative = 0;
+    let closedDrawer = 0;
+
+    const fakeDoc = {
+        getElementById: id => {
+            if (id === 'apple_exit_chat_drawer') return drawer;
+            if (id === 'apple_exit_chat_btn') return exitBtn;
+            if (id === 'chat') {
+                return {
+                    querySelector: sel => {
+                        if (sel === '.welcomePanel') return welcomePresent ? {} : null;
+                        if (sel === '.mes') return hasMes ? {} : null;
+                        return null;
+                    },
+                };
+            }
+            return null;
+        },
+        querySelector: sel => {
+            if (sel === '.drawer-content.openDrawer:not(.pinnedOpen)') {
+                return { parentElement: { querySelector: () => ({ click: () => { closedDrawer++; } }) } };
+            }
+            if (sel === '#options #option_close_chat:not(.displayNone)') {
+                return { click: () => { closedNative++; } };
+            }
+            return null;
+        },
+    };
+
+    assert.equal(hasActiveChat(fakeDoc), false);
+    assert.equal(syncExitChatButton(fakeDoc), false);
+    assert.equal(drawer.hidden, true);
+
+    welcomePresent = false;
+    hasMes = true;
+    assert.equal(hasActiveChat(fakeDoc), true);
+    assert.equal(syncExitChatButton(fakeDoc), true);
+    assert.equal(drawer.hidden, false);
+
+    assert.equal(await exitCurrentChat(fakeDoc), true);
+    assert.equal(closedDrawer, 1);
+    assert.equal(closedNative, 1);
 });

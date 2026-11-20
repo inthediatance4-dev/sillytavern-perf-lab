@@ -60,7 +60,7 @@ export function applyAppleAppearance(mode, { persist = true, animate = false } =
     root.dataset.appleAppearance = next;
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
-        themeMeta.setAttribute('content', next === LIGHT ? '#f2f2f7' : '#000000');
+        themeMeta.setAttribute('content', next === LIGHT ? '#f2f2f7' : '#070b14');
     }
     if (persist) {
         writeStoredAppearance(next);
@@ -327,6 +327,108 @@ export function handleAppleKeydown(event) {
     return false;
 }
 
+/**
+ * Determines whether the user is currently inside an active character/group chat
+ * rather than the welcome screen.
+ * @param {Document} [doc]
+ * @returns {boolean}
+ */
+export function hasActiveChat(doc = document) {
+    const chat = doc.getElementById?.('chat');
+    if (!chat || chat.querySelector?.('.welcomePanel')) return false;
+    if (chat.querySelector?.('.mes')) return true;
+    try {
+        const ctx = globalThis.SillyTavern?.getContext?.();
+        return Boolean(ctx && (ctx.characterId !== undefined || ctx.groupId));
+    } catch {
+        // Early boot TDZ before script.js finishes module initialization.
+        return false;
+    }
+}
+
+/**
+ * Keeps the standalone far-left Exit Chat button visible only when inside a chat.
+ * @param {Document} [doc]
+ * @returns {boolean}
+ */
+export function syncExitChatButton(doc = document) {
+    const drawer = doc.getElementById?.('apple_exit_chat_drawer');
+    if (!drawer) return false;
+    const active = hasActiveChat(doc);
+    if (drawer.hidden === active) {
+        drawer.hidden = !active;
+    }
+    return active;
+}
+
+/**
+ * Exits the current chat via SillyTavern's native close-chat path so save locks,
+ * group state, and welcome-screen restoration remain 100% consistent.
+ * @param {Document} [doc]
+ * @returns {Promise<boolean>}
+ */
+export async function exitCurrentChat(doc = document) {
+    const btn = doc.getElementById?.('apple_exit_chat_btn');
+    if (btn?.disabled) return false;
+    if (btn) btn.disabled = true;
+    try {
+        const openUnpinned = doc.querySelector?.('.drawer-content.openDrawer:not(.pinnedOpen)');
+        if (openUnpinned) {
+            openUnpinned.parentElement?.querySelector?.('.drawer-toggle')?.click?.();
+        }
+        const closeOpt = doc.querySelector?.('#options #option_close_chat:not(.displayNone)')
+            ?? doc.getElementById?.('option_close_chat');
+        if (closeOpt && typeof closeOpt.click === 'function') {
+            closeOpt.click();
+            return true;
+        }
+        const mod = await import('../script.js');
+        if (typeof mod.closeCurrentChat === 'function') {
+            return Boolean(await mod.closeCurrentChat());
+        }
+        return false;
+    } finally {
+        if (btn) {
+            setTimeout(() => {
+                btn.disabled = false;
+                syncExitChatButton(doc);
+            }, 120);
+        }
+    }
+}
+
+function mountExitChatButton() {
+    const holder = document.getElementById('top-settings-holder');
+    if (!holder || document.getElementById('apple_exit_chat_btn')) return;
+
+    const drawer = document.createElement('div');
+    drawer.id = 'apple_exit_chat_drawer';
+    drawer.className = 'drawer';
+    drawer.hidden = true;
+
+    const button = document.createElement('button');
+    button.id = 'apple_exit_chat_btn';
+    button.type = 'button';
+    button.setAttribute('aria-label', '退出当前聊天，返回主页');
+    button.setAttribute('title', '退出当前聊天（返回主页）');
+
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-chevron-left';
+    icon.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.className = 'apple-exit-label';
+    label.textContent = '返回';
+    button.append(icon, label);
+
+    button.addEventListener('click', () => {
+        void exitCurrentChat(document);
+    });
+
+    drawer.append(button);
+    holder.prepend(drawer);
+    syncExitChatButton(document);
+}
+
 function mountAppearanceToggle() {
     const holder = document.getElementById('top-settings-holder');
     if (!holder || document.getElementById('apple_appearance_toggle')) return;
@@ -385,6 +487,7 @@ function mountScrollBottomButton() {
         if (pill.hidden === shouldShow) {
             pill.hidden = !shouldShow;
         }
+        syncExitChatButton(document);
     };
 
     const scheduleCheck = () => {
@@ -442,6 +545,7 @@ function bindDrawerAriaSync() {
 
 function initAppleUi() {
     applyAppleAppearance(readStoredAppearance(), { persist: false });
+    mountExitChatButton();
     mountAppearanceToggle();
     mountScrollBottomButton();
     bindThemeSelectorSync();

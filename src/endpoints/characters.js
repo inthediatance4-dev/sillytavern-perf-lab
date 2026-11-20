@@ -1,4 +1,4 @@
-import { isLifecycleInternalName } from '../chat-io.js';
+import { isLifecycleInternalName, assertContainedChatPath } from '../chat-io.js';
 import { trackPersistenceRouter } from '../request-drain.js';
 import { withCharacterEdit, withCharacterImport, invalidateCharacterImport } from '../character-lifecycle.js';
 import path from 'node:path';
@@ -1617,20 +1617,30 @@ router.post('/get', validateAvatarUrlMiddleware, async function (request, respon
 
 router.post('/chats', validateAvatarUrlMiddleware, async function (request, response) {
     try {
-        if (!request.body) return response.sendStatus(400);
+        if (!request.body || typeof request.body.avatar_url !== 'string' || !request.body.avatar_url.trim()) {
+            return response.sendStatus(400);
+        }
 
-        const characterDirectory = (request.body.avatar_url).replace('.png', '');
-        const chatsDirectory = path.join(request.user.directories.chats, characterDirectory);
+        const characterDirectory = request.body.avatar_url.replace(/\.png$/i, '');
+        const chatsRoot = request.user.directories.chats;
+        const chatsDirectory = path.join(chatsRoot, characterDirectory);
+        await assertContainedChatPath(chatsDirectory, chatsRoot);
 
         if (!fs.existsSync(chatsDirectory)) {
             return response.send({ error: true });
         }
 
         const files = fs.readdirSync(chatsDirectory, { withFileTypes: true });
-        const jsonFiles = files.filter(file => file.isFile() && !isLifecycleInternalName(file.name) && path.extname(file.name) === '.jsonl').map(file => file.name);
+        const jsonFiles = files
+            .filter(file => file.isFile() && !file.isSymbolicLink() && !isLifecycleInternalName(file.name) && path.extname(file.name) === '.jsonl')
+            .map(file => file.name);
 
         if (jsonFiles.length === 0) {
             return response.send([]);
+        }
+
+        for (const file of jsonFiles) {
+            await assertContainedChatPath(path.join(chatsDirectory, file), chatsRoot);
         }
 
         if (request.body.simple) {
@@ -1639,7 +1649,7 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
 
         const jsonFilesPromise = jsonFiles.map((file) => {
             const withMetadata = !!request.body.metadata;
-            const pathToFile = path.join(request.user.directories.chats, characterDirectory, file);
+            const pathToFile = path.join(chatsDirectory, file);
             return getChatInfo(pathToFile, {}, withMetadata);
         });
 
@@ -1648,6 +1658,9 @@ router.post('/chats', validateAvatarUrlMiddleware, async function (request, resp
 
         return response.send(validFiles);
     } catch (error) {
+        if (error instanceof ChatLifecycleError) {
+            return response.status(400).send({ error: true });
+        }
         console.error(error);
         return response.send({ error: true });
     }

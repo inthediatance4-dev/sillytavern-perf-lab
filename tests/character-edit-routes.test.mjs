@@ -89,3 +89,29 @@ for (const route of ['/edit', '/edit-avatar', '/edit-attribute', '/merge-attribu
         assert.equal((await invoke(route, body, file)).status, 200);
     });
 }
+
+test('/chats enumerates contained character chats while rejecting traversal, reserved names, and junction aliases', async () => {
+    const validDir = path.join(dirs.chats, 'SafeHero');
+    fs.mkdirSync(validDir, { recursive: true });
+    fs.writeFileSync(path.join(validDir, 'story.jsonl'), '{"user_name":"User","character_name":"SafeHero"}\n{"name":"SafeHero","is_user":false,"mes":"Hello"}\n');
+    const okRes = await invoke('/chats', { avatar_url: 'SafeHero.png', simple: true });
+    assert.equal(okRes.status, 200);
+    assert.deepEqual(okRes.data, [{ file_name: 'story.jsonl', file_id: 'story' }]);
+
+    for (const badAvatar of ['../uploads.png', 'SafeHero/../../uploads.png', '.chat-lifecycle.png', '.chat-staging.png', '.recycle.png']) {
+        const res = await invoke('/chats', { avatar_url: badAvatar, simple: true });
+        assert.equal(res.status, 400, `expected 400 for ${badAvatar}`);
+    }
+
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'outside-chats-'));
+    fs.writeFileSync(path.join(outsideDir, 'secret.jsonl'), '{"mes":"outside"}\n');
+    const aliasDir = path.join(dirs.chats, 'AliasHero');
+    fs.symlinkSync(outsideDir, aliasDir, process.platform === 'win32' ? 'junction' : 'dir');
+    try {
+        const aliasRes = await invoke('/chats', { avatar_url: 'AliasHero.png', simple: true });
+        assert.equal(aliasRes.status, 400);
+    } finally {
+        fs.rmSync(aliasDir, { recursive: true, force: true });
+        fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+});

@@ -137,59 +137,120 @@ export function syncDrawerAria(root = document) {
     }
 }
 
+const dismissLayers = new Map();
+
 /**
- * Global Apple keyboard ergonomics:
- * - Escape closes floating menus (#options, #extensionsMenu) or unpinned top drawers
- *   when no modal dialog, popover, message editor, or active generation owns Escape.
- * - Ctrl/Cmd + / (or bare / on document.body) focuses #send_textarea immediately.
- * @param {KeyboardEvent} event
- * @returns {boolean} Whether the shortcut was handled
+ * Registers a layer in the Escape dismiss stack.
+ * Layers are evaluated from highest priority to lowest. Returning `'defer'` from
+ * `dismiss` yields Escape to native/component handlers without consuming the event.
+ * @param {{ id: string, priority?: number, isActive: () => boolean, dismiss?: () => ('defer' | boolean | void) }} layer
+ * @returns {() => void} Disposer that removes the layer
  */
-export function handleAppleKeydown(event) {
-    if (!event || event.defaultPrevented || event.isComposing) return false;
-
-    if (event.key === 'Escape' && !event.ctrlKey && !event.metaKey && !event.altKey) {
-        if (document.querySelector('dialog[open]')) return false;
-        const directorPopover = document.getElementById('directorPopover');
-        if (directorPopover && !directorPopover.hidden) return false;
-        const higherPriorityIds = [
-            'curEditTextarea',
-            'mes_stop',
-            'dialogue_popup',
-            'select_chat_popup',
-            'character_popup',
-            'dialogue_del_mes_cancel',
-            'logprobsViewer',
-            'cfgConfig',
-            'floatingPrompt',
-        ];
-        for (const id of higherPriorityIds) {
-            if (isElementVisible(document.getElementById(id))) return false;
+export function registerDismissLayer(layer) {
+    if (!layer || typeof layer.id !== 'string' || typeof layer.isActive !== 'function') {
+        throw new TypeError('Dismiss layer requires id and isActive()');
+    }
+    const entry = {
+        id: layer.id,
+        priority: Number.isFinite(layer.priority) ? layer.priority : 50,
+        isActive: layer.isActive,
+        dismiss: typeof layer.dismiss === 'function' ? layer.dismiss : () => 'defer',
+    };
+    dismissLayers.set(entry.id, entry);
+    return () => {
+        if (dismissLayers.get(entry.id) === entry) {
+            dismissLayers.delete(entry.id);
         }
-        if (document.querySelector('.reasoning_edit_textarea')) return false;
+    };
+}
 
-        const optionsMenu = document.getElementById('options');
-        if (isElementVisible(optionsMenu)) {
-            const optionsBtn = document.getElementById('options_button');
-            if (optionsBtn) optionsBtn.click();
-            else optionsMenu.style.display = 'none';
-            event.preventDefault();
-            event.stopImmediatePropagation?.();
+function getSortedDismissLayers() {
+    return [...dismissLayers.values()].sort((a, b) => b.priority - a.priority);
+}
+
+function seedBuiltinDismissLayers() {
+    // Priority 100: Native dialogs, ARIA role="dialog" popovers, active editors, generation stop, & legacy sub-modals
+    registerDismissLayer({
+        id: 'native-priority-owners',
+        priority: 100,
+        isActive() {
+            if (document.querySelector?.('dialog[open], [role="dialog"]:not([hidden]), .reasoning_edit_textarea')) {
+                return true;
+            }
+            const deferEls = document.querySelectorAll?.('[data-apple-dismiss-defer], #curEditTextarea, #mes_stop, .popup, [id$="_popup"], #floatingPrompt, #cfgConfig, #logprobsViewer') ?? [];
+            for (const el of deferEls) {
+                if (isElementVisible(el)) return true;
+            }
+            return false;
+        },
+        dismiss: () => 'defer',
+    });
+
+    // Priority 75: Declarative [data-apple-dismiss] overlays (zero-JS opt-in for future UI)
+    registerDismissLayer({
+        id: 'declarative-overlays',
+        priority: 75,
+        isActive() {
+            const candidates = document.querySelectorAll?.('[data-apple-dismiss]') ?? [];
+            for (const el of candidates) {
+                if (isElementVisible(el)) return true;
+            }
+            return false;
+        },
+        dismiss() {
+            const candidates = [...(document.querySelectorAll?.('[data-apple-dismiss]') ?? [])].filter(isElementVisible);
+            if (!candidates.length) return false;
+            const top = candidates.at(-1);
+            const targetSel = top.getAttribute('data-apple-dismiss');
+            if (targetSel && targetSel !== 'self') {
+                const closeBtn = document.querySelector?.(targetSel) ?? top.querySelector?.(targetSel);
+                if (closeBtn) {
+                    closeBtn.click();
+                    return true;
+                }
+            }
+            top.hidden = true;
             return true;
-        }
+        },
+    });
 
-        const extMenu = document.getElementById('extensionsMenu');
-        if (isElementVisible(extMenu)) {
-            const extBtn = document.getElementById('extensionsMenuButton');
-            if (extBtn) extBtn.click();
-            else extMenu.style.display = 'none';
-            event.preventDefault();
-            event.stopImmediatePropagation?.();
-            return true;
-        }
+    // Priority 60: Floating Popper menus (#options, #extensionsMenu)
+    registerDismissLayer({
+        id: 'floating-menus',
+        priority: 60,
+        isActive() {
+            return isElementVisible(document.getElementById('options'))
+                || isElementVisible(document.getElementById('extensionsMenu'));
+        },
+        dismiss() {
+            const optionsMenu = document.getElementById('options');
+            if (isElementVisible(optionsMenu)) {
+                const optionsBtn = document.getElementById('options_button');
+                if (optionsBtn) optionsBtn.click();
+                else optionsMenu.style.display = 'none';
+                return true;
+            }
+            const extMenu = document.getElementById('extensionsMenu');
+            if (isElementVisible(extMenu)) {
+                const extBtn = document.getElementById('extensionsMenuButton');
+                if (extBtn) extBtn.click();
+                else extMenu.style.display = 'none';
+                return true;
+            }
+            return false;
+        },
+    });
 
-        const openUnpinned = document.querySelector('.drawer-content.openDrawer:not(.pinnedOpen)');
-        if (openUnpinned) {
+    // Priority 40: Unpinned top-bar settings drawers
+    registerDismissLayer({
+        id: 'unpinned-drawers',
+        priority: 40,
+        isActive() {
+            return Boolean(document.querySelector?.('.drawer-content.openDrawer:not(.pinnedOpen)'));
+        },
+        dismiss() {
+            const openUnpinned = document.querySelector?.('.drawer-content.openDrawer:not(.pinnedOpen)');
+            if (!openUnpinned) return false;
             const toggle = openUnpinned.parentElement?.querySelector?.('.drawer-toggle');
             if (toggle) {
                 toggle.click();
@@ -198,6 +259,28 @@ export function handleAppleKeydown(event) {
                 openUnpinned.classList.add('closedDrawer');
             }
             syncDrawerAria();
+            return true;
+        },
+    });
+}
+
+seedBuiltinDismissLayers();
+
+/**
+ * Global Apple keyboard ergonomics:
+ * - Escape evaluates the priority-ordered dismiss stack (`registerDismissLayer` + `[data-apple-dismiss]`).
+ * - Ctrl/Cmd + / (or bare / on document.body) focuses #send_textarea immediately.
+ * @param {KeyboardEvent} event
+ * @returns {boolean} Whether the shortcut was handled
+ */
+export function handleAppleKeydown(event) {
+    if (!event || event.defaultPrevented || event.isComposing) return false;
+
+    if (event.key === 'Escape' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        for (const layer of getSortedDismissLayers()) {
+            if (!layer.isActive()) continue;
+            const outcome = layer.dismiss();
+            if (outcome === 'defer' || outcome === false) return false;
             event.preventDefault();
             event.stopImmediatePropagation?.();
             return true;

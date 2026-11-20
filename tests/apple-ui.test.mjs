@@ -173,7 +173,7 @@ test('handleAppleKeydown closes unpinned drawers on Escape, skips modal/editor s
         documentElement: { dataset: {} },
         body,
         querySelector: sel => {
-            if (sel === 'dialog[open]') return openDialog;
+            if (sel.includes('dialog[open]')) return openDialog;
             if (sel === '.drawer-content.openDrawer:not(.pinnedOpen)') return openUnpinnedDrawer;
             return null;
         },
@@ -206,4 +206,66 @@ test('handleAppleKeydown closes unpinned drawers on Escape, skips modal/editor s
     assert.equal(handleAppleKeydown({ key: '/', target: body, preventDefault() { prevented++; } }), true);
     assert.equal(textareaFocused, 1);
     assert.equal(textarea.value, '/');
+});
+
+test('registerDismissLayer orders custom overlays by priority, supports declarative [data-apple-dismiss], and unregisters cleanly', async t => {
+    const prevDoc = globalThis.document;
+    const prevGetComputedStyle = globalThis.getComputedStyle;
+
+    const events = [];
+    let declarativeEl = null;
+    globalThis.getComputedStyle = () => ({ display: 'block', visibility: 'visible', opacity: '1', position: 'fixed' });
+    globalThis.document = {
+        readyState: 'complete',
+        documentElement: { dataset: {} },
+        body: {},
+        querySelector: () => null,
+        querySelectorAll: sel => {
+            if (sel === '[data-apple-dismiss]' && declarativeEl && !declarativeEl.hidden) return [declarativeEl];
+            return [];
+        },
+        getElementById: () => null,
+    };
+
+    t.after(() => {
+        if (prevDoc === undefined) delete globalThis.document;
+        else globalThis.document = prevDoc;
+        globalThis.getComputedStyle = prevGetComputedStyle;
+    });
+
+    const { registerDismissLayer, handleAppleKeydown } = await import('../public/scripts/apple-ui.js');
+    let lowOpen = true;
+    let highOpen = true;
+    const disposeLow = registerDismissLayer({
+        id: 'test-low',
+        priority: 50,
+        isActive: () => lowOpen,
+        dismiss: () => { lowOpen = false; events.push('low'); return true; },
+    });
+    const disposeHigh = registerDismissLayer({
+        id: 'test-high',
+        priority: 85,
+        isActive: () => highOpen,
+        dismiss: () => { highOpen = false; events.push('high'); return true; },
+    });
+
+    try {
+        // High-priority layer wins first Escape
+        assert.equal(handleAppleKeydown({ key: 'Escape', preventDefault() {}, stopImmediatePropagation() {} }), true);
+        assert.deepEqual(events, ['high']);
+        assert.equal(lowOpen, true);
+
+        // Declarative [data-apple-dismiss] (priority 75) beats priority 50
+        declarativeEl = { hidden: false, getAttribute: () => 'self' };
+        assert.equal(handleAppleKeydown({ key: 'Escape', preventDefault() {}, stopImmediatePropagation() {} }), true);
+        assert.equal(declarativeEl.hidden, true);
+        assert.equal(lowOpen, true);
+
+        // Next Escape reaches priority 50
+        assert.equal(handleAppleKeydown({ key: 'Escape', preventDefault() {}, stopImmediatePropagation() {} }), true);
+        assert.deepEqual(events, ['high', 'low']);
+    } finally {
+        disposeLow();
+        disposeHigh();
+    }
 });

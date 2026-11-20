@@ -158,8 +158,8 @@ export function collectSpotlightItems(doc = document) {
         const iconEl = drawer.querySelector?.('.drawer-icon');
         const content = drawer.querySelector?.('.drawer-content');
         if (!toggle || !content) continue;
-        const heading = content.querySelector?.('h3, h4')?.textContent?.trim()
-            || iconEl?.getAttribute?.('title')?.trim();
+        const heading = iconEl?.getAttribute?.('title')?.trim()
+            || content.querySelector?.('h3, h4')?.textContent?.trim();
         if (!heading) continue;
         items.push({
             id: `drawer:${drawer.id || heading}`,
@@ -181,7 +181,10 @@ export function collectSpotlightItems(doc = document) {
         const label = header.textContent?.replace(/\s+/g, ' ').trim();
         if (!label || label.length > 60) continue;
         const parentDrawer = header.closest?.('.drawer-content');
-        const parentTitle = parentDrawer?.querySelector?.('h3, h4')?.textContent?.trim() || '设置';
+        const parentIcon = parentDrawer?.parentElement?.querySelector?.('.drawer-icon');
+        const parentTitle = parentIcon?.getAttribute?.('title')?.trim()
+            || parentDrawer?.querySelector?.('h3, h4')?.textContent?.trim()
+            || '设置';
         const inlineDrawer = header.closest?.('.inline-drawer');
         items.push({
             id: `inline:${++inlineSeq}:${label}`,

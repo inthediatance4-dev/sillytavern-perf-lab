@@ -67,7 +67,7 @@ test('collectSpotlightItems indexes drawers, inline settings sections, quick act
                     id: 'extensions-settings-button',
                     querySelector: s => {
                         if (s === '.drawer-toggle') return { click: () => actions.push(['drawer-toggle']) };
-                        if (s === '.drawer-icon') return { getAttribute: () => 'Extensions' };
+                        if (s === '.drawer-icon') return { getAttribute: () => '扩展程序' };
                         if (s === '.drawer-content') return drawerContent;
                         return null;
                     },

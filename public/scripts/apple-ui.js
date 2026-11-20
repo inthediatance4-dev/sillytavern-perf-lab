@@ -276,6 +276,19 @@ seedBuiltinDismissLayers();
 export function handleAppleKeydown(event) {
     if (!event || event.defaultPrevented || event.isComposing) return false;
 
+    const isModK = (event.key === 'k' || event.key === 'K')
+        && (event.ctrlKey || event.metaKey)
+        && !event.altKey
+        && !event.shiftKey;
+    if (isModK) {
+        const openDialog = document.querySelector?.('dialog[open]');
+        if (openDialog && openDialog.id !== 'apple_spotlight') return false;
+        event.preventDefault();
+        event.stopImmediatePropagation?.();
+        void import('./apple-spotlight.js').then(mod => mod.toggleAppleSpotlight());
+        return true;
+    }
+
     if (event.key === 'Escape' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         for (const layer of getSortedDismissLayers()) {
             if (!layer.isActive()) continue;

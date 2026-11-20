@@ -1241,6 +1241,169 @@ dialog.popup[open]::backdrop {
     transition: opacity 170ms cubic-bezier(0.32, 0.72, 0, 1), transform 170ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* --------------------------------------------------------------------------
+ * macOS Spotlight Command & Settings Palette (Cmd/Ctrl + K, zero startup DOM)
+ * -------------------------------------------------------------------------- */
+dialog.apple-spotlight {
+    width: min(560px, calc(100dvw - 24px));
+    max-width: calc(100dvw - 24px);
+    margin: min(14dvh, 110px) auto auto;
+    padding: 0;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 20px;
+    background-color: var(--apple-glass-strong);
+    backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    box-shadow:
+        var(--apple-shadow-menu),
+        inset 0 0.5px 0 var(--apple-specular);
+    color: var(--apple-ink);
+    overflow: hidden;
+    animation: apple-popup-in 150ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+dialog.apple-spotlight[open]::backdrop {
+    background-color: var(--apple-backdrop);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.apple-spotlight-shell {
+    display: flex;
+    flex-direction: column;
+    max-height: min(68dvh, 520px);
+}
+
+.apple-spotlight-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    border-bottom: 0.5px solid var(--apple-hairline);
+}
+
+.apple-spotlight-search-icon {
+    font-size: 16px;
+    color: var(--apple-ink-secondary);
+    flex-shrink: 0;
+}
+
+#apple_spotlight_input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 2px 0;
+    color: var(--apple-ink);
+    font-family: var(--apple-font-sans);
+    font-size: 16px;
+    font-weight: 400;
+}
+
+#apple_spotlight_input::placeholder {
+    color: var(--apple-ink-tertiary);
+}
+
+.apple-spotlight-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+}
+
+.apple-spotlight-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background-color 100ms ease, color 100ms ease;
+}
+
+.apple-spotlight-item.is-active {
+    background-color: var(--apple-accent);
+    color: #ffffff;
+}
+
+.apple-spotlight-item-icon {
+    width: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--apple-ink-secondary);
+    flex-shrink: 0;
+}
+
+.apple-spotlight-item.is-active .apple-spotlight-item-icon,
+.apple-spotlight-item.is-active .apple-spotlight-item-sub,
+.apple-spotlight-item.is-active .apple-spotlight-item-group {
+    color: rgba(255, 255, 255, 0.90);
+}
+
+.apple-spotlight-item-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.apple-spotlight-item-title {
+    font-size: 0.95em;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.apple-spotlight-item-sub {
+    font-size: 0.78em;
+    color: var(--apple-ink-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.apple-spotlight-item-group {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: var(--apple-control-bg);
+    color: var(--apple-ink-secondary);
+    font-size: 0.74em;
+    font-weight: 500;
+}
+
+.apple-spotlight-item.is-active .apple-spotlight-item-group {
+    background-color: rgba(255, 255, 255, 0.20);
+}
+
+.apple-spotlight-empty {
+    margin: 0;
+    padding: 26px 16px;
+    text-align: center;
+    color: var(--apple-ink-secondary);
+    font-size: 0.92em;
+}
+
+.apple-spotlight-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 8px 14px;
+    border-top: 0.5px solid var(--apple-hairline-subtle);
+    color: var(--apple-ink-tertiary);
+    font-size: 0.76em;
+}
+
+.apple-spotlight-flash {
+    box-shadow: 0 0 0 2px var(--apple-accent), 0 0 0 5px var(--apple-focus-ring) !important;
+}
+
 .streaming-display-complete .streaming-display-led {
     background: var(--apple-green);
 }
@@ -1543,6 +1706,8 @@ body.no-blur #apple_scroll_bottom,
 body.no-blur .drawer-content,
 body.no-blur dialog.popup,
 body.no-blur dialog.popup[open]::backdrop,
+body.no-blur dialog.apple-spotlight,
+body.no-blur dialog.apple-spotlight[open]::backdrop,
 body.no-blur #options,
 body.no-blur #extensionsMenu,
 body.no-blur #character_context_menu,

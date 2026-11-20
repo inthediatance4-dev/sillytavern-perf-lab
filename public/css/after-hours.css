@@ -1,4 +1,6 @@
-/* After Hours — a quiet nocturnal salon & writing room. Loaded only by the native theme. */
+/* Legacy After Hours stylesheet — superseded globally by public/css/apple-ui.css.
+ * The Nocturnal Gilded Salon palette is now preserved as an optional card-table
+ * theme (data-fate-theme="salon") inside the Fate Cards (命运之牌) modal. */
 body {
     --ah-ink: #0a101a;
     --ah-panel: #131c2b;

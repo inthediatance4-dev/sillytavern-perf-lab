@@ -125,10 +125,10 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     --fate-wax-deep: #6b450b;
 }
 
-/* Apple Light Mode: Apple Card Pearl Titanium, Ice Sapphire & Warm Champagne */
-html[data-apple-appearance="light"] .director_fate_card,
-html[data-apple-appearance="light"] .director_fate_choice,
-html[data-apple-appearance="light"] .director_fate_log_entry {
+/* Apple Light Mode: Apple Card Pearl Titanium, Ice Sapphire & Warm Champagne (when fate theme is default 'apple') */
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_card,
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_choice,
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_log_entry {
     --fate-node: #8e8e93;
     --fate-ink: #ffffff;
     --fate-ink-deep: #eceef3;
@@ -139,9 +139,9 @@ html[data-apple-appearance="light"] .director_fate_log_entry {
     --fate-wax-deep: #8d1f1b;
 }
 
-html[data-apple-appearance="light"] .director_fate_card[data-rarity="rare"],
-html[data-apple-appearance="light"] .director_fate_choice[data-rarity="rare"],
-html[data-apple-appearance="light"] .director_fate_log_entry[data-rarity="rare"] {
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_card[data-rarity="rare"],
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_choice[data-rarity="rare"],
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_log_entry[data-rarity="rare"] {
     --fate-node: #007aff;
     --fate-ink: #f4f9ff;
     --fate-ink-deep: #dfeeff;
@@ -152,9 +152,9 @@ html[data-apple-appearance="light"] .director_fate_log_entry[data-rarity="rare"]
     --fate-wax-deep: #0051b3;
 }
 
-html[data-apple-appearance="light"] .director_fate_card[data-rarity="legendary"],
-html[data-apple-appearance="light"] .director_fate_choice[data-rarity="legendary"],
-html[data-apple-appearance="light"] .director_fate_log_entry[data-rarity="legendary"] {
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_card[data-rarity="legendary"],
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_choice[data-rarity="legendary"],
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_log_entry[data-rarity="legendary"] {
     --fate-node: #c48c28;
     --fate-ink: #fffbf2;
     --fate-ink-deep: #f4e4bf;
@@ -165,26 +165,57 @@ html[data-apple-appearance="light"] .director_fate_log_entry[data-rarity="legend
     --fate-wax-deep: #85560b;
 }
 
-html[data-apple-appearance="light"] .director_fate_choice {
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_choice {
     box-shadow:
         inset 0 0.5px 0 #ffffff,
         0 6px 18px rgba(0, 0, 0, 0.07),
         0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-html[data-apple-appearance="light"] .director_fate_choice_rarity {
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_choice_rarity {
     background: rgba(60, 60, 67, 0.06);
 }
 
-html[data-apple-appearance="light"] .director_fate_choice_preview {
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_choice_preview {
     border-top-color: rgba(60, 60, 67, 0.12);
     color: rgba(29, 29, 31, 0.78);
 }
 
-html[data-apple-appearance="light"] .director_fate_back {
+html[data-apple-appearance="light"] #director_fate_panel:not([data-fate-theme="salon"]) .director_fate_back {
     box-shadow:
         inset 0 0.5px 0 #ffffff,
         0 10px 26px rgba(0, 0, 0, 0.09);
+}
+
+/* Optional Nocturnal Gilded Salon Card-Table Theme (data-fate-theme="salon") */
+dialog.director_fate_dialog[data-fate-theme="salon"] {
+    --fate-desk-bg: #121015;
+    --fate-desk-card: rgba(229, 184, 115, 0.06);
+    --fate-desk-border: rgba(229, 184, 115, 0.24);
+    --fate-desk-ink: #f4ead8;
+    --fate-desk-muted: rgba(232, 218, 196, 0.72);
+    --fate-desk-accent: #d4a652;
+    --fate-desk-control: rgba(229, 184, 115, 0.10);
+    --fate-desk-control-hover: rgba(229, 184, 115, 0.18);
+}
+
+#director_fate_panel[data-fate-theme="salon"] .director_fate_card,
+#director_fate_panel[data-fate-theme="salon"] .director_fate_choice,
+#director_fate_panel[data-fate-theme="salon"] .director_fate_log_entry {
+    --fate-node: #c69a5b;
+    --fate-ink: #241c18;
+    --fate-ink-deep: #130e0c;
+    --fate-line: #f3e5ce;
+    --fate-line-soft: rgba(229, 184, 115, 0.36);
+    --fate-glow: rgba(229, 184, 115, 0.22);
+    --fate-wax: #9b2922;
+    --fate-wax-deep: #54120e;
+}
+
+#director_fate_panel[data-fate-theme="salon"] .director_fate_face {
+    background: linear-gradient(180deg, #fbf4e6 0%, #efe1c6 100%);
+    color: #261b12;
+    border-color: rgba(168, 124, 62, 0.42);
 }
 
 .director_fate_hand {

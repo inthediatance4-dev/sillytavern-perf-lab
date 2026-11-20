@@ -8,7 +8,7 @@ function rerollsLeft(view) {
 
 /** Prepared cards expose a bounded preview; full reveals follow completion and reveal policy. */
 export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, hasDraft, warn,
-    settings = { reveal: 'tap', sound: false, motion: 'system' }, sound = { play() {} },
+    settings = { reveal: 'tap', sound: false, motion: 'system', theme: 'apple' }, sound = { play() {} },
     restoreFocus = () => document.getElementById('director_fate_open')?.focus(), jumpToMessage }) {
     let panel = null;
     let popup = null;
@@ -423,6 +423,9 @@ export function createFatePanel(controller, { Popup, POPUP_TYPE, POPUP_RESULT, h
         document.documentElement?.classList.toggle('director_fate_nomotion', settings.motion === 'off');
         panel.querySelector('.director_fate_back').setAttribute('aria-hidden', String(shown || previewShown));
         const face = panel.querySelector('.director_fate_face');
+        const fateTheme = settings.theme === 'salon' ? 'salon' : 'apple';
+        panel.dataset.fateTheme = fateTheme;
+        if (popup?.dlg?.dataset) popup.dlg.dataset.fateTheme = fateTheme;
         // Do not prefill hidden text, attributes, accessibility names or tooltips.
         face.textContent = previewShown ? `事件概述（尚未采用）\n${view.held.preview}` : shown ? reveal.event : '';
         face.setAttribute('aria-hidden', String(!shown && !previewShown));

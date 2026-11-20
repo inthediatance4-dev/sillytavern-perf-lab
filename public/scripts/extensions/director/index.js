@@ -574,13 +574,14 @@ export async function init() {
         seeded = true;
     }
     if (!settings.fate || typeof settings.fate !== 'object' || Array.isArray(settings.fate)) {
-        settings.fate = { reveal: 'tap', sound: false, motion: 'system', piggyback: false };
+        settings.fate = { reveal: 'tap', sound: false, motion: 'system', theme: 'apple', piggyback: false };
         seeded = true;
     }
     for (const [key, fallback, valid] of [
         ['reveal', 'tap', ['tap', 'auto', 'off']],
         ['sound', false, [true, false]],
         ['motion', 'system', ['system', 'off']],
+        ['theme', 'apple', ['apple', 'salon']],
         ['piggyback', false, [true, false]],
     ]) {
         if (!valid.includes(settings.fate[key])) {
@@ -685,7 +686,7 @@ export async function init() {
         settings.hotkey = String($(this).val()).trim();
         context.saveSettingsDebounced();
     });
-    for (const [id, key] of [['director_fate_reveal', 'reveal'], ['director_fate_sound', 'sound'], ['director_fate_motion', 'motion'], ['director_fate_piggyback', 'piggyback']]) {
+    for (const [id, key] of [['director_fate_reveal', 'reveal'], ['director_fate_sound', 'sound'], ['director_fate_motion', 'motion'], ['director_fate_theme', 'theme'], ['director_fate_piggyback', 'piggyback']]) {
         const control = document.getElementById(id);
         if (control.type === 'checkbox') control.checked = settings.fate[key];
         else control.value = settings.fate[key];

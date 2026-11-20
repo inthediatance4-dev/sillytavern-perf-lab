@@ -16,10 +16,10 @@ html[data-apple-appearance="dark"] {
     --apple-canvas: #000000;
     --apple-canvas-glow-a: rgba(10, 132, 255, 0.09);
     --apple-canvas-glow-b: rgba(94, 92, 230, 0.07);
-    --apple-shell-bg: rgba(20, 20, 23, 0.84);
-    --apple-glass-bg: rgba(28, 28, 32, 0.80);
+    --apple-shell-bg: rgba(20, 20, 23, 0.94);
+    --apple-glass-bg: rgba(28, 28, 32, 0.82);
     --apple-glass-strong: rgba(24, 24, 28, 0.96);
-    --apple-elevated-bg: rgba(40, 40, 46, 0.96);
+    --apple-elevated-bg: rgba(40, 40, 46, 0.97);
     --apple-card-bg: rgba(255, 255, 255, 0.055);
     --apple-card-hover: rgba(255, 255, 255, 0.095);
     --apple-input-bg: rgba(118, 118, 128, 0.22);
@@ -70,8 +70,8 @@ html[data-apple-appearance="light"] {
     --apple-canvas: #f2f2f7;
     --apple-canvas-glow-a: rgba(0, 122, 255, 0.06);
     --apple-canvas-glow-b: rgba(175, 82, 222, 0.045);
-    --apple-shell-bg: rgba(255, 255, 255, 0.88);
-    --apple-glass-bg: rgba(255, 255, 255, 0.84);
+    --apple-shell-bg: rgba(255, 255, 255, 0.95);
+    --apple-glass-bg: rgba(255, 255, 255, 0.86);
     --apple-glass-strong: rgba(250, 250, 252, 0.97);
     --apple-elevated-bg: #ffffff;
     --apple-card-bg: rgba(255, 255, 255, 0.92);
@@ -249,6 +249,7 @@ body:not(.movingUI):not(.waifuMode) #top-settings-holder {
 }
 
 .drawer-icon {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -258,7 +259,7 @@ body:not(.movingUI):not(.waifuMode) #top-settings-holder {
     font-size: var(--topBarIconSize);
     border-radius: 10px;
     color: var(--apple-ink);
-    transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease, transform 140ms ease;
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 140ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .drawer-icon.closedIcon {
@@ -276,8 +277,21 @@ body:not(.movingUI):not(.waifuMode) #top-settings-holder {
     background-color: var(--apple-accent-tint);
 }
 
+.drawer-icon.openIcon::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    width: 12px;
+    height: 2px;
+    border-radius: 999px;
+    background-color: var(--apple-accent);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
 .drawer-icon:active {
-    transform: scale(0.92);
+    transform: scale(0.91);
 }
 
 /* Integrated Dark / Light appearance toggle inside the top pill */
@@ -346,6 +360,8 @@ kbd {
 
 /* --------------------------------------------------------------------------
  * Main Conversation Canvas (#sheld & #chat)
+ * Compositor-friendly: omits full-viewport backdrop-filter on #sheld so #chat
+ * scrolls and streams at native 60/120fps without per-frame Gaussian blur cost.
  * -------------------------------------------------------------------------- */
 body:not(.movingUI):not(.waifuMode) #sheld {
     top: calc(var(--topBarBlockSize) + 22px);
@@ -356,8 +372,8 @@ body:not(.movingUI):not(.waifuMode) #sheld {
     border: 0.5px solid var(--apple-hairline);
     border-radius: 22px;
     background-color: var(--apple-shell-bg);
-    backdrop-filter: blur(var(--apple-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     box-shadow:
         var(--apple-shadow-shell),
         inset 0 0.5px 0 var(--apple-specular);
@@ -374,6 +390,7 @@ body:not(.movingUI):not(.waifuMode) #chat {
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    overscroll-behavior-y: contain;
 }
 
 /* --------------------------------------------------------------------------
@@ -536,6 +553,7 @@ body #chat .mes.selected {
 .extraMesButtons {
     gap: 2px;
     align-items: center;
+    transition: opacity 140ms ease, transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .mes_button,
@@ -550,7 +568,7 @@ body #chat .mes.selected {
     filter: none;
     opacity: 0.65;
     color: var(--apple-ink-secondary);
-    transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+    transition: opacity 140ms ease, background-color 140ms ease, color 140ms ease, transform 120ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .mes_button:hover,
@@ -560,24 +578,31 @@ body #chat .mes.selected {
     background-color: var(--apple-control-bg);
 }
 
+.mes_button:active,
+.extraMesButtons > div:active {
+    transform: scale(0.90);
+}
+
 @media (hover: hover) and (pointer: fine) {
     .mes:not(:hover):not(:focus-within):not(:has(.edit_textarea)) .mes_buttons {
         opacity: 0;
+        transform: translateY(1px);
     }
 
     .mes:hover .mes_buttons,
     .mes:focus-within .mes_buttons,
     .mes:has(.edit_textarea) .mes_buttons {
         opacity: 1;
+        transform: translateY(0);
     }
 }
 
-/* Swipe arrows: clean subtle pills */
+/* Swipe arrows: clean subtle pills with comfortable hit targets */
 .swipe_left,
 .swipe_right {
     border-radius: 999px;
     color: var(--apple-ink-secondary);
-    transition: opacity 160ms ease, background-color 160ms ease, color 160ms ease;
+    transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease, transform 120ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .swipe_left:hover,
@@ -587,10 +612,16 @@ body #chat .mes.selected {
     background-color: var(--apple-control-bg);
 }
 
+.swipe_left:active,
+.swipe_right:active {
+    transform: scale(0.90);
+}
+
 /* --------------------------------------------------------------------------
  * Floating Pill Composer (#form_sheld & #send_form)
  * -------------------------------------------------------------------------- */
 body:not(.movingUI):not(.waifuMode) #form_sheld {
+    position: relative;
     flex-shrink: 0;
     margin: 0;
     padding: 8px 18px 16px;
@@ -604,6 +635,7 @@ body:not(.movingUI):not(.waifuMode) #form_sheld {
     background-color: var(--apple-glass-strong);
     backdrop-filter: blur(var(--apple-blur)) saturate(190%);
     -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    backface-visibility: hidden;
     box-shadow:
         var(--apple-shadow-float),
         inset 0 0.5px 0 var(--apple-specular);
@@ -615,6 +647,10 @@ body:not(.movingUI):not(.waifuMode) #form_sheld {
     box-shadow:
         var(--apple-shadow-float),
         0 0 0 3px var(--apple-focus-ring);
+}
+
+body[data-generating="true"] #send_form {
+    border-color: var(--apple-accent-border);
 }
 
 #nonQRFormItems {
@@ -720,8 +756,67 @@ body:not(.movingUI):not(.waifuMode) #form_sheld {
     color: var(--apple-accent);
 }
 
+/* Apple Messages / Books floating Jump-to-Bottom pill (outside #chat DOM) */
+#apple_scroll_bottom {
+    appearance: none;
+    position: absolute;
+    right: 24px;
+    bottom: calc(100% + 6px);
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 34px;
+    padding: 0 13px;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 999px;
+    background-color: var(--apple-glass-strong);
+    backdrop-filter: blur(20px) saturate(185%);
+    -webkit-backdrop-filter: blur(20px) saturate(185%);
+    color: var(--apple-ink);
+    font-family: var(--apple-font-sans);
+    font-size: 0.84em;
+    font-weight: 500;
+    box-shadow:
+        var(--apple-shadow-float),
+        inset 0 0.5px 0 var(--apple-specular);
+    cursor: pointer;
+    transition: transform 150ms cubic-bezier(0.32, 0.72, 0, 1), border-color 150ms ease, color 150ms ease, opacity 150ms ease;
+    animation: apple-pill-rise 160ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+#apple_scroll_bottom[hidden],
+#form_sheld:has(#chat_new_content:not([hidden])) #apple_scroll_bottom {
+    display: none !important;
+}
+
+@media (hover: hover) {
+    #apple_scroll_bottom:hover {
+        border-color: var(--apple-accent-border);
+        color: var(--apple-accent);
+        transform: translateY(-1px);
+    }
+}
+
+#apple_scroll_bottom:active {
+    transform: scale(0.93);
+}
+
+@keyframes apple-pill-rise {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 /* --------------------------------------------------------------------------
  * macOS System Settings Drawers (.drawer-content, .fillLeft, .fillRight)
+ * GPU-only opacity + transform spring — eliminates height: 0->auto reflow jank!
  * -------------------------------------------------------------------------- */
 .drawer-content {
     border: 0.5px solid var(--apple-hairline);
@@ -730,10 +825,39 @@ body:not(.movingUI):not(.waifuMode) #form_sheld {
     background-color: var(--apple-glass-strong);
     backdrop-filter: blur(var(--apple-blur)) saturate(190%);
     -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    backface-visibility: hidden;
+    overscroll-behavior-y: contain;
     box-shadow:
         var(--apple-shadow-menu),
         inset 0 0.5px 0 var(--apple-specular);
     color: var(--apple-ink);
+}
+
+body:not(.movingUI) .drawer-content {
+    transition-property: opacity, transform, display;
+    transition-duration: 165ms;
+    transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+    transition-behavior: allow-discrete;
+}
+
+body:not(.movingUI) .drawer-content.closedDrawer {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.992);
+    pointer-events: none;
+}
+
+body:not(.movingUI) .drawer-content.openDrawer {
+    height: auto;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    animation: none;
+
+    @starting-style {
+        height: auto;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.992);
+    }
 }
 
 body:not(.movingUI):not(.waifuMode) .drawer-content:not(.fillLeft):not(.fillRight) {
@@ -748,6 +872,37 @@ body:not(.movingUI):not(.waifuMode) .fillRight {
     top: 10px;
     max-height: calc(100dvh - 20px);
     border-radius: 20px;
+}
+
+body:not(.movingUI):not(.waifuMode) .fillLeft.closedDrawer {
+    transform: translateX(-10px);
+}
+
+body:not(.movingUI):not(.waifuMode) .fillRight.closedDrawer {
+    transform: translateX(10px);
+}
+
+body:not(.movingUI):not(.waifuMode) .fillLeft.openDrawer,
+body:not(.movingUI):not(.waifuMode) .fillRight.openDrawer {
+    height: calc(100dvh - 20px);
+    transform: translateX(0);
+
+    @starting-style {
+        height: calc(100dvh - 20px);
+        opacity: 0;
+    }
+}
+
+body:not(.movingUI):not(.waifuMode) .fillLeft.openDrawer {
+    @starting-style {
+        transform: translateX(-10px);
+    }
+}
+
+body:not(.movingUI):not(.waifuMode) .fillRight.openDrawer {
+    @starting-style {
+        transform: translateX(10px);
+    }
 }
 
 body:not(.movingUI):not(.waifuMode) .fillLeft {
@@ -1010,9 +1165,32 @@ input[type="range"]::-webkit-slider-thumb:hover,
 }
 
 /* --------------------------------------------------------------------------
- * Apple Sheets, Context Menus, Popups & Toasts
+ * Apple Sheets, Context Menus, Popups & Toasts (175ms GPU Spring)
  * -------------------------------------------------------------------------- */
+@keyframes apple-popup-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.955) translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes apple-popup-out {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.97) translateY(4px);
+    }
+}
+
 dialog.popup {
+    --popup-animation-speed: 175ms;
     padding: 18px 20px;
     border: 0.5px solid var(--apple-hairline);
     border-radius: 20px;
@@ -1025,10 +1203,50 @@ dialog.popup {
     color: var(--apple-ink);
 }
 
+dialog.popup.popup--animation-none {
+    --popup-animation-speed: 0ms;
+}
+
+dialog.popup[opening] {
+    animation: apple-popup-in var(--popup-animation-speed) cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+dialog.popup[closing] {
+    animation: apple-popup-out min(var(--popup-animation-speed), 130ms) cubic-bezier(0.4, 0, 1, 1);
+}
+
 dialog.popup[open]::backdrop {
     background-color: var(--apple-backdrop);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+}
+
+.popup.vertical_scrolling_dialogue_popup .popup-content,
+#rm_print_characters_block,
+#director_presets {
+    overscroll-behavior-y: contain;
+}
+
+/* Harmonized Apple Liquid Glass floating live-streaming display */
+.streaming-display {
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 18px;
+    background: var(--apple-glass-strong);
+    backdrop-filter: blur(24px) saturate(185%);
+    -webkit-backdrop-filter: blur(24px) saturate(185%);
+    box-shadow:
+        var(--apple-shadow-menu),
+        inset 0 0.5px 0 var(--apple-specular);
+    color: var(--apple-ink);
+    transition: opacity 170ms cubic-bezier(0.32, 0.72, 0, 1), transform 170ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.streaming-display-complete .streaming-display-led {
+    background: var(--apple-green);
+}
+
+.streaming-display-stopped .streaming-display-led {
+    background: var(--apple-red);
 }
 
 .popup-controls {
@@ -1271,6 +1489,19 @@ dialog.popup[open]::backdrop {
         border-radius: 0 0 18px 18px;
     }
 
+    body:not(.movingUI):not(.waifuMode) .fillLeft.openDrawer,
+    body:not(.movingUI):not(.waifuMode) .fillRight.openDrawer {
+        height: calc(100dvh - var(--topBarBlockSize));
+        transform: translateY(0);
+    }
+
+    #apple_scroll_bottom {
+        right: 14px;
+        height: 32px;
+        padding: 0 11px;
+        font-size: 0.80em;
+    }
+
     .drawer-icon,
     #apple_appearance_toggle {
         width: 100%;
@@ -1293,6 +1524,35 @@ dialog.popup[open]::backdrop {
     }
 }
 
+/* Transient 180ms cross-fade active ONLY during manual Dark <-> Light toggle */
+html[data-apple-transitioning="true"] body,
+html[data-apple-transitioning="true"] #top-bar,
+html[data-apple-transitioning="true"] #sheld,
+html[data-apple-transitioning="true"] #send_form,
+html[data-apple-transitioning="true"] .drawer-content,
+html[data-apple-transitioning="true"] dialog.popup,
+html[data-apple-transitioning="true"] #chat .mes {
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease !important;
+}
+
+/* Fast UI / No-Blur Support: zero GPU blur cost when user enables no-blur */
+body.no-blur #top-bar,
+body.no-blur #send_form,
+body.no-blur #chat_new_content,
+body.no-blur #apple_scroll_bottom,
+body.no-blur .drawer-content,
+body.no-blur dialog.popup,
+body.no-blur dialog.popup[open]::backdrop,
+body.no-blur #options,
+body.no-blur #extensionsMenu,
+body.no-blur #character_context_menu,
+body.no-blur .select2-dropdown,
+body.no-blur #toast-container > div,
+body.no-blur .streaming-display {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
 /* Reduced Motion */
 body.reduced-motion *,
 body.reduced-motion *::before,
@@ -1305,14 +1565,22 @@ body.reduced-motion *::after {
     #top-bar,
     #sheld,
     .drawer-icon,
+    .drawer-content,
+    dialog.popup,
     #apple_appearance_toggle,
+    #apple_scroll_bottom,
     .menu_button,
     .right_menu_button,
+    .mes_buttons,
+    .mes_button,
+    .swipe_left,
+    .swipe_right,
     input[type="checkbox"],
     input[type="checkbox"]::before,
     .recentChat,
     #send_form,
-    #send_but {
+    #send_but,
+    .streaming-display {
         transition: none !important;
         animation: none !important;
     }

@@ -11810,9 +11810,6 @@ export async function doNavbarIconClick() {
         for (const el of $openDrawers) {
             $(el).toggleClass('closedDrawer openDrawer');
         }
-        if ($openDrawers.length && animation_duration) {
-            await delay(animation_duration);
-        }
         icon.toggleClass('openIcon closedIcon');
         drawer.toggleClass('openDrawer closedDrawer');
 
@@ -13082,11 +13079,22 @@ jQuery(async function () {
         icon.toggleClass('down up');
         icon.toggleClass('fa-circle-chevron-down fa-circle-chevron-up');
         drawer.trigger('inline-drawer-toggle');
-        drawerContent.stop().slideToggle({
-            complete: () => {
-                $(this).css('height', '');
-            },
-        });
+        const inlineDuration = (animation_duration > 0
+            && !document.body.classList.contains('reduced-motion')
+            && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches)
+            ? Math.min(animation_duration, 110)
+            : 0;
+        if (inlineDuration === 0) {
+            drawerContent.stop(true, true).toggle();
+            drawerContent.css('height', '');
+        } else {
+            drawerContent.stop(true, false).slideToggle({
+                duration: inlineDuration,
+                complete: () => {
+                    drawerContent.css('height', '');
+                },
+            });
+        }
 
         // Set the height of "autoSetHeight" textareas within the inline-drawer to their scroll height
         if (!CSS.supports('field-sizing', 'content')) {

@@ -1,0 +1,1319 @@
+/*
+ * SillyTavern Apple Minimal Design System (Dark & Light Dual-Mode)
+ * Inspired by macOS Sequoia / iOS 18 Liquid Glass & Apple Books / Messages.
+ * Declutters chrome via floating translucent surfaces, progressive disclosure
+ * of message actions, macOS grouped inset cards, and native iOS controls while
+ * preserving 100% compatibility with core features, extensions, and tests.
+ */
+
+:root,
+html[data-apple-appearance="dark"] {
+    --apple-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Noto Sans", "Microsoft YaHei", system-ui, sans-serif;
+    --apple-font-serif: "New York", "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+    --apple-font-mono: "SF Mono", ui-monospace, "JetBrains Mono", "Noto Sans Mono", Menlo, Consolas, monospace;
+
+    /* Apple Dark Palette (Obsidian & Liquid Glass) */
+    --apple-canvas: #000000;
+    --apple-canvas-glow-a: rgba(10, 132, 255, 0.09);
+    --apple-canvas-glow-b: rgba(94, 92, 230, 0.07);
+    --apple-shell-bg: rgba(20, 20, 23, 0.84);
+    --apple-glass-bg: rgba(28, 28, 32, 0.80);
+    --apple-glass-strong: rgba(24, 24, 28, 0.96);
+    --apple-elevated-bg: rgba(40, 40, 46, 0.96);
+    --apple-card-bg: rgba(255, 255, 255, 0.055);
+    --apple-card-hover: rgba(255, 255, 255, 0.095);
+    --apple-input-bg: rgba(118, 118, 128, 0.22);
+    --apple-input-focus-bg: rgba(118, 118, 128, 0.28);
+    --apple-control-bg: rgba(255, 255, 255, 0.09);
+    --apple-control-hover: rgba(255, 255, 255, 0.15);
+    --apple-control-active: rgba(255, 255, 255, 0.20);
+
+    --apple-ink: #f5f5f7;
+    --apple-ink-secondary: rgba(235, 235, 245, 0.64);
+    --apple-ink-tertiary: rgba(235, 235, 245, 0.38);
+    --apple-quote: #64d2ff;
+    --apple-underline: #5ac8fa;
+
+    --apple-accent: #0a84ff;
+    --apple-accent-hover: #409cff;
+    --apple-accent-tint: rgba(10, 132, 255, 0.16);
+    --apple-accent-border: rgba(10, 132, 255, 0.36);
+    --apple-focus-ring: rgba(10, 132, 255, 0.45);
+    --apple-green: #30d158;
+    --apple-red: #ff453a;
+    --apple-red-tint: rgba(255, 69, 58, 0.18);
+    --apple-amber: #ffd60a;
+
+    --apple-hairline: rgba(255, 255, 255, 0.11);
+    --apple-hairline-subtle: rgba(255, 255, 255, 0.065);
+    --apple-specular: rgba(255, 255, 255, 0.14);
+
+    --apple-user-surface: rgba(10, 132, 255, 0.11);
+    --apple-user-border: rgba(10, 132, 255, 0.24);
+    --apple-bot-surface: rgba(255, 255, 255, 0.032);
+    --apple-code-bg: rgba(12, 12, 15, 0.85);
+    --apple-inline-code-bg: rgba(255, 255, 255, 0.10);
+
+    --apple-shadow-shell: 0 24px 70px rgba(0, 0, 0, 0.52);
+    --apple-shadow-float: 0 12px 36px rgba(0, 0, 0, 0.44);
+    --apple-shadow-menu: 0 18px 48px rgba(0, 0, 0, 0.56);
+    --apple-backdrop: rgba(0, 0, 0, 0.64);
+    --apple-switch-off: rgba(120, 120, 128, 0.36);
+    --apple-slider-track: rgba(255, 255, 255, 0.18);
+    --apple-thumb-shadow: 0 1px 4px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(0, 0, 0, 0.2);
+    --apple-blur: 28px;
+    --apple-color-scheme: dark;
+}
+
+html[data-apple-appearance="light"] {
+    /* Apple Light Palette (macOS Sequoia / iOS 18 Light) */
+    --apple-canvas: #f2f2f7;
+    --apple-canvas-glow-a: rgba(0, 122, 255, 0.06);
+    --apple-canvas-glow-b: rgba(175, 82, 222, 0.045);
+    --apple-shell-bg: rgba(255, 255, 255, 0.88);
+    --apple-glass-bg: rgba(255, 255, 255, 0.84);
+    --apple-glass-strong: rgba(250, 250, 252, 0.97);
+    --apple-elevated-bg: #ffffff;
+    --apple-card-bg: rgba(255, 255, 255, 0.92);
+    --apple-card-hover: #ffffff;
+    --apple-input-bg: rgba(118, 118, 128, 0.11);
+    --apple-input-focus-bg: rgba(255, 255, 255, 0.95);
+    --apple-control-bg: rgba(60, 60, 67, 0.075);
+    --apple-control-hover: rgba(60, 60, 67, 0.125);
+    --apple-control-active: rgba(60, 60, 67, 0.17);
+
+    --apple-ink: #1d1d1f;
+    --apple-ink-secondary: rgba(60, 60, 67, 0.68);
+    --apple-ink-tertiary: rgba(60, 60, 67, 0.40);
+    --apple-quote: #0066cc;
+    --apple-underline: #007aff;
+
+    --apple-accent: #007aff;
+    --apple-accent-hover: #0062cc;
+    --apple-accent-tint: rgba(0, 122, 255, 0.11);
+    --apple-accent-border: rgba(0, 122, 255, 0.28);
+    --apple-focus-ring: rgba(0, 122, 255, 0.34);
+    --apple-green: #34c759;
+    --apple-red: #ff3b30;
+    --apple-red-tint: rgba(255, 59, 48, 0.12);
+    --apple-amber: #ff9f0a;
+
+    --apple-hairline: rgba(60, 60, 67, 0.14);
+    --apple-hairline-subtle: rgba(60, 60, 67, 0.08);
+    --apple-specular: rgba(255, 255, 255, 0.85);
+
+    --apple-user-surface: rgba(0, 122, 255, 0.075);
+    --apple-user-border: rgba(0, 122, 255, 0.18);
+    --apple-bot-surface: rgba(60, 60, 67, 0.025);
+    --apple-code-bg: #f5f5f7;
+    --apple-inline-code-bg: rgba(60, 60, 67, 0.08);
+
+    --apple-shadow-shell: 0 20px 56px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(0, 0, 0, 0.04);
+    --apple-shadow-float: 0 10px 30px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
+    --apple-shadow-menu: 0 18px 44px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+    --apple-backdrop: rgba(15, 18, 28, 0.34);
+    --apple-switch-off: rgba(120, 120, 128, 0.28);
+    --apple-slider-track: rgba(60, 60, 67, 0.16);
+    --apple-thumb-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+    --apple-blur: 28px;
+    --apple-color-scheme: light;
+}
+
+/* Map native SillyTavern variables on body so every native widget & extension
+   automatically inherits accurate Dark / Light contrast regardless of legacy theme state. */
+body {
+    --mainFontFamily: var(--apple-font-sans);
+    --monoFontFamily: var(--apple-font-mono);
+    --SmartThemeBodyColor: var(--apple-ink);
+    --SmartThemeEmColor: var(--apple-ink-secondary);
+    --SmartThemeUnderlineColor: var(--apple-underline);
+    --SmartThemeQuoteColor: var(--apple-quote);
+    --SmartThemeBlurTintColor: var(--apple-glass-strong);
+    --SmartThemeChatTintColor: var(--apple-shell-bg);
+    --SmartThemeUserMesBlurTintColor: var(--apple-user-surface);
+    --SmartThemeBotMesBlurTintColor: var(--apple-bot-surface);
+    --SmartThemeBorderColor: var(--apple-hairline);
+    --SmartThemeShadowColor: transparent;
+    --SmartThemeBlurStrength: var(--apple-blur);
+    --shadowWidth: 0;
+    --topBarIconSize: 17px;
+    --topBarBlockPadding: 8px;
+    --topBarBlockSize: 44px;
+    --bottomFormIconSize: 16px;
+    --bottomFormBlockPadding: 8px;
+    --bottomFormBlockSize: 34px;
+    --interactable-outline-color: var(--apple-accent);
+    --interactable-outline-color-faint: var(--apple-focus-ring);
+    --white20a: var(--apple-control-bg);
+    --white30a: var(--apple-control-hover);
+    --black30a: var(--apple-input-bg);
+    --black50a: var(--apple-elevated-bg);
+    --black70a: rgba(0, 0, 0, 0.35);
+    --grey7070a: var(--apple-ink-tertiary);
+
+    color-scheme: var(--apple-color-scheme);
+    font-family: var(--apple-font-sans);
+    color: var(--apple-ink);
+    background:
+        radial-gradient(ellipse at 18% -8%, var(--apple-canvas-glow-a) 0%, transparent 52%),
+        radial-gradient(ellipse at 86% 108%, var(--apple-canvas-glow-b) 0%, transparent 48%),
+        var(--apple-canvas);
+    letter-spacing: -0.006em;
+}
+
+* {
+    text-shadow: none !important;
+}
+
+/* Keep custom backgrounds softly blended behind the glass canvas */
+#bg1,
+#bg_custom {
+    opacity: 0.24;
+    transition: opacity 280ms ease;
+}
+
+html[data-apple-appearance="light"] #bg1,
+html[data-apple-appearance="light"] #bg_custom {
+    opacity: 0.14;
+}
+
+::selection {
+    background: var(--apple-accent-tint);
+    color: var(--apple-ink);
+}
+
+/* Thin macOS overlay scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track:hover {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb:vertical,
+::-webkit-scrollbar-thumb:horizontal {
+    background-color: var(--apple-ink-tertiary);
+    box-shadow: none;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--apple-ink-secondary);
+}
+
+/* --------------------------------------------------------------------------
+ * Floating Pill Top Bar & Unified Dock Icons
+ * -------------------------------------------------------------------------- */
+body:not(.movingUI):not(.waifuMode) #top-bar {
+    top: 10px;
+    height: var(--topBarBlockSize);
+    width: min(max(var(--sheldWidth), 740px), calc(100dvw - 28px));
+    max-width: calc(100dvw - 28px);
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 16px;
+    background-color: var(--apple-glass-bg);
+    backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    box-shadow:
+        var(--apple-shadow-float),
+        inset 0 0.5px 0 var(--apple-specular);
+}
+
+body:not(.movingUI):not(.waifuMode) #top-settings-holder {
+    top: 10px;
+    height: var(--topBarBlockSize);
+    width: min(max(var(--sheldWidth), 740px), calc(100dvw - 28px));
+    max-width: calc(100dvw - 28px);
+    padding: 0 8px;
+    align-items: center;
+    gap: 2px;
+}
+
+#top-settings-holder > .drawer {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+#top-settings-holder .drawer-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.drawer-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 32px;
+    padding: 0;
+    font-size: var(--topBarIconSize);
+    border-radius: 10px;
+    color: var(--apple-ink);
+    transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease, transform 140ms ease;
+}
+
+.drawer-icon.closedIcon {
+    opacity: 0.56;
+}
+
+.drawer-icon.closedIcon:hover {
+    opacity: 1;
+    background-color: var(--apple-control-bg);
+}
+
+.drawer-icon.openIcon {
+    opacity: 1;
+    color: var(--apple-accent);
+    background-color: var(--apple-accent-tint);
+}
+
+.drawer-icon:active {
+    transform: scale(0.92);
+}
+
+/* Integrated Dark / Light appearance toggle inside the top pill */
+#apple_appearance_drawer {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    padding-left: 6px;
+    margin-left: 2px;
+    border-left: 0.5px solid var(--apple-hairline);
+}
+
+#apple_appearance_toggle {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 32px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--apple-ink);
+    font-size: 15px;
+    opacity: 0.72;
+    cursor: pointer;
+    transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease, transform 140ms ease;
+}
+
+@media (hover: hover) {
+    #apple_appearance_toggle:hover {
+        opacity: 1;
+        color: var(--apple-accent);
+        background-color: var(--apple-control-bg);
+    }
+}
+
+#apple_appearance_toggle:active {
+    transform: scale(0.92);
+}
+
+/* Hide browser resize grip on empty expression-holder when no sprite is rendered */
+.expression-holder:not(:has(img[src]:not([src=""]))) {
+    resize: none;
+    pointer-events: none;
+}
+
+/* Clean macOS keycap styling */
+kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    padding: 2px 6px;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 6px;
+    background-color: var(--apple-control-bg);
+    color: var(--apple-ink-secondary);
+    box-shadow: none;
+    font-family: var(--apple-font-mono);
+    font-size: 0.78em;
+    font-weight: 500;
+    line-height: 1.1;
+}
+
+/* --------------------------------------------------------------------------
+ * Main Conversation Canvas (#sheld & #chat)
+ * -------------------------------------------------------------------------- */
+body:not(.movingUI):not(.waifuMode) #sheld {
+    top: calc(var(--topBarBlockSize) + 22px);
+    height: calc(100dvh - var(--topBarBlockSize) - 34px);
+    max-height: calc(100dvh - var(--topBarBlockSize) - 34px);
+    width: min(max(var(--sheldWidth), 740px), calc(100dvw - 28px));
+    max-width: calc(100dvw - 28px);
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 22px;
+    background-color: var(--apple-shell-bg);
+    backdrop-filter: blur(var(--apple-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(180%);
+    box-shadow:
+        var(--apple-shadow-shell),
+        inset 0 0.5px 0 var(--apple-specular);
+    overflow: hidden;
+}
+
+body:not(.movingUI):not(.waifuMode) #chat {
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 auto;
+    padding: 20px clamp(16px, 2.8vw, 34px) 16px;
+    border: 0;
+    border-radius: 22px 22px 0 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* --------------------------------------------------------------------------
+ * Messages: Apple Notes / Messages Clarity + Hover-Reveal Action Bars
+ * -------------------------------------------------------------------------- */
+body:not(.bubblechat):not(.documentstyle) #chat .mes {
+    padding: 18px 18px 16px;
+    margin-bottom: 6px;
+    border-radius: 16px;
+    border: 0.5px solid transparent;
+    background-color: transparent;
+    transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+body:not(.bubblechat):not(.documentstyle) #chat .mes:hover {
+    background-color: var(--apple-bot-surface);
+}
+
+body:not(.bubblechat):not(.documentstyle) #chat .mes[is_user="true"]:not(.selected) {
+    background-color: var(--apple-user-surface);
+    border-color: var(--apple-user-border);
+}
+
+body.bubblechat #chat .mes {
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    border-radius: 18px;
+    border: 0.5px solid var(--apple-hairline-subtle);
+    background-color: var(--apple-card-bg);
+}
+
+body.bubblechat #chat .mes[is_user="true"]:not(.selected) {
+    background-color: var(--apple-user-surface);
+    border-color: var(--apple-user-border);
+}
+
+/* Keep native selection state unmistakable during bulk deletion */
+body #chat .mes.selected {
+    background-color: var(--apple-red-tint) !important;
+    border: 1px solid var(--apple-red) !important;
+}
+
+/* Refined context-window cutoff indicator: hidden on the very first message when nothing is clipped */
+#chat .mes.lastInContext {
+    border-top: 0.5px solid transparent !important;
+}
+
+#chat .mes[is_user="true"].lastInContext:not(.selected) {
+    border-top: 0.5px solid var(--apple-user-border) !important;
+}
+
+#chat .mes + .mes.lastInContext {
+    border-top: 1px dashed var(--apple-accent-border) !important;
+}
+
+.mes .mesAvatarWrapper {
+    margin-right: 12px;
+}
+
+.mes .avatar,
+.mes .avatar img {
+    border-radius: 50%;
+    box-shadow: 0 0 0 0.5px var(--apple-hairline);
+}
+
+.mes .mes_block {
+    min-width: 0;
+    padding-left: 0;
+}
+
+.mes .ch_name {
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.mes .name_text {
+    font-size: calc(var(--mainFontSize) * 0.96);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--apple-ink);
+}
+
+.mes[is_user="true"] .name_text {
+    color: var(--apple-accent);
+}
+
+.mes .timestamp {
+    margin-inline-start: 4px;
+    font-size: calc(var(--mainFontSize) * 0.76);
+    color: var(--apple-ink-tertiary);
+    opacity: 1;
+}
+
+.mes_text,
+.mes_reasoning {
+    font-size: var(--mainFontSize);
+    line-height: 1.74;
+    font-weight: 400;
+    color: var(--apple-ink);
+}
+
+.mes_text {
+    padding-top: 4px;
+}
+
+.mes_text em,
+.mes_text i {
+    color: var(--apple-ink-secondary);
+}
+
+.mes_text q {
+    color: var(--apple-quote);
+}
+
+.mes_text blockquote,
+.mes_reasoning blockquote {
+    margin: 10px 0;
+    padding: 8px 14px;
+    border-left: 2.5px solid var(--apple-accent);
+    border-radius: 0 10px 10px 0;
+    background-color: var(--apple-card-bg);
+    color: var(--apple-ink-secondary);
+}
+
+.mes_text pre,
+.mes_reasoning pre {
+    margin: 10px 0;
+    padding: 12px 14px;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 12px;
+    background-color: var(--apple-code-bg);
+}
+
+.mes_text :not(pre) > code,
+.mes_reasoning :not(pre) > code {
+    padding: 0.14em 0.42em;
+    border-radius: 6px;
+    background-color: var(--apple-inline-code-bg);
+    font-size: 0.9em;
+}
+
+/* Reasoning disclosure block — sleek Apple muted disclosure card */
+.mes_reasoning_details {
+    margin: 6px 0 10px;
+    border: 0.5px solid var(--apple-hairline-subtle);
+    border-radius: 12px;
+    background-color: var(--apple-card-bg);
+    padding: 6px 12px;
+}
+
+.mes_reasoning_details .mes_reasoning_header {
+    color: var(--apple-ink-secondary);
+    font-size: calc(var(--mainFontSize) * 0.86);
+    font-weight: 500;
+}
+
+/* Progressive disclosure: hide noisy per-message toolbars until hovered/focused on desktop */
+.mes_buttons,
+.extraMesButtons {
+    gap: 2px;
+    align-items: center;
+}
+
+.mes_button,
+.extraMesButtons > div {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 4px 5px;
+    border-radius: 7px;
+    filter: none;
+    opacity: 0.65;
+    color: var(--apple-ink-secondary);
+    transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.mes_button:hover,
+.extraMesButtons > div:hover {
+    opacity: 1;
+    color: var(--apple-ink);
+    background-color: var(--apple-control-bg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .mes:not(:hover):not(:focus-within):not(:has(.edit_textarea)) .mes_buttons {
+        opacity: 0;
+    }
+
+    .mes:hover .mes_buttons,
+    .mes:focus-within .mes_buttons,
+    .mes:has(.edit_textarea) .mes_buttons {
+        opacity: 1;
+    }
+}
+
+/* Swipe arrows: clean subtle pills */
+.swipe_left,
+.swipe_right {
+    border-radius: 999px;
+    color: var(--apple-ink-secondary);
+    transition: opacity 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.swipe_left:hover,
+.swipe_right:hover {
+    opacity: 1;
+    color: var(--apple-ink);
+    background-color: var(--apple-control-bg);
+}
+
+/* --------------------------------------------------------------------------
+ * Floating Pill Composer (#form_sheld & #send_form)
+ * -------------------------------------------------------------------------- */
+body:not(.movingUI):not(.waifuMode) #form_sheld {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 8px 18px 16px;
+    background: transparent;
+}
+
+#send_form {
+    padding: 6px 8px;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 22px;
+    background-color: var(--apple-glass-strong);
+    backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    box-shadow:
+        var(--apple-shadow-float),
+        inset 0 0.5px 0 var(--apple-specular);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+#send_form:has(#send_textarea:focus) {
+    border-color: var(--apple-accent-border);
+    box-shadow:
+        var(--apple-shadow-float),
+        0 0 0 3px var(--apple-focus-ring);
+}
+
+#nonQRFormItems {
+    align-items: center;
+    column-gap: 6px;
+}
+
+#send_textarea {
+    padding: 8px 6px;
+    max-height: min(34dvh, 280px);
+    resize: none !important;
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--apple-ink);
+    font-family: var(--apple-font-sans);
+    font-size: var(--mainFontSize);
+    line-height: 1.55;
+}
+
+#send_textarea::placeholder {
+    color: var(--apple-ink-tertiary);
+    opacity: 1;
+}
+
+#send_textarea:focus-visible {
+    outline: none !important;
+}
+
+#leftSendForm,
+#rightSendForm {
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+}
+
+#leftSendForm > div,
+#rightSendForm > div:not(.mes_stop) {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    color: var(--apple-ink-secondary);
+    opacity: 0.85;
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 130ms ease;
+}
+
+#leftSendForm > div:hover,
+#rightSendForm > div:not(.mes_stop):hover {
+    opacity: 1;
+    filter: none;
+    color: var(--apple-ink);
+    background-color: var(--apple-control-bg);
+}
+
+/* Iconic Apple Messages circular Blue Send button */
+#send_form #send_but {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: var(--apple-accent);
+    color: #ffffff;
+    opacity: 1;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.34);
+}
+
+#send_form #send_but:hover {
+    background-color: var(--apple-accent-hover);
+    color: #ffffff;
+    transform: scale(1.04);
+}
+
+#send_form #send_but:active {
+    transform: scale(0.93);
+}
+
+#send_form .mes_stop {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background-color: var(--apple-red);
+    color: #ffffff;
+    opacity: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+#chat_new_content {
+    padding: 7px 14px;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 999px;
+    background-color: var(--apple-glass-strong);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: var(--apple-ink);
+    font-size: 0.88em;
+    font-weight: 500;
+    box-shadow: var(--apple-shadow-float);
+}
+
+#chat_new_content:hover {
+    border-color: var(--apple-accent-border);
+    color: var(--apple-accent);
+}
+
+/* --------------------------------------------------------------------------
+ * macOS System Settings Drawers (.drawer-content, .fillLeft, .fillRight)
+ * -------------------------------------------------------------------------- */
+.drawer-content {
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 18px;
+    padding: 14px;
+    background-color: var(--apple-glass-strong);
+    backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    box-shadow:
+        var(--apple-shadow-menu),
+        inset 0 0.5px 0 var(--apple-specular);
+    color: var(--apple-ink);
+}
+
+body:not(.movingUI):not(.waifuMode) .drawer-content:not(.fillLeft):not(.fillRight) {
+    top: calc(var(--topBarBlockSize) + 12px);
+    width: min(max(var(--sheldWidth), 740px), calc(100dvw - 28px));
+    max-width: calc(100dvw - 28px);
+    max-height: calc(100dvh - var(--topBarBlockSize) - 34px);
+}
+
+body:not(.movingUI):not(.waifuMode) .fillLeft,
+body:not(.movingUI):not(.waifuMode) .fillRight {
+    top: 10px;
+    max-height: calc(100dvh - 20px);
+    border-radius: 20px;
+}
+
+body:not(.movingUI):not(.waifuMode) .fillLeft {
+    left: 10px;
+    width: max(290px, calc((100dvw - min(max(var(--sheldWidth), 740px), calc(100dvw - 28px)) - 44px) / 2));
+}
+
+body:not(.movingUI):not(.waifuMode) .fillRight {
+    right: 10px;
+    left: auto;
+    width: max(290px, calc((100dvw - min(max(var(--sheldWidth), 740px), calc(100dvw - 28px)) - 44px) / 2));
+}
+
+/* Grouped inset settings sections inside drawers */
+.inline-drawer {
+    margin-bottom: 8px;
+    padding: 2px 10px;
+    border: 0.5px solid var(--apple-hairline-subtle);
+    border-radius: 13px;
+    background-color: var(--apple-card-bg);
+}
+
+.inline-drawer-header {
+    padding: 9px 2px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--apple-ink);
+}
+
+#extensions_settings .inline-drawer-toggle.inline-drawer-header,
+#extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
+.inline-drawer > .standoutHeader.inline-drawer-header {
+    background-image: none;
+    background-color: transparent;
+    border: 0;
+    border-radius: 10px;
+    margin-bottom: 0;
+    padding: 9px 4px;
+    filter: none;
+}
+
+#extensions_settings .inline-drawer-toggle.inline-drawer-header:hover,
+#extensions_settings2 .inline-drawer-toggle.inline-drawer-header:hover,
+.standoutHeader.inline-drawer-header:hover {
+    filter: none;
+    background-color: var(--apple-control-bg);
+}
+
+.standoutHeader ~ .inline-drawer-content {
+    border: 0;
+    border-top: 0.5px solid var(--apple-hairline-subtle);
+    border-radius: 0;
+    background-color: transparent;
+    padding: 10px 2px 6px;
+}
+
+.inline-drawer-icon {
+    font-size: 1em;
+    opacity: 0.58;
+    filter: none;
+    transition: opacity 150ms ease, transform 180ms ease;
+}
+
+.inline-drawer-header:hover .inline-drawer-icon {
+    opacity: 1;
+    color: var(--apple-accent);
+}
+
+.settingsSectionWrap,
+.standoutHeader,
+#user-settings-block h4 {
+    background-image: none;
+    border: 0.5px solid var(--apple-hairline-subtle);
+    border-radius: 12px;
+    background-color: var(--apple-card-bg);
+    padding: 8px 10px;
+}
+
+hr,
+.sysHR {
+    border: 0;
+    border-top: 0.5px solid var(--apple-hairline-subtle);
+    margin: 10px 0;
+}
+
+/* --------------------------------------------------------------------------
+ * Native iOS / macOS Form Controls (Buttons, Inputs, Selects, Toggles, Sliders)
+ * -------------------------------------------------------------------------- */
+.menu_button,
+.right_menu_button {
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 10px;
+    background-color: var(--apple-control-bg);
+    color: var(--apple-ink);
+    font-weight: 500;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 120ms ease;
+}
+
+.extensions_url_block,
+.extensions_url_block .menu_button {
+    flex-shrink: 0;
+    width: auto;
+    white-space: nowrap;
+}
+
+.menu_button:not(.disabled):not([disabled]):hover,
+.right_menu_button:not(.disabled):not([disabled]):hover {
+    background-color: var(--apple-control-hover);
+    border-color: var(--apple-hairline);
+    filter: none;
+}
+
+.menu_button:not(.disabled):not([disabled]):active,
+.right_menu_button:not(.disabled):not([disabled]):active {
+    background-color: var(--apple-control-active);
+    transform: scale(0.98);
+}
+
+.menu_button.menu_button_default,
+.menu_button.popup-button-ok {
+    border-color: transparent;
+    background-color: var(--apple-accent);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(10, 132, 255, 0.28);
+}
+
+.menu_button.menu_button_default:hover,
+.menu_button.popup-button-ok:hover {
+    background-color: var(--apple-accent-hover);
+    color: #ffffff;
+}
+
+.menu_button.redWarningBG,
+.menu_button.mes_edit_cancel {
+    border-color: transparent;
+    background-color: var(--apple-red);
+    color: #ffffff;
+}
+
+.menu_button.mes_edit_done {
+    border-color: transparent;
+    background-color: var(--apple-green);
+    color: #ffffff;
+}
+
+.text_pole,
+textarea:not(#send_textarea),
+select,
+.range-block-counter input,
+.neo-range-input {
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 10px;
+    background-color: var(--apple-input-bg);
+    color: var(--apple-ink);
+    padding: 6px 10px;
+    transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.text_pole:focus,
+textarea:not(#send_textarea):focus,
+select:focus {
+    background-color: var(--apple-input-focus-bg);
+    border-color: var(--apple-accent);
+    box-shadow: 0 0 0 3px var(--apple-focus-ring);
+    outline: none;
+}
+
+select option {
+    background-color: var(--apple-elevated-bg);
+    color: var(--apple-ink);
+}
+
+/* iOS Toggle Switches for standard visible checkboxes (never overrides hidden pin/delete boxes) */
+input[type="checkbox"]:not(.del_checkbox):not(#rm_button_panel_pin):not(#lm_button_panel_pin):not(#WI_panel_pin):not([hidden]):not(.displayNone) {
+    width: 36px;
+    height: 21px;
+    min-width: 36px;
+    border-radius: 999px;
+    border: 0.5px solid var(--apple-hairline);
+    outline: none;
+    background-color: var(--apple-switch-off);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.14);
+    filter: none;
+    transform: none;
+    overflow: visible;
+    padding: 0;
+    transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease;
+}
+
+input[type="checkbox"]:not(.del_checkbox):not(#rm_button_panel_pin):not(#lm_button_panel_pin):not(#WI_panel_pin):not([hidden]):not(.displayNone)::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    box-shadow: var(--apple-thumb-shadow);
+    clip-path: none;
+    transform: translateX(0);
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+input[type="checkbox"]:not(.del_checkbox):not(#rm_button_panel_pin):not(#lm_button_panel_pin):not(#WI_panel_pin):not([hidden]):not(.displayNone):checked {
+    background-color: var(--apple-green);
+    border-color: transparent;
+}
+
+input[type="checkbox"]:not(.del_checkbox):not(#rm_button_panel_pin):not(#lm_button_panel_pin):not(#WI_panel_pin):not([hidden]):not(.displayNone):checked::before {
+    transform: translateX(15px);
+}
+
+/* Circular Apple checkmark for message multi-delete checkboxes */
+input[type="checkbox"].del_checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--apple-ink-tertiary);
+    background-color: transparent;
+    filter: none;
+}
+
+input[type="checkbox"].del_checkbox:checked {
+    background-color: var(--apple-accent);
+    border-color: var(--apple-accent);
+}
+
+.checkbox_label {
+    align-items: center;
+    gap: 9px;
+}
+
+/* macOS Range Sliders */
+input[type="range"],
+.neo-range-slider {
+    height: 4px !important;
+    border-radius: 999px !important;
+    background: var(--apple-slider-track) !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+input[type="range"]::-webkit-slider-thumb,
+.neo-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 0;
+    box-shadow: var(--apple-thumb-shadow);
+    cursor: pointer;
+    transition: transform 120ms ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover,
+.neo-range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.08);
+}
+
+/* --------------------------------------------------------------------------
+ * Apple Sheets, Context Menus, Popups & Toasts
+ * -------------------------------------------------------------------------- */
+dialog.popup {
+    padding: 18px 20px;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 20px;
+    background-color: var(--apple-glass-strong);
+    backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    box-shadow:
+        var(--apple-shadow-menu),
+        inset 0 0.5px 0 var(--apple-specular);
+    color: var(--apple-ink);
+}
+
+dialog.popup[open]::backdrop {
+    background-color: var(--apple-backdrop);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.popup-controls {
+    gap: 10px;
+    margin-top: 14px;
+}
+
+#options,
+#extensionsMenu,
+#character_context_menu,
+.popup .popper-modal {
+    padding: 6px;
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 14px;
+    background-color: var(--apple-glass-strong);
+    backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    -webkit-backdrop-filter: blur(var(--apple-blur)) saturate(190%);
+    box-shadow:
+        var(--apple-shadow-menu),
+        inset 0 0.5px 0 var(--apple-specular);
+}
+
+#options .options-content,
+.list-group {
+    border: 0;
+    border-radius: 10px;
+    padding: 0;
+}
+
+.options-content a,
+#extensionsMenu > .extension_container > div,
+#extensionsMenu > div:not(.extension_container),
+#character_context_menu button {
+    padding: 7px 10px;
+    border-radius: 8px;
+    opacity: 1;
+    color: var(--apple-ink);
+    font-size: calc(var(--mainFontSize) * 0.94);
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.options-content a:hover,
+#extensionsMenu > .extension_container > div:hover,
+#extensionsMenu > div:not(.extension_container):hover,
+#character_context_menu button:hover {
+    background-color: var(--apple-accent);
+    color: #ffffff;
+}
+
+/* Select2 dropdowns harmonized with Apple Light & Dark */
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+    border: 0.5px solid var(--apple-hairline) !important;
+    border-radius: 10px !important;
+    background-color: var(--apple-input-bg) !important;
+    color: var(--apple-ink) !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--apple-ink) !important;
+}
+
+.select2-dropdown {
+    border: 0.5px solid var(--apple-hairline) !important;
+    border-radius: 12px !important;
+    background-color: var(--apple-glass-strong) !important;
+    backdrop-filter: blur(var(--apple-blur));
+    box-shadow: var(--apple-shadow-menu) !important;
+}
+
+.select2-results__option {
+    color: var(--apple-ink) !important;
+    border-radius: 7px;
+    margin: 2px 4px;
+}
+
+.select2-results__option--highlighted {
+    background-color: var(--apple-accent) !important;
+    color: #ffffff !important;
+}
+
+/* Apple Notification Banner Toasts */
+#toast-container > div {
+    border: 0.5px solid var(--apple-hairline);
+    border-radius: 14px !important;
+    background-color: var(--apple-glass-strong) !important;
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    color: var(--apple-ink) !important;
+    box-shadow: var(--apple-shadow-float) !important;
+    opacity: 0.98 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Welcome Screen & Character Cards (Apple Books / Contacts Gallery)
+ * -------------------------------------------------------------------------- */
+.welcomePanel {
+    gap: 18px;
+    padding: 20px 6px 24px;
+}
+
+.welcomePanel .welcomeHeaderTitle {
+    padding-bottom: 16px;
+    border-bottom: 0.5px solid var(--apple-hairline);
+}
+
+.welcomePanel .welcomeHeaderVersionDisplay {
+    font-size: calc(var(--mainFontSize) * 1.55);
+    font-weight: 600;
+    letter-spacing: -0.024em;
+    color: var(--apple-ink);
+}
+
+.welcomePanel .recentChatsTitle {
+    font-size: calc(var(--mainFontSize) * 0.85);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--apple-ink-secondary);
+}
+
+.welcomeRecent .recentChatList {
+    gap: 8px;
+}
+
+.welcomeRecent .recentChatList .recentChat {
+    padding: 12px 14px;
+    border: 0.5px solid var(--apple-hairline-subtle);
+    border-radius: 14px;
+    background-color: var(--apple-card-bg);
+    transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.welcomeRecent .recentChatList .recentChat:hover {
+    background-color: var(--apple-card-hover);
+    border-color: var(--apple-accent-border);
+    transform: translateY(-1px);
+}
+
+.welcomeRecent :is(.chatDate, .chatMessage, .chatStats),
+.welcomePanel .noRecentChat {
+    color: var(--apple-ink-secondary);
+}
+
+.character_select,
+.group_select {
+    border-radius: 13px;
+    border: 0.5px solid transparent;
+    padding: 6px 8px;
+    transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.character_select:hover,
+.group_select:hover {
+    background-color: var(--apple-card-hover);
+    border-color: var(--apple-hairline);
+}
+
+.character_select .avatar img,
+.group_select .avatar img {
+    border-radius: 12px;
+}
+
+/* Focus rings */
+:is(a, button, input, select, textarea, .interactable, .menu_button, .mes_button):focus-visible {
+    outline: 2px solid var(--apple-accent);
+    outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+ * Responsive Mobile & Tablet Layout (<= 1000px, verified down to 390px)
+ * -------------------------------------------------------------------------- */
+@media screen and (max-width: 1000px) {
+    body:not(.movingUI):not(.waifuMode) #top-bar,
+    body:not(.movingUI):not(.waifuMode) #top-settings-holder {
+        top: 0;
+        width: 100dvw;
+        max-width: 100dvw;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        border-top: 0;
+        box-shadow: none;
+    }
+
+    body:not(.movingUI):not(.waifuMode) #sheld {
+        top: var(--topBarBlockSize);
+        width: 100dvw;
+        max-width: 100dvw;
+        height: calc(100dvh - var(--topBarBlockSize));
+        max-height: calc(100dvh - var(--topBarBlockSize));
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    body:not(.movingUI):not(.waifuMode) #chat {
+        border-radius: 0;
+        padding: 12px 10px 18px;
+    }
+
+    body:not(.movingUI):not(.waifuMode) #form_sheld {
+        padding: 6px 10px max(10px, env(safe-area-inset-bottom));
+    }
+
+    #send_form {
+        padding: 5px 6px;
+        border-radius: 20px;
+    }
+
+    #nonQRFormItems {
+        column-gap: 3px;
+    }
+
+    #leftSendForm,
+    #rightSendForm {
+        gap: 2px;
+    }
+
+    #leftSendForm > div,
+    #rightSendForm > div:not(.mes_stop):not(#send_but) {
+        width: 30px;
+        height: 30px;
+    }
+
+    #send_textarea {
+        padding: 7px 4px;
+        font-size: max(14px, calc(var(--mainFontSize) * 0.94));
+    }
+
+    body:not(.movingUI):not(.waifuMode) .drawer-content,
+    body:not(.movingUI):not(.waifuMode) .fillLeft,
+    body:not(.movingUI):not(.waifuMode) .fillRight {
+        top: var(--topBarBlockSize);
+        left: 0;
+        right: 0;
+        width: 100dvw;
+        max-width: 100dvw;
+        max-height: calc(100dvh - var(--topBarBlockSize));
+        border-radius: 0 0 18px 18px;
+    }
+
+    .drawer-icon,
+    #apple_appearance_toggle {
+        width: 100%;
+        height: 36px;
+        font-size: min(17px, calc(4.8dvw));
+    }
+
+    body:not(.bubblechat):not(.documentstyle) #chat .mes {
+        padding: 14px 10px 12px;
+    }
+
+    .mes_buttons {
+        opacity: 1 !important;
+    }
+
+    .mes_button,
+    .extraMesButtons > div {
+        min-width: 30px;
+        min-height: 30px;
+    }
+}
+
+/* Reduced Motion */
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #top-bar,
+    #sheld,
+    .drawer-icon,
+    #apple_appearance_toggle,
+    .menu_button,
+    .right_menu_button,
+    input[type="checkbox"],
+    input[type="checkbox"]::before,
+    .recentChat,
+    #send_form,
+    #send_but {
+        transition: none !important;
+        animation: none !important;
+    }
+}

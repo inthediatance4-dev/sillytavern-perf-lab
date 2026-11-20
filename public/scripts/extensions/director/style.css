@@ -1,37 +1,37 @@
 #directorButton {
     order: 4;
-    transition: color 160ms ease, transform 160ms ease;
+    transition: color 150ms ease, background-color 150ms ease, transform 130ms ease;
 }
 
 #directorButton:hover {
-    color: #e6b877;
+    color: var(--apple-accent, #0a84ff);
 }
 
 /*
- * Nocturnal Gilded Grimoire — Modal Dialog & Fate Table
- * Owns its obsidian-velvet surface and champagne-gold accents while keeping
- * card stock legible across every host SillyTavern theme.
+ * Apple Sheet & Wallet Card System — Fate Modal (Dark & Light Adaptive)
+ * Uses fallbacks so standalone installs on stock SillyTavern keep full fidelity.
  */
 dialog.director_fate_dialog {
-    --fate-desk: #0d131f;
-    --fate-desk-raised: #151e2f;
-    --fate-desk-border: rgba(229, 177, 132, 0.28);
-    --fate-desk-ink: #f3ede2;
-    --fate-desk-muted: #b6aca0;
-    --fate-desk-gold: #e5b874;
-    width: min(440px, calc(100vw - 24px));
+    --fate-desk-bg: var(--apple-glass-strong, rgba(28, 28, 32, 0.92));
+    --fate-desk-card: var(--apple-card-bg, rgba(255, 255, 255, 0.055));
+    --fate-desk-border: var(--apple-hairline, rgba(255, 255, 255, 0.12));
+    --fate-desk-ink: var(--apple-ink, #f5f5f7);
+    --fate-desk-muted: var(--apple-ink-secondary, rgba(235, 235, 245, 0.64));
+    --fate-desk-accent: var(--apple-accent, #0a84ff);
+    --fate-desk-control: var(--apple-control-bg, rgba(255, 255, 255, 0.09));
+    --fate-desk-control-hover: var(--apple-control-hover, rgba(255, 255, 255, 0.15));
+    width: min(444px, calc(100vw - 24px));
     max-width: calc(100vw - 16px);
     padding: 0;
-    background:
-        radial-gradient(ellipse at 50% 0%, rgba(229, 184, 116, 0.11) 0%, transparent 58%),
-        radial-gradient(ellipse at 85% 100%, rgba(72, 48, 36, 0.26) 0%, transparent 52%),
-        linear-gradient(170deg, #131b2b 0%, #0b101a 100%);
+    background: var(--fate-desk-bg);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
     color: var(--fate-desk-ink);
-    border: 1px solid var(--fate-desk-border);
-    border-radius: 18px;
+    border: 0.5px solid var(--fate-desk-border);
+    border-radius: 22px;
     box-shadow:
-        0 24px 60px rgba(0, 0, 0, 0.65),
-        inset 0 1px 0 rgba(255, 240, 214, 0.12);
+        var(--apple-shadow-menu, 0 24px 64px rgba(0, 0, 0, 0.55)),
+        inset 0 0.5px 0 var(--apple-specular, rgba(255, 255, 255, 0.14));
     text-shadow: none;
 }
 
@@ -46,90 +46,145 @@ dialog.director_fate_dialog .popup-controls {
 
 dialog.director_fate_dialog .popup-button-cancel {
     min-height: 38px;
-    padding: 6px 18px;
-    border: 1px solid rgba(229, 177, 132, 0.24);
-    border-radius: 9px;
-    background: rgba(22, 31, 48, 0.88);
+    padding: 6px 20px;
+    border: 0.5px solid var(--fate-desk-border);
+    border-radius: 999px;
+    background: var(--fate-desk-control);
     color: var(--fate-desk-ink);
-    transition: background-color 150ms ease, border-color 150ms ease;
+    font-weight: 500;
+    transition: background-color 140ms ease, border-color 140ms ease;
 }
 
 dialog.director_fate_dialog .popup-button-cancel:hover {
-    border-color: rgba(229, 184, 116, 0.55);
-    background: rgba(34, 47, 70, 0.95);
+    background: var(--fate-desk-control-hover);
 }
 
 #director_fate_panel {
     box-sizing: border-box;
-    width: min(404px, calc(100vw - 40px));
+    width: min(412px, calc(100vw - 36px));
     max-width: 100%;
     margin: auto;
-    padding: 18px 16px 12px;
+    padding: 20px 18px 12px;
     text-align: left;
     overflow-wrap: anywhere;
+    font-family: var(--apple-font-sans, -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif);
 }
 
 .director_fate_heading {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 0 0 12px;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
-    font-size: 1.24em;
+    margin: 0 0 14px;
+    font-size: 1.22em;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    color: #f6efe2;
-}
-
-.director_fate_heading::after {
-    content: '';
-    flex: 1 1 auto;
-    height: 1px;
-    margin-left: 6px;
-    background: linear-gradient(90deg, rgba(229, 184, 116, 0.42), transparent);
+    letter-spacing: -0.02em;
+    color: var(--fate-desk-ink, var(--SmartThemeBodyColor));
 }
 
 /*
- * Fate card stock. Each card is a physical object with bespoke stock, foil rule,
- * and pressed wax seal. Rarity shifts ink depth, metallic trim, and wax hue.
+ * Apple Wallet / Titanium Card Stock. Each card remains a tactile physical card
+ * readable on both Dark and Light Apple appearances.
+ * Common: Brushed Space Titanium  |  Rare: Deep Pacific Blue  |  Legendary: Champagne Gold
  */
 .director_fate_card,
 .director_fate_choice,
 .director_fate_log_entry {
-    --fate-node: #c7bba6;
-    --fate-ink: #22202b;
-    --fate-ink-deep: #121118;
-    --fate-line: #dfd5c2;
-    --fate-line-soft: rgba(223, 213, 194, 0.38);
-    --fate-glow: rgba(223, 213, 194, 0.22);
-    --fate-wax: #94312a;
-    --fate-wax-deep: #4e1511;
+    --fate-node: #98989f;
+    --fate-ink: #2c2c30;
+    --fate-ink-deep: #18181b;
+    --fate-line: #e5e5ea;
+    --fate-line-soft: rgba(229, 229, 234, 0.34);
+    --fate-glow: rgba(229, 229, 234, 0.20);
+    --fate-wax: #a1342c;
+    --fate-wax-deep: #5a1814;
 }
 
 .director_fate_card[data-rarity="rare"],
 .director_fate_choice[data-rarity="rare"],
 .director_fate_log_entry[data-rarity="rare"] {
-    --fate-node: #9fb8de;
-    --fate-ink: #1a273d;
-    --fate-ink-deep: #0d1422;
-    --fate-line: #d4e0f2;
-    --fate-line-soft: rgba(212, 224, 242, 0.46);
-    --fate-glow: rgba(146, 182, 235, 0.34);
-    --fate-wax: #2c5484;
-    --fate-wax-deep: #132640;
+    --fate-node: #0a84ff;
+    --fate-ink: #172a46;
+    --fate-ink-deep: #0b1628;
+    --fate-line: #d6e7ff;
+    --fate-line-soft: rgba(164, 206, 255, 0.42);
+    --fate-glow: rgba(10, 132, 255, 0.34);
+    --fate-wax: #0a84ff;
+    --fate-wax-deep: #004999;
 }
 
 .director_fate_card[data-rarity="legendary"],
 .director_fate_choice[data-rarity="legendary"],
 .director_fate_log_entry[data-rarity="legendary"] {
-    --fate-node: #e5be5a;
-    --fate-ink: #2b1417;
-    --fate-ink-deep: #13080a;
-    --fate-line: #edd082;
-    --fate-line-soft: rgba(237, 208, 130, 0.56);
-    --fate-glow: rgba(235, 190, 92, 0.42);
-    --fate-wax: #b68028;
-    --fate-wax-deep: #5c3a0b;
+    --fate-node: #e5b858;
+    --fate-ink: #2e2214;
+    --fate-ink-deep: #161009;
+    --fate-line: #f5dfaa;
+    --fate-line-soft: rgba(245, 223, 170, 0.50);
+    --fate-glow: rgba(245, 202, 102, 0.38);
+    --fate-wax: #c48c28;
+    --fate-wax-deep: #6b450b;
+}
+
+/* Apple Light Mode: Apple Card Pearl Titanium, Ice Sapphire & Warm Champagne */
+html[data-apple-appearance="light"] .director_fate_card,
+html[data-apple-appearance="light"] .director_fate_choice,
+html[data-apple-appearance="light"] .director_fate_log_entry {
+    --fate-node: #8e8e93;
+    --fate-ink: #ffffff;
+    --fate-ink-deep: #eceef3;
+    --fate-line: #1d1d1f;
+    --fate-line-soft: rgba(60, 60, 67, 0.16);
+    --fate-glow: rgba(0, 122, 255, 0.08);
+    --fate-wax: #c83e37;
+    --fate-wax-deep: #8d1f1b;
+}
+
+html[data-apple-appearance="light"] .director_fate_card[data-rarity="rare"],
+html[data-apple-appearance="light"] .director_fate_choice[data-rarity="rare"],
+html[data-apple-appearance="light"] .director_fate_log_entry[data-rarity="rare"] {
+    --fate-node: #007aff;
+    --fate-ink: #f4f9ff;
+    --fate-ink-deep: #dfeeff;
+    --fate-line: #0c2b52;
+    --fate-line-soft: rgba(0, 122, 255, 0.28);
+    --fate-glow: rgba(0, 122, 255, 0.16);
+    --fate-wax: #007aff;
+    --fate-wax-deep: #0051b3;
+}
+
+html[data-apple-appearance="light"] .director_fate_card[data-rarity="legendary"],
+html[data-apple-appearance="light"] .director_fate_choice[data-rarity="legendary"],
+html[data-apple-appearance="light"] .director_fate_log_entry[data-rarity="legendary"] {
+    --fate-node: #c48c28;
+    --fate-ink: #fffbf2;
+    --fate-ink-deep: #f4e4bf;
+    --fate-line: #473009;
+    --fate-line-soft: rgba(196, 140, 40, 0.42);
+    --fate-glow: rgba(212, 166, 62, 0.24);
+    --fate-wax: #c88e24;
+    --fate-wax-deep: #85560b;
+}
+
+html[data-apple-appearance="light"] .director_fate_choice {
+    box-shadow:
+        inset 0 0.5px 0 #ffffff,
+        0 6px 18px rgba(0, 0, 0, 0.07),
+        0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+html[data-apple-appearance="light"] .director_fate_choice_rarity {
+    background: rgba(60, 60, 67, 0.06);
+}
+
+html[data-apple-appearance="light"] .director_fate_choice_preview {
+    border-top-color: rgba(60, 60, 67, 0.12);
+    color: rgba(29, 29, 31, 0.78);
+}
+
+html[data-apple-appearance="light"] .director_fate_back {
+    box-shadow:
+        inset 0 0.5px 0 #ffffff,
+        0 10px 26px rgba(0, 0, 0, 0.09);
 }
 
 .director_fate_hand {
@@ -140,14 +195,14 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     margin: 0 0 8px;
     font-size: 0.78em;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: rgba(229, 184, 116, 0.82);
+    color: var(--fate-desk-muted, rgba(235, 235, 245, 0.64));
 }
 
 .director_fate_card {
     display: grid;
-    width: min(100%, 272px);
+    width: min(100%, 276px);
     min-width: 0;
     margin: 8px auto 14px;
     perspective: 960px;
@@ -158,7 +213,7 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 
 .director_fate_card:focus-visible {
     border-radius: 18px;
-    outline: 2px solid #e5b874;
+    outline: 2px solid var(--apple-accent, #0a84ff);
     outline-offset: 4px;
 }
 
@@ -173,81 +228,70 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     justify-content: center;
     gap: 10px;
     min-width: 0;
-    min-height: 286px;
+    min-height: 280px;
     padding: 26px 20px;
     overflow: hidden;
-    border: 1px solid var(--fate-line-soft);
-    border-radius: 15px;
+    border: 0.5px solid var(--fate-line-soft);
+    border-radius: 18px;
     backface-visibility: hidden;
     transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease;
 }
 
 #director_fate_panel[data-has-offer="true"] .director_fate_back,
 #director_fate_panel[data-has-offer="true"] .director_fate_face {
-    min-height: 176px;
+    min-height: 170px;
     padding: 18px 16px;
 }
 
 .director_fate_back {
     color: var(--fate-line);
     background:
-        radial-gradient(circle at 16px 16px, var(--fate-line) 0 1.5px, transparent 2.5px),
-        radial-gradient(circle at calc(100% - 16px) 16px, var(--fate-line) 0 1.5px, transparent 2.5px),
-        radial-gradient(circle at 16px calc(100% - 16px), var(--fate-line) 0 1.5px, transparent 2.5px),
-        radial-gradient(circle at calc(100% - 16px) calc(100% - 16px), var(--fate-line) 0 1.5px, transparent 2.5px),
-        radial-gradient(ellipse at 50% 34%, var(--fate-glow) 0, transparent 64%),
-        repeating-linear-gradient(45deg, transparent 0 9px, rgba(255, 255, 255, 0.03) 9px 10px),
-        repeating-linear-gradient(-45deg, transparent 0 9px, rgba(255, 255, 255, 0.03) 9px 10px),
-        linear-gradient(162deg, var(--fate-ink), var(--fate-ink-deep));
-    outline: 1px solid var(--fate-line-soft);
-    outline-offset: -8px;
+        radial-gradient(ellipse at 50% 0%, var(--fate-glow) 0%, transparent 62%),
+        linear-gradient(158deg, var(--fate-ink) 0%, var(--fate-ink-deep) 100%);
     box-shadow:
-        inset 0 0 0 7px rgba(0, 0, 0, 0.3),
-        0 12px 28px rgba(0, 0, 0, 0.44);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+        inset 0 0.5px 0 rgba(255, 255, 255, 0.22),
+        0 14px 32px rgba(0, 0, 0, 0.34);
+    text-shadow: none;
     transform: rotateY(0deg);
 }
 
 .director_fate_card[data-rarity="rare"] .director_fate_back {
     background-color: var(--fate-ink);
     box-shadow:
-        inset 0 0 0 7px rgba(0, 0, 0, 0.3),
-        inset 0 48px 60px -38px rgba(212, 224, 242, 0.24),
-        0 12px 28px rgba(0, 0, 0, 0.44);
+        inset 0 0.5px 0 rgba(214, 231, 255, 0.28),
+        0 14px 34px rgba(10, 132, 255, 0.18),
+        0 12px 28px rgba(0, 0, 0, 0.36);
 }
 
 .director_fate_card[data-rarity="legendary"] .director_fate_back {
     box-shadow:
-        inset 0 0 0 7px rgba(0, 0, 0, 0.34),
-        inset 0 0 42px rgba(235, 190, 92, 0.14),
-        0 12px 30px rgba(0, 0, 0, 0.48),
-        0 0 24px rgba(235, 190, 92, 0.22);
+        inset 0 0.5px 0 rgba(245, 223, 170, 0.38),
+        0 14px 34px rgba(229, 184, 88, 0.22),
+        0 12px 28px rgba(0, 0, 0, 0.40);
 }
 
-/* An empty slot is a stacked face-down deck: two cards peek from beneath. */
 .director_fate_card[data-state="empty"] .director_fate_back {
     box-shadow:
-        inset 0 0 0 7px rgba(0, 0, 0, 0.3),
+        inset 0 0.5px 0 rgba(255, 255, 255, 0.18),
         4px 4px 0 -1px var(--fate-ink-deep),
         4px 4px 0 0 var(--fate-line-soft),
         8px 8px 0 -1px var(--fate-ink-deep),
-        8px 8px 0 0 rgba(223, 213, 194, 0.2),
-        0 16px 30px rgba(0, 0, 0, 0.4);
+        8px 8px 0 0 rgba(229, 229, 234, 0.18),
+        0 16px 32px rgba(0, 0, 0, 0.32);
 }
 
-.director_fate_card[data-state="stale"] .director_fate_back { filter: grayscale(0.85) brightness(0.78); }
+.director_fate_card[data-state="stale"] .director_fate_back { filter: grayscale(0.85) brightness(0.8); }
 
 .director_fate_face {
-    color: #27211b;
-    border-color: #cbb992;
+    color: #1d1d1f;
+    border-color: rgba(60, 60, 67, 0.14);
     background:
-        radial-gradient(ellipse at 50% 0, rgba(255, 255, 255, 0.72), transparent 62%),
-        radial-gradient(ellipse at 50% 120%, rgba(146, 114, 62, 0.18), transparent 62%),
-        linear-gradient(180deg, #faf5ea, #ece1ca);
-    outline: 1px solid rgba(139, 109, 59, 0.34);
-    outline-offset: -8px;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.36);
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+        radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.92), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, #f5f5f7 100%);
+    box-shadow:
+        inset 0 0.5px 0 #ffffff,
+        0 14px 34px rgba(0, 0, 0, 0.22);
+    font-family: var(--apple-font-serif, "New York", "Noto Serif SC", "Songti SC", Georgia, serif);
     font-size: 1.01em;
     line-height: 1.72;
     text-shadow: none;
@@ -257,22 +301,20 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     opacity: 0;
 }
 
-/* Ornamental hairline rule with a center diamond pip above revealed vellum prose. */
 .director_fate_face::before {
     flex: 0 0 auto;
-    width: 80px;
-    height: 8px;
+    width: 64px;
+    height: 6px;
     background:
-        radial-gradient(circle, #8b6d3b 0 2.5px, transparent 3px) center / 8px 8px no-repeat,
-        linear-gradient(90deg, transparent, rgba(139, 109, 59, 0.62), transparent) center / 100% 1px no-repeat;
+        radial-gradient(circle, var(--fate-node) 0 2.2px, transparent 2.8px) center / 6px 6px no-repeat,
+        linear-gradient(90deg, transparent, rgba(60, 60, 67, 0.24), transparent) center / 100% 1px no-repeat;
     content: '';
 }
 
-.director_fate_card[data-rarity="rare"] .director_fate_face { border-color: #9bb0cf; }
+.director_fate_card[data-rarity="rare"] .director_fate_face { border-color: rgba(10, 132, 255, 0.35); }
 .director_fate_card[data-rarity="legendary"] .director_fate_face {
-    border-color: #cca040;
-    outline-color: rgba(204, 160, 64, 0.65);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.36), 0 0 24px rgba(235, 190, 92, 0.32);
+    border-color: rgba(212, 166, 62, 0.55);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24), 0 0 24px rgba(229, 184, 88, 0.26);
 }
 
 .director_fate_flipped .director_fate_back { transform: rotateY(180deg); opacity: 0; }
@@ -288,39 +330,36 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     animation: director_fate_breathe 3s ease-in-out infinite;
 }
 
-/* Wax seal: organic rim with specular highlight and pressed glyph. */
+/* Medallion seal */
 .director_fate_seal,
 .director_fate_choice_seal {
     position: relative;
     display: grid;
     flex: 0 0 auto;
     place-items: center;
-    width: 58px;
-    height: 58px;
-    border-radius: 50% 47% 52% 49% / 49% 53% 47% 51%;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
     background:
-        radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.4), transparent 36%),
-        radial-gradient(circle at 50% 50%, var(--fate-wax) 0 58%, var(--fate-wax-deep) 100%);
+        radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.42), transparent 40%),
+        linear-gradient(145deg, var(--fate-wax), var(--fate-wax-deep));
     box-shadow:
-        0 4px 9px rgba(0, 0, 0, 0.52),
-        inset 0 -3px 6px rgba(0, 0, 0, 0.36),
-        inset 0 2px 3px rgba(255, 255, 255, 0.2);
-    color: rgba(255, 243, 224, 0.88);
-    font-size: 23px;
+        0 4px 12px rgba(0, 0, 0, 0.38),
+        inset 0 1px 1px rgba(255, 255, 255, 0.32);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 21px;
     line-height: 1;
-    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.48), 0 1px 0 rgba(255, 255, 255, 0.2);
     opacity: 1;
 }
 
-.director_fate_choice_seal { width: 34px; height: 34px; font-size: 14px; }
+.director_fate_choice_seal { width: 32px; height: 32px; font-size: 13px; }
 
 .director_fate_seal::before,
 .director_fate_choice_seal::before {
     position: absolute;
-    inset: 16%;
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    inset: 14%;
+    border: 1px solid rgba(255, 255, 255, 0.24);
     border-radius: 50%;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.24);
     content: '';
 }
 
@@ -328,11 +367,9 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     background: none;
     box-shadow: inset 0 0 0 1px var(--fate-line-soft);
     color: var(--fate-line);
-    text-shadow: none;
     opacity: 0.72;
 }
 
-/* Applying: the wax trembles and light leaks through a fissure. */
 .director_fate_card[data-state="applying"] .director_fate_seal {
     animation: director_fate_crack 900ms ease-in-out infinite;
 }
@@ -352,9 +389,9 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 .director_fate_choice.is_drawing .director_fate_choice_seal::after {
     position: absolute;
     inset: 8% 38%;
-    background: linear-gradient(180deg, rgba(255, 246, 214, 0.2), #fff3cf 50%, rgba(255, 246, 214, 0.2));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), #ffffff 50%, rgba(255, 255, 255, 0.25));
     clip-path: polygon(45% 0, 72% 20%, 38% 42%, 78% 64%, 50% 100%, 30% 100%, 56% 66%, 18% 44%, 52% 22%, 25% 0);
-    box-shadow: 0 0 6px #fff3cf;
+    box-shadow: 0 0 6px #ffffff;
     content: '';
     transform: rotate(18deg);
     animation: director_fate_breathe 900ms ease-in-out infinite;
@@ -365,11 +402,11 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 .director_fate_flipped .director_fate_face::after {
     position: absolute;
     inset: -10%;
-    background: radial-gradient(circle at 50% 45%, rgba(255, 244, 210, 0.95), var(--fate-glow) 35%, transparent 65%);
+    background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.85), var(--fate-glow) 35%, transparent 65%);
     content: '';
     pointer-events: none;
     opacity: 0;
-    animation: director_fate_bloom 1100ms ease-out 320ms backwards;
+    animation: director_fate_bloom 1000ms ease-out 280ms backwards;
 }
 
 @keyframes director_fate_bloom {
@@ -386,47 +423,48 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 
 #director_fate_title {
     max-width: 100%;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
-    font-size: 1.28em;
-    letter-spacing: 0.06em;
+    font-size: 1.24em;
+    font-weight: 600;
+    letter-spacing: -0.015em;
 }
 
-#director_fate_strength_label { font-size: 0.84em; letter-spacing: 0.12em; opacity: 0.8; }
+#director_fate_strength_label { font-size: 0.84em; opacity: 0.78; }
 
 #director_fate_rarity {
-    padding: 2px 11px;
-    border: 1px solid var(--fate-line-soft);
+    padding: 2px 10px;
+    border: 0.5px solid var(--fate-line-soft);
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.22);
-    font-size: 0.78em;
-    letter-spacing: 0.2em;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.76em;
+    font-weight: 500;
+    letter-spacing: 0.08em;
 }
 
 #director_fate_rarity:empty { display: none; }
 
 #director_fate_status {
     margin: 12px 0;
-    padding: 8px 12px;
+    padding: 9px 12px;
     min-height: 1.6em;
-    border-left: 2px solid rgba(229, 184, 116, 0.55);
-    border-radius: 0 8px 8px 0;
-    background: rgba(255, 248, 234, 0.045);
-    color: rgba(243, 237, 226, 0.92);
-    font-size: 0.9em;
-    line-height: 1.55;
+    border: 0.5px solid var(--fate-desk-border, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    background: var(--fate-desk-card, rgba(255, 255, 255, 0.055));
+    color: var(--fate-desk-muted, rgba(235, 235, 245, 0.78));
+    font-size: 0.88em;
+    line-height: 1.5;
     overflow-wrap: anywhere;
 }
 
 #director_fate_status[data-kind="busy"] {
-    border-left-color: #ebbf6e;
-    background: rgba(235, 191, 110, 0.09);
-    color: #fae6be;
+    border-color: var(--apple-accent-border, rgba(10, 132, 255, 0.36));
+    background: var(--apple-accent-tint, rgba(10, 132, 255, 0.14));
+    color: var(--fate-desk-ink, #f5f5f7);
 }
 
 #director_fate_status[data-kind="error"] {
-    border-left-color: #e8846b;
-    background: rgba(232, 132, 107, 0.11);
-    color: #ffd3c7;
+    border-color: rgba(255, 69, 58, 0.42);
+    background: var(--apple-red-tint, rgba(255, 69, 58, 0.16));
+    color: var(--apple-red, #ff6961);
 }
 
 .director_fate_tools {
@@ -435,15 +473,16 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     align-items: center;
     gap: 8px 12px;
     margin: 12px 0 10px;
-    padding: 10px 12px;
-    border: 1px solid rgba(229, 177, 132, 0.18);
-    border-radius: 10px;
-    background: rgba(15, 22, 34, 0.62);
+    padding: 9px 12px;
+    border: 0.5px solid var(--fate-desk-border, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    background: var(--fate-desk-card, rgba(255, 255, 255, 0.055));
 }
 
 .director_fate_tools label {
     font-size: 0.88em;
-    color: rgba(243, 237, 226, 0.82);
+    font-weight: 500;
+    color: var(--fate-desk-muted, rgba(235, 235, 245, 0.72));
     white-space: nowrap;
 }
 
@@ -451,9 +490,7 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     width: 100%;
     min-width: 0;
     margin: 0;
-    border-color: rgba(229, 177, 132, 0.26);
-    border-radius: 8px;
-    background-color: rgba(10, 15, 25, 0.85);
+    border-radius: 9px;
 }
 
 .director_fate_actions {
@@ -475,28 +512,34 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     flex-shrink: 0;
     width: auto;
     max-width: 100%;
-    padding: 7px 13px;
-    border: 1px solid rgba(229, 177, 132, 0.28);
-    border-radius: 9px;
-    background-color: rgba(24, 34, 52, 0.88);
-    color: #f4eee3;
+    padding: 8px 14px;
+    border: 0.5px solid var(--fate-desk-border, rgba(255, 255, 255, 0.14));
+    border-radius: 11px;
+    background-color: var(--fate-desk-control, rgba(255, 255, 255, 0.09));
+    color: var(--fate-desk-ink, #f5f5f7);
+    font-weight: 500;
     white-space: nowrap;
     transition-property: background-color, border-color, filter, box-shadow;
-    transition-duration: 150ms;
+    transition-duration: 140ms;
 }
 
 #director_fate_panel #director_fate_apply:not([disabled]),
 #director_fate_panel[data-has-offer="false"] #director_fate_draw:not([disabled]) {
-    border-color: rgba(235, 191, 110, 0.72);
-    background-color: rgba(178, 124, 54, 0.34);
-    box-shadow: inset 0 1px 0 rgba(255, 238, 204, 0.22), 0 4px 14px rgba(0, 0, 0, 0.28);
-    color: #fff5e1;
+    border-color: transparent;
+    background-color: var(--apple-accent, #0a84ff);
+    box-shadow: 0 4px 14px rgba(10, 132, 255, 0.30);
+    color: #ffffff;
     font-weight: 600;
 }
 
+#director_fate_panel #director_fate_apply:not([disabled]):hover,
+#director_fate_panel[data-has-offer="false"] #director_fate_draw:not([disabled]):hover {
+    background-color: var(--apple-accent-hover, #409cff);
+    color: #ffffff;
+}
+
 #director_fate_panel .menu_button:not(.disabled):not([disabled]):hover {
-    border-color: rgba(229, 184, 116, 0.6);
-    background-color: rgba(38, 52, 78, 0.95);
+    background-color: var(--fate-desk-control-hover, rgba(255, 255, 255, 0.15));
 }
 
 #director_fate_panel .menu_button:not(.disabled):not([disabled]):active,
@@ -512,9 +555,9 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 #director_fate_cost {
     display: block;
     margin-top: 4px;
-    color: rgba(214, 204, 190, 0.76);
-    font-size: 0.82em;
-    line-height: 1.58;
+    color: var(--fate-desk-muted, rgba(235, 235, 245, 0.60));
+    font-size: 0.80em;
+    line-height: 1.55;
 }
 
 #director_fate_settings {
@@ -524,24 +567,25 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     gap: 10px 14px;
     margin-top: 12px;
     padding: 12px 14px;
-    border: 1px solid var(--SmartThemeBorderColor);
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.14);
+    border: 0.5px solid var(--apple-hairline-subtle, var(--SmartThemeBorderColor));
+    border-radius: 13px;
+    background: var(--apple-card-bg, rgba(255, 255, 255, 0.04));
 }
 
 #director_fate_settings label { min-width: 0; font-weight: 500; }
 #director_fate_settings select { min-width: 0; max-width: 100%; }
-.director_settings_hint { margin: 10px 0 0; font-size: 0.88em; opacity: 0.8; line-height: 1.62; }
+.director_settings_hint { margin: 10px 0 0; font-size: 0.86em; color: var(--apple-ink-secondary, inherit); opacity: 0.82; line-height: 1.6; }
 #director_fate_panel [hidden] { display: none; }
 
+/* Authentic iOS / macOS UISegmentedControl */
 .director_fate_tabs {
     display: flex;
-    gap: 6px;
+    gap: 3px;
     min-width: 0;
-    padding: 4px;
-    border: 1px solid rgba(229, 177, 132, 0.2);
+    padding: 3px;
+    border: 0;
     border-radius: 11px;
-    background: rgba(9, 13, 22, 0.65);
+    background: var(--apple-input-bg, rgba(118, 118, 128, 0.24));
 }
 
 .director_fate_tab {
@@ -552,10 +596,10 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     min-width: 0;
     margin: 0;
     padding: 6px 10px;
-    border: 1px solid transparent;
+    border: 0.5px solid transparent;
     border-radius: 8px;
     background-color: transparent;
-    color: rgba(243, 237, 226, 0.72);
+    color: var(--fate-desk-muted, rgba(235, 235, 245, 0.72));
     font-weight: 500;
     text-align: center;
     white-space: normal;
@@ -568,19 +612,20 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 .director_fate_tab:focus-visible { background-color: var(--white30a); }
 
 .director_fate_tabs [aria-selected="true"] {
-    border-color: rgba(229, 184, 116, 0.48);
-    background-color: rgba(229, 184, 116, 0.14);
-    color: #f9e3b8;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+    border-color: var(--apple-hairline-subtle, rgba(255, 255, 255, 0.14));
+    background-color: var(--apple-elevated-bg, rgba(64, 64, 70, 0.92));
+    color: var(--fate-desk-ink, #ffffff);
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
 }
 
-/* The log is a vertical chronicle: newest at the top, one emblem per card on the gilt rail. */
+/* Chronicle log timeline */
 #director_fate_log_list {
     position: relative;
     display: grid;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
-    margin: 16px 0;
+    margin: 14px 0;
     padding: 0 0 0 24px;
     list-style: none;
 }
@@ -590,9 +635,9 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     top: 12px;
     bottom: 12px;
     left: 8px;
-    width: 2px;
+    width: 1.5px;
     border-radius: 1px;
-    background: linear-gradient(180deg, rgba(229, 184, 116, 0.55), rgba(229, 184, 116, 0.08));
+    background: linear-gradient(180deg, var(--apple-hairline, rgba(255, 255, 255, 0.25)), transparent);
     content: '';
 }
 
@@ -600,20 +645,18 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     position: relative;
     min-width: 0;
     padding: 12px 14px;
-    border: 1px solid rgba(229, 177, 132, 0.18);
+    border: 0.5px solid var(--fate-desk-border, rgba(255, 255, 255, 0.12));
     border-left: 3px solid var(--fate-node);
-    border-radius: 10px;
-    background: rgba(18, 25, 39, 0.78);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+    border-radius: 14px;
+    background: var(--fate-desk-card, rgba(255, 255, 255, 0.055));
 }
 
 .director_fate_log_entry[data-rarity="legendary"] {
-    border-color: rgba(229, 190, 90, 0.34);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28), 0 0 16px rgba(229, 190, 90, 0.14);
+    border-color: rgba(229, 184, 88, 0.38);
 }
 
 .director_fate_log_entry:focus-visible {
-    outline: 2px solid #e5b874;
+    outline: 2px solid var(--apple-accent, #0a84ff);
     outline-offset: 2px;
 }
 
@@ -629,53 +672,49 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 
 .director_fate_log_heading strong {
     min-width: 0;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
-    font-size: 1.05em;
-    letter-spacing: 0.04em;
-    color: #f6efe2;
+    font-size: 1.02em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fate-desk-ink, #f5f5f7);
 }
 
 .director_fate_log_details {
-    margin-top: 6px;
-    font-size: 0.83em;
-    color: rgba(214, 204, 190, 0.82);
+    margin-top: 5px;
+    font-size: 0.82em;
+    color: var(--fate-desk-muted, rgba(235, 235, 245, 0.64));
 }
 
 .director_fate_log_status {
     padding: 1px 8px;
-    border: 1px solid rgba(235, 191, 110, 0.45);
     border-radius: 999px;
-    background: rgba(235, 191, 110, 0.1);
-    color: #f3ca85;
+    background: var(--apple-accent-tint, rgba(10, 132, 255, 0.16));
+    color: var(--apple-accent, #0a84ff);
+    font-weight: 500;
     font-size: 0.92em;
 }
 
 .director_fate_log_event {
     margin: 10px 0;
     padding: 9px 12px;
-    border-left: 2px solid var(--fate-node);
-    border-radius: 0 8px 8px 0;
-    background: linear-gradient(180deg, rgba(250, 245, 234, 0.96), rgba(236, 225, 202, 0.94));
-    color: #27211b;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+    border: 0.5px solid var(--apple-hairline-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
+    background: var(--apple-input-bg, rgba(118, 118, 128, 0.16));
+    color: var(--fate-desk-ink, #f5f5f7);
+    font-family: var(--apple-font-serif, "New York", "Noto Serif SC", Georgia, serif);
     overflow-wrap: anywhere;
-    line-height: 1.68;
+    line-height: 1.66;
     white-space: pre-wrap;
 }
 
-.director_fate_log_actions { margin-top: 10px; }
+.director_fate_log_actions { margin-top: 8px; }
 .director_fate_log_actions .menu_button { margin: 0; }
 
-/* Unflipped entries keep a strip of card back to tear open. */
 .director_fate_log_actions .director_fate_log_flip {
     flex: 1 1 auto;
-    border: 1px solid var(--fate-line-soft);
-    background:
-        repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, 0.05) 6px 7px),
-        linear-gradient(160deg, var(--fate-ink), var(--fate-ink-deep));
+    border: 0.5px solid var(--fate-line-soft);
+    background: linear-gradient(155deg, var(--fate-ink), var(--fate-ink-deep));
     color: var(--fate-line);
-    letter-spacing: 0.28em;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.2em;
 }
 
 .director_fate_log_actions .director_fate_log_flip:hover,
@@ -684,12 +723,12 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 
 #director_fate_log_empty {
     margin: 18px 0;
-    padding: 18px 14px;
-    border: 1px dashed rgba(229, 177, 132, 0.22);
-    border-radius: 10px;
+    padding: 20px 14px;
+    border: 0.5px dashed var(--fate-desk-border, rgba(255, 255, 255, 0.16));
+    border-radius: 14px;
     text-align: center;
-    color: rgba(214, 204, 190, 0.72);
-    font-size: 0.92em;
+    color: var(--fate-desk-muted, rgba(235, 235, 245, 0.6));
+    font-size: 0.9em;
 }
 
 /* Log rail and chat header share one emblem: round seal, faceted gem, crowned star.
@@ -705,11 +744,11 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 
 .director_fate_mark[data-rarity="rare"],
 .director_fate_rarity_dot[data-rarity="rare"] {
-    --fate-plate: #243044;
-    --fate-edge: #f5f8fc;
+    --fate-plate: #1b365d;
+    --fate-edge: #e6f2ff;
     --fate-cut: #ffffff;
-    --fate-wax: #0e1622;
-    --fate-rim: #101820;
+    --fate-wax: #0a1f3d;
+    --fate-rim: #0d1d33;
 }
 
 .director_fate_mark[data-rarity="legendary"],
@@ -731,17 +770,14 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     height: 16px;
     padding: 0;
     border-radius: 50%;
-    background: #101724;
-    box-shadow: 0 0 0 3px #101724;
+    background: var(--fate-desk-bg, #1c1c1e);
+    box-shadow: 0 0 0 3px var(--fate-desk-bg, #1c1c1e);
     color: transparent;
     font-size: 0;
     line-height: 0;
     pointer-events: none;
 }
 
-/* The name row aligns on the text baseline, which drops a button below the
-   glyphs. Center the emblem on that line instead. The border box stays 18px;
-   the 44px hit pad is a separate layer. */
 .director_fate_mark {
     position: relative;
     display: inline-flex;
@@ -872,22 +908,20 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     width: 100%;
     min-width: 0;
     min-height: 150px;
-    padding: 13px 7px 11px;
+    padding: 13px 8px 12px;
     overflow: hidden;
-    border: 1px solid var(--fate-line-soft);
-    border-radius: 13px;
+    border: 0.5px solid var(--fate-line-soft);
+    border-radius: 16px;
     background:
-        radial-gradient(ellipse at 50% 24%, var(--fate-glow) 0, transparent 66%),
-        repeating-linear-gradient(45deg, transparent 0 7px, rgba(255, 255, 255, 0.03) 7px 8px),
-        repeating-linear-gradient(-45deg, transparent 0 7px, rgba(255, 255, 255, 0.03) 7px 8px),
-        linear-gradient(164deg, var(--fate-ink), var(--fate-ink-deep));
-    outline: 1px solid var(--fate-line-soft);
-    outline-offset: -5px;
-    box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.28), 0 8px 18px rgba(0, 0, 0, 0.38);
+        radial-gradient(ellipse at 50% 0%, var(--fate-glow) 0%, transparent 65%),
+        linear-gradient(162deg, var(--fate-ink) 0%, var(--fate-ink-deep) 100%);
+    box-shadow:
+        inset 0 0.5px 0 rgba(255, 255, 255, 0.18),
+        0 8px 20px rgba(0, 0, 0, 0.28);
     color: var(--fate-line);
     font: inherit;
     line-height: 1.32;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+    text-shadow: none;
     overflow-wrap: anywhere;
     cursor: pointer;
     transition: transform 400ms ease, opacity 400ms ease, translate 180ms ease, box-shadow 180ms ease;
@@ -901,17 +935,17 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 .director_fate_choice:not(:disabled):active,
 .director_fate_choice:focus-visible {
     translate: 0 -4px;
-    box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.28), 0 12px 22px rgba(0, 0, 0, 0.44), 0 0 18px var(--fate-glow);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.24), 0 12px 24px rgba(0, 0, 0, 0.38), 0 0 16px var(--fate-glow);
 }
 
 @media (hover: hover) {
     .director_fate_choice:not(:disabled):hover {
         translate: 0 -4px;
-        box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.28), 0 12px 22px rgba(0, 0, 0, 0.44), 0 0 18px var(--fate-glow);
+        box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.24), 0 12px 24px rgba(0, 0, 0, 0.38), 0 0 16px var(--fate-glow);
     }
 }
 
-.director_fate_choice:focus-visible { outline: 2px solid var(--fate-line); outline-offset: -4px; }
+.director_fate_choice:focus-visible { outline: 2px solid var(--apple-accent, #0a84ff); outline-offset: 2px; }
 .director_fate_choice:disabled { cursor: default; }
 
 .director_fate_choice_title {
@@ -919,21 +953,21 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     min-width: 0;
     max-width: 100%;
     overflow-wrap: anywhere;
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
-    font-size: 0.96em;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-size: 0.94em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     text-align: center;
 }
 
 .director_fate_choice_rarity {
     max-width: 100%;
     padding: 1px 8px;
-    border: 1px solid var(--fate-line-soft);
+    border: 0.5px solid var(--fate-line-soft);
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.24);
-    font-size: 0.74em;
-    letter-spacing: 0.14em;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.72em;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     white-space: nowrap;
 }
 
@@ -941,9 +975,9 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     align-self: stretch;
     margin-top: 2px;
     padding-top: 6px;
-    border-top: 1px solid var(--fate-line-soft);
-    color: rgba(245, 239, 228, 0.88);
-    font-size: 0.79em;
+    border-top: 0.5px solid rgba(255, 255, 255, 0.14);
+    color: rgba(245, 245, 247, 0.84);
+    font-size: 0.78em;
     line-height: 1.48;
     text-align: left;
     white-space: pre-wrap;
@@ -951,7 +985,7 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 }
 
 .director_fate_choice[data-rarity="legendary"] {
-    box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.32), 0 8px 18px rgba(0, 0, 0, 0.38), 0 0 16px rgba(235, 190, 92, 0.24);
+    box-shadow: inset 0 0.5px 0 rgba(245, 223, 170, 0.32), 0 8px 20px rgba(0, 0, 0, 0.30), 0 0 16px rgba(245, 202, 102, 0.22);
 }
 
 .director_fate_choice[data-rarity="legendary"]::after,
@@ -961,7 +995,7 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
     bottom: -20%;
     left: -60%;
     width: 40%;
-    background: linear-gradient(100deg, transparent, rgba(255, 233, 170, 0.3), transparent);
+    background: linear-gradient(100deg, transparent, rgba(255, 238, 185, 0.30), transparent);
     content: '';
     pointer-events: none;
     opacity: 0;
@@ -971,13 +1005,13 @@ dialog.director_fate_dialog .popup-button-cancel:hover {
 .director_fate_choice[data-rarity="rare"]::after {
     position: absolute;
     inset: 0;
-    background: linear-gradient(150deg, rgba(212, 224, 242, 0.16), transparent 45%);
+    background: linear-gradient(150deg, rgba(164, 206, 255, 0.16), transparent 45%);
     content: '';
     pointer-events: none;
 }
 
 .director_fate_choice.is_picked {
-    box-shadow: inset 0 0 0 4px rgba(0, 0, 0, 0.28), 0 12px 24px rgba(0, 0, 0, 0.48), 0 0 22px var(--fate-glow);
+    box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.28), 0 12px 26px rgba(0, 0, 0, 0.42), 0 0 22px var(--fate-glow);
 }
 
 .director_fate_offer.is_picking .director_fate_choice:not(.is_picked) { opacity: 0; animation: none; }
@@ -1045,20 +1079,22 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     .director_fate_tab { animation: none !important; transition: none; }
 }
 
+/* macOS Popover Menu */
 #directorPopover {
     z-index: 30000;
-    width: min(276px, 92vw);
+    width: min(272px, 92vw);
     max-width: calc(100vw - 16px);
     max-height: 72vh;
     overflow-x: hidden;
     overflow-y: auto;
     overflow-wrap: anywhere;
-    padding: 8px;
-    border: 1px solid rgba(229, 177, 132, 0.28);
+    padding: 6px;
+    border: 0.5px solid var(--apple-hairline, var(--SmartThemeBorderColor));
     border-radius: 14px;
-    background: linear-gradient(170deg, rgba(20, 29, 44, 0.96), rgba(12, 17, 27, 0.98));
-    backdrop-filter: blur(var(--SmartThemeBlurStrength));
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 240, 214, 0.08);
+    background: var(--apple-glass-strong, var(--SmartThemeBlurTintColor));
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    box-shadow: var(--apple-shadow-menu, 0 18px 44px rgba(0, 0, 0, 0.45));
 }
 
 #directorPopover[hidden] {
@@ -1071,46 +1107,56 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     gap: 9px;
     width: 100%;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 7px 10px;
     overflow-wrap: anywhere;
-    border: 1px solid transparent;
+    border: 0;
     border-radius: 8px;
     background: transparent;
-    color: var(--SmartThemeBodyColor);
+    color: var(--apple-ink, var(--SmartThemeBodyColor));
     font: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background-color 140ms ease, border-color 140ms ease;
+    transition: background-color 120ms ease, color 120ms ease;
 }
 
 #directorPopover button:hover,
 #directorPopover button:focus-visible,
 #directorPopover button:not(:disabled):active {
-    border-color: rgba(229, 177, 132, 0.22);
-    background: rgba(229, 177, 132, 0.1);
+    background: var(--apple-accent, #0a84ff);
+    color: #ffffff;
 }
 
 .director_footer button { white-space: nowrap; }
 
 #directorPopover button:disabled {
-    opacity: 0.48;
+    opacity: 0.45;
     cursor: default;
 }
 
 #directorPopover kbd {
     margin-left: auto;
-    padding: 1px 6px;
-    border: 1px solid rgba(229, 177, 132, 0.24);
-    border-radius: 5px;
-    background: rgba(0, 0, 0, 0.24);
-    font-size: 0.78em;
-    opacity: 0.78;
+    padding: 2px 7px;
+    border: 0.5px solid var(--apple-hairline, rgba(255, 255, 255, 0.14));
+    border-radius: 6px;
+    background: var(--apple-control-bg, rgba(255, 255, 255, 0.1));
+    color: var(--apple-ink-secondary, rgba(235, 235, 245, 0.72));
+    box-shadow: none;
+    font-size: 0.76em;
+    opacity: 0.92;
+}
+
+#directorPopover button:hover kbd,
+#directorPopover button:focus-visible kbd,
+#directorPopover button:not(:disabled):active kbd {
+    border-color: rgba(255, 255, 255, 0.36);
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
 }
 
 .director_footer {
     margin-top: 6px;
     padding-top: 6px;
-    border-top: 1px solid rgba(229, 177, 132, 0.18);
+    border-top: 0.5px solid var(--apple-hairline-subtle, var(--SmartThemeBorderColor));
 }
 
 #director_presets {
@@ -1124,14 +1170,9 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
 .director_preset {
     margin-bottom: 10px;
     padding: 10px 12px;
-    border: 1px solid var(--SmartThemeBorderColor);
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.16);
-    transition: border-color 140ms ease;
-}
-
-.director_preset:hover {
-    border-color: rgba(229, 177, 132, 0.34);
+    border: 0.5px solid var(--apple-hairline-subtle, var(--SmartThemeBorderColor));
+    border-radius: 13px;
+    background: var(--apple-card-bg, var(--SmartThemeBlurTintColor));
 }
 
 .director_preset_toolbar,
@@ -1162,7 +1203,7 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
 .director_preset .drag-handle {
     cursor: grab;
     padding: 6px;
-    opacity: 0.7;
+    opacity: 0.65;
 }
 
 .director_preset_fields {
@@ -1184,20 +1225,19 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     margin: 8px;
 }
 
-/* Divider stays outside .mes_text so streaming and other extensions keep the message body. */
+/* Minimalist chapter divider outside .mes_text */
 .director-chapter-divider {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin: 4px 0 10px;
+    margin: 6px 0 12px;
     padding: 8px 0 4px;
     border-top: 0;
-    color: var(--SmartThemeQuoteColor);
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
-    font-size: 0.92em;
+    color: var(--apple-ink-secondary, var(--SmartThemeQuoteColor));
+    font-size: 0.84em;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-align: center;
     user-select: none;
 }
@@ -1206,22 +1246,21 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
 .director-chapter-divider::after {
     content: '';
     flex: 1 1 24px;
-    max-width: 96px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--SmartThemeBorderColor));
+    max-width: 110px;
+    height: 0.5px;
+    background: linear-gradient(90deg, transparent, var(--apple-hairline, var(--SmartThemeBorderColor)));
 }
 
 .director-chapter-divider::after {
-    background: linear-gradient(90deg, var(--SmartThemeBorderColor), transparent);
+    background: linear-gradient(90deg, var(--apple-hairline, var(--SmartThemeBorderColor)), transparent);
 }
 
 .mes.director-chapter-highlight {
-    box-shadow: inset 0 0 0 2px var(--SmartThemeQuoteColor);
+    box-shadow: inset 0 0 0 2px var(--apple-accent, var(--SmartThemeQuoteColor));
 }
 
-/* Jumping to a Fate message frames it in gold foil instead of the theme quote color. */
 .mes.director-fate-highlight {
-    box-shadow: inset 0 0 0 2px #d9b45a, inset 0 0 24px rgba(217, 180, 90, 0.18);
+    box-shadow: inset 0 0 0 2px #d9b45a, inset 0 0 24px rgba(217, 180, 90, 0.16);
 }
 
 .extraMesButtons:has(> .mes_director_chapter) {
@@ -1235,7 +1274,6 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     white-space: nowrap;
 }
 
-/* Keep the chip in the icon row. A squeezed chip would paint its dismiss control under the textarea. */
 #leftSendForm:has(#director_instruct_chip:not([hidden])) {
     flex: 0 0 auto;
 }
@@ -1246,22 +1284,23 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     z-index: 2;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     flex: 0 0 auto;
     width: auto;
     max-width: 18em;
     margin: 0 3px;
-    padding: 2px 9px;
-    border: 1px solid var(--SmartThemeBorderColor);
+    padding: 4px 10px;
+    border: 0.5px solid var(--apple-hairline, var(--SmartThemeBorderColor));
     border-radius: 999px;
-    background: var(--SmartThemeBlurTintColor);
-    color: var(--SmartThemeBodyColor);
+    background: var(--apple-control-bg, var(--SmartThemeBlurTintColor));
+    color: var(--apple-ink, var(--SmartThemeBodyColor));
     font: inherit;
-    font-size: 0.84em;
-    line-height: 1.4;
+    font-size: 0.82em;
+    font-weight: 500;
+    line-height: 1.3;
     white-space: nowrap;
     cursor: pointer;
-    transition: border-color 140ms ease, background-color 140ms ease;
+    transition: background-color 140ms ease, border-color 140ms ease;
 }
 
 #director_instruct_chip .director_instruct_text {
@@ -1274,21 +1313,21 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
 }
 
 #director_instruct_chip[data-state="pending"] {
-    color: #f0b265;
-    border-color: rgba(240, 178, 101, 0.65);
-    background: rgba(204, 122, 34, 0.14);
+    color: var(--apple-accent, #0a84ff);
+    border-color: var(--apple-accent-border, rgba(10, 132, 255, 0.4));
+    background: var(--apple-accent-tint, rgba(10, 132, 255, 0.14));
 }
 
 #director_instruct_chip[data-state="bound"] {
-    color: #9bb3cf;
-    border-color: rgba(155, 179, 207, 0.45);
-    background: rgba(92, 118, 152, 0.14);
+    color: var(--apple-ink-secondary, #8e8e93);
+    border-color: var(--apple-hairline, rgba(142, 142, 147, 0.35));
+    background: var(--apple-card-bg, rgba(142, 142, 147, 0.12));
 }
 
 #director_instruct_chip .director_instruct_dismiss {
     flex: 0 0 auto;
     padding: 0 2px;
-    opacity: 0.78;
+    opacity: 0.72;
 }
 
 .director_instruct_full {
@@ -1315,8 +1354,7 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
     #director_fate_settings { grid-auto-rows: minmax(44px, auto); }
 
     #director_fate_settings input[type="checkbox"] {
-        width: 22px;
-        height: 22px;
+        min-height: 22px;
     }
 
     /* Invisible pad. The chip's border box stays the small header glyph. */
@@ -1335,27 +1373,26 @@ body.reduced-motion .director_fate_mark_sheen::after { animation: none !importan
 .director_settings_help {
     margin: 8px 0;
     padding: 8px 12px;
-    border: 1px solid var(--SmartThemeBorderColor);
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.12);
+    border: 0.5px solid var(--apple-hairline-subtle, var(--SmartThemeBorderColor));
+    border-radius: 12px;
+    background: var(--apple-card-bg, rgba(255, 255, 255, 0.04));
 }
 
 .director_settings_help summary {
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.88em;
     font-weight: 500;
-    opacity: 0.82;
+    color: var(--apple-ink-secondary, inherit);
     user-select: none;
 }
 
 .director_settings_help[open] summary {
     margin-bottom: 8px;
-    color: var(--SmartThemeQuoteColor);
-    opacity: 1;
+    color: var(--apple-accent, var(--SmartThemeQuoteColor));
 }
 
 .director_settings_help p,
 .director_settings_help small {
     margin: 6px 0;
-    line-height: 1.62;
+    line-height: 1.6;
 }
